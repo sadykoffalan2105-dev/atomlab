@@ -1157,6 +1157,9 @@ export const messagesRu = {
   'lab3d.safety.rule7': 'Опыты с пахучими и ядовитыми газами проводите только в вытяжном шкафу с включённой тягой.',
   'lab3d.safety.rule8': 'Кислота или щёлочь попала на кожу — сразу смойте большим количеством воды и скажите учителю.',
   'lab3d.safety.close': 'Понятно',
+  'compound.obtLab.open': 'Открыть в лаборатории',
+  'compound.obtLab.aria': 'Открыть реакцию в лаборатории: {equation}',
+  'compound.obtLab.balance': 'уравняйте и запустите',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

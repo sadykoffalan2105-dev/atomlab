@@ -113,10 +113,23 @@ const NOT_DIRECT = new Set([
   'no2', 'so3', 'n2o', 'n2o5', 'tb_n2o3', 'tb_n2o4', 'tb_cl2o7', 'h2o2', 'feo', 'salt_fe2_cl', 'mno2', 'cro3', 'tb_cro', 'tb_mno',
   'tb_mn2o3', 'tb_mn3o4', 'ago', 'na2o', 'k2o', 'fes2', 'tb_bao2', 'tb_ph3', 'tb_sih4', 'tb_cac2', 'salt_fe3_s', 'tb_crcl2',
   'cl2o', 'clo2', 'tb_cl2o', 'tb_clo2', 'mn2o7', 'tb_mn2o7', 'cuo2', 'tb_cu2o', 'sio2_none',
+  // галогениды серебра в школе получают только обменом в растворе (карточка: AgNO₃ + NaCl / KBr / KI)
+  'salt_ag_cl', 'salt_ag_br', 'salt_ag_i',
 ])
 
 /** Лабораторные / промышленные способы (школьные), где в 200 основных реакциях нет реакции с этим продуктом. */
 const LAB: Record<string, string> = {
+  // Первый способ карточки (src/data/catalog/catalogObtaining200.ts) = путь таблицы правил (раздел 3).
+  mg_oh_2: 'MgCl₂ + 2NaOH → Mg(OH)₂ + 2NaCl',
+  fe_oh_3: 'FeCl₃ + 3NaOH → Fe(OH)₃ + 3NaCl',
+  salt_na_co3: '2NaOH + CO₂ → Na₂CO₃ + H₂O',
+  salt_fe2_cl: 'Fe + 2HCl → FeCl₂ + H₂',
+  salt_fe3_so4: '2Fe(OH)₃ + 3H₂SO₄ → Fe₂(SO₄)₃ + 6H₂O',
+  salt_mn_so4: 'MnO + H₂SO₄ → MnSO₄ + H₂O',
+  salt_cr_so4: '2Cr(OH)₃ + 3H₂SO₄ → Cr₂(SO₄)₃ + 6H₂O',
+  salt_ag_cl: 'AgNO₃ + NaCl → AgCl + NaNO₃',
+  salt_ag_br: 'AgNO₃ + KBr → AgBr + KNO₃',
+  salt_ag_i: 'AgNO₃ + KI → AgI + KNO₃',
   tb_cl2: 'MnO₂ + 4HCl → MnCl₂ + Cl₂ + 2H₂O',
   tb_o2: '2KMnO₄ → K₂MnO₄ + MnO₂ + O₂',
   tb_h2: 'Zn + 2HCl → ZnCl₂ + H₂',
@@ -125,7 +138,7 @@ const LAB: Record<string, string> = {
   tb_i2: '2KI + Cl₂ → 2KCl + I₂',
   tb_br2: '2KBr + Cl₂ → 2KCl + Br₂',
   tb_p4: '2Ca₃(PO₄)₂ + 6SiO₂ + 10C → 6CaSiO₃ + P₄ + 10CO',
-  tb_f2: '2KHF₂ → 2KF + H₂ + F₂',
+  tb_f2: '2HF → H₂ + F₂',
   salt_k_mno4: '2K₂MnO₄ + Cl₂ → 2KMnO₄ + 2KCl',
   salt_nh4_cl: 'NH₃ + HCl → NH₄Cl',
   salt_k2cr2o7: '2K₂CrO₄ + H₂SO₄ → K₂Cr₂O₇ + K₂SO₄ + H₂O',
@@ -178,7 +191,7 @@ const LAB: Record<string, string> = {
   tb_sif4: 'SiO₂ + 4HF → SiF₄ + 2H₂O',
   tb_feso4_7h2o: 'FeSO₄ + 7H₂O → FeSO₄·7H₂O',
   tb_kcl_mgso4_3h2o: 'KCl + MgSO₄ + 3H₂O → KCl·MgSO₄·3H₂O',
-  tb_mno: 'MnCO₃ → MnO + CO₂',
+  tb_mno: 'Mn(OH)₂ → MnO + H₂O',
   tb_na2so4_10h2o: 'Na₂SO₄ + 10H₂O → Na₂SO₄·10H₂O',
   tb_nh42hpo4: '2NH₃ + H₃PO₄ → (NH₄)₂HPO₄',
   salt_k_cro4: 'K₂Cr₂O₇ + 2KOH → 2K₂CrO₄ + H₂O',
@@ -188,7 +201,7 @@ const LAB: Record<string, string> = {
   tb_h4p2o7: '2H₃PO₄ → H₄P₂O₇ + H₂O',
   salt_k_so3: 'SO₂ + 2KOH → K₂SO₃ + H₂O',
   salt_nh4_cr2o7: 'K₂Cr₂O₇ + 2NH₄Cl → (NH₄)₂Cr₂O₇ + 2KCl',
-  tb_mg3po42: '3MgCl₂ + 2Na₃PO₄ → Mg₃(PO₄)₂ + 6NaCl',
+  tb_mg3po42: '3MgSO₄ + 2Na₃PO₄ → Mg₃(PO₄)₂ + 3Na₂SO₄',
   cu2o: '4CuO → 2Cu₂O + O₂',
   salt_na_br: 'NaOH + HBr → NaBr + H₂O',
   bao: 'BaCO₃ → BaO + CO₂',

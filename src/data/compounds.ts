@@ -10,6 +10,7 @@ import type { CompoundCategory, CompoundDef, RawCompoundDef } from '../types/che
 import { INORGANIC_RAW } from './inorganicCompounds.data'
 import { TEXTBOOK_EXTRA_RAW } from './textbookCompounds.data'
 import { isTextbookCompoundId } from './textbook/catalogWhitelist'
+import { catalogObtainingSteps } from './catalog/catalogObtaining200'
 
 function accentForCategory(cat: CompoundCategory): string {
   if (cat === 'oxide') return '#5ad8ff'
@@ -42,6 +43,16 @@ function obtainingIn(p: RawCompoundDef) {
     laboratoryRecipeRu: p.laboratoryRecipeRu ?? recipeIn(p),
   })
   const baseCond = defaultSynthesisConditionsText(bundle.lab, p.category)
+  // 200 веществ каталога: выверенные этапы (каждый открывается в реакторе) важнее шаблонов и сырых записей.
+  const curated = catalogObtainingSteps(p.id)
+  if (curated) {
+    return {
+      laboratoryRecipeRu: curated.recipeRu,
+      obtainingStepsRu: curated.steps,
+      synthesisConditionsRu: { ...baseCond, ...bundle.conditions, ...p.synthesisConditionsRu },
+      synthesisLab: { ...bundle.lab, ...p.synthesisLab },
+    }
+  }
   const useBundleRecipe =
     !p.laboratoryRecipeRu ||
     p.laboratoryRecipeRu.startsWith('Маршрут:') ||

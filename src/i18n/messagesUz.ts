@@ -1159,4 +1159,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab3d.safety.rule7': 'Hidli va zaharli gazlar bilan tajribalarni faqat tortma yoqilgan mo‘rili shkafda o‘tkazing.',
   'lab3d.safety.rule8': 'Kislota yoki ishqor teriga tushsa — darhol ko‘p suv bilan yuving va o‘qituvchiga ayting.',
   'lab3d.safety.close': 'Tushunarli',
+  'compound.obtLab.open': 'Laboratoriyada ochish',
+  'compound.obtLab.aria': 'Reaksiyani laboratoriyada ochish: {equation}',
+  'compound.obtLab.balance': 'tenglang va ishga tushiring',
 }

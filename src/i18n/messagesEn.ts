@@ -1159,4 +1159,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab3d.safety.rule7': 'Do experiments with smelly or toxic gases only in a fume hood with the fan on.',
   'lab3d.safety.rule8': 'If acid or alkali gets on your skin, rinse at once with plenty of water and tell the teacher.',
   'lab3d.safety.close': 'Got it',
+  'compound.obtLab.open': 'Open in the lab',
+  'compound.obtLab.aria': 'Open the reaction in the lab: {equation}',
+  'compound.obtLab.balance': 'balance it and run',
 }
