@@ -1167,6 +1167,8 @@ export const messagesRu = {
   'compound.obtLab.open': 'Открыть в лаборатории',
   'compound.obtLab.aria': 'Открыть реакцию в лаборатории: {equation}',
   'compound.obtLab.balance': 'уравняйте и запустите',
+  'learn.teacherUi.holdToTalk': 'Нажми и говори',
+  'learn.teacherUi.holdToTalkHint': 'Для шумного класса: зажми кнопку, скажи фразу, отпусти — учитель ответит сразу',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

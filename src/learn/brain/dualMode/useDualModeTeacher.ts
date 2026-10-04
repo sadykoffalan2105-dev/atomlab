@@ -440,6 +440,18 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     return was
   }, [patch])
 
+  /** «Нажми и говори»: true — кнопка зажата, false — отпущена (реплика уходит сразу). */
+  const holdToTalk = useCallback(
+    (on: boolean) => {
+      const t = teacherRef.current
+      if (!t) return false
+      const ok = t.holdToTalk(on)
+      if (ok && on) patch({ aiSpeaking: false })
+      return ok
+    },
+    [patch],
+  )
+
   /** Подключить «умный ИИ» (Puter). ВЫЗЫВАТЬ ИЗ ОБРАБОТЧИКА КЛИКА. */
   const connectSmartAi = useCallback(async () => {
     const ok = await connectSmartAiImpl()
@@ -469,6 +481,7 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     checkHomework,
     setMicMuted,
     interrupt,
+    holdToTalk,
     connectSmartAi,
     isSmartAiConnected,
     subscribeMicLevel,

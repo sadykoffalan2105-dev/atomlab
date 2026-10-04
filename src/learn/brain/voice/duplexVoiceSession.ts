@@ -133,6 +133,8 @@ const INTERIM_SKIP_MS = 3_000
 const VAD_MIN_SPEECH_MS = 90
 /** После конца речи учителя распознавание (жёсткая пауза) включается снова через столько мс. */
 const RESUME_AFTER_SPEECH_MS = 500
+/** «Нажми и говори»: кнопку отпустили — ждём финал последних слов от STT столько мс и коммитим без паузы. */
+export const HOLD_RELEASE_FLUSH_MS = 280
 
 export class DuplexVoiceSession {
   private readonly cfg: DuplexSessionConfig
@@ -165,6 +167,11 @@ export class DuplexVoiceSession {
   private listenMode: ListenWhileSpeaking = 'soft_echo_filter'
   private noResultTimer: unknown = null
   private noResultFired = false
+  /** «Нажми и говори»: кнопка зажата — конец реплики не наступает, пока её не отпустят. */
+  private holdActive = false
+  private holdFlushTimer: unknown = null
+  /** Микрофон был выключен и включён только на время удержания — после коммита выключить снова. */
+  private holdUnmuted = false
 
   constructor(config: DuplexSessionConfig) {
     this.cfg = config
@@ -250,6 +257,11 @@ export class DuplexVoiceSession {
 
   end(): void {
     this.active = false
+    this.holdActive = false
+    this.holdUnmuted = false
+    if (this.holdFlushTimer) this.s.clearTimeout(this.holdFlushTimer)
+    this.holdFlushTimer = null
+    this.turnEnd.setPaused(false)
     this.currentTurn?.cancelInternal('cancelled')
     this.currentTurn = null
     this.output.cancel()
@@ -335,6 +347,67 @@ export class DuplexVoiceSession {
     if (this.turn !== 'user_speaking' && this.turn !== 'thinking') this.setTurn('user_speaking')
     if (interim) this.turnEnd.interim(interim)
     if (fresh) this.turnEnd.final(fresh)
+  }
+
+  /* -------------------------------------------------------- нажми и говори */
+
+  /** Кнопка «нажми и говори» зажата. */
+  isHoldingToTalk(): boolean {
+    return this.holdActive
+  }
+
+  /**
+   * «Нажми и говори» (шумный класс): пока кнопка зажата, слушаем без автоконца фразы —
+   * пауза посреди мысли ничего не обрывает; отпустил — реплика уходит сразу (≈ 280 мс на финал STT),
+   * без ожидания тишины. Учитель, если говорил, замолкает в момент нажатия.
+   * Работает и при выключенном микрофоне: включаем его только на время удержания.
+   */
+  holdToTalk(on: boolean): boolean {
+    if (!this.active || !this.vad) return false
+    if (on) {
+      if (this.holdActive) return true
+      this.holdActive = true
+      if (this.holdFlushTimer) {
+        this.s.clearTimeout(this.holdFlushTimer)
+        this.holdFlushTimer = null
+      }
+      if (this.aiSpeaking || this.currentTurn) this.fireBargeIn('', 0, 'manual')
+      if (this.muted) {
+        this.holdUnmuted = true
+        this.muted = false
+        this.skipBuffered()
+        this.startStt()
+      } else if (this.listenMode === 'hard_pause' && this.listening) {
+        // Chrome: после речи учителя STT включился бы только через 500 мс — первые слова пропали бы.
+        this.recognition.pause?.()
+        this.recognition.resume?.(0)
+      }
+      this.aiEndedAt = -Infinity
+      this.turnEnd.speechStart()
+      this.turnEnd.setPaused(true)
+      this.setTurn('user_speaking')
+      return true
+    }
+    if (!this.holdActive) return false
+    this.holdActive = false
+    this.holdFlushTimer = this.s.setTimeout(() => {
+      this.holdFlushTimer = null
+      this.turnEnd.setPaused(false)
+      if (this.active && !this.muted) {
+        // Последний interim, если финал не успел, — тоже часть реплики.
+        const fresh = this.freshFinal(this.sttSession.committed)
+        if (fresh) this.turnEnd.final(fresh)
+        if (this.lastInterim) this.turnEnd.interim(this.lastInterim)
+        this.turnEnd.speechEnd()
+        const commit = this.turnEnd.flush()
+        if (!commit && this.turn === 'user_speaking') this.setTurn('idle')
+      }
+      if (this.holdUnmuted) {
+        this.holdUnmuted = false
+        this.setMuted(true)
+      }
+    }, HOLD_RELEASE_FLUSH_MS)
+    return true
   }
 
   /** Явно сообщить «я думаю» (пока идёт оценка/генерация). */
@@ -475,11 +548,17 @@ export class DuplexVoiceSession {
     if (!this.active || this.muted) return
     if (this.aiSpeaking) return // барджин решает BargeInDetector по уровню + транскрипту
     this.armNoResultWatch()
+    if (this.holdActive) return
     this.turnEnd.speechStart()
   }
 
   private onVadSpeechEnd(durationMs = Infinity): void {
     if (!this.active || this.muted || this.aiSpeaking) return
+    if (this.holdActive) {
+      // Кнопка зажата: пауза посреди мысли — не конец реплики.
+      if (durationMs >= VAD_MIN_SPEECH_MS) this.lastSpeechEndAt = this.s.now()
+      return
+    }
     // Щелчок/стук короче минимальной речи: не «реплика», но и не зависаем в «говорит».
     if (durationMs >= VAD_MIN_SPEECH_MS) this.lastSpeechEndAt = this.s.now()
     this.turnEnd.speechEnd()

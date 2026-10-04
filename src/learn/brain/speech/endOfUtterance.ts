@@ -35,6 +35,8 @@ export const HOLD_MS: Readonly<Record<UtteranceEnding, number>> = {
   short: 600,
   dangling: 1100,
 }
+/** Законченная, но длинная реплика (≥ 8 слов) — ученик объясняет, паузы между частями длиннее. */
+export const HOLD_LONG_COMPLETE_MS = 450
 
 function words(text: string): string[] {
   return text
@@ -57,6 +59,7 @@ const DANGLING_LAST = new Set([
   'плюс', 'минус', 'равно', 'умножить', 'разделить', 'получается', 'будет', 'это', 'является', 'называется',
   'есть', 'был', 'была', 'было', 'были', 'очень', 'самый', 'самая', 'самое', 'более', 'менее', 'не', 'ни', 'еще',
   'уже', 'только', 'даже', 'тоже', 'мой', 'моя', 'мое', 'твой', 'его', 'ее', 'их', 'наш', 'ваш', 'свой',
+  'я', 'ты', 'мы', 'вы', 'он', 'она', 'оно', 'они', 'меня', 'мне', 'нам', 'вам',
   // ru: буквы формул и числа (формула/число не договорены)
   'аш', 'эн', 'це', 'эс', 'ка', 'эль', 'эл', 'эф', 'пэ', 'бэ', 'эм', 'зет',
   'один', 'одна', 'два', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять', 'двадцать',
@@ -71,6 +74,10 @@ const DANGLING_LAST = new Set([
   'for', 'from', 'by', 'about', 'is', 'are', 'was', 'what', 'which', 'how', 'why', 'whats', "what's", 'um', 'uh',
   'er', 'plus', 'minus', 'equals', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'twenty',
 ])
+
+/** Буквы формул: число сразу после них — индекс («аш два о» … «о четыре»), формула договорена. */
+const FORMULA_LETTERS = new Set(['аш', 'о', 'эс', 'эн', 'це', 'ка', 'эль', 'эл', 'эф', 'пэ', 'пе', 'бэ', 'эм', 'h', 'o', 's', 'n', 'c', 'ha', 'es', 'en', 'se'])
+const NUMBER_WORDS = new Set(['два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'two', 'three', 'four', 'ikki', 'uch', 'tort', "to'rt"])
 
 /** Двухсловные висящие хвосты. */
 const DANGLING_TAIL_2 = new Set([
@@ -101,7 +108,10 @@ export function utteranceHold(text: string): UtteranceHold {
   // Обрыв на дефисе/запятой/многоточии — человек явно продолжит.
   if (/[,:;\-–—…]$|\.\.\.$/.test(raw)) return { ending: 'dangling', holdMs: HOLD_MS.dangling }
   if (ws.length <= 3 && COMMANDS.has(joined)) return { ending: 'command', holdMs: HOLD_MS.command }
-  if ((tail2 && DANGLING_TAIL_2.has(tail2)) || DANGLING_LAST.has(last)) {
+  // Индекс формулы («… эс о четыре») — формула договорена, это не висящее число.
+  const prev = ws.length >= 2 ? ws[ws.length - 2]! : ''
+  const formulaIndex = NUMBER_WORDS.has(last) && FORMULA_LETTERS.has(prev)
+  if (!formulaIndex && ((tail2 && DANGLING_TAIL_2.has(tail2)) || DANGLING_LAST.has(last))) {
     // «а ты что?», «как дела?» — знак вопроса снимает висящий хвост.
     if (/\?$/.test(raw) && ws.length >= 2) return { ending: 'question', holdMs: HOLD_MS.question }
     return { ending: 'dangling', holdMs: HOLD_MS.dangling }
@@ -113,7 +123,7 @@ export function utteranceHold(text: string): UtteranceHold {
     if (COMMANDS.has(last) && ws.length === 1) return { ending: 'command', holdMs: HOLD_MS.command }
     return { ending: 'short', holdMs: HOLD_MS.short }
   }
-  return { ending: 'complete', holdMs: HOLD_MS.complete }
+  return { ending: 'complete', holdMs: ws.length >= 8 ? HOLD_LONG_COMPLETE_MS : HOLD_MS.complete }
 }
 
 /** Только добавка (мс) — для TurnEndDetector.holdMs. */
