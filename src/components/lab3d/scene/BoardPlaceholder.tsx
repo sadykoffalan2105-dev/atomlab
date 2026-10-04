@@ -14,6 +14,9 @@ const NAMES: Readonly<Record<LabExperimentId, Readonly<Record<LabLang, string>>>
   'salt-purify': { ru: 'Практическое § 1.6', en: 'Practical § 1.6', uz: 'Amaliy § 1.6' },
   nh3: { ru: 'Практическая работа 3', en: 'Practical work 3', uz: '3-amaliy ish' },
   halogens: { ru: 'Лабораторная работа 5', en: 'Laboratory work 5', uz: '5-laboratoriya ishi' },
+  'water-oxides': { ru: 'Практическое § 6.5', en: 'Practical § 6.5', uz: 'Amaliy § 6.5' },
+  co2: { ru: 'Практическая работа 1', en: 'Practical work 1', uz: '1-amaliy ish' },
+  'metals-acids': { ru: 'Практическое § 5.6', en: 'Practical § 5.6', uz: 'Amaliy § 5.6' },
 }
 const EQUATIONS: Readonly<Record<LabExperimentId, string>> = {
   baso4: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
@@ -23,6 +26,9 @@ const EQUATIONS: Readonly<Record<LabExperimentId, string>> = {
   'salt-purify': 'NaCl (+ SiO₂) → NaCl',
   nh3: '2NH₄Cl + Ca(OH)₂ → CaCl₂ + 2NH₃↑ + 2H₂O',
   halogens: 'Cl₂ + 2NaBr → 2NaCl + Br₂',
+  'water-oxides': 'CaO + H₂O → Ca(OH)₂',
+  co2: 'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑',
+  'metals-acids': 'Mg + H₂SO₄ → MgSO₄ + H₂↑',
 }
 const IDS = Object.keys(NAMES) as LabExperimentId[]
 

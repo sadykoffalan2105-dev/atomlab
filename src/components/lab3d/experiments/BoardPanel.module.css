@@ -831,6 +831,10 @@
 .kind[data-kind='physical'] {
   --kc: #8a6fd1;
 }
+.card[data-kind='combination'],
+.kind[data-kind='combination'] {
+  --kc: #1f9e8f;
+}
 
 /* ── Таймер и отметки времени шагов ── */
 .timer {

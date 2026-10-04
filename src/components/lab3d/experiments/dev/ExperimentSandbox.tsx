@@ -20,6 +20,9 @@ const VIEW: Record<LabExperimentId, readonly [number, number, number]> = {
   'salt-purify': [0.55, 1.25, 0.14],
   nh3: [0.5, 1.05, 0.16],
   halogens: [0.36, 0.8, 0.1],
+  'water-oxides': [0.42, 0.95, 0.1],
+  co2: [0.5, 1.1, 0.14],
+  'metals-acids': [0.42, 0.95, 0.1],
 }
 
 export function ExperimentSandbox() {

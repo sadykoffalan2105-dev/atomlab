@@ -23,6 +23,17 @@ const UI = {
   air: { ru: 'NH₃ легче воздуха: 17 < 29', en: 'NH₃ is lighter than air: 17 < 29', uz: 'NH₃ havodan yengil: 17 < 29' },
   table: { ru: 'Таблица вытеснения', en: 'Displacement table', uz: 'Siqib chiqarish jadvali' },
   activity: { ru: 'Активность', en: 'Activity', uz: 'Faollik' },
+  phenol: { ru: 'фенолфталеин', en: 'phenolphthalein', uz: 'fenolftalein' },
+  crimson: { ru: 'малиновый', en: 'crimson', uz: 'to‘q pushti' },
+  red: { ru: 'красный', en: 'red', uz: 'qizil' },
+  violet: { ru: 'фиолетовый', en: 'violet', uz: 'binafsha' },
+  lime: { ru: 'Известковая вода Ca(OH)₂', en: 'Limewater Ca(OH)₂', uz: 'Ohakli suv Ca(OH)₂' },
+  clear: { ru: 'прозрачная', en: 'clear', uz: 'tiniq' },
+  milky: { ru: 'мутнеет — CaCO₃↓', en: 'turns milky: CaCO₃↓', uz: 'loyqalanadi — CaCO₃↓' },
+  clearAgain: { ru: 'снова прозрачная — Ca(HCO₃)₂', en: 'clear again: Ca(HCO₃)₂', uz: 'yana tiniq — Ca(HCO₃)₂' },
+  heavy: { ru: 'CO₂ тяжелее воздуха: 44 > 29', en: 'CO₂ is heavier than air: 44 > 29', uz: 'CO₂ havodan og‘ir: 44 > 29' },
+  h2rate: { ru: 'Выделение H₂', en: 'H₂ given off', uz: 'H₂ ajralishi' },
+  none: { ru: 'нет реакции', en: 'no reaction', uz: 'reaksiya yo‘q' },
   gear: { ru: 'Защита', en: 'Protection', uz: 'Himoya' },
   putOn: { ru: 'Надеть', en: 'Put on', uz: 'Kiyish' },
   score: { ru: 'Оценка', en: 'Score', uz: 'Baho' },
@@ -203,6 +214,85 @@ export function Instrument({ experimentId, step, inStep, lang }: { experimentId:
         <div className={styles.activityRow}>
           <span className={styles.label}>{UI.activity[lang]}</span>
           {['F₂', 'Cl₂', 'Br₂', 'I₂'].map((h, i) => (
+            <span key={h} className={styles.haloChip} data-i={i}>
+              {h}
+              {i < 3 ? <b aria-hidden> &gt;</b> : null}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (experimentId === 'water-oxides') {
+    // таблица индикаторов учебника (с. 140): пробирка → индикатор → цвет; строка открывается после своего шага
+    const rows: readonly { done: boolean; tube: string; ind: L3; color: string; text: L3 }[] = [
+      { done: step >= 6, tube: 'Ca(OH)₂', ind: UI.phenol, color: '#c8186e', text: UI.crimson },
+      { done: step >= 7, tube: 'H₂CO₃', ind: UI.litmus, color: '#d2303f', text: UI.red },
+      { done: step >= 8, tube: 'H₂O', ind: UI.litmus, color: '#7b4fb2', text: UI.violet },
+    ]
+    const tC = step < 3 ? 22 : step === 3 ? 22 + 58 * (1 - Math.exp(-inStep / 2)) : Math.max(30, 80 - inStep * 0.4)
+    return (
+      <div className={styles.instrument} data-lab3d-instrument="indicators">
+        <p className={styles.label}>
+          {UI.ph[lang]} · CaO + H₂O ≈ {tC.toFixed(0)} °C
+        </p>
+        <table className={styles.haloTable}>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.tube}>
+                <th>{r.tube}</th>
+                <td data-done={r.done || undefined}>{r.ind[lang]}</td>
+                <td data-done={r.done || undefined}>
+                  {r.done ? <span className={styles.swatch} style={{ background: r.color }} /> : null}
+                  {r.done ? r.text[lang] : '·'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+  if (experimentId === 'co2') {
+    // известковая вода: прозрачная → мутная (CaCO₃↓) → снова прозрачная (Ca(HCO₃)₂)
+    const k = step < 5 ? 0 : step === 5 ? Math.min(1, inStep / 1.5) : step === 6 ? Math.max(0, 1 - inStep / 2.5) : 0
+    const note = step < 5 ? UI.clear : step === 5 ? UI.milky : UI.clearAgain
+    return (
+      <div className={styles.instrument} data-lab3d-instrument="limewater">
+        <p className={styles.label}>{UI.lime[lang]}</p>
+        <div className={styles.phRow}>
+          <span className={styles.litmusChip} style={{ background: `rgb(${Math.round(236 - 20 * k)}, ${Math.round(242 - 22 * k)}, ${Math.round(246 - 26 * k)})`, boxShadow: `inset 0 0 0 ${Math.round(2 + 6 * k)}px rgba(255,255,255,${0.3 + 0.6 * k})` }} />
+          <span>{note[lang]}</span>
+        </div>
+        <p className={styles.thermoNote}>{UI.heavy[lang]}</p>
+      </div>
+    )
+  }
+  if (experimentId === 'metals-acids') {
+    // ряд активности (с. 125) и интенсивность выделения H₂ в трёх пробирках
+    const bars: readonly { m: string; done: boolean; k: number }[] = [
+      { m: 'Mg', done: step >= 3, k: 1 },
+      { m: 'Zn', done: step >= 6, k: 0.4 },
+      { m: 'Cu', done: step >= 8, k: 0 },
+    ]
+    return (
+      <div className={styles.instrument} data-lab3d-instrument="metals">
+        <p className={styles.label}>{UI.h2rate[lang]}</p>
+        <table className={styles.haloTable}>
+          <tbody>
+            {bars.map((b) => (
+              <tr key={b.m}>
+                <th>{b.m}</th>
+                <td data-done={b.done || undefined} style={{ textAlign: 'left' }}>
+                  {b.done ? (b.k > 0 ? '●'.repeat(Math.max(1, Math.round(b.k * 5))) : UI.none[lang]) : '·'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className={styles.activityRow}>
+          <span className={styles.label}>{UI.activity[lang]}</span>
+          {['Mg', 'Zn', '(H₂)', 'Cu'].map((h, i) => (
             <span key={h} className={styles.haloChip} data-i={i}>
               {h}
               {i < 3 ? <b aria-hidden> &gt;</b> : null}

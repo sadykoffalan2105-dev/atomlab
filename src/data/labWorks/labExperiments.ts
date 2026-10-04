@@ -12,6 +12,7 @@ import {
   LAB_PRACTICAL_STEP_ACTIONS,
   LAB_PRACTICAL_STORY,
 } from './labExperimentsPractical'
+import { LAB_WORKS_EXPERIMENTS, LAB_WORKS_QUIZ, LAB_WORKS_SIDE_EQUATIONS, LAB_WORKS_STEP_ACTIONS, LAB_WORKS_STORY } from './labExperimentsWorks'
 
 const t = (ru: string, en: string, uz: string): LabText => ({ ru, en, uz })
 
@@ -446,6 +447,8 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
     ),
   },  // практические и лабораторные работы (Kimyo 7 § 1.6, Kimyo 8 ПР 3 и ЛР 5)
   ...LAB_PRACTICAL_EXPERIMENTS,
+  // ещё три практические работы (Kimyo 7 § 6.5 и § 5.6, Kimyo 9 ПР 1)
+  ...LAB_WORKS_EXPERIMENTS,
 ]
 
 /** Группы карточек выбора на доске. */
@@ -454,7 +457,7 @@ export const LAB_EXPERIMENT_GROUPS: readonly { readonly id: 'signs' | 'practical
   {
     id: 'practical',
     title: t('Практические и лабораторные работы', 'Practical and laboratory work', 'Amaliy va laboratoriya ishlari'),
-    ids: ['h2-practical', 'salt-purify', 'nh3', 'halogens'],
+    ids: ['h2-practical', 'salt-purify', 'metals-acids', 'water-oxides', 'nh3', 'halogens', 'co2'],
   },
 ]
 
@@ -473,6 +476,7 @@ export const LAB_SIDE_EQUATIONS: Readonly<Partial<Record<LabExperimentId, readon
   'ch4-burn': ['CO₂ + Ca(OH)₂ → CaCO₃↓ + H₂O'],
   'h2-practical': ['2H₂ + O₂ → 2H₂O'],
   ...LAB_PRACTICAL_SIDE_EQUATIONS,
+  ...LAB_WORKS_SIDE_EQUATIONS,
 }
 
 /* ── Действие руками на каждом шаге (жест, как его сделать, нужный предмет со стеллажа) ── */
@@ -529,6 +533,7 @@ export const LAB_STEP_ACTIONS: Readonly<Record<LabExperimentId, readonly LabStep
     drag(t('Перетащите пробирку с водородом отверстием вниз к пламени спиртовки.', 'Drag the hydrogen tube, mouth down, to the spirit-lamp flame.', 'Vodorodli probirkani og‘zi pastga qaratib spirt lampasi alangasiga torting.')),
     drag(t('Перетащите холодную стеклянную пластинку к пламени водорода.', 'Drag the cold glass plate to the hydrogen flame.', 'Sovuq shisha plastinkani vodorod alangasiga torting.')),
   ],  ...LAB_PRACTICAL_STEP_ACTIONS,
+  ...LAB_WORKS_STEP_ACTIONS,
 }
 
 /* ── «Что произошло»: короткое объяснение на уровне частиц (доска рисует анимацию по этим данным) ── */
@@ -572,6 +577,7 @@ export const LAB_PARTICLE_STORY: Readonly<Record<LabExperimentId, LabParticleSto
       'Rux kislotadan vodorodni siqib chiqaradi: Zn + 2HCl → ZnCl₂ + H₂↑. Vodorod havodan yengil, shuning uchun u to‘ntarilgan probirkaga yig‘iladi. Yonganda ikkita H₂ molekulasi bitta O₂ molekulasi bilan birikib, ikkita suv molekulasini hosil qiladi.',
     ),
   },  ...LAB_PRACTICAL_STORY,
+  ...LAB_WORKS_STORY,
 }
 
 /* ── Мини-проверка после опыта: признак реакции, тип реакции, продукт ── */
@@ -712,4 +718,5 @@ export const LAB_QUIZ: Readonly<Record<LabExperimentId, readonly LabQuizQuestion
     },
   ],
   ...LAB_PRACTICAL_QUIZ,
+  ...LAB_WORKS_QUIZ,
 }

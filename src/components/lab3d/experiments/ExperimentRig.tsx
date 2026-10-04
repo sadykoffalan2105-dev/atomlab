@@ -24,6 +24,9 @@ import { ZnHclRig } from './rigs/ZnHclRig'
 import { SaltPurifyRig } from './rigs/SaltPurifyRig'
 import { Nh3Rig } from './rigs/Nh3Rig'
 import { HalogensRig } from './rigs/HalogensRig'
+import { WaterOxidesRig } from './rigs/WaterOxidesRig'
+import { Co2Rig } from './rigs/Co2Rig'
+import { MetalsAcidsRig } from './rigs/MetalsAcidsRig'
 
 const RIGS: Record<LabExperimentId, ComponentType> = {
   baso4: Baso4Rig,
@@ -33,6 +36,9 @@ const RIGS: Record<LabExperimentId, ComponentType> = {
   'salt-purify': SaltPurifyRig,
   nh3: Nh3Rig,
   halogens: HalogensRig,
+  'water-oxides': WaterOxidesRig,
+  co2: Co2Rig,
+  'metals-acids': MetalsAcidsRig,
 }
 
 /** Доля пути, после которой отпускание засчитывается; «магнит» — дальше этой доли действие засчитывается сразу. */
