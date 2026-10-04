@@ -170,20 +170,24 @@ export function correctTerm(word: string): string | null {
   const ph = byPhonetic.get(phoneticKey(w))
   if (ph && ph.length === 1 && ph[0] !== w) return sameStem(ph[0]!) ? null : ph[0]!
   if (ph && ph.length > 1) return null
-  // 2) Дамерау–Левенштейн ≤ 2, кандидат уникален на минимальном расстоянии, первая буква совпадает
+  // 2) Дамерау–Левенштейн: ≤ 1 для слов короче 9 букв, ≤ 2 (и длина ±1) для длинных; кандидат уникален
+  //    на минимальном расстоянии, первая буква совпадает. Строже, чем раньше: «сестры» ≠ «серы»,
+  //    «выходной» ≠ «водной», «изобрёл» ≠ «изопрен» (обычная речь не портится).
+  const maxD = w.length >= 9 ? 2 : 1
   let best: string[] = []
-  let bestD = 3
-  for (let len = w.length - 2; len <= w.length + 2; len++) {
+  let bestD = maxD + 1
+  for (let len = w.length - maxD; len <= w.length + maxD; len++) {
     for (const term of byLength.get(len) ?? []) {
       if (term[0] !== w[0]) continue
-      const d = damerauLevenshtein(w, term, 2)
+      const d = damerauLevenshtein(w, term, maxD)
+      if (d === 2 && Math.abs(term.length - w.length) > 1) continue
       if (d < bestD) {
         bestD = d
         best = [term]
       } else if (d === bestD) best.push(term)
     }
   }
-  if (bestD > 2 || best.length !== 1) return null
+  if (bestD > maxD || best.length !== 1) return null
   return sameStem(best[0]!) ? null : best[0]!
 }
 
