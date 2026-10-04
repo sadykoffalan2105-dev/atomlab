@@ -73,6 +73,11 @@ export function RenderGate({ compileKey, onFirstReady }: { compileKey: string; o
   // Приоритет 1: рисуем сами (R3F больше не рисует автоматически) — пропускаем кадры, пока идёт сборка
   useFrame((s) => {
     if (!busy.current) s.gl.render(s.scene, s.camera)
+    else {
+      // Кадр не рисуем, но матрицы обновляем — нажатия (raycast) попадают в предметы и во время сборки
+      s.scene.updateMatrixWorld()
+      s.camera.updateMatrixWorld()
+    }
   }, 1)
   return null
 }
