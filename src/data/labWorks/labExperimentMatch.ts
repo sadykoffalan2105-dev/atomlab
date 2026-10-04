@@ -5,7 +5,7 @@
 import { parseEquationText } from '../../chemistry/equationFormula'
 import type { LabExperimentId } from '../../components/lab3d/labContract'
 
-/** Уравнение → опыт (опыты § 2.12, получение аммиака и вытеснение галогенов; § 5.2 открывается из списка на доске). */
+/** Уравнение → опыт (опыты § 2.12, получение аммиака, вытеснение галогенов, вода с оксидами, CO₂, кислоты с металлами; § 5.2 открывается из списка на доске). */
 const CHIP_EQUATIONS: ReadonlyArray<{ id: LabExperimentId; equation: string }> = [
   { id: 'baso4', equation: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl' },
   { id: 'ch4-burn', equation: 'CH₄ + 2O₂ → CO₂ + 2H₂O + Q' },
@@ -17,6 +17,12 @@ const CHIP_EQUATIONS: ReadonlyArray<{ id: LabExperimentId; equation: string }> =
   { id: 'halogens', equation: 'Cl₂ + 2KI → 2KCl + I₂' },
   { id: 'halogens', equation: 'Br₂ + 2NaI → 2NaBr + I₂' },
   { id: 'halogens', equation: 'Br₂ + 2KI → 2KBr + I₂' },
+  // практические работы: вода с оксидами, получение CO₂, кислоты с металлами
+  { id: 'water-oxides', equation: 'CaO + H₂O → Ca(OH)₂' },
+  { id: 'co2', equation: 'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑' },
+  { id: 'co2', equation: 'CaCO₃ + CO₂ + H₂O → Ca(HCO₃)₂' },
+  { id: 'metals-acids', equation: 'Mg + H₂SO₄ → MgSO₄ + H₂↑' },
+  { id: 'metals-acids', equation: 'Mg + 2HCl → MgCl₂ + H₂↑' },
 ]
 
 /** Убрать тепловой эффект «+ Q» / «– Q» / «+ 890 кДж» — его нет в составе веществ. */

@@ -20,6 +20,9 @@ export const RIG_TARGETS = {
   'salt-purify': ['salt-dish', 'stir-rod', 'filter', 'beaker-mix', 'beaker-filtrate', 'spirit-lamp', 'dish-rod', 'lamp-cap'],
   nh3: ['ppe', 'pestle', 'mortar', 'reactor-tube', 'collect-tube', 'spirit-lamp', 'waft', 'litmus', 'hcl-rod'],
   halogens: ['ppe', 'cl-water', 'br-water', 'starch', 'rack'],
+  'water-oxides': ['ppe', 'spatula', 'bottle-water', 'bottle-soda', 'phenolphthalein', 'litmus', 'rack'],
+  co2: ['ppe', 'marble', 'bottle-hcl', 'stopper', 'outlet', 'tube-lime', 'litmus'],
+  'metals-acids': ['ppe', 'mg', 'bottle-h2so4', 'match', 'zn', 'bottle-hcl', 'cu', 'rack'],
 } as const satisfies Record<LabExperimentId, readonly string[]>
 
 /** Сколько секунд длится анимация действия шага (шаг s: прогресс p идёт от s к s + 1). */
@@ -31,6 +34,9 @@ export const RIG_STEP_SECONDS: Readonly<Record<LabExperimentId, readonly number[
   'salt-purify': [2.6, 3.4, 2.4, 2, 6.5, 3, 2.6, 7.5, 1.8],
   nh3: [1.6, 3, 2.6, 2.8, 2.2, 5.5, 2.4, 3, 4.8],
   halogens: [1.6, 3.6, 3.6, 3.6, 3.2, 3.4, 2.4],
+  'water-oxides': [1.6, 2.6, 4.6, 3.2, 2.8, 3.2, 3, 3, 2.4],
+  co2: [1.6, 2.4, 3.2, 2.6, 4.2, 4.6, 3.6, 3.2, 5],
+  'metals-acids': [1.6, 2.2, 4.2, 3.2, 2.2, 4.4, 2.2, 3.8, 2.4],
 }
 
 /**
@@ -140,6 +146,49 @@ export const RIG_GESTURES: Readonly<Record<LabExperimentId, readonly RigGesture[
     drag([0.06, 0.12, 0.13], [-0.05, 0.22, -0.08], 0.5),
     tap,
   ],
+  // Kimyo 7, § 6.5 — на столе: пробирки 1 CaO, 2 минеральная вода, 3 дистиллированная вода
+  'water-oxides': [
+    tap,
+    // шпатель с CaO — к пробирке 1
+    drag([-0.3, 0.02, 0.15], [-0.08, 0.2, -0.06], 0.5),
+    // склянку с водой — к пробирке 1, наклон
+    drag([-0.46, 0.06, -0.06], [-0.08, 0.22, -0.06], 0.42),
+    drag([-0.46, 0.06, 0.12], [0, 0.22, -0.06], 0.42),
+    drag([-0.46, 0.06, -0.06], [0.08, 0.22, -0.06], 0.42),
+    // пипетки-капельницы — к пробиркам
+    drag([0.24, 0.12, 0.13], [-0.08, 0.22, -0.06], 0.5),
+    drag([0.34, 0.12, 0.13], [0, 0.22, -0.06], 0.5),
+    drag([0.34, 0.12, 0.13], [0.08, 0.22, -0.06], 0.5),
+    tap,
+  ],
+  // Kimyo 9, ПР 1 — на столе: пробирка-реактор в лапке штатива, газоотводная трубка с резиновым шлангом
+  co2: [
+    tap,
+    drag([-0.48, 0.02, 0.15], [-0.3, 0.3, -0.06], 0.5),
+    drag([-0.16, 0.06, 0.16], [-0.3, 0.3, -0.06], 0.42),
+    drag([-0.02, 0.02, 0.17], [-0.3, 0.27, -0.06], 0.6),
+    // конец трубки — вниз, в известковую воду
+    drag([-0.1, 0.27, -0.06], [-0.1, 0.1, -0.06], 0.6),
+    tap,
+    // конец трубки — в дистиллированную воду
+    drag([-0.1, 0.14, -0.06], [0.02, 0.08, -0.06], 0.6),
+    drag([0.3, 0.12, 0.12], [0.02, 0.22, -0.06], 0.5),
+    // конец трубки — в NaOH с фенолфталеином
+    drag([0.02, 0.2, -0.06], [0.14, 0.08, -0.06], 0.6),
+  ],
+  // Kimyo 7, § 5.6 — на столе: пробирки 1 Mg, 2 Zn, 3 Cu
+  'metals-acids': [
+    tap,
+    drag([-0.42, 0.02, 0.16], [-0.08, 0.2, -0.06], 0.5),
+    drag([-0.45, 0.06, -0.1], [-0.08, 0.22, -0.06], 0.42),
+    // горящую спичку — к отверстию пробирки 1
+    drag([0.08, 0.02, 0.2], [-0.08, 0.18, -0.06], 0.5),
+    drag([-0.27, 0.02, 0.19], [0, 0.2, -0.06], 0.5),
+    drag([0.3, 0.06, -0.08], [0, 0.22, -0.06], 0.42),
+    drag([0.22, 0.02, 0.18], [0.08, 0.2, -0.06], 0.5),
+    drag([0.3, 0.06, -0.08], [0.08, 0.22, -0.06], 0.42),
+    tap,
+  ],
 }
 
 /** Крупный план: когда прогресс p проходит from — камера наезжает на point (с расстояния dist), на to — обратно. */
@@ -182,6 +231,25 @@ export const RIG_FOCUS: Readonly<Record<LabExperimentId, readonly RigFocus[]>> =
     { from: 2.5, to: 2.97, point: [-0.05, 0.09, -0.08], dist: 0.3 },
     { from: 3.5, to: 3.97, point: [0.05, 0.09, -0.08], dist: 0.3 },
     { from: 5.5, to: 5.97, point: [-0.05, 0.09, -0.08], dist: 0.28 },
+  ],
+  'water-oxides': [
+    { from: 2.45, to: 2.97, point: [-0.08, 0.12, -0.06], dist: 0.34 },
+    { from: 5.4, to: 5.97, point: [-0.08, 0.08, -0.06], dist: 0.3 },
+    { from: 6.4, to: 6.97, point: [0, 0.08, -0.06], dist: 0.3 },
+    { from: 8.1, to: 8.97, point: [0, 0.1, -0.06], dist: 0.42 },
+  ],
+  co2: [
+    { from: 2.45, to: 2.97, point: [-0.3, 0.14, -0.06], dist: 0.34 },
+    { from: 4.4, to: 4.97, point: [-0.1, 0.06, -0.06], dist: 0.3 },
+    { from: 5.2, to: 5.95, point: [-0.1, 0.06, -0.06], dist: 0.3 },
+    { from: 7.4, to: 7.97, point: [0.02, 0.06, -0.06], dist: 0.3 },
+    { from: 8.3, to: 8.97, point: [0.14, 0.06, -0.06], dist: 0.3 },
+  ],
+  'metals-acids': [
+    { from: 2.45, to: 2.97, point: [-0.08, 0.07, -0.06], dist: 0.3 },
+    { from: 3.45, to: 3.85, point: [-0.08, 0.17, -0.06], dist: 0.32 },
+    { from: 5.45, to: 5.97, point: [0, 0.06, -0.06], dist: 0.28 },
+    { from: 7.45, to: 7.97, point: [0.08, 0.06, -0.06], dist: 0.28 },
   ],
 }
 
@@ -233,5 +301,27 @@ export const RIG_LABELS: Readonly<Record<LabExperimentId, readonly RigLabel[]>> 
     { at: 4.7, pos: [0.15, 0.2, -0.04], text: L('без изменений', 'no change', 'o‘zgarishsiz') },
     { at: 5.7, pos: [-0.05, 0.2, -0.04], text: L('синий: крахмал + I₂', 'blue: starch + I₂', 'ko‘k: kraxmal + I₂') },
     { at: 6.6, pos: [0, 0.27, -0.08], text: L('Cl₂ > Br₂ > I₂', 'Cl₂ > Br₂ > I₂ (activity)', 'Cl₂ > Br₂ > I₂ (faollik)') },
+  ],
+  'water-oxides': [
+    { at: 2.6, pos: [-0.03, 0.23, -0.06], text: L('пар — выделяется тепло', 'steam: heat is released', 'bug‘ — issiqlik ajraladi') },
+    { at: 2.85, pos: [-0.15, 0.08, -0.03], text: L('Ca(OH)₂ — белый мутный раствор', 'Ca(OH)₂: white cloudy liquid', 'Ca(OH)₂ — oq loyqa eritma') },
+    { at: 3.6, pos: [0.05, 0.15, -0.06], text: L('пузырьки CO₂', 'CO₂ bubbles', 'CO₂ pufakchalari') },
+    { at: 5.7, pos: [-0.12, 0.05, -0.02], text: L('фенолфталеин — малиновый', 'phenolphthalein: crimson', 'fenolftalein — to‘q pushti') },
+    { at: 6.7, pos: [0, 0.05, -0.02], text: L('лакмус — красный: кислота', 'litmus red: acid', 'lakmus qizil: kislota') },
+    { at: 7.7, pos: [0.12, 0.05, -0.02], text: L('лакмус — фиолетовый: вода', 'litmus violet: water', 'lakmus binafsha: suv') },
+  ],
+  co2: [
+    { at: 2.6, pos: [-0.23, 0.2, -0.06], text: L('CO₂↑ — мрамор «вскипает»', 'CO₂↑: the marble fizzes', 'CO₂↑ — marmar «qaynaydi»') },
+    { at: 4.7, pos: [-0.04, 0.1, -0.03], text: L('муть CaCO₃↓', 'milky CaCO₃↓', 'CaCO₃↓ loyqasi') },
+    { at: 5.75, pos: [-0.04, 0.1, -0.03], text: L('муть исчезла — Ca(HCO₃)₂', 'clear again: Ca(HCO₃)₂', 'loyqa yo‘qoldi — Ca(HCO₃)₂') },
+    { at: 7.7, pos: [0.07, 0.1, -0.03], text: L('лакмус краснеет — H₂CO₃', 'litmus turns red: H₂CO₃', 'lakmus qizaradi — H₂CO₃') },
+    { at: 8.8, pos: [0.19, 0.1, -0.03], text: L('окраска исчезает', 'the colour fades', 'rang yo‘qoladi') },
+  ],
+  'metals-acids': [
+    { at: 2.65, pos: [-0.03, 0.19, -0.06], text: L('H₂↑ — бурно', 'H₂↑: vigorously', 'H₂↑ — shiddatli') },
+    { at: 3.55, pos: [-0.08, 0.23, -0.06], text: L('хлопок — это водород', 'a pop: it is hydrogen', 'qarsillash — bu vodorod') },
+    { at: 5.7, pos: [0.05, 0.19, -0.06], text: L('пузырьки на цинке', 'bubbles on the zinc', 'ruxda pufakchalar') },
+    { at: 7.7, pos: [0.13, 0.12, -0.06], text: L('изменений нет', 'no change', 'o‘zgarish yo‘q') },
+    { at: 8.5, pos: [0, 0.27, -0.06], text: L('Mg > Zn > (H₂) > Cu', 'activity: Mg > Zn > (H₂) > Cu', 'faollik: Mg > Zn > (H₂) > Cu') },
   ],
 }

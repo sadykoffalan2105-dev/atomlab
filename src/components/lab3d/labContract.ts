@@ -36,7 +36,18 @@ export const BOARD_PX = { w: 1280, h: 720 } as const
 export type LabLang = 'ru' | 'en' | 'uz'
 export type LabText = Readonly<Record<LabLang, string>>
 
-export type LabExperimentId = 'baso4' | 'ch4-burn' | 'zn-hcl' | 'h2-practical' | 'salt-purify' | 'nh3' | 'halogens'
+export type LabExperimentId =
+  | 'baso4'
+  | 'ch4-burn'
+  | 'zn-hcl'
+  | 'h2-practical'
+  | 'salt-purify'
+  | 'nh3'
+  | 'halogens'
+  // Kimyo 7 § 6.5 «Взаимодействие воды с оксидами», Kimyo 9 ПР 1 «Получение CO₂», Kimyo 7 § 5.6 «Кислоты и металлы»
+  | 'water-oxides'
+  | 'co2'
+  | 'metals-acids'
 
 export interface LabExperimentDef {
   readonly id: LabExperimentId
@@ -45,8 +56,8 @@ export interface LabExperimentDef {
   readonly title: LabText
   /** Уравнение (Unicode-индексы), как в учебнике. */
   readonly equation: string
-  /** Тип реакции для цветной метки: обмен / горение / замещение; physical — физическое явление (очистка смеси). */
-  readonly kind: 'exchange' | 'combustion' | 'substitution' | 'physical'
+  /** Тип реакции для цветной метки: обмен / горение / замещение / соединение (combination); physical — физическое явление (очистка смеси). */
+  readonly kind: 'exchange' | 'combustion' | 'substitution' | 'physical' | 'combination'
   /** Класс и страница учебника Kimyo. */
   readonly grade: 7 | 8 | 9
   readonly page: number

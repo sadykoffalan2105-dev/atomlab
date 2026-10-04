@@ -139,6 +139,42 @@ const STORIES: Record<LabExperimentId, { atoms: readonly Atom[]; product?: { at:
     ],
     product: { at: [401, 130], w: 110, label: 'Br₂' },
   },
+  // CaO + H₂O: молекула воды присоединяется — две группы OH у кальция
+  'water-oxides': {
+    atoms: [
+      atom('Ca', '#3fae72', 22, [90, 130], [330, 130]),
+      atom('O', O, 15, [124, 130], [284, 130]),
+      atom('O', O, 15, [240, 168], [376, 130]),
+      atom('H', H, 11, [214, 186], [258, 112], { dark: true }),
+      atom('H', H, 11, [266, 186], [402, 112], { dark: true }),
+    ],
+    product: { at: [330, 130], w: 190, label: 'Ca(OH)₂' },
+  },
+  // CO₂ + Ca(OH)₂: кальций, углерод и три O — в CaCO₃↓, остальное — вода
+  co2: {
+    atoms: [
+      atom('Ca', '#3fae72', 22, [100, 120], [236, 196]),
+      atom('O', O, 14, [66, 150], [276, 196]),
+      atom('H', H, 10, [44, 172], [446, 96], { dark: true }),
+      atom('O', O, 14, [134, 150], [420, 80]),
+      atom('H', H, 10, [156, 172], [394, 96], { dark: true }),
+      atom('C', C, 16, [380, 150], [318, 196]),
+      atom('O', O, 14, [350, 150], [346, 176]),
+      atom('O', O, 14, [410, 150], [346, 216]),
+    ],
+    product: { at: [292, 196], w: 150, label: 'CaCO₃↓' },
+  },
+  // Mg отдаёт два электрона двум ионам H⁺ — молекула H₂; SO₄²⁻ остаётся в растворе
+  'metals-acids': {
+    atoms: [
+      atom('SO₄²⁻', '#f2c14e', 24, [430, 205], [410, 196], { dark: true }),
+      atom('Mg', '#c9d2da', 28, [120, 140], [120, 140], { toLabel: 'Mg²⁺', dark: true }),
+      atom('H⁺', '#f08080', 12, [420, 70], [330, 50], { mid: [196, 112] }),
+      atom('H⁺', '#f08080', 12, [440, 140], [354, 50], { mid: [196, 168] }),
+      atom('e⁻', '#2f7cf6', 7, [140, 128], [196, 112], { mid: [178, 118], electron: true }),
+      atom('e⁻', '#2f7cf6', 7, [140, 152], [196, 168], { mid: [178, 162], electron: true }),
+    ],
+  },
 }
 
 const LEFT: Record<LabExperimentId, string> = {
@@ -149,6 +185,9 @@ const LEFT: Record<LabExperimentId, string> = {
   'salt-purify': 'Na⁺ + Cl⁻ (H₂O↑)',
   nh3: 'NH₃ + HCl',
   halogens: 'Cl₂ + 2Br⁻',
+  'water-oxides': 'CaO + H₂O',
+  co2: 'CO₂ + Ca(OH)₂',
+  'metals-acids': 'Mg + 2H⁺',
 }
 
 const UI = {

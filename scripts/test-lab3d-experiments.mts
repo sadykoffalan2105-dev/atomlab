@@ -11,6 +11,7 @@ import { HOOD_WORK_SIZE, WORK_AREA_SIZE } from '../src/components/lab3d/labContr
 import { LAB_GLASS_IDS, LAB_REAGENT_IDS } from '../src/components/lab3d/labEvents.ts'
 import { equationImbalance, parseEquationText } from '../src/chemistry/equationFormula.ts'
 import type { LabText } from '../src/components/lab3d/labContract.ts'
+import { readFileSync } from 'node:fs'
 
 let failed = 0
 const fail = (msg: string) => {
@@ -34,10 +35,10 @@ function checkBalanced(where: string, eq: string) {
 }
 
 const ids = LAB_EXPERIMENTS.map((e) => e.id)
-for (const want of ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical', 'salt-purify', 'nh3', 'halogens'] as const) if (!ids.includes(want)) fail(`нет опыта ${want}`)
+for (const want of ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical', 'salt-purify', 'nh3', 'halogens', 'water-oxides', 'co2', 'metals-acids'] as const) if (!ids.includes(want)) fail(`нет опыта ${want}`)
 if (new Set(ids).size !== ids.length) fail('повторяются id опытов')
 
-const PAGES: Record<string, number> = { baso4: 67, 'ch4-burn': 67, 'zn-hcl': 67, 'h2-practical': 115, 'salt-purify': 24, nh3: 169, halogens: 202 }
+const PAGES: Record<string, number> = { baso4: 67, 'ch4-burn': 67, 'zn-hcl': 67, 'h2-practical': 115, 'salt-purify': 24, nh3: 169, halogens: 202, 'water-oxides': 140, co2: 191, 'metals-acids': 124 }
 const KINDS: Record<string, string> = {
   baso4: 'exchange',
   'ch4-burn': 'combustion',
@@ -46,8 +47,11 @@ const KINDS: Record<string, string> = {
   'salt-purify': 'physical',
   nh3: 'exchange',
   halogens: 'substitution',
+  'water-oxides': 'combination',
+  co2: 'exchange',
+  'metals-acids': 'substitution',
 }
-const GRADES: Record<string, number> = { baso4: 7, 'ch4-burn': 7, 'zn-hcl': 7, 'h2-practical': 7, 'salt-purify': 7, nh3: 8, halogens: 8 }
+const GRADES: Record<string, number> = { baso4: 7, 'ch4-burn': 7, 'zn-hcl': 7, 'h2-practical': 7, 'salt-purify': 7, nh3: 8, halogens: 8, 'water-oxides': 7, co2: 9, 'metals-acids': 7 }
 // по ТБ: аммиак, хлор и бром — только в вытяжном шкафу, в очках и перчатках
 const HOOD: Record<string, readonly string[]> = { nh3: ['goggles', 'gloves', 'coat'], halogens: ['goggles', 'gloves'] }
 
@@ -144,7 +148,7 @@ for (const e of LAB_EXPERIMENTS) {
   ok(`${e.id}: жестов «перетащить/провести» ${moving}, крупных планов ${RIG_FOCUS[e.id].length}, подписей ${RIG_LABELS[e.id].length}, вопросов ${quiz.length}`)
 }
 // типы реакций в проверке совпадают с типом опыта
-const typeWant: Record<string, RegExp> = { baso4: /Обмен/, 'zn-hcl': /Замещ/, 'ch4-burn': /Горение/, 'salt-purify': /Физическ/, halogens: /Замещ/ }
+const typeWant: Record<string, RegExp> = { baso4: /Обмен/, 'zn-hcl': /Замещ/, 'ch4-burn': /Горение/, 'salt-purify': /Физическ/, halogens: /Замещ/, 'water-oxides': /Соедин/, co2: /Обмен/, 'metals-acids': /Замещ/ }
 for (const [id, re] of Object.entries(typeWant)) {
   const q = LAB_QUIZ[id as keyof typeof LAB_QUIZ].find((x) => x.id === 'type')!
   if (!re.test(q.options[q.correct]!.ru)) fail(`${id}: правильный тип реакции «${q.options[q.correct]!.ru}»`)
@@ -170,6 +174,13 @@ const chip: Array<[string, string | null]> = [
   ['Cl2 + 2KI = 2KCl + I2', 'halogens'],
   ['Br₂ + 2NaI → 2NaBr + I₂', 'halogens'],
   ['NH₃ + HCl → NH₄Cl', null],
+  ['CaO + H₂O → Ca(OH)₂', 'water-oxides'],
+  ['CaO + H2O = Ca(OH)2', 'water-oxides'],
+  ['CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑', 'co2'],
+  ['CaCO3 + 2HCl = CaCl2 + CO2 + H2O', 'co2'],
+  ['Mg + H₂SO₄ → MgSO₄ + H₂↑', 'metals-acids'],
+  ['Mg + 2HCl → MgCl₂ + H₂↑', 'metals-acids'],
+  ['Cu + HCl → CuCl₂ + H₂', null],
 ]
 for (const [eq, want] of chip) {
   const got = findLabExperimentForEquation(eq)
@@ -182,6 +193,9 @@ const order: Record<string, string> = {
   'salt-purify': 'add-salt,dissolve,fold,filter-in,filter,to-dish,heat,evaporate,stop',
   nh3: 'gear,mix,fill,assemble,collect,heat,smell,litmus,hcl',
   halogens: 'gear,cl-nabr,cl-nai,br-nai,br-nacl,starch,compare',
+  'water-oxides': 'gear,cao,water,mineral,distilled,phenolphthalein,litmus-acid,litmus-water,compare',
+  co2: 'gear,marble,acid,stopper,limewater,excess,water,litmus,alkali',
+  'metals-acids': 'gear,mg,mg-acid,test,zn,zn-acid,cu,cu-acid,compare',
 }
 for (const [id, want] of Object.entries(order)) {
   const e = LAB_EXPERIMENTS.find((x) => x.id === id)
@@ -198,6 +212,47 @@ if (!/жёлто-оранжев/.test(obs('halogens', 'cl-nabr'))) fail('halogen
 if (!/бур/.test(obs('halogens', 'cl-nai'))) fail('halogens: I₂ — жёлто-бурый')
 if (!/Изменений нет/.test(obs('halogens', 'br-nacl'))) fail('halogens: бром не вытесняет хлор')
 if (!/синее/.test(obs('halogens', 'starch'))) fail('halogens: крахмал с йодом — синее окрашивание')
+// Kimyo 7 § 6.5: тепло и пар, индикаторы — цвета по таблице учебника
+if (!/пар/.test(obs('water-oxides', 'water')) || !/Ca\(OH\)₂/.test(obs('water-oxides', 'water'))) fail('water-oxides: CaO с водой — пар и Ca(OH)₂')
+if (!/малинов/.test(obs('water-oxides', 'phenolphthalein'))) fail('water-oxides: фенолфталеин в основании — малиновый')
+if (!/красн/.test(obs('water-oxides', 'litmus-acid'))) fail('water-oxides: лакмус в кислоте — красный')
+if (!/фиолетов/.test(obs('water-oxides', 'litmus-water'))) fail('water-oxides: лакмус в воде — фиолетовый')
+// Kimyo 9 ПР 1: известковая вода мутнеет, при избытке CO₂ — снова прозрачная; лакмус краснеет; щёлочь обесцвечивается
+if (!/мутнеет/.test(obs('co2', 'limewater'))) fail('co2: известковая вода мутнеет')
+if (!/исчезает/.test(obs('co2', 'excess')) || !/Ca\(HCO₃\)₂/.test(obs('co2', 'excess'))) fail('co2: при избытке CO₂ муть исчезает — Ca(HCO₃)₂')
+if (!/красне/.test(obs('co2', 'litmus'))) fail('co2: синий лакмус краснеет')
+if (!/исчезает/.test(obs('co2', 'alkali'))) fail('co2: малиновая окраска исчезает')
+// Kimyo 7 § 5.6: магний — активно, хлопок водорода, медь не реагирует
+if (!/активно/.test(obs('metals-acids', 'mg-acid'))) fail('metals-acids: магний реагирует активно')
+if (!/хлопок/.test(obs('metals-acids', 'test'))) fail('metals-acids: водород — хлопок')
+if (!/Изменений нет/.test(obs('metals-acids', 'cu-acid'))) fail('metals-acids: медь не реагирует')
+// средства защиты: шаг 0 — «наденьте» (цель ppe), если опыт требует защиту
+for (const e of LAB_EXPERIMENTS) if ((e.gear ?? []).length && e.id !== 'salt-purify' && !['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical'].includes(e.id) && e.steps[0]?.target !== 'ppe') fail(`${e.id}: первый шаг — средства защиты`)
+
+// цели шагов действительно есть в установке: name="…" или target="…" в файле rigs/<Опыт>Rig.tsx
+const RIG_FILES: Record<string, string> = {
+  baso4: 'Baso4Rig',
+  'ch4-burn': 'Ch4BurnRig',
+  'zn-hcl': 'ZnHclRig',
+  'h2-practical': 'H2PracticalRig',
+  'salt-purify': 'SaltPurifyRig',
+  nh3: 'Nh3Rig',
+  halogens: 'HalogensRig',
+  'water-oxides': 'WaterOxidesRig',
+  co2: 'Co2Rig',
+  'metals-acids': 'MetalsAcidsRig',
+}
+for (const e of LAB_EXPERIMENTS) {
+  const file = RIG_FILES[e.id]
+  if (!file) {
+    fail(`${e.id}: нет файла установки`)
+    continue
+  }
+  const src = readFileSync(new URL(`../src/components/lab3d/experiments/rigs/${file}.tsx`, import.meta.url), 'utf8')
+  for (const tg of RIG_TARGETS[e.id]) if (!new RegExp(`(name|target)="${tg}"`).test(src)) fail(`${e.id}: в ${file}.tsx нет цели «${tg}»`)
+}
+ok('цели шагов найдены в файлах установок')
+
 // карточки на доске: все опыты в группах ровно по одному разу
 const grouped = LAB_EXPERIMENT_GROUPS.flatMap((g) => g.ids)
 if (grouped.length !== ids.length || new Set(grouped).size !== ids.length || ids.some((i) => !grouped.includes(i))) fail(`группы карточек: ${grouped.join()} ≠ ${ids.join()}`)
