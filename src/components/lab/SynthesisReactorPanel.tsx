@@ -25,7 +25,7 @@ import { getSchoolReaction, passportForReaction } from '../../chemistry/schoolRe
 import { useLocation } from 'react-router-dom'
 import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
 import { ReactorBalancePanel } from './ReactorBalancePanel'
-import { effectiveLabNeeds } from '../../lab/reactionLabNeeds'
+import { effectiveLabNeeds, type ConditionsLabNeeds } from '../../lab/reactionLabNeeds'
 import { mainReactionLabNeeds, type MainReaction } from '../../data/catalog/mainReactions'
 import { ReactorAtomLedger, ReactorLedgerComment, useAtomLedger } from './ReactorAtomLedger'
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
@@ -552,7 +552,13 @@ export function SynthesisReactorPanel({
   mainReaction = null,
   onOpenMainReaction,
   productIndex,
+  linkLabNeeds = null,
 }: {
+  /**
+   * Условия шага из ссылки (eq= — пометка над стрелкой, банк — его данные): важнее условий вещества.
+   * null — ссылки нет, условия по данным вещества.
+   */
+  linkLabNeeds?: ConditionsLabNeeds | null
   /** Место главного продукта среди продуктов уравнения (рецепт); нет — после побочных. */
   productIndex?: number
   /**
@@ -698,9 +704,11 @@ export function SynthesisReactorPanel({
   }, [location.search])
   const labNeeds = mainReaction
     ? mainReactionLabNeeds(mainReaction)
-    : effectiveLabNeeds(productCompound?.synthesisLab, productCompound?.id, linkedReactionId)
-  /** Подпись катализатора: у основной реакции — свой (MnO₂ у H₂O₂, V₂O₅ у SO₂), иначе — из данных продукта. */
-  const catalystLabel = mainReaction ? (mainReaction.lab.catalyst ?? '') : (productStrings?.synthesisConditions.catalyst ?? '')
+    : (linkLabNeeds ?? effectiveLabNeeds(productCompound?.synthesisLab, productCompound?.id, linkedReactionId))
+  /** Подпись катализатора: у основной реакции — свой (MnO₂ у H₂O₂, V₂O₅ у SO₂), у ссылки — над стрелкой, иначе — из данных продукта. */
+  const catalystLabel = mainReaction
+    ? (mainReaction.lab.catalyst ?? '')
+    : (linkLabNeeds?.catalystLabel ?? productStrings?.synthesisConditions.catalyst ?? '')
   // Реакция только «шарами» (runUnavailableHint): запуска нет — и условий запуска тоже не показываем.
   const hasLabConditions = Boolean(
     !runUnavailableHint &&

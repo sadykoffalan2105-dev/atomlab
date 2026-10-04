@@ -71,7 +71,7 @@ import {
   type ReactorLinkParams,
   type ReactorLinkResult,
 } from '../lab/reactorDeepLink'
-import { effectiveLabNeeds } from '../lab/reactionLabNeeds'
+import { effectiveLabNeeds, reactorLinkLabNeeds, type ConditionsLabNeeds } from '../lab/reactionLabNeeds'
 import { getLabTeacherNarrator, hasLabTeacherScript, readLabTeacherVoiceEnabled } from '../lab/teacher'
 import type { Clo2TeacherLine } from '../lab/teacher/clo2TeacherScript'
 import { unlockAudioPlayback } from '../learn/learnSpeechPlayback'
@@ -183,6 +183,8 @@ export function LaboratoryPage() {
   const [deepLinkBackHref, setDeepLinkBackHref] = useState<string | null>(null)
   /** id реакции банка из ссылки — условия реактора берутся по реакции, а не по продукту. */
   const [linkedBankId, setLinkedBankId] = useState<string | null>(null)
+  /** Условия шага из ссылки (eq= — над стрелкой, банк — его данные) для продукта ссылки; null — по данным вещества. */
+  const [linkLab, setLinkLab] = useState<{ productId: string; needs: ConditionsLabNeeds | undefined } | null>(null)
   /**
    * Одна из 200 основных реакций (ссылка mr=): вещества стоят, коэффициенты 1 — ученик только уравнивает;
    * условия реактора — этой реакции. Выбор реакции в реакторе — только из 200 (MainReactionPicker).
@@ -693,6 +695,7 @@ export function LaboratoryPage() {
     setReactorCatalogIntent('selectProduct')
     setReactorCatalogOpen(false)
     setMainReactionId(null)
+    setLinkLab(null)
     setMainPickerOpen(false)
   }, [resetEquation])
 
@@ -719,6 +722,7 @@ export function LaboratoryPage() {
         setLaboratorySynthesisView('reactor')
         setReactorCatalogOpen(false)
         setMainReactionId(null)
+        setLinkLab(null)
         setMainPickerOpen(false)
         productLockedRef.current = false
         reactorCatalogPickModeRef.current = 'selectProduct'
@@ -750,6 +754,22 @@ export function LaboratoryPage() {
       setDeepLinkBackHref(link.backHref)
       setLinkedBankId(res.ok ? res.bankId : null)
       setMainReactionId(res.ok ? (link.mainReactionId ?? null) : null)
+      if (res.ok && !link.mainReactionId) {
+        const product = compoundById[res.productCompoundId]
+        setLinkLab({
+          productId: res.productCompoundId,
+          needs: reactorLinkLabNeeds({
+            mainLab: null,
+            fromEquation: Boolean(link.spec.equation?.trim()),
+            conditions: res.conditions,
+            bankId: res.bankId,
+            compoundNeeds: product?.synthesisLab,
+            compoundId: res.productCompoundId,
+          }),
+        })
+      } else {
+        setLinkLab(null)
+      }
       if (!res.ok) {
         const reason = t(`lab.deepLink.unsupported.${res.code}`, {
           formulas: res.details.formulas?.join(', ') ?? '',
@@ -1137,6 +1157,12 @@ export function LaboratoryPage() {
     }
   }, [reactorOpen, productCompoundId, activeRecipe, linkStageProductId, deferredLeftTerms, coProducts, productCoeff, t])
 
+  /** Условия шага из ссылки — пока в реакторе тот же продукт, что пришёл по ссылке. */
+  const activeLinkLabNeeds = useMemo<ConditionsLabNeeds | null>(
+    () => (linkLab && linkLab.productId === productCompoundId ? (linkLab.needs ?? {}) : null),
+    [linkLab, productCompoundId],
+  )
+
   const canRunSynthesis = useMemo(() => {
     // Реакция только «шарами»: анимации синтеза пока нет — кнопка неактивна, пояснение в панели.
     if (activeRecipe?.stageOnly) return false
@@ -1159,7 +1185,10 @@ export function LaboratoryPage() {
       return false
     }
     // Основная реакция — условия ЭТОЙ реакции (NaOH + HCl — без нагрева, хотя NaCl из Na и Cl₂ — с нагревом).
-    const lab = mainReaction ? mainReactionLabNeeds(mainReaction) : effectiveLabNeeds(product.synthesisLab, product.id, linkedBankId)
+    // Ссылка eq= / reaction= — условия ШАГА (над стрелкой / из банка), а не вещества.
+    const lab = mainReaction
+      ? mainReactionLabNeeds(mainReaction)
+      : (activeLinkLabNeeds ?? effectiveLabNeeds(product.synthesisLab, product.id, linkedBankId))
     if (lab?.needsHeat && !labHeatOn) return false
     if (lab?.needsPressure && !labPressureOn) return false
     if (lab?.needsCatalyst && !labCatalystOn) return false
@@ -1175,6 +1204,7 @@ export function LaboratoryPage() {
     labCatalystOn,
     linkedBankId,
     mainReaction,
+    activeLinkLabNeeds,
   ])
 
   useEffect(() => {
@@ -1509,6 +1539,7 @@ export function LaboratoryPage() {
         onOpenGenerateEquationCatalog={() => openReactorCatalog('generateEquation')}
         onOpenMainPicker={() => setMainPickerOpen(true)}
         mainReaction={mainReaction}
+        linkLabNeeds={activeLinkLabNeeds}
         productIndex={activeRecipe?.productIndex}
         leftTerms={leftTerms}
         coProducts={coProducts}

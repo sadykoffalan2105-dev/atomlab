@@ -12,8 +12,12 @@
  *  H карточка пишет «не реагирует / не проводят / не получают» про путь «Как образуется»;
  *  I ни один способ не открывается в лаборатории с анимацией;
  *  J formationEquation (direct для пути из простых веществ, lab — иначе) ≠ путь таблицы правил.
+ * для способа, открытого в реакторе:
+ *  K условия реактора (нагрев / давление / катализатор) по ссылке ≠ условиям, записанным над стрелкой шага.
+ *    Ссылка eq= — сравниваем всегда (нет пометки → реактор не требует ничего). mr= и банк — свои данные реакции;
+ *    сравниваем, когда шаг записал условия (без пометки шаг условий не утверждает — «C + O₂ → CO₂» горит при поджиге).
  * Запуск: npx tsx scripts/audit-catalog-lab-links.mts [--list] [--json <файл>]
- * Код выхода 1 — есть проблемы A–I.
+ * Код выхода 1 — есть проблемы A–K.
  */
 import fs from 'node:fs'
 import { CATALOG_TOP200_IDS } from '../src/data/catalog/catalogTop200'
@@ -21,7 +25,9 @@ import { compoundById } from '../src/data/compounds'
 import { formationScript } from '../src/chemistry/formationScripts'
 import { formationEquation } from '../src/chemistry/formationEquation'
 import { parseEquationText, equationImbalance } from '../src/chemistry/equationFormula'
-import { resolveReactorEquation } from '../src/lab/reactorDeepLink'
+import { parseReactorLinkParams, resolveReactorEquation } from '../src/lab/reactorDeepLink'
+import { mainReactionById, mainReactionLabNeeds } from '../src/data/catalog/mainReactions'
+import { labNeedsFromConditions, reactorLinkLabNeeds, sameLabNeeds } from '../src/lab/reactionLabNeeds'
 import {
   cleanObtainingEquation,
   equationKey,
@@ -30,7 +36,26 @@ import {
   obtainingStepLabLink,
 } from '../src/lab/obtainingLabLinks'
 
-type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J'
+/** Условия, которые реактор потребует по ссылке шага (тот же путь, что LaboratoryPage.applyReactorLink). */
+function reactorNeedsByHref(href: string) {
+  const link = parseReactorLinkParams(new URLSearchParams(href.slice(href.indexOf('?') + 1)))
+  if (!link) return null
+  const res = resolveReactorEquation(link.spec)
+  if (!res.ok) return null
+  const main = mainReactionById(link.mainReactionId)
+  return reactorLinkLabNeeds({
+    mainLab: main ? mainReactionLabNeeds(main) : null,
+    fromEquation: Boolean(link.spec.equation?.trim()) && !main,
+    conditions: res.conditions,
+    bankId: res.bankId,
+    compoundNeeds: compoundById[res.productCompoundId]?.synthesisLab,
+    compoundId: res.productCompoundId,
+  })
+}
+const fmtNeeds = (n: { needsHeat?: boolean; needsPressure?: boolean; needsCatalyst?: boolean } | null | undefined) =>
+  [n?.needsHeat && 'нагрев', n?.needsPressure && 'давление', n?.needsCatalyst && 'катализатор'].filter(Boolean).join('+') || '—'
+
+type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K'
 const CATS: Record<Cat, string> = {
   A: 'способ — не уравнение (схема / текст / «не …»)',
   B: 'уравнение не уравнено',
@@ -42,6 +67,7 @@ const CATS: Record<Cat, string> = {
   H: 'карточка пишет «не реагирует / не проводят» про путь',
   I: 'ни один способ не открывается с анимацией',
   J: 'formationEquation (direct / lab) ≠ путь таблицы правил',
+  K: 'условия реактора ≠ условиям над стрелкой шага',
 }
 
 /**
@@ -54,7 +80,8 @@ const list = process.argv.includes('--list')
 const jsonAt = process.argv.indexOf('--json')
 const jsonPath = jsonAt > 0 ? process.argv[jsonAt + 1] : null
 
-const problems: Record<Cat, string[]> = { A: [], B: [], C: [], D: [], E: [], F: [], G: [], H: [], I: [], J: [] }
+const problems: Record<Cat, string[]> = { A: [], B: [], C: [], D: [], E: [], F: [], G: [], H: [], I: [], J: [], K: [] }
+let conditionsChecked = 0
 let methodsTotal = 0
 let methodsOpen = 0
 let methodsAnimated = 0
@@ -102,6 +129,18 @@ for (const id of CATALOG_TOP200_IDS) {
     }
     methodsOpen++
     byKind[link.kind]!++
+    // K: условия реактора по ссылке = условиям, записанным в уравнении шага
+    {
+      const written = parsed.conditions?.trim() ?? ''
+      const want = labNeedsFromConditions(written)
+      const got = reactorNeedsByHref(link.href)
+      if (link.kind === 'eq' || written) {
+        conditionsChecked++
+        if (!sameLabNeeds(got ?? undefined, want)) {
+          problems.K.push(`${tag}  [${link.kind}; над стрелкой «${written || '—'}» → ${fmtNeeds(want)}; реактор: ${fmtNeeds(got)}]`)
+        }
+      }
+    }
     const r = resolveReactorEquation({ equation: eq })
     if (r.ok && r.stageOnly) {
       problems.D.push(`${tag}  [${r.stageOnly}]`)
@@ -147,7 +186,7 @@ for (const id of CATALOG_TOP200_IDS) {
 }
 
 console.log(`Способов получения: ${methodsTotal}; открываются в реакторе: ${methodsOpen}; с анимацией: ${methodsAnimated}`)
-console.log(`Ссылки: mr ${byKind.mr}, банк ${byKind.bank}, по уравнению ${byKind.eq}`)
+console.log(`Ссылки: mr ${byKind.mr}, банк ${byKind.bank}, по уравнению ${byKind.eq}; условия сверены у ${conditionsChecked}`)
 console.log('Категория | проблем | что')
 let total = 0
 for (const k of Object.keys(CATS) as Cat[]) {
