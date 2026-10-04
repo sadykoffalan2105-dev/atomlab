@@ -71,9 +71,13 @@ interface Fire {
 }
 const fires = new Map<string, Fire>()
 const fireKey = (at: Vec3Tuple) => at.map((v) => Math.round(v * 20)).join(',')
+const tmpAt = new THREE.Vector3()
 function addFire(at: Vec3Tuple) {
   const k = fireKey(at)
-  if (!fires.has(k)) {
+  // Один очаг — одна точка: звук 'flame-on' и само пламя ('fire') сообщают о нём в соседних точках
+  let near = false
+  for (const f of fires.values()) if (f.at.distanceTo(tmpAt.set(...at)) < 0.2) near = true
+  if (!fires.has(k) && !near) {
     fires.set(k, { at: new THREE.Vector3(...at), hit: 0 })
     setExt({ fires: fires.size })
   }
@@ -92,7 +96,7 @@ const HOOK_Y = 0.3
 const HOOK_AT: Vec3Tuple = [HOOK_X, HOOK_Y + 0.5, HOOK_Z]
 const SPRAY_SECONDS = 12
 const TEXT = {
-  out: { ru: 'Пламя потушено', en: 'Flame put out', uz: 'Alanga o‘chirildi' },
+  out: { ru: 'Пламя потушено. Зажечь снова — «‹ Назад» к шагу с огнём', en: 'Flame put out. To relight — “‹ Back” to the fire step', uz: 'Alanga o‘chirildi. Qayta yoqish — olovli qadamga «‹ Orqaga»' },
   sign: { ru: 'ОГНЕТУШИТЕЛЬ', en: 'FIRE EXTINGUISHER', uz: 'O‘T O‘CHIRGICH' },
 } as const
 
@@ -227,7 +231,8 @@ export function LabExtinguisher({
     const offF = labEvents.on('fire', (e) => {
       if (e.on && e.at) addFire(e.at)
       else if (!e.on && e.at) {
-        fires.delete(fireKey(e.at))
+        const at = tmpAt.set(...e.at)
+        for (const [k, f] of fires) if (f.at.distanceTo(at) < 0.2) fires.delete(k)
         setExt({ fires: fires.size })
       }
     })
@@ -267,7 +272,7 @@ export function LabExtinguisher({
     [sim],
   )
   const pointsRef = useRef<THREE.Points>(null)
-  const tmp = useMemo(() => ({ fwd: new THREE.Vector3(), nozzle: new THREE.Vector3(), v: new THREE.Vector3(), off: new THREE.Vector3() }), [])
+  const tmp = useMemo(() => ({ fwd: new THREE.Vector3(), nozzle: new THREE.Vector3(), v: new THREE.Vector3(), off: new THREE.Vector3(), aim: new THREE.Vector3() }), [])
 
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05)
@@ -285,6 +290,19 @@ export function LabExtinguisher({
       camera.getWorldDirection(tmp.fwd)
       tmp.nozzle.set(0, 0.62, -0.19)
       g?.localToWorld(tmp.nozzle)
+      // Струю направляют на основание пламени: если очаг виден в кадре — раструб смотрит на ближайший к центру
+      // (кнопку «Нажать рычаг» держат пальцем — целиться им же нельзя)
+      let best = Infinity
+      for (const f of fires.values()) {
+        tmp.v.copy(f.at).project(camera)
+        if (tmp.v.z > 1 || Math.abs(tmp.v.x) > 1.05 || Math.abs(tmp.v.y) > 1.05) continue
+        const d = tmp.v.x * tmp.v.x + tmp.v.y * tmp.v.y
+        if (d < best) {
+          best = d
+          tmp.aim.copy(f.at)
+        }
+      }
+      if (best < Infinity) tmp.fwd.copy(tmp.aim).sub(tmp.nozzle).normalize()
       // Выпуск частиц
       sim.acc += dt * n * 1.6
       while (sim.acc >= 1) {

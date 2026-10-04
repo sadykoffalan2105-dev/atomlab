@@ -7,6 +7,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { LAB_COLORS } from '../../labContract'
+import { labEvents, type Vec3Tuple } from '../../labEvents'
 import { useRig, type PFn } from '../rigCore'
 import { sharedGlass, sharedGlassEdge } from './glassware'
 
@@ -51,6 +52,63 @@ void main() {
 }
 `
 
+/**
+ * Огнетушитель: сцена шлёт labEvents { type: 'fire', on: false, at } — горящее пламя ближе 0,25 м к точке гаснет
+ * и не горит, пока опыт сам его не погасит и не зажжёт снова. Само пламя (высотой от 3 см — спиртовка, горелка,
+ * водород у трубки; спичка — нет) сообщает сцене, где горит: 'fire' on: true / on: false.
+ */
+let douseSeq = 0
+const doused: THREE.Vector3[] = []
+let selfEmit = false
+let douseSubscribed = false
+function subscribeDouse() {
+  if (douseSubscribed) return
+  douseSubscribed = true
+  labEvents.on('fire', (e) => {
+    if (e.on || !e.at || selfEmit) return
+    doused.push(new THREE.Vector3(...e.at))
+    if (doused.length > 8) doused.shift()
+    douseSeq++
+  })
+}
+const tmpW = new THREE.Vector3()
+function useDouse(report: boolean) {
+  subscribeDouse()
+  const st = useRef({ seq: douseSeq, dead: false, on: false, at: null as Vec3Tuple | null })
+  return (raw: number, obj: THREE.Object3D | null, lift = 0): number => {
+    const s = st.current
+    if (raw < 0.01) {
+      s.dead = false
+      if (s.on && s.at) {
+        selfEmit = true
+        labEvents.emit({ type: 'fire', on: false, at: s.at })
+        selfEmit = false
+      }
+      s.on = false
+      s.seq = douseSeq
+      return raw
+    }
+    if (s.seq !== douseSeq && obj) {
+      obj.getWorldPosition(tmpW)
+      for (let i = Math.max(0, doused.length - (douseSeq - s.seq)); i < doused.length; i++) {
+        if (tmpW.distanceTo(doused[i]!) < 0.25) s.dead = true
+      }
+      s.seq = douseSeq
+    }
+    if (s.dead) {
+      s.on = false
+      return 0
+    }
+    if (report && !s.on && raw > 0.3 && obj) {
+      obj.getWorldPosition(tmpW)
+      s.at = [tmpW.x, tmpW.y + lift, tmpW.z]
+      s.on = true
+      labEvents.emit({ type: 'fire', on: true, at: s.at })
+    }
+    return raw
+  }
+}
+
 /** Пламя: начало — основание, высота height (м), ширина width. intensity(p) — 0 погашено … 1 горит. */
 export function Flame({
   height,
@@ -89,8 +147,9 @@ export function Flame({
     [core, edge, alpha, seed],
   )
   const ref = useRef<THREE.Mesh>(null)
+  const douse = useDouse(height >= 0.03)
   useFrame(() => {
-    const k = intensity(p.current ?? 0)
+    const k = douse(intensity(p.current ?? 0), ref.current, height * 0.4)
     mat.uniforms.uTime!.value = time.current ?? 0
     mat.uniforms.uIntensity!.value = k
     const m = ref.current
@@ -111,11 +170,12 @@ export function Flame({
 export function FlameLight({ intensity, color, power = 0.6 }: { intensity: PFn; color: string; power?: number }) {
   const { p, time, quality } = useRig()
   const ref = useRef<THREE.PointLight>(null)
+  const douse = useDouse(false)
   useFrame(() => {
     const l = ref.current
     if (!l) return
     const t = time.current ?? 0
-    l.intensity = intensity(p.current ?? 0) * power * (0.9 + 0.1 * Math.sin(t * 17))
+    l.intensity = douse(intensity(p.current ?? 0), l) * power * (0.9 + 0.1 * Math.sin(t * 17))
   })
   if (quality === 'low') return null
   return <pointLight ref={ref} color={color} distance={0.6} decay={2} intensity={0} />
