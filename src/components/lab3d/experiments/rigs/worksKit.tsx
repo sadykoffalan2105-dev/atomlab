@@ -6,7 +6,33 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ease, hill, mixV, useRig, type PoseValue, type V3 } from '../rigCore'
-import { BOTTLE_H } from '../parts/glassware'
+import { BOTTLE_H, TUBE_R } from '../parts/glassware'
+
+/**
+ * Белая муть в пробирке (начало — дно): известковая вода с CaCO₃, суспензия Ca(OH)₂. cloud(p) — 0 прозрачно … 1 молочно.
+ */
+export function MilkFill({ level, cloud, color = '#f6f6f3' }: { level: (p: number) => number; cloud: (p: number) => number; color?: string }) {
+  const { p } = useRig()
+  const ref = useRef<THREE.Mesh>(null)
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0, roughness: 1, depthWrite: false }), [color])
+  useFrame(() => {
+    const m = ref.current
+    if (!m) return
+    const pv = p.current ?? 0
+    const k = cloud(pv)
+    const lv = level(pv)
+    m.visible = k > 0.01 && lv > 0.006
+    mat.opacity = 0.8 * k
+    const h = Math.max(0.001, lv - 0.004)
+    m.scale.set(1, h, 1)
+    m.position.y = 0.004 + h / 2
+  })
+  return (
+    <mesh ref={ref} material={mat} renderOrder={2}>
+      <cylinderGeometry args={[TUBE_R * 0.78, TUBE_R * 0.78, 1, 18]} />
+    </mesh>
+  )
+}
 
 /**
  * Склянка (начало — горлышко) наливает в пробирки: uses — [шаг, x, z, y губы над пробиркой].

@@ -11,14 +11,14 @@ import { Bubbles, PourStream } from '../parts/effects'
 import { BOTTLE_H, ReagentBottle, TUBE_H, TubeRack, TubeTag, WatchGlass } from '../parts/glassware'
 import { ColorTube, DropperBottle, Falling, Pipette, PpeTray, Puffs, type ColorStage } from '../parts/practicalware'
 import { useGearStep } from './useGearStep'
-import { PowderHeap, Spatula, bottlePose, pipettePose, pourLevel, pourShow } from './worksKit'
+import { MilkFill, PowderHeap, Spatula, bottlePose, pipettePose, pourLevel, pourShow } from './worksKit'
 
 const Z = -0.06
 const XS = [-0.08, 0, 0.08] as const
 const TUBE_Y = 0.012
 const TOP = TUBE_Y + TUBE_H
 const LIP = TOP + 0.03
-const LEVEL0 = 0.034
+const LEVEL0 = 0.044
 const PPE: V3 = [0.5, 0, 0.17]
 const DISH: V3 = [-0.3, 0, 0.15]
 const WB: V3 = [-0.46, 0, -0.06]
@@ -115,7 +115,7 @@ export function WaterOxidesRig() {
 
       {/* Штатив с тремя пробирками; на сравнении пробирки поднимаются, за ними — белый лист */}
       <group position={[0, 0, Z]}>
-        <TubeRack xs={XS} />
+        <TubeRack xs={XS} holeTop={0.04} />
         <Target name="rack" size={[0.3, 0.12, 0.08]} center={[0, 0.07, 0]} hintY={0.21} />
       </group>
       {TUBES.map((tb, i) => (
@@ -124,6 +124,8 @@ export function WaterOxidesRig() {
           <group position={[0, 0.1, 0]}>
             <TubeTag text={tb.tag} />
           </group>
+          {/* суспензия Ca(OH)₂ — белая муть; с фенолфталеином остаётся лёгкая взвесь */}
+          {i === 0 ? <MilkFill level={tb.level} cloud={(p) => ease(p, 2.55, 3) * (1 - 0.75 * ease(p, 5.4, 5.95))} /> : null}
           {/* CaO на дне: появляется после шпателя, расходится в воде белой взвесью */}
           {i === 0 ? (
             <Pose pose={(p) => ({ pos: [0, 0.001, 0], scale: ease(p, 1.5, 1.7) * (1 - ease(p, 2.55, 3)) })}>

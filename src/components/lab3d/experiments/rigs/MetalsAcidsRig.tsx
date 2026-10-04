@@ -18,7 +18,7 @@ const XS = [-0.08, 0, 0.08] as const
 const TUBE_Y = 0.012
 const TOP = TUBE_Y + TUBE_H
 const LIP = TOP + 0.03
-const LEVEL = 0.036
+const LEVEL = 0.044
 const PPE: V3 = [0.5, 0, 0.17]
 const MG_DISH: V3 = [-0.42, 0, 0.16]
 const ZN_DISH: V3 = [-0.27, 0, 0.19]
@@ -95,7 +95,7 @@ export function MetalsAcidsRig() {
 
       {/* Штатив с пробирками 1 Mg, 2 Zn, 3 Cu */}
       <group position={[0, 0, Z]}>
-        <TubeRack xs={XS} />
+        <TubeRack xs={XS} holeTop={0.04} />
         <Target name="rack" size={[0.3, 0.12, 0.08]} center={[0, 0.07, 0]} hintY={0.21} />
       </group>
       {[lv1, lv2, lv3].map((lv, i) => (

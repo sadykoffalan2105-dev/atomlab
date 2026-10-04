@@ -13,7 +13,7 @@ import { Bubbles, PourStream } from '../parts/effects'
 import { BOTTLE_H, LabStand, ReagentBottle, TUBE_H, TestTube, TubeRack, TubeTag, WatchGlass } from '../parts/glassware'
 import { ColorTube, DropperBottle, Falling, GlassPath, Pipette, PpeTray } from '../parts/practicalware'
 import { useGearStep } from './useGearStep'
-import { MarblePieces, RubberHose, bottlePose, pipettePose, pourLevel, pourShow } from './worksKit'
+import { MarblePieces, MilkFill, RubberHose, bottlePose, pipettePose, pourLevel, pourShow } from './worksKit'
 
 const Z = -0.06
 const REACT_X = -0.3
@@ -33,7 +33,7 @@ const LT: V3 = [0.3, 0, 0.12]
 /** Стеклянное колено на пробке: конец (здесь надет шланг) в координатах пробки. */
 const ELBOW: V3 = [0.035, 0.045, 0]
 const TIP_LEN = 0.1
-const LEVEL = 0.03
+const LEVEL = 0.042
 
 const C = {
   lime: '#f3f7f9',
@@ -122,7 +122,7 @@ export function Co2Rig() {
         <TestTube level={acidLevel} liquidColor="#eef7ff" />
         <Bubbles level={acidLevel} rate={marbleRate} fromY={0.006} spread={0.95} />
       </group>
-      <group position={[REACT_X, RY + 0.11, Z + 0.0001]}>
+      <group position={[REACT_X, RY + 0.06, Z + 0.0001]}>
         <TubeTag text="CaCO₃ + HCl" />
       </group>
 
@@ -183,10 +183,11 @@ export function Co2Rig() {
 
       {/* Пробирки-приёмники: известковая вода, дистиллированная вода, NaOH с фенолфталеином */}
       <group position={[0, 0, Z]}>
-        <TubeRack xs={[LIME_X, WATER_X, NAOH_X]} />
+        <TubeRack xs={[LIME_X, WATER_X, NAOH_X]} holeTop={0.04} />
       </group>
       <group position={[LIME_X, TUBE_Y, Z]}>
         <TestTube level={() => LEVEL} liquidColor={C.lime} cloud={cloud} />
+        <MilkFill level={() => LEVEL} cloud={cloud} />
         <Bubbles level={() => LEVEL} rate={(p) => ease(p, 4.62, 4.75) * (1 - ease(p, 5.94, 6.02))} fromY={0.012} spread={0.4} />
         <group position={[0, 0.1, 0]}>
           <TubeTag text="Ca(OH)₂" />
