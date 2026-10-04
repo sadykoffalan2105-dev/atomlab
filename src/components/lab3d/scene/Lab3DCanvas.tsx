@@ -64,6 +64,12 @@ export function rigCenterFor(id: LabExperimentId): THREE.Vector3 {
   return LAB_EXPERIMENTS.find((e) => e.id === id)?.place === 'hood' ? HOOD_WORK_CENTER : WORK_AREA_CENTER
 }
 
+/** Места контактных теней: рабочее место стола и вытяжки (постоянные массивы — без пересоздания буферов). */
+const SHADOW_SPOTS = [
+  { id: 'bench', position: [WORK_AREA_CENTER.x, WORK_AREA_CENTER.y + 0.0015, WORK_AREA_CENTER.z] as [number, number, number], scale: [2.5, 0.95] as [number, number] },
+  { id: 'hood', position: [HOOD_WORK_CENTER.x, HOOD_WORK_CENTER.y + 0.0015, HOOD_WORK_CENTER.z] as [number, number, number], scale: [1.05, 0.6] as [number, number] },
+] as const
+
 function RigSlot(props: ExperimentRigProps) {
   const [hover, setHover] = useState(false)
   const [root, setRoot] = useState<THREE.Group | null>(null)
@@ -155,18 +161,22 @@ function SceneContent(props: Lab3DCanvasProps) {
       {high && <primitive object={hoodSpot} />}
       {high && <primitive object={hoodSpot.target} />}
       {/* Мягкие контактные тени под рабочим местом (только ПК) */}
-      {high && (
-        <ContactShadowBake
-          bakeKey={`${props.experimentId}:${props.step}`}
-          position={[rigCenter.x, rigCenter.y + 0.0015, rigCenter.z]}
-          scale={inHood ? [1.05, 0.6] : [2.5, 0.95]}
-          resolution={512}
-          blur={2.2}
-          far={0.5}
-          opacity={0.42}
-          color="#1d2a3a"
-        />
-      )}
+      {/* Два постоянных экземпляра (стол и вытяжка) с неизменными параметрами: drei ContactShadows не освобождает
+          свои буферы при пересоздании — так они не пересоздаются; неактивный — прозрачный */}
+      {high &&
+        SHADOW_SPOTS.map((s) => (
+          <ContactShadowBake
+            key={s.id}
+            bakeKey={`${props.experimentId}:${props.step}`}
+            position={s.position}
+            scale={s.scale}
+            resolution={512}
+            blur={2.2}
+            far={0.5}
+            opacity={(s.id === 'hood') === inHood ? 0.42 : 0}
+            color="#1d2a3a"
+          />
+        ))}
       {/* Двойной клик/тап по любой поверхности — камера приближается к этой точке */}
       <group onDoubleClick={onSceneDoubleClick}>
         <LabRoom mats={mats} lang={lang} quality={quality} />

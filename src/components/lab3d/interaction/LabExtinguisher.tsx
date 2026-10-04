@@ -393,3 +393,8 @@ export function LabExtinguisher({
     </>
   )
 }
+
+// Для автоматических кадров (Playwright): …#/vr-lab?debugHand=1 — window.__labExt (взять, чека, струя, очаг пламени)
+if (typeof window !== 'undefined' && /[?&]debugHand=1/.test(window.location.hash)) {
+  ;(window as unknown as { __labExt?: unknown }).__labExt = { ...labExtinguisher, fire: (at: Vec3Tuple) => addFire(at), fires: () => fires.size }
+}

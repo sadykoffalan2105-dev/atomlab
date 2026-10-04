@@ -12,8 +12,22 @@
  */
 import { ContactShadows } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useHand } from '../interaction/labHandStore'
+
+/** Идёт ли сборка шейдеров (пока да — никакие проходы рендера, включая контактные тени, не запускаются). */
+let gateBusy = true
+const gateListeners = new Set<() => void>()
+function setGateBusy(v: boolean) {
+  if (gateBusy === v) return
+  gateBusy = v
+  for (const l of gateListeners) l()
+}
+const subGate = (cb: () => void) => {
+  gateListeners.add(cb)
+  return () => gateListeners.delete(cb)
+}
+const useGateBusy = () => useSyncExternalStore(subGate, () => gateBusy, () => gateBusy)
 
 /** Предельное время ожидания сборки шейдеров (если драйвер не сообщает о готовности). */
 const COMPILE_TIMEOUT_MS = 6000
@@ -29,11 +43,13 @@ export function RenderGate({ compileKey, onFirstReady }: { compileKey: string; o
   useEffect(() => {
     let alive = true
     busy.current = true
+    setGateBusy(true)
     let timer = 0
     const done = () => {
       if (!alive || !busy.current) return
       window.clearTimeout(timer)
       busy.current = false
+      setGateBusy(false)
       if (first.current) {
         first.current = false
         readyCb.current?.()
@@ -67,13 +83,18 @@ export function ContactShadowBake({
   ...rest
 }: { bakeKey: string } & Omit<React.ComponentProps<typeof ContactShadows>, 'frames'>) {
   const zones = useHand().zones
-  const [nonce, setNonce] = useState(0)
+  const [, setNonce] = useState(0)
   useEffect(() => {
     // Повтор через 1,2 с — когда установка уже собралась (части грузятся своими Suspense)
     const t = window.setTimeout(() => setNonce((n) => n + 1), 1200)
     return () => window.clearTimeout(t)
   }, [bakeKey, zones])
-  return <ContactShadows key={`${bakeKey}:${nonce}`} frames={45} {...rest} />
+  // Каждая перерисовка ContactShadows сбрасывает его счётчик кадров — тени перерисовываются ещё 45 кадров.
+  // Не пересоздаём компонент ключом: drei не освобождает буферы при размонтировании (утечка видеопамяти).
+  // Пока собираются шейдеры — не рисуем (иначе отдельный проход теней синхронно соберёт программы и «заморозит» кадр)
+  const busy = useGateBusy()
+  const active = (rest.opacity ?? 1) > 0 && !busy
+  return <ContactShadows frames={active ? 45 : 0} {...rest} />
 }
 
 export function LabPerfProbe() {
