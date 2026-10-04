@@ -150,27 +150,7 @@ export function LabRoom({ mats, lang }: Props) {
         </mesh>
       </group>
 
-      {/* Огнетушитель у передней стены */}
-      <group position={[-halfW + 0.36, 0, ROOM.frontZ + 0.14]}>
-        <mesh position-y={0.3} material={mats.red} castShadow>
-          <cylinderGeometry args={[0.075, 0.075, 0.52, 24]} />
-        </mesh>
-        <mesh position-y={0.58} material={mats.red}>
-          <sphereGeometry args={[0.075, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        </mesh>
-        <mesh position-y={0.68} material={mats.blackPlastic}>
-          <cylinderGeometry args={[0.022, 0.03, 0.08, 12]} />
-        </mesh>
-        <mesh position={[0.05, 0.72, 0]} rotation-z={-0.3} material={mats.blackPlastic}>
-          <boxGeometry args={[0.12, 0.014, 0.03]} />
-        </mesh>
-        <mesh position={[0.07, 0.45, 0.06]} rotation-x={0.2} material={mats.blackPlastic}>
-          <cylinderGeometry args={[0.012, 0.012, 0.42, 8]} />
-        </mesh>
-        <mesh position={[0, 0.3, 0.076]} material={mats.whitePlastic}>
-          <planeGeometry args={[0.09, 0.14]} />
-        </mesh>
-      </group>
+      {/* Огнетушитель на крючке у передней стены — интерактивный (interaction/LabExtinguisher) */}
 
       {/* Часы над доской */}
       <group position={[0, 2.6, ROOM.frontZ + 0.03]}>

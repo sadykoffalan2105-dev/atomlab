@@ -140,3 +140,13 @@
     animation: none;
   }
 }
+
+/* Огнетушитель: идёт пламя — красная пометка; рычаг нажат — кнопка «вдавлена» */
+.fire {
+  color: #c62a1c;
+}
+
+.pressed {
+  transform: translateY(1px) scale(0.97);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+}
