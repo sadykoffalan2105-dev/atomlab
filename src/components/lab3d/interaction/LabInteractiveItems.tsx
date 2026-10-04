@@ -14,6 +14,7 @@ import { labAudio } from '../audio/labAudio'
 import { labEvents, type LabGearId, type LabItemId } from '../labEvents'
 import type { LabLang, LabText } from '../labContract'
 import type { LabSceneBridge } from '../scene/labBridge'
+import { LabLabel } from '../scene/labOccluders'
 import type { LabMaterials } from '../scene/labMaterials'
 import { LabItemModel } from './LabItemModels'
 import { BENCH_Y, LAB_ITEMS, TAKE_LABEL, itemSoundMaterial, type LabItemDef } from './labItems'
@@ -279,6 +280,7 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
   return (
     <group
       ref={ref}
+      name={`labItem:${def.id}`}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onPointerDown={onPointerDown}
@@ -301,9 +303,9 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
         </mesh>
       )}
       {needed && zone === 'home' && (
-        <Html position={[0, def.h + 0.05, 0]} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+        <LabLabel position={[0, def.h + 0.05, 0]}>
           <div className={css.tag}>{TAKE_LABEL[lang]}</div>
-        </Html>
+        </LabLabel>
       )}
     </group>
   )
@@ -371,9 +373,9 @@ function PlaceTargets({ held, lang, glow }: { held: LabItemId; lang: LabLang; gl
               <circleGeometry args={[r, 40]} />
             </mesh>
           </group>
-          <Html position={[0, 0.05, 0]} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+          <LabLabel position={[0, 0.05, 0]}>
             <div className={css.tagWork}>{WORK_LABEL[lang]}</div>
-          </Html>
+          </LabLabel>
         </group>
       )}
       {bench && (
