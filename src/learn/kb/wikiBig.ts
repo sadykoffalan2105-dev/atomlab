@@ -90,12 +90,28 @@ const QUERY_NOISE = new Set(
     'кто такой такая такие что это такое расскажи расскажите про о об объясни почему зачем как работает работают устроен устроена ' +
       'делают производят получают происходит бывает нужен нужна нужно нужны открыл открыла изобрел изобрела придумал создал ' +
       'был была были жил жила знаешь знаете скажи вообще коротко подробно интересного интересное значит означает мне нам ' +
-      'вопрос ответ учитель пожалуйста можно ли где когда сколько какой какая какие каков чем отличается',
+      'вопрос ответ учитель пожалуйста можно ли где когда сколько какой какая какие каков чем отличается ' +
+      // «чем вредно курение», «чем полезен мёд»: краткие прилагательные оценки — не предмет вопроса
+      'вредно вреден вредна вредны полезно полезен полезна полезны опасно опасен опасна опасны впервые изобрели открыли',
   ),
 )
 
+/** «плазма в физике», «клетка в биологии» — область знаний, а не предмет вопроса (снимаем до поиска). */
+const FIELD_RE = /\s+(в|по)\s+(физике|химии|биологии|медицине|астрономии|географии|геологии|экологии|математике|науке)(?![а-яё])/giu
+export function stripField(query: string): string {
+  return query.replace(FIELD_RE, ' ').replace(/\s+/g, ' ').trim()
+}
+
 /** Частые вопросы «почему…», у которых ответ — статья с другим названием. */
-const PHRASE_TITLES: { re: RegExp; title: string }[] = [
+const PHRASE_TITLES: { re: RegExp; title: string | string[] }[] = [
+  // синонимы-предметы: статья называется иначе, чем говорит ученик (первое существующее название)
+  { re: /метаболизм|обмен[а-яё]*\s+веществ/i, title: ['Метаболизм', 'Обмен веществ'] },
+  { re: /(?<![а-яё])рак(а|ом|у|е)?(?![а-яё])(?!\s*(реч|морск|отшельник))(?![^?]*(реч|морск|животн|ракообраз|созвезд))/i, title: ['Злокачественная опухоль', 'Рак (болезнь)', 'Рак'] },
+  { re: /витамин[а-яё]*\s+(c|с)(?![a-zа-яё])|аскорбинов/i, title: ['Аскорбиновая кислота', 'Витамин C'] },
+  { re: /закон[а-яё]*\s+всемирного\s+тяготени|всемирн[а-яё]+\s+тяготени/i, title: ['Закон всемирного тяготения', 'Классическая теория тяготения Ньютона', 'Гравитация'] },
+  { re: /(?<![а-яё])курени[еяю]|(?<![а-яё])кур(ить|ят|ит)(?![а-яё])/i, title: ['Курение', 'Курение табака'] },
+  { re: /(?<![а-яё])плазм[аеуы]?(?![а-яё])(?=[^?]*(физик|состояни|веществ))|четв[её]рт[а-яё]+\s+состояни/i, title: ['Плазма (физика)', 'Плазма', 'Физическая плазма'] },
+  { re: /(?<![а-яё])плазм[аеуы]?\s+крови/i, title: ['Плазма крови', 'Белки плазмы крови'] },
   { re: /неб[а-яё]*\s+(голуб|син)|(голуб|син)[а-яё]*\s+неб/i, title: 'Рэлеевское рассеяние' },
   { re: /(закат|рассвет)[а-яё]*\s+(красн|оранж)|(красн|оранж)[а-яё]*\s+(закат|рассвет)/i, title: 'Рэлеевское рассеяние' },
   { re: /почему\s+(трава|листья|растения)\s+зел[её]н/i, title: 'Хлорофилл' },
@@ -106,6 +122,18 @@ const PHRASE_TITLES: { re: RegExp; title: string }[] = [
   { re: /почему\s+(идет|идёт)\s+дождь/i, title: 'Дождь' },
   { re: /почему\s+железо\s+ржавеет/i, title: 'Ржавчина' },
 ]
+
+/** Статья из таблицы «вопрос → название» (первое существующее название), или −1. */
+function forcedTitleDoc(meta: WikiBigMeta, query: string): number {
+  for (const p of PHRASE_TITLES) {
+    if (!p.re.test(query)) continue
+    for (const t of Array.isArray(p.title) ? p.title : [p.title]) {
+      const d = meta.titles.indexOf(t)
+      if (d >= 0) return d
+    }
+  }
+  return -1
+}
 
 function norm(s: string): string {
   return s.toLowerCase().replace(/ё/g, 'е')
@@ -123,9 +151,8 @@ export async function searchWikiBig(query: string, opts: { limit?: number } = {}
     const meta = await loadWikiBigMeta()
     if (!meta?.n) return []
     const limit = opts.limit ?? 3
-    const qTerms = [...new Set(analyzeTerms(query, { query: true }))].filter((t) => !QUERY_NOISE.has(t))
-    const forced = PHRASE_TITLES.find((p) => p.re.test(query))
-    const forcedDoc = forced ? meta.titles.indexOf(forced.title) : -1
+    const qTerms = queryContentTerms(query)
+    const forcedDoc = forcedTitleDoc(meta, query)
     if (!qTerms.length && forcedDoc < 0) return []
     const keys = [...new Set(qTerms.map(keyOf))].filter((k) => meta.keys.includes(k))
     const shards = await Promise.all(keys.map((k) => load<IndexShard>(`i/${k}.json`).catch(() => null)))
@@ -208,7 +235,28 @@ export async function searchWikiBig(query: string, opts: { limit?: number } = {}
 
 /** Смысловые слова вопроса (без «что такое», «кто открыл», «как работает»). */
 export function queryContentTerms(query: string): string[] {
-  return [...new Set(analyzeTerms(query, { query: true }))].filter((t) => !QUERY_NOISE.has(t))
+  return [...new Set(analyzeTerms(stripField(query), { query: true }))].filter((t) => !QUERY_NOISE.has(t))
+}
+
+/**
+ * Предмет вопроса — ГЛАВНАЯ тема фрагмента, а не мимолётное упоминание: все смысловые слова вопроса есть
+ * в названии фрагмента или в первых словах его текста («Гемоглобин — белок…» — да; «Кобальт важен при синтезе
+ * гемоглобина» — нет, это про кобальт).
+ */
+export function subjectIsMainTopic(query: string, title: string, text: string, headWords = 5): boolean {
+  const q = queryContentTerms(query)
+  if (!q.length) return true
+  const head = text.replace(/\s+/g, ' ').trim().split(' ').slice(0, headWords).join(' ')
+  const have = new Set(analyzeTerms(`${title} ${head}`))
+  return q.every((t) => have.has(t))
+}
+
+/** Хоть одно смысловое слово вопроса есть в начале текста (ответ банка фактов вообще о том же предмете). */
+export function subjectMentionedAtStart(query: string, text: string, chars = 140): boolean {
+  const q = queryContentTerms(query)
+  if (!q.length) return true
+  const have = new Set(analyzeTerms(text.slice(0, chars)))
+  return q.some((t) => have.has(t))
 }
 
 /**

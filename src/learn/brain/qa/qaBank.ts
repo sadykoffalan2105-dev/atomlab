@@ -299,6 +299,10 @@ interface Found {
   end: number
 }
 
+/** Слово перед буквой-меткой: «витамин C», «гепатит B», «группы A», «класс B», «вариант C» — не элемент. */
+const LABEL_BEFORE =
+  /(?<![\p{L}])(витамин|гепатит|групп|подгрупп|класс|букв|вариант|пункт|тип|категори|серия|серии|формат|оценк|vitamin|hepatitis|group|class|type|letter|option|vitamini|guruh|sinf)\p{L}*\s*$/iu
+
 const SYMBOL_STOP = new Set(['He', 'In', 'At', 'As', 'Be', 'No', 'Am', 'Ho', 'La', 'Pa', 'Po', 'Os', 'Es', 'Mo', 'Ga', 'Da', 'Si', 'Na'])
 
 function findEntities(text: string, folded: string, idx: Index): Ent[][] {
@@ -314,6 +318,8 @@ function findEntities(text: string, folded: string, idx: Index): Ent[][] {
     const p = plainFormula(clean).replace(/\s+/g, '')
     let ents = idx.byFormula.get(p)
     if (ents && p.length <= 2 && SYMBOL_STOP.has(p) && !/(элемент|element|символ|symbol)\s*$/iu.test(text.slice(0, text.indexOf(tok)))) ents = undefined
+    // «витамин C», «гепатит B», «группа A», «класс B» — буква-метка после слова, а не символ элемента
+    if (ents && p.length <= 2 && LABEL_BEFORE.test(text.slice(0, text.indexOf(tok)))) ents = undefined
     if (!ents && (p.length >= 3 || /\d/.test(p))) ents = idx.byFormulaLower.get(p.toLowerCase())
     if (ents) found.push({ ent: ents, start: i * 1000, end: i * 1000 })
   })

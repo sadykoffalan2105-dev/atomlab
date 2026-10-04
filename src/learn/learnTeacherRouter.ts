@@ -158,6 +158,95 @@ function isShortFactualFaqQuery(query: string): boolean {
   )
 }
 
+/* ------------------------------------------------------------ предмет вопроса и главная тема ответа */
+
+/** Вопрос-определение: «что такое…», «кто такой…», «расскажи про…» — у него есть один предмет. */
+const DEFINITION_Q = /(?<![а-яё])(что\s+так(ое|ая|ой|ие)|кто\s+так(ой|ая|ие)|что\s+значит|что\s+это|расскажи(те)?\s+(мне\s+)?(о|об|про)|как\s+работает|как\s+устроен|зачем\s+нуж|чем\s+(вредн|полезн|опасн))/iu
+
+/** Банк фактов ответил не о предмете вопроса-определения: ни одно смысловое слово вопроса не упомянуто в начале ответа. */
+async function qaOffSubject(query: string, qaText: string, locale: string): Promise<boolean> {
+  if (locale !== 'ru' || !DEFINITION_Q.test(query)) return false
+  try {
+    const { subjectMentionedAtStart } = await import('./kb/wikiBig')
+    return !subjectMentionedAtStart(query, qaText.replace(/\*\*/g, ''))
+  } catch {
+    return false
+  }
+}
+
+type MainTopicFn = (query: string, title: string, text: string) => boolean
+async function mainTopicFn(): Promise<MainTopicFn> {
+  const { subjectIsMainTopic } = await import('./kb/wikiBig')
+  return subjectIsMainTopic
+}
+
+/** Начало «ядра» ответа учебника: без связки учителя и без «В учебнике Kimyo 8 об этом сказано так: «». */
+function answerCore(text: string): string {
+  const quote = text.match(/[«"]([^»"]{12,})/u)
+  if (quote && /сказано|пишут|говорится|написано/i.test(text.slice(0, quote.index ?? 0))) return quote[1]!
+  // короткая связка («Если коротко:», «Давай разберёмся.») — убираем
+  return text.replace(/^\s*[^.!?:]{0,40}[.!?:]\s+/u, '').replace(/\*\*/g, '')
+}
+
+/** Ответ учебника/карточки — о предмете вопроса (в названии использованного фрагмента или в начале ответа). */
+function composedOnSubject(
+  query: string,
+  composed: { text: string; usedTitles: string[] },
+  hits: readonly TeacherKnowledgeResult['hits'][number][],
+  isMain: MainTopicFn,
+): boolean {
+  if (!DEFINITION_Q.test(query) && !/^\s*\S+(\s+\S+){0,3}\s*\??\s*$/u.test(query)) return true
+  if (isMain(query, '', answerCore(composed.text))) return true
+  const used = new Set(composed.usedTitles)
+  return hits.some((h) => used.has(h.title) && isMain(query, h.title, h.text))
+}
+
+/** Статья большой энциклопедии ровно о предмете вопроса (название = предмет), или пусто. */
+async function exactSubjectArticle(query: string): Promise<TeacherKnowledgeResult['hits']> {
+  try {
+    const { bigWikiHits } = await import('./kb/encyclopedia')
+    const { wikiExactTopic } = await import('./kb/wikiBig')
+    const big = await bigWikiHits(query, 3)
+    // статья из одной фразы беднее ответа учебника — тогда остаётся учебник
+    return big[0] && big[0].text.length >= 300 && wikiExactTopic(big[0], query) ? big : []
+  } catch {
+    return []
+  }
+}
+
+/** «Кто открыл X»: фразы об открытии из статьи X (большая и малая энциклопедии), карточек учёных и учебника. */
+async function discoveryReply(
+  query: string,
+  encHits: readonly TeacherKnowledgeResult['hits'][number][],
+  hits: readonly TeacherKnowledgeResult['hits'][number][],
+  seed: number,
+): Promise<(TeacherRouterResult & { confident: boolean }) | null> {
+  try {
+    const { queryContentTerms } = await import('./kb/wikiBig')
+    const { analyzeTerms } = await import('./kb/analyzer')
+    const { composeDiscoveryAnswer } = await import('./brain/wiki/encyclopediaAnswer')
+    const subject = queryContentTerms(query)
+    if (!subject.length || subject.length > 3) return null
+    const big = await exactSubjectArticle(query)
+    const wikiCite = (title: string) => `[Википедия: ${title} — CC BY-SA]`
+    const sources = [
+      ...big.slice(0, 1).map((h) => ({ title: h.title, text: h.text, cite: wikiCite(h.title) })),
+      ...encHits.map((h) => ({ title: h.title, text: h.text, cite: wikiCite(h.title) })),
+      ...hits
+        .filter((h) => h.type !== 'encyclopedia')
+        .map((h) => ({
+          title: h.title,
+          text: h.text,
+          cite: /учён|scientist/i.test(h.citation ?? '') ? '[ATOMLAB — учёные]' : h.citation ? citationForDisplay(h.citation, 'ru') : '[ATOMLAB]',
+        })),
+    ]
+    const ans = composeDiscoveryAnswer(subject, sources, (t) => analyzeTerms(t), { seed })
+    return ans ? { text: ans.text, source: 'local', citations: ans.citations, confident: true } : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Локальный ответ без LLM: знания из базы → живой ответ (без выдумок).
  * Follow-up «проще», «пример», «почему» берут тему прошлого вопроса ученика.
@@ -199,7 +288,13 @@ export async function composeLocalTeacherReply(
   }
   // «Большая база данных»: вещества, элементы, реакции учебников, глоссарий — точный факт с подписью источника.
   const qa = await answerFromQaBank(text, { lang: ctx.locale, grade: Number(ctx.gradeId.replace(/\D/g, '')) || null, lastEntity: loadProfile().lastEntity })
-  if (qa) return { text: qa.text, source: 'local', citations: qa.citations, confident: true }
+  let qaFallback: (TeacherRouterResult & { confident: boolean }) | null = null
+  if (qa) {
+    const r = { text: qa.text, source: 'local' as const, citations: qa.citations, confident: true }
+    // Банк фактов ответил не о предмете вопроса («что такое витамин C» → углерод): ищем дальше, его ответ — запасной.
+    if (!(await qaOffSubject(text, qa.text, ctx.locale))) return r
+    qaFallback = r
+  }
   const resolved = resolveTurn(text, previous, ctx.locale, ctx.sectionTitle)
   const knowledge =
     // Результат по таймауту пуст — база ещё грузится; ждём тот же (кешированный) поиск ещё раз.
@@ -243,17 +338,32 @@ export async function composeLocalTeacherReply(
   // wf15: энциклопедия (Википедия, CC BY-SA) — учёные, история, промышленность, быт: когда школьный ответ слабый
   // или вопрос явно «за пределами школы» («кто такой…», «кто открыл…», «нобелевск…», «в промышленности»).
   {
-    const { composeEncyclopediaAnswer, encyclopediaIntent } = await import('./brain/wiki/encyclopediaAnswer')
+    const { composeEncyclopediaAnswer, encyclopediaIntent, DISCOVERY_QUESTION_RE } = await import('./brain/wiki/encyclopediaAnswer')
     let encHits = knowledge.hits.filter((h) => h.type === 'encyclopedia')
     const strong = encHits.length || !composed.confident ? (await encyclopediaIntent(resolved.query, ctx.locale)) === 'strong' : false
     if (!encHits.length && !composed.confident) {
       const { encyclopediaFallbackHits } = await import('./kb/encyclopedia')
       encHits = await encyclopediaFallbackHits(resolved.query, ctx.locale)
     }
+    // «кто открыл / изобрёл X»: фразы об открытии из статьи X, карточек учёных и учебника (не просто статья X)
+    if (ctx.locale === 'ru' && DISCOVERY_QUESTION_RE.test(resolved.query)) {
+      const disc = await discoveryReply(resolved.query, encHits, knowledge.hits, messages.length)
+      if (disc) return disc
+    }
     if (encHits.length && (!composed.confident || strong)) {
       const enc = composeEncyclopediaAnswer(resolved.query, encHits, ctx.locale, { seed: messages.length })
       if (enc) return { text: enc.text, source: 'local', citations: [enc.citation], confident: true }
     }
+    // Учебник/карточка ответили, но предмет вопроса у них — мимолётное упоминание («Кобальт важен при синтезе
+    // гемоглобина», карточка Пастера на «как работает вакцина»): статья, чьё название = предмет вопроса, важнее.
+    if (composed.confident && ctx.locale === 'ru' && !composedOnSubject(resolved.query, composed, knowledge.hits, await mainTopicFn())) {
+      const exact = await exactSubjectArticle(resolved.query)
+      if (exact.length) {
+        const enc = composeEncyclopediaAnswer(resolved.query, exact, ctx.locale, { seed: messages.length })
+        if (enc) return { text: enc.text, source: 'local', citations: [enc.citation], confident: true }
+      }
+    }
+    if (qaFallback && !composed.confident) return qaFallback
   }
   const used = new Set(composed.usedTitles)
   // Значки — из фрагментов, давших фразы ответа (не все фрагменты с тем же заголовком).

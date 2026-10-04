@@ -43,7 +43,9 @@ export function splitSentences(text: string): string[] {
   for (const p of parts) {
     const prev = out[out.length - 1]
     // «т. е.», «в 1869 г. он…», слишком короткие куски — склеиваем с предыдущим
-    if (prev && (RU_ABBR.test(prev) || prev.length < 25 || /\d\.$/.test(prev) || /(^|\s)[А-ЯЁA-Z]\.$/.test(prev))) out[out.length - 1] = `${prev} ${p}`
+    // незакрытая скобка «(пол. Mikołaj Kopernik, нем. Niklas…» — фраза ещё не кончилась
+    const openParen = prev ? prev.length < 200 && (prev.match(/\(/g) ?? []).length > (prev.match(/\)/g) ?? []).length : false
+    if (prev && (openParen || RU_ABBR.test(prev) || prev.length < 25 || /\d\.$/.test(prev) || /(^|\s)[А-ЯЁA-Z]\.$/.test(prev))) out[out.length - 1] = `${prev} ${p}`
     else out.push(p)
   }
   return out.filter((s) => /[а-яёa-z]/i.test(s))
@@ -203,6 +205,8 @@ export function composeEncyclopediaAnswer(
       if (used.has(i)) continue
       const s = sentences[i]!
       if (s.length < 30 || s.length > 420) continue
+      // формулы из разметки статьи («{\displaystyle …}») вслух не читаются
+      if (/displaystyle|\\[a-z]{2,}|\{\\/.test(s)) continue
       if (re && !re.test(s)) continue
       used.add(i)
       return s
@@ -280,4 +284,78 @@ export function composeEncyclopediaAnswer(
   }
   void query
   return { text, citation, title: hit.title, kind, lang: articleLang }
+}
+
+/* ------------------------------------------------------------ «кто открыл / изобрёл X» */
+
+/** Вопрос об открытии или изобретении: «кто открыл кислород», «кто изобрёл телефон», «когда открыли радий». */
+export const DISCOVERY_QUESTION_RE =
+  /(?<![а-яё])(кто\s+(впервые\s+)?(открыл|изобр[её]л|придумал|получил\s+впервые|впервые\s+получил|синтезировал|обнаружил)|когда\s+(открыли|изобрели|был[аио]?\s+(открыт|изобрет))|кем\s+(был[аио]?\s+)?(открыт|изобрет)|история\s+открытия)/iu
+
+/** Фраза-факт об открытии: «открыл», «открыт», «впервые получил», «изобрёл», «выделил». */
+const DISCOVERY_SENTENCE_RE =
+  /(?<![а-яё])(открыл[аи]?|открыт[аоы]?|впервые\s+(получ|выдел|синтезир|описал|наблюдал|обнаруж)\p{L}*|получил[аи]?|изобр[её]л[аи]?|изобрет[её]н\p{L}*|изобретени\p{L}*|придумал[аи]?|обнаружил[аи]?|выделил[аи]?|назвал[аи]?)(?![а-яё])/iu
+
+export type DiscoverySource = { title: string; text: string; cite: string }
+
+/**
+ * Ответ на «кто открыл X» — только фразы источников, где есть И глагол открытия, И предмет вопроса
+ * («Пристли получил кислород…», «Шееле… выделил кислород»): статья X, карточки учёных, учебник.
+ * 1–3 фразы из разных источников + короткий вопрос; подписи всех использованных источников. Нет таких фраз — null.
+ */
+export function composeDiscoveryAnswer(
+  subjectTerms: readonly string[],
+  sources: readonly DiscoverySource[],
+  analyze: (text: string) => string[],
+  opts: { seed?: number } = {},
+): { text: string; citations: string[] } | null {
+  if (!subjectTerms.length) return null
+  const picked: { s: string; cite: string }[] = []
+  const seenText = new Set<string>()
+  // карточки учёных и биографии — первыми: «кто открыл» — вопрос о человеке
+  const isPersonSrc = (src: DiscoverySource) => src.cite === '[ATOMLAB — учёные]' || /^[А-ЯЁ][^,()]+,\s+[А-ЯЁ]/u.test(src.title)
+  const ordered = [...sources.filter(isPersonSrc), ...sources.filter((s) => !isPersonSrc(s))]
+  for (const src of ordered) {
+    let bestS: string | null = null
+    let bestRank = -1
+    const person = isPersonSrc(src)
+    for (const s of splitSentences(src.text)) {
+      if (s.length < 25 || s.length > 360) continue
+      if (!DISCOVERY_SENTENCE_RE.test(s)) continue
+      // не биография: во фразе должно быть имя («…получил Г. Кавендиш»), иначе это свойство вещества, а не открытие
+      if (!person && !/\s([А-ЯЁ]\.\s*)?[А-ЯЁ][а-яё]{3,}/u.test(s.slice(1))) continue
+      const have = new Set(analyze(s))
+      if (!subjectTerms.every((t) => have.has(t))) continue
+      const rank = (/\d{4}/.test(s) ? 2 : 0) + (/[А-ЯЁ][а-яё]{3,}/u.test(s.slice(1)) ? 1 : 0)
+      if (rank > bestRank) {
+        bestRank = rank
+        bestS = s
+      }
+    }
+    if (!bestS) continue
+    const key = bestS.slice(0, 60).toLowerCase()
+    if (seenText.has(key)) continue
+    seenText.add(key)
+    // карточка учёного: «Открыл кислород (независимо от Пристли)…» → «Карл Вильгельм Шееле открыл кислород…»
+    const personCard = src.cite === '[ATOMLAB — учёные]'
+    // статья-биография «Флеминг, Александр»: «Открыл лизоцим…» → «Александр Флеминг открыл лизоцим…»
+    const wikiPerson = src.title.match(/^([А-ЯЁ][^,()]+),\s+([^()]+?)\s*(\(.*\))?$/u)
+    const name = personCard ? src.title : wikiPerson ? `${wikiPerson[2]!.trim()} ${wikiPerson[1]!.trim()}` : null
+    const startsWithVerb = /^(Открыл|Получил|Выделил|Изобр|Доказал|Впервые|Создал|Предложил|Синтезировал|Обнаружил|Назвал|Описал)/u.test(bestS)
+    let sentence = bestS
+    if (name && startsWithVerb) sentence = `${name} ${lowerFirst(bestS)}`
+    else if (name && /^В\s+\d{4}\s+(году|г\.)\s+[а-яё]/u.test(bestS)) sentence = bestS.replace(/^(В\s+\d{4}\s+(году|г\.))\s+/u, `$1 ${name} `)
+    picked.push({ s: sentence, cite: src.cite })
+    if (picked.length >= 3) break
+  }
+  if (!picked.length) return null
+  const seed = Math.abs(opts.seed ?? 0)
+  const openers = ['Вот как это было.', 'Смотри, что известно.', 'Коротко, по источникам.']
+  const hooks =
+    picked.length > 1
+      ? ['Хочешь, расскажу подробнее о ком-то из них?', 'Как думаешь, почему это открытие приписывают нескольким учёным?']
+      : ['Хочешь, расскажу подробнее об этом учёном?', 'Рассказать, как это открытие изменило науку?']
+  const body = picked.map((p) => (/[.!?…»]$/.test(p.s) ? p.s : `${p.s}.`)).join(' ')
+  const citations = [...new Set(picked.map((p) => p.cite))]
+  return { text: `${openers[seed % openers.length]} ${body} ${hooks[(seed + 1) % hooks.length]}\n\n${citations.join(' ')}`, citations }
 }
