@@ -46,13 +46,30 @@ export function sharedGlassEdge(): THREE.ShaderMaterial {
 export const TUBE_R = 0.009
 export const TUBE_H = 0.15
 
-function tubeProfile(r: number, h: number): THREE.Vector2[] {
+/** Толщина стенки пробирки (м): у настоящей ~0,8 мм — видна на ободке и по краям на просвет. */
+const TUBE_WALL = 0.0008
+
+/**
+ * Профиль пробирки: наружная стенка с круглым дном → отогнутый ободок → (на высоком качестве) внутренняя стенка
+ * вниз до дна: у стекла появляется толщина, край читается как настоящий. На телефоне — одна поверхность (меньше слоёв).
+ */
+function tubeProfile(r: number, h: number, thick: boolean): THREE.Vector2[] {
   const pts: THREE.Vector2[] = []
   for (let i = 0; i <= 10; i++) {
     const a = -Math.PI / 2 + (i / 10) * (Math.PI / 2)
     pts.push(new THREE.Vector2(Math.max(0.0001, r * Math.cos(a)), r + r * Math.sin(a)))
   }
-  pts.push(new THREE.Vector2(r, h - 0.003), new THREE.Vector2(r * 1.14, h - 0.0008), new THREE.Vector2(r * 1.12, h), new THREE.Vector2(r * 0.97, h))
+  pts.push(new THREE.Vector2(r, h - 0.003), new THREE.Vector2(r * 1.14, h - 0.0008), new THREE.Vector2(r * 1.12, h))
+  if (!thick) {
+    pts.push(new THREE.Vector2(r * 0.97, h))
+    return pts
+  }
+  const ri = r - TUBE_WALL
+  pts.push(new THREE.Vector2(ri, h - 0.0004), new THREE.Vector2(ri, h - 0.003))
+  for (let i = 10; i >= 0; i--) {
+    const a = -Math.PI / 2 + (i / 10) * (Math.PI / 2)
+    pts.push(new THREE.Vector2(Math.max(0.0001, ri * Math.cos(a)), r + ri * Math.sin(a)))
+  }
   return pts
 }
 
@@ -72,7 +89,7 @@ export function TestTube({
   liquidOpacity?: number
 }) {
   const { quality, p } = useRig()
-  const glassGeo = useMemo(() => new THREE.LatheGeometry(tubeProfile(TUBE_R, TUBE_H), quality === 'high' ? 32 : 18), [quality])
+  const glassGeo = useMemo(() => new THREE.LatheGeometry(tubeProfile(TUBE_R, TUBE_H, quality === 'high'), quality === 'high' ? 32 : 18), [quality])
   const liqMat = useMemo(() => labLiquidMaterial(liquidColor, liquidOpacity), [liquidColor, liquidOpacity])
   const base = useMemo(() => new THREE.Color(liquidColor), [liquidColor])
   const milk = useMemo(() => new THREE.Color('#dde3ea'), [])
@@ -282,8 +299,9 @@ export function LabStand({ rodX, clampX, clampY, rodH = 0.42 }: { rodX: number; 
         <cylinderGeometry args={[0.0025, 0.0025, 0.016, 8]} />
       </mesh>
       {/* стержень лапки */}
-      <mesh position={[rodX + armLen / 2 - 0.006, clampY, 0]} rotation={[0, 0, Math.PI / 2]} material={steel} castShadow>
-        <cylinderGeometry args={[0.0035, 0.0035, armLen - 0.012, 10]} />
+      {/* стержень лапки входит в заднюю планку зажима и не выступает к пробирке */}
+      <mesh position={[rodX + (armLen - 0.019) / 2, clampY, 0]} rotation={[0, 0, Math.PI / 2]} material={steel} castShadow>
+        <cylinderGeometry args={[0.0035, 0.0035, armLen - 0.019, 10]} />
       </mesh>
       {/* губки лапки с пробковыми накладками */}
       {[-1, 1].map((s) => (

@@ -198,6 +198,11 @@ export interface TurnEndOptions {
   /** Если VAD сказал «тишина», а текста ещё нет — ждём STT до этого срока. */
   transcriptGraceMs?: number
   vadAvailable?: boolean
+  /**
+   * Умный конец фразы: добавка к паузе (мс) по уже сказанному тексту — после союза/предлога/
+   * «например»/незаконченного числа ждём дольше (см. speech/endOfUtterance). Без опции — 0.
+   */
+  holdMs?: (pendingText: string) => number
   onCommit: (commit: TurnCommit) => void
 }
 
@@ -207,8 +212,8 @@ export interface TurnEndOptions {
  */
 export class TurnEndDetector {
   private readonly s: TimingScheduler
-  private readonly o: Required<Omit<TurnEndOptions, 'scheduler' | 'onCommit'>> &
-    Pick<TurnEndOptions, 'onCommit'>
+  private readonly o: Required<Omit<TurnEndOptions, 'scheduler' | 'onCommit' | 'holdMs'>> &
+    Pick<TurnEndOptions, 'onCommit' | 'holdMs'>
   private finalText = ''
   private interimText = ''
   private speaking = false
@@ -225,12 +230,20 @@ export class TurnEndDetector {
       interimStableMs: options.interimStableMs ?? 1100,
       transcriptGraceMs: options.transcriptGraceMs ?? 900,
       vadAvailable: options.vadAvailable ?? true,
+      holdMs: options.holdMs,
       onCommit: options.onCommit,
     }
   }
 
   setVadAvailable(on: boolean): void {
     this.o.vadAvailable = on
+  }
+
+  /** Добавка «умного конца фразы» к текущему ожиданию (мс) — для отладки (?debugVoice=1). */
+  currentHoldMs(): number {
+    const text = this.pendingText()
+    if (!text || !this.o.holdMs) return 0
+    return Math.max(0, this.o.holdMs(text))
   }
 
   /** Пауза (учитель говорит в half-duplex) — ничего не коммитим. */
@@ -301,9 +314,11 @@ export class TurnEndDetector {
     this.lastSpeechEndAt = null
   }
 
-  private arm(reason: TurnCommitReason, ms: number): void {
+  private arm(reason: TurnCommitReason, baseMs: number): void {
     if (this.paused) return
     this.cancelTimer()
+    // Висящий хвост («потому что…», «например…», «двадцать…») — ждём дольше; законченная фраза — почти сразу.
+    const ms = baseMs + this.currentHoldMs()
     this.timerReason = reason
     this.timer = this.s.setTimeout(() => {
       this.timer = null

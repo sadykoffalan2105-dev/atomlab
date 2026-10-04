@@ -11,7 +11,7 @@ import { Pose, Target, ease, hill, mix, mixV, useRig, useSoundAt, type PFn, type
 import { GasFill, PourStream } from '../parts/effects'
 import { BOTTLE_H, LabStand, ReagentBottle, TUBE_H, TestTube, TubeRack, TubeTag } from '../parts/glassware'
 import { Match, Matchbox, SpiritLamp } from '../parts/fire'
-import { GlassPath, GlassRod, LitmusStrip, Mortar, Pestle, PpeTray, Puffs, WaftHand } from '../parts/practicalware'
+import { GlassPath, GlassRod, GripHand, LitmusStrip, Mortar, Pestle, PpeTray, Puffs, WaftHand } from '../parts/practicalware'
 import { useGearStep } from './useGearStep'
 
 const Z = -0.06
@@ -245,6 +245,10 @@ export function Nh3Rig() {
         }}
       >
         <LitmusStrip blue={(p) => ease(p, 7.52, 7.95)} />
+        {/* пинцет с бумажкой — в руке ученика */}
+        <group position={[0, 0.116, 0]}>
+          <GripHand r={0.003} hold={(p) => ease(p, 7, 7.12) * (1 - ease(p, 8.1, 8.22))} />
+        </group>
         <Target name="litmus" size={[0.03, 0.03, 0.13]} center={[0, 0, 0.065]} hintY={0.05} />
       </Pose>
 

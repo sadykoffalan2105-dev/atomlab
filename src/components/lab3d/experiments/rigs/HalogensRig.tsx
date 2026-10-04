@@ -7,7 +7,7 @@
 import * as THREE from 'three'
 import { Pose, Target, ease, hill, mix, mixV, useSoundAt, type PFn, type V3 } from '../rigCore'
 import { TUBE_H, TubeRack, TubeTag } from '../parts/glassware'
-import { ColorTube, DropperBottle, Falling, Pipette, PpeTray, type ColorStage } from '../parts/practicalware'
+import { ColorTube, DropperBottle, Falling, Pipette, PpeTray, WhiteCard, type ColorStage } from '../parts/practicalware'
 import { useGearStep } from './useGearStep'
 
 const Z = -0.08
@@ -115,24 +115,17 @@ export function HalogensRig() {
         <Target name="rack" size={[0.38, 0.12, 0.08]} center={[0, 0.07, 0]} hintY={0.21} />
       </group>
       {TUBES.map((tb, i) => (
-        <Pose key={i} pose={(p) => ({ pos: [tb.x, TUBE_Y + 0.035 * ease(p, 6.05 + i * 0.05, 6.4 + i * 0.05), Z] })}>
+        <Pose key={i} pose={() => ({ pos: [tb.x, TUBE_Y, Z] })}>
           <ColorTube base={C.colorless} stages={tb.stages} level={levelOf(tb.stages)} />
           <group position={[0, 0.1, 0]}>
             <TubeTag text={tb.tag} />
           </group>
         </Pose>
       ))}
-      <Pose pose={(p) => ({ pos: [0, 0.1, Z - 0.045], scale: ease(p, 6.05, 6.45) })}>
-        <mesh>
-          <planeGeometry args={[0.4, 0.14]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.9} />
-        </mesh>
-        {/* лёгкая подсветка листа, чтобы окраски читались на просвет */}
-        <mesh position={[0, 0, -0.002]}>
-          <planeGeometry args={[0.42, 0.16]} />
-          <meshBasicMaterial color="#dfe7f1" />
-        </mesh>
-      </Pose>
+      {/* белая карточка на ножках стоит за штативом — окраски видно на белом (не висит в воздухе) */}
+      <group position={[0, 0, Z - 0.046]}>
+        <WhiteCard w={0.4} />
+      </group>
 
       {/* Пипетки-капельницы */}
       <DropperSet bx={CL_X} label="Cl₂ (aq)" color={C.chlorineWater} target="cl-water" uses={[[1, XS[0]], [2, XS[1]]]} />

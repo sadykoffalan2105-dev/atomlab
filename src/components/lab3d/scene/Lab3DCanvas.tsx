@@ -30,6 +30,7 @@ import type { LabSceneBridge } from './labBridge'
 import { useLabMaterials } from './labMaterials'
 import { HOOD, ROOM, type LabViewId } from './labSceneLayout'
 import { ContactShadowBake, LabPerfProbe, RenderGate } from './labPerf'
+import { labRoomOccluder } from './labOccluders'
 import { LabExtinguisher } from '../interaction/LabExtinguisher'
 
 export interface Lab3DCanvasProps {
@@ -85,6 +86,11 @@ function RigSlot(props: ExperimentRigProps) {
       </Suspense>
     </group>
   )
+}
+
+/** Группа комнаты — препятствие для HTML-подписей (снимается при размонтировании). */
+function setRoomOccluder(g: THREE.Group | null) {
+  labRoomOccluder.current = g
 }
 
 function SceneContent(props: Lab3DCanvasProps) {
@@ -183,7 +189,10 @@ function SceneContent(props: Lab3DCanvasProps) {
         ))}
       {/* Двойной клик/тап по любой поверхности — камера приближается к этой точке */}
       <group onDoubleClick={onSceneDoubleClick}>
-        <LabRoom mats={mats} lang={lang} quality={quality} />
+        {/* Корень комнаты — по нему HTML-подписи понимают, что их закрывает мебель (labOccluders) */}
+        <group ref={setRoomOccluder}>
+          <LabRoom mats={mats} lang={lang} quality={quality} />
+        </group>
         <LabEquipment mats={mats} lang={lang} hoodBusy={inHood} />
       </group>
       <LabBoard mats={mats} panel={panel} bridge={props.bridge} />

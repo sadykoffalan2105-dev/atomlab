@@ -82,3 +82,52 @@ export const TARGET_BOUNDS = {
   min: new THREE.Vector3(-ROOM.w / 2 + 0.5, 0.6, ROOM.frontZ + 0.08),
   max: new THREE.Vector3(ROOM.w / 2 - 0.5, 2.3, 2.0),
 } as const
+
+/**
+ * Мебель, сквозь которую камера не проходит (вытяжка с воздуховодом, столешница у мойки, полки и навесной шкаф).
+ * Без этого при сильном повороте/приближении камера оказывалась внутри коробки вытяжки — изнутри грани не рисуются,
+ * и сквозь шкаф была видна доска. Коробки — с запасом на ближнюю плоскость камеры (см. keepCameraOutOfFurniture).
+ */
+export const CAMERA_SOLIDS: ReadonlyArray<{ readonly min: THREE.Vector3; readonly max: THREE.Vector3 }> = [
+  // Вытяжной шкаф целиком (корпус, козырёк, воздуховод до потолка)
+  { min: new THREE.Vector3(HOOD.x - HOOD.w / 2, 0, ROOM.frontZ), max: new THREE.Vector3(HOOD.x + HOOD.w / 2, ROOM.h, ROOM.frontZ + HOOD.d) },
+  // Столешница с мойкой и тумбой
+  { min: new THREE.Vector3(COUNTER.x0, 0, ROOM.frontZ), max: new THREE.Vector3(COUNTER.x1, BENCH_TOP_Y + 0.02, ROOM.frontZ + COUNTER.d) },
+  // Полки с реактивами и навесной шкаф над столешницей
+  { min: new THREE.Vector3(COUNTER.x0, BENCH_TOP_Y + 0.02, ROOM.frontZ), max: new THREE.Vector3(COUNTER.x1, 2.52, ROOM.frontZ + 0.34) },
+  // Электронная доска с рамкой и полочкой для маркеров
+  {
+    min: new THREE.Vector3(BOARD_CENTER.x - BOARD_SIZE.w / 2 - 0.05, BOARD_CENTER.y - BOARD_SIZE.h / 2 - 0.08, ROOM.frontZ),
+    max: new THREE.Vector3(BOARD_CENTER.x + BOARD_SIZE.w / 2 + 0.05, BOARD_CENTER.y + BOARD_SIZE.h / 2 + 0.05, BOARD_CENTER.z + 0.06),
+  },
+]
+
+/** Запас от мебели до камеры (м): ближняя плоскость 0,03 м + поле зрения — ничего не обрезается. */
+const SOLID_MARGIN = 0.1
+
+/** Выталкивает точку камеры из мебели к ближайшей свободной грани (в пределах CAMERA_BOUNDS). Возвращает true, если сдвинула. */
+export function keepCameraOutOfFurniture(p: THREE.Vector3): boolean {
+  let moved = false
+  for (const s of CAMERA_SOLIDS) {
+    const x0 = s.min.x - SOLID_MARGIN
+    const x1 = s.max.x + SOLID_MARGIN
+    const y0 = s.min.y - SOLID_MARGIN
+    const y1 = s.max.y + SOLID_MARGIN
+    const z1 = s.max.z + SOLID_MARGIN
+    if (p.x <= x0 || p.x >= x1 || p.y <= y0 || p.y >= y1 || p.z >= z1) continue
+    // Выход к ближайшей грани: влево, вправо, вперёд (к ученику), вверх или вниз — только если там не стена/потолок/стол
+    let best = z1 - p.z
+    let axis: 'x0' | 'x1' | 'y0' | 'y1' | 'z1' = 'z1'
+    if (x0 >= CAMERA_BOUNDS.min.x && p.x - x0 < best) [best, axis] = [p.x - x0, 'x0']
+    if (x1 <= CAMERA_BOUNDS.max.x && x1 - p.x < best) [best, axis] = [x1 - p.x, 'x1']
+    if (y1 <= CAMERA_BOUNDS.max.y && y1 - p.y < best) [best, axis] = [y1 - p.y, 'y1']
+    if (y0 >= CAMERA_BOUNDS.min.y && p.y - y0 < best) [best, axis] = [p.y - y0, 'y0']
+    if (axis === 'x0') p.x = x0
+    else if (axis === 'x1') p.x = x1
+    else if (axis === 'y0') p.y = y0
+    else if (axis === 'y1') p.y = y1
+    else p.z = z1
+    moved = true
+  }
+  return moved
+}

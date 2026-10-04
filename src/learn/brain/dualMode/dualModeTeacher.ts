@@ -304,6 +304,18 @@ export class TeacherIntelligence {
     this.duplex.setMuted(muted)
   }
 
+  /**
+   * «Нажми и говори» (шумный класс): зажали — учитель замолкает, слушаем без автоконца фразы;
+   * отпустили — реплика уходит сразу. См. DuplexVoiceSession.holdToTalk.
+   */
+  holdToTalk(on: boolean): boolean {
+    if (on && this.current) {
+      this.current.abortSource = 'manual'
+      this.current.abort.abort()
+    }
+    return this.duplex.holdToTalk(on)
+  }
+
   /** «Перебить / стоп»: учитель замолкает сразу, недоговорённый ответ отменяется. */
   interrupt(): boolean {
     const wasSpeaking = this.duplex.interrupt('manual')

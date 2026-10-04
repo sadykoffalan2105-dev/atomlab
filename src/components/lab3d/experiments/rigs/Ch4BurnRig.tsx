@@ -10,6 +10,7 @@ import { Droplets, HeatHaze, beakerDropPoints } from '../parts/effects'
 import { BEAKER_H, BEAKER_R, Beaker } from '../parts/glassware'
 import { BURNER_TOP, GasBurner, GasTap, Hose, Match, Matchbox } from '../parts/fire'
 import { useAnimatedMaterial } from '../rigCore'
+import { GripHand } from '../parts/practicalware'
 
 const BURNER: V3 = [0, 0, 0.02]
 const TAP: V3 = [0.3, 0, -0.2]
@@ -94,6 +95,10 @@ export function Ch4BurnRig() {
         }}
       >
         <Match lit={(p) => ease(p, 0.5, 0.75) * (1 - ease(p, 1.8, 1.95))} />
+        {/* горящую спичку держат пальцами за конец, а не оставляют висеть в воздухе */}
+        <group position={[0.006, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+          <GripHand r={0.0016} hold={(p) => ease(p, 0, 0.2) * (1 - ease(p, 1.78, 1.9))} />
+        </group>
       </Pose>
 
       {/* Холодный сухой стакан */}

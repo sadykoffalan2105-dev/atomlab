@@ -48,7 +48,7 @@ export function wantsEncyclopedia(query: string, _locale?: KbLang): 'strong' | '
  */
 export async function encyclopediaIntent(query: string, locale?: KbLang): Promise<'strong' | 'soft' | null> {
   const base = wantsEncyclopedia(query, locale)
-  if (base === 'strong') return 'strong'
+  if (base === 'strong' || isMarkedStrong(query)) return 'strong'
   const scientists = await findScientists(query)
   if (scientists.length && (base === 'soft' || query.trim().split(/\s+/).length <= 4)) return 'strong'
   return base
@@ -65,7 +65,10 @@ export async function encyclopediaFallbackHits(query: string, locale: KbLang): P
       const terms = await ruQueryTerms(query, locale).catch(() => [] as string[])
       if (terms.length) q = `${query} ${terms.join(' ')}`
     }
-    return await encyclopediaHitsFor(kb, q, { locale }, [])
+    const hits = await encyclopediaHitsFor(kb, q, { locale }, [])
+    if (hits.length) return hits
+    // wf16: в малой энциклопедии пусто (вопрос без «кто такой…») — ищем в большой
+    return await bigWikiHits(q)
   } catch {
     return []
   }
@@ -150,12 +153,14 @@ export async function encyclopediaHitsFor(
   kb: KbApi,
   query: string,
   ctx: { locale: KbLang; limit?: number },
-  schoolHits: readonly { score?: number }[],
+  schoolHits: readonly { score?: number; title?: string; text?: string }[],
 ): Promise<KbHit[]> {
   try {
     const intent = wantsEncyclopedia(query, ctx.locale)
     const scientists = await findScientists(query)
-    if (!intent && !scientists.length && !isWeakSchoolResult(schoolHits)) return []
+    // wf16: учебник «нашёл» что-то, но не про то («закон всемирного тяготения» → периодический закон)
+    const schoolMisses = ctx.locale === 'ru' && (await schoolMissesTopic(query, schoolHits))
+    if (!intent && !scientists.length && !isWeakSchoolResult(schoolHits) && !schoolMisses) return []
     const limit = ctx.limit ?? 4
     const out: KbHit[] = []
     const seen = new Set<string>()
@@ -207,7 +212,67 @@ export async function encyclopediaHitsFor(
       const base = out[0].id.replace(/-(en|uz)$/, '')
       for (const h of kb.getChunksById([`${base}-${ctx.locale}`])) push(h)
     }
+    // wf16: большая энциклопедия (public/kb/wiki, ленивая загрузка) — когда в малой нет статьи с темой вопроса в названии
+    if (!scientists.length && !out.some(titleHit) && (ctx.locale === 'ru' || !out.length)) {
+      const big = await bigWikiHits(query, limit)
+      if (big.length) {
+        const { wikiQueryCoverage, wikiExactTopic } = await import('./wikiBig')
+        const coverage = wikiQueryCoverage(big[0]!, query)
+        // статья ровно о том, о чём спросили, а учебник об этом молчит — ответ энциклопедии важнее школьного пересказа
+        const exact = wikiExactTopic(big[0]!, query)
+        if (schoolMisses && exact) markStrong(query)
+        if (exact || coverage >= 0.75 || !out.length) return [...big, ...out].slice(0, limit + 2)
+        return [...out, ...big].slice(0, limit + 2)
+      }
+    }
     return out.slice(0, limit + 2)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * wf16: вопросы, на которые большая энциклопедия нашла статью ровно по теме, а учебник — нет («кто такой Иван Павлов»,
+ * «закон всемирного тяготения»): encyclopediaIntent для них — 'strong' (роутер отдаёт ответ энциклопедии).
+ */
+const strongQueries = new Set<string>()
+const normQ = (q: string) => q.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim()
+function markStrong(query: string) {
+  if (strongQueries.size > 200) strongQueries.clear()
+  strongQueries.add(normQ(query))
+}
+function isMarkedStrong(query: string): boolean {
+  const q = normQ(query)
+  for (const s of strongQueries) if (s === q || s.startsWith(`${q} `)) return true
+  return false
+}
+
+/** Смысловое слово вопроса не встречается ни в одном из лучших школьных фрагментов — учебник «не про то». */
+async function schoolMissesTopic(query: string, schoolHits: readonly { title?: string; text?: string }[]): Promise<boolean> {
+  if (!schoolHits.length) return false
+  try {
+    const { queryContentTerms } = await import('./wikiBig')
+    const { analyzeTerms } = await import('./analyzer')
+    const q = queryContentTerms(query)
+    if (!q.length) return false
+    const have = new Set(schoolHits.slice(0, 3).flatMap((h) => analyzeTerms(`${h.title ?? ''} ${(h.text ?? '').slice(0, 600)}`)))
+    return q.some((t) => !have.has(t))
+  } catch {
+    return false
+  }
+}
+
+/** Большая энциклопедия с ограничением по времени (медленная сеть не задерживает ответ учителя). */
+export async function bigWikiHits(query: string, limit = 3, timeoutMs = 2_500): Promise<KbHit[]> {
+  try {
+    const { searchWikiBig } = await import('./wikiBig')
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<KbHit[]>((resolve) => {
+      timer = setTimeout(() => resolve([]), timeoutMs)
+    })
+    const res = await Promise.race([searchWikiBig(query, { limit }), timeout])
+    if (timer) clearTimeout(timer)
+    return res
   } catch {
     return []
   }

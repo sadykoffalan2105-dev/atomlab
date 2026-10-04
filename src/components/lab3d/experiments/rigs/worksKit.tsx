@@ -203,30 +203,58 @@ export function Spatula({ full, color = '#f6f5f1' }: { full: (p: number) => numb
  * Резиновый шланг между двумя точками (провисает посередине). Геометрия пересчитывается только когда концы
  * сдвинулись — в покое это обычный меш без работы на кадр.
  */
-export function RubberHose({ ends, sag = 0.05, radius = 0.0042, color = '#7c3a2c' }: { ends: (p: number) => readonly [V3, V3]; sag?: number; radius?: number; color?: string }) {
+export function RubberHose({
+  ends,
+  dirs,
+  floor,
+  sag = 0.05,
+  radius = 0.0042,
+  color = '#6b2e24',
+}: {
+  ends: (p: number) => readonly [V3, V3]
+  /** Ось стеклянной трубки у каждого конца — куда от неё уходит шланг (по умолчанию: у начала +X, у конца вверх). */
+  dirs?: (p: number) => readonly [V3, V3]
+  /** Высота опоры под точкой (x, z): шланг не опускается ниже неё (стол — 0; над пробирками — их край). */
+  floor?: (x: number, z: number) => number
+  sag?: number
+  radius?: number
+  color?: string
+}) {
   const { p, quality } = useRig()
   const ref = useRef<THREE.Mesh>(null)
   const last = useRef<string>('')
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0 }), [color])
+  // резина: матовая, тёмно-красно-коричневая
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.86, metalness: 0 }), [color])
   useFrame(() => {
     const m = ref.current
     if (!m) return
-    const [a, b] = ends(p.current ?? 0)
-    const key = [...a, ...b].map((v) => v.toFixed(4)).join()
+    const pv = p.current ?? 0
+    const [a, b] = ends(pv)
+    const [da, db] = dirs ? dirs(pv) : ([[1, 0, 0], [0, 1, 0]] as const)
+    const key = [...a, ...b, ...da, ...db].map((v) => v.toFixed(4)).join()
     if (key === last.current) return
     last.current = key
     const A = new THREE.Vector3(a[0], a[1], a[2])
     const B = new THREE.Vector3(b[0], b[1], b[2])
+    const DA = new THREE.Vector3(da[0], da[1], da[2]).normalize()
+    const DB = new THREE.Vector3(db[0], db[1], db[2]).normalize()
     const len = A.distanceTo(B)
     const mid = A.clone().lerp(B, 0.5)
     mid.y = Math.max(radius + 0.001, mid.y - Math.min(sag, 0.02 + len * 0.25))
-    // короткие прямые участки у концов — шланг надет на стеклянные трубки
-    const a2 = A.clone().add(new THREE.Vector3(0.012, 0, 0))
-    const b2 = B.clone().add(new THREE.Vector3(0, 0.012, 0))
-    const curve = new THREE.CatmullRomCurve3([A, a2, mid, b2, B], false, 'centripetal')
-    const g = new THREE.TubeGeometry(curve, quality === 'high' ? 40 : 20, radius, 8, false)
+    // шланг надет на стеклянные трубки на ~1 см (стекло уходит внутрь резины) и выходит из них по оси трубки
+    const pts = [A.clone().addScaledVector(DA, -0.01), A, A.clone().addScaledVector(DA, 0.014), mid, B.clone().addScaledVector(DB, 0.014), B, B.clone().addScaledVector(DB, -0.01)]
+    const rough = new THREE.CatmullRomCurve3(pts, false, 'centripetal')
+    // опора: шланг лежит на столе / поверх пробирок, а не проходит сквозь них
+    const n = quality === 'high' ? 44 : 24
+    const samples = rough.getSpacedPoints(n)
+    for (const s of samples) {
+      const f = (floor ? floor(s.x, s.z) : 0) + radius
+      if (s.y < f) s.y = f
+    }
+    const curve = new THREE.CatmullRomCurve3(samples, false, 'centripetal')
+    const g = new THREE.TubeGeometry(curve, n, radius, quality === 'high' ? 10 : 7, false)
     m.geometry.dispose()
     m.geometry = g
   })
-  return <mesh ref={ref} material={mat} castShadow />
+  return <mesh ref={ref} material={mat} castShadow userData={{ labHose: true }} />
 }

@@ -415,8 +415,26 @@ export const labAudio = {
     ambience = null
     fanOn = false
     const c = ctx
-    window.setTimeout(() => void c.suspend().catch(() => {}), 950)
+    // Если за это время вернулись на страницу и звук снова разблокирован — не глушим его
+    window.setTimeout(() => {
+      if (!unlocked) void c.suspend().catch(() => {})
+    }, 950)
     unlocked = false
     notify()
+  },
+  /**
+   * Вкладка скрыта/видна: в фоне — тишина (гул вытяжки, пламя, фон комнаты не звучат), при возврате — продолжается.
+   * Возвращает отписку для useEffect.
+   */
+  attachVisibility(): () => void {
+    if (typeof document === 'undefined') return () => {}
+    const onVis = () => {
+      const c = ctx
+      if (!c || !unlocked) return
+      if (document.hidden) void c.suspend().catch(() => {})
+      else void c.resume().catch(() => {})
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
   },
 }
