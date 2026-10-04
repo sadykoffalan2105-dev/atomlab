@@ -1164,6 +1164,9 @@ export const messagesRu = {
   'lab3d.safety.extPin': 'Выдернуть чеку',
   'lab3d.safety.extSpray': 'Нажать рычаг (держать)',
   'lab3d.safety.extEmpty': 'Заряд кончился',
+  'compound.obtLab.open': 'Открыть в лаборатории',
+  'compound.obtLab.aria': 'Открыть реакцию в лаборатории: {equation}',
+  'compound.obtLab.balance': 'уравняйте и запустите',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

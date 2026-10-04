@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { primaryReactionForCompound } from '../../chemistry/schoolReactionBank'
 import { schoolSceneLinkForCompound } from '../../lab/schoolSceneLinks'
+import { obtainingMethodsOf, obtainingStepLabLink, type ObtainingLabLink } from '../../lab/obtainingLabLinks'
 import { compoundById } from '../../data/compounds'
+import { catalogObtainingSteps } from '../../data/catalog/catalogObtaining200'
 import { getElementBySymbol } from '../../data/elements'
 import { getCompoundLocaleStrings, type CompoundLocaleStrings } from '../../i18n/compoundLocale'
 import type { MessageKey } from '../../i18n/useT'
@@ -135,6 +137,26 @@ export function CloseIconButton({ onClick, label }: { onClick: () => void; label
   )
 }
 
+/** «Открыть в лаборатории →» у шага получения: реактор с этой реакцией (mr= / reaction= / eq=). */
+function ObtainingLabButton({ link, equation, t }: { link: ObtainingLabLink | null; equation: string; t: ReturnType<typeof useT>['t'] }) {
+  if (!link) return null
+  return (
+    <Link
+      className={styles.obtainingLab}
+      to={link.href}
+      data-obt-lab={link.kind}
+      data-obt-animated={link.animated ? '1' : undefined}
+      aria-label={t('compound.obtLab.aria', { equation })}
+      title={link.kind === 'mr' ? t('compound.obtLab.balance') : undefined}
+    >
+      {t('compound.obtLab.open')}
+      <span className={styles.btnArrow} aria-hidden>
+        →
+      </span>
+    </Link>
+  )
+}
+
 /** Фокус в диалог при открытии и возврат фокуса при закрытии. */
 export function CompoundDetailModal({
   compoundId,
@@ -172,6 +194,12 @@ export function CompoundDetailModal({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [compoundId, onClose])
+
+  // Ссылки «Открыть в лаборатории» для каждого шага «Этапов получения» (единственный рецепт — тоже шаг).
+  const stepLinks = useMemo(() => {
+    if (!compoundId || !detail || detail === 'missing') return [] as { link: ObtainingLabLink | null; equation: string }[]
+    return obtainingMethodsOf(compoundId).map((m) => ({ link: obtainingStepLabLink(compoundId, m.equation), equation: m.equation }))
+  }, [compoundId, detail])
 
   const cardRef = useDialogFocus(compoundId != null)
   // «Как образуется»: модель строения в 3D карточки (частицы → заряды / валентности → сборка → готово).
@@ -278,17 +306,21 @@ export function CompoundDetailModal({
                 <h3 className={styles.metaLabel}>{t('compound.obtainingSteps')}</h3>
                 {loc.obtainingSteps.length > 1 ? (
                   <ol className={styles.obtainingSteps}>
-                    {loc.obtainingSteps.map((s) => (
+                    {loc.obtainingSteps.map((s, i) => (
                       <li key={s.step} className={styles.obtainingStep}>
                         <span className={styles.obtainingEq}>{s.equation}</span>
                         {s.note ? <span className={styles.obtainingNote}>{s.note}</span> : null}
+                        <ObtainingLabButton link={stepLinks[i]?.link ?? null} equation={s.equation} t={t} />
                       </li>
                     ))}
                   </ol>
                 ) : (
-                  <p className={styles.labExample} aria-label={t('compound.labExampleAria')}>
-                    {loc.laboratoryRecipe}
-                  </p>
+                  <div className={styles.labExampleWrap}>
+                    <p className={styles.labExample} aria-label={t('compound.labExampleAria')}>
+                      {catalogObtainingSteps(c.id)?.recipeRu ?? loc.laboratoryRecipe}
+                    </p>
+                    <ObtainingLabButton link={stepLinks[0]?.link ?? null} equation={stepLinks[0]?.equation ?? ''} t={t} />
+                  </div>
                 )}
               </section>
 

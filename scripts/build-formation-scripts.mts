@@ -22,10 +22,10 @@ type Kind = 'elements' | 'atoms' | 'neutralization' | 'oxideWater' | 'oxideAcid'
 /** Где эвристика по формулам ошибается — вид пути по химии (проверено вручную). */
 const KIND_OVERRIDE: Record<string, Kind> = {
   tb_ph3: 'protonTransfer', salt_nh4_cl: 'protonTransfer', salt_nh4_no3: 'protonTransfer', salt_nh4_so4: 'protonTransfer', tb_nh42hpo4: 'protonTransfer', salt_nh4_co3: 'protonTransfer',
-  hno3: 'redox', tb_n2o3: 'redox', salt_na_clo2: 'redox', salt_fe3_so4: 'redox', salt_mn_so4: 'redox', salt_cr_so4: 'redox',
+  hno3: 'redox', tb_n2o3: 'redox', salt_na_clo2: 'redox', 
   tb_naalo2: 'baseAcidOxide', tb_na2zno2: 'baseAcidOxide',
   h2o2: 'exchange', salt_k2cr2o7: 'exchange', hno2: 'exchange', h2sio3: 'exchange', cro3: 'exchange', hclo4: 'exchange', tb_mn2o7: 'exchange',
-  tb_cl2o7: 'dehydration', tb_h4p2o7: 'dehydration', feo: 'dehydration', tb_cro: 'dehydration',
+  tb_cl2o7: 'dehydration', tb_h4p2o7: 'dehydration', tb_mno: 'dehydration', feo: 'dehydration', tb_cro: 'dehydration',
 }
 const SIMPLE = /^(\d*)(H₂|O₂|O₃|N₂|F₂|Cl₂|Br₂|I₂|S|S₈|P|P₄|C|Si|[A-Z][a-z]?)$/
 const isMetalSym = (s: string) => /^(Li|Na|K|Rb|Cs|Be|Mg|Ca|Sr|Ba|Al|Zn|Fe|Cu|Ag|Au|Hg|Pb|Sn|Cr|Mn|Ni|Co|Ti|V|W|Mo|Cd)$/.test(s)

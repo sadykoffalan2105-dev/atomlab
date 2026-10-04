@@ -1166,4 +1166,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab3d.safety.extPin': 'Pull the pin',
   'lab3d.safety.extSpray': 'Squeeze the lever (hold)',
   'lab3d.safety.extEmpty': 'Empty',
+  'compound.obtLab.open': 'Open in the lab',
+  'compound.obtLab.aria': 'Open the reaction in the lab: {equation}',
+  'compound.obtLab.balance': 'balance it and run',
 }

@@ -659,6 +659,60 @@
   color: var(--lt-text-3);
 }
 
+/* «Открыть в лаборатории →» у шага получения */
+
+.labExampleWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.labExampleWrap .labExample {
+  align-self: stretch;
+}
+
+.obtainingLab {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 4px;
+  padding: 0 12px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--cat-a) 45%, var(--lt-border));
+  background: color-mix(in srgb, var(--cat-a) 12%, transparent);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  transition:
+    transform var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur) var(--lt-ease),
+    border-color var(--lt-dur) var(--lt-ease);
+}
+
+.obtainingLab:hover {
+  border-color: color-mix(in srgb, var(--cat-a) 75%, var(--lt-border));
+  background: color-mix(in srgb, var(--cat-a) 22%, transparent);
+}
+
+.obtainingLab:active {
+  transform: translateY(1px);
+}
+
+.obtainingLab:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.obtainingLab:hover .btnArrow {
+  transform: translateX(3px);
+}
+
 /* Школьная реакция */
 
 .schoolRx {

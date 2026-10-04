@@ -10,6 +10,7 @@ import type { CompoundCategory, CompoundDef, RawCompoundDef } from '../types/che
 import { INORGANIC_RAW } from './inorganicCompounds.data'
 import { TEXTBOOK_EXTRA_RAW } from './textbookCompounds.data'
 import { isTextbookCompoundId } from './textbook/catalogWhitelist'
+import { catalogObtainingSteps } from './catalog/catalogObtaining200'
 
 function accentForCategory(cat: CompoundCategory): string {
   if (cat === 'oxide') return '#5ad8ff'
@@ -47,8 +48,21 @@ function obtainingIn(p: RawCompoundDef) {
     p.laboratoryRecipeRu.startsWith('Маршрут:') ||
     (p.obtainingStepsRu?.length ?? 0) > 0 ||
     bundle.steps.length > 1
+  const laboratoryRecipeRu = useBundleRecipe ? bundle.recipeRu : (p.laboratoryRecipeRu ?? bundle.recipeRu)
+  // 200 веществ каталога: выверенные этапы (каждый открывается в реакторе) важнее шаблонов и сырых записей.
+  // Рецепт «A + B = C» (одна строка с «=») реактор разбирает в левую часть (generateFromLaboratoryRecipe) — его не трогаем.
+  const curated = catalogObtainingSteps(p.id)
+  if (curated) {
+    const recipeParsable = laboratoryRecipeRu.includes('=') && !/[\n①]/.test(laboratoryRecipeRu)
+    return {
+      laboratoryRecipeRu: recipeParsable ? laboratoryRecipeRu : curated.recipeRu,
+      obtainingStepsRu: curated.steps,
+      synthesisConditionsRu: { ...baseCond, ...bundle.conditions, ...p.synthesisConditionsRu },
+      synthesisLab: { ...bundle.lab, ...p.synthesisLab },
+    }
+  }
   return {
-    laboratoryRecipeRu: useBundleRecipe ? bundle.recipeRu : (p.laboratoryRecipeRu ?? bundle.recipeRu),
+    laboratoryRecipeRu,
     obtainingStepsRu: p.obtainingStepsRu?.length ? p.obtainingStepsRu : bundle.steps,
     synthesisConditionsRu: {
       ...baseCond,

@@ -1166,4 +1166,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab3d.safety.extPin': 'Chekani sug‘urish',
   'lab3d.safety.extSpray': 'Richagni bosish (ushlab turing)',
   'lab3d.safety.extEmpty': 'Zaryad tugadi',
+  'compound.obtLab.open': 'Laboratoriyada ochish',
+  'compound.obtLab.aria': 'Reaksiyani laboratoriyada ochish: {equation}',
+  'compound.obtLab.balance': 'tenglang va ishga tushiring',
 }
