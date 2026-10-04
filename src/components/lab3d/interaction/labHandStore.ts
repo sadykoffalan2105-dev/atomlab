@@ -148,7 +148,54 @@ function resolveWithContact(id: LabItemId, x: number, z: number, overhang = 0): 
       push(ox, oz, LAB_ITEM_BY_ID.get(oid)?.r ?? 0.04)
     }
   }
+  // Окончательная постановка (без свешивания): раздвигание в тесноте могло не сойтись (сосед с двух сторон,
+  // край стола) — тогда ищем ближайшее свободное место по расширяющимся кольцам, чтобы стекло не входило в стекло.
+  if (overhang === 0 && !fitsAt(id, px, pz, r, b)) {
+    const found = nearestFree(id, x, z, r, b)
+    if (found) return { p: found, contact: true }
+  }
   return { p: [px, pz], contact }
+}
+
+/** Помещается ли предмет радиуса r в точке: внутри столешницы и без касания соседей/декора (зазор 1 мм). */
+function fitsAt(id: LabItemId, x: number, z: number, r: number, b: { x0: number; x1: number; z0: number; z1: number }): boolean {
+  const eps = 1e-4
+  if (x < b.x0 + r - eps || x > b.x1 - r + eps || z < b.z0 + r - eps || z > b.z1 - r + eps) return false
+  if (!onHood(x)) for (const [sx, sz, sr] of BENCH_STATIC) if (Math.hypot(x - sx, z - sz) < r + sr - 0.001) return false
+  for (const [oid, [ox, oz]] of itemXZ) {
+    if (oid === id) continue
+    const zn = zoneOf(oid)
+    if (zn !== 'bench' && zn !== 'work') continue
+    if (Math.hypot(x - ox, z - oz) < r + (LAB_ITEM_BY_ID.get(oid)?.r ?? 0.04) - 0.001) return false
+  }
+  return true
+}
+
+/** Ближайшая к (x, z) свободная точка той же поверхности: кольца через 1,5 см, до 1,2 м. */
+function nearestFree(id: LabItemId, x: number, z: number, r: number, b: { x0: number; x1: number; z0: number; z1: number }): [number, number] | null {
+  const cx = Math.min(b.x1 - r, Math.max(b.x0 + r, x))
+  const cz = Math.min(b.z1 - r, Math.max(b.z0 + r, z))
+  if (fitsAt(id, cx, cz, r, b)) return [cx, cz]
+  for (let ring = 1; ring <= 80; ring++) {
+    const rad = ring * 0.015
+    const n = Math.max(8, Math.round((2 * Math.PI * rad) / 0.012))
+    let best: [number, number] | null = null
+    let bestD = Infinity
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2
+      const px = cx + Math.cos(a) * rad
+      const pz = cz + Math.sin(a) * rad
+      if (onHood(px) !== onHood(cx)) continue
+      if (!fitsAt(id, px, pz, r, b)) continue
+      const d = Math.hypot(px - x, pz - z)
+      if (d < bestD) {
+        bestD = d
+        best = [px, pz]
+      }
+    }
+    if (best) return best
+  }
+  return null
 }
 
 function setZone(id: LabItemId, zone: ItemZone, extra: Partial<HandState> = {}) {

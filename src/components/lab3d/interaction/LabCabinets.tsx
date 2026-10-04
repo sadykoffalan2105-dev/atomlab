@@ -9,12 +9,17 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { labAudio } from '../audio/labAudio'
 import * as THREE from 'three'
+import type { LabLang } from '../labContract'
 import type { LabMaterials } from '../scene/labMaterials'
 import { BENCH, ROOM } from '../scene/labSceneLayout'
-import { BENCH_CAB, WALL_CAB, benchDoorX } from './labItems'
+import { signTexture } from '../scene/labTextures'
+import { BENCH_CAB, LAB_ITEMS, WALL_CAB, benchDoorX } from './labItems'
 import { labHand, useHand } from './labHandStore'
 
 const OPEN_ANGLE = 1.85
+/** Доводчик: зона (рад) и предельная скорость (рад/с) мягкого закрытия. */
+const SOFT_ZONE = 0.3
+const SOFT_SPEED = 0.75
 
 /** Перетаскивание мышью/пальцем: общая логика для дверец и ящиков (движение окна, отключение орбиты). */
 function useDragGesture(onMove: (dx: number, dy: number, dt: number) => void, onEnd: (moved: boolean) => void) {
@@ -70,6 +75,7 @@ function Door({
   hinge,
   w,
   h,
+  mats,
   children,
 }: {
   id: string
@@ -77,12 +83,13 @@ function Door({
   hinge: -1 | 1
   w: number
   h: number
+  mats: LabMaterials
   children: React.ReactNode
 }) {
   const ref = useRef<THREE.Group>(null)
   const [hover, setHover] = useState(false)
   useCursor(hover, 'grab', 'auto')
-  const ph = useRef({ a: 0, v: 0, drag: false, open, firstFrame: true })
+  const ph = useRef({ a: 0, v: 0, drag: false, open, firstFrame: true, lastThud: 0 })
   const soundAt = (): [number, number, number] => {
     const g = ref.current
     if (!g) return [0, 1, 0]
@@ -106,11 +113,18 @@ function Door({
       const k = open ? 24 : 30
       const c = open ? 7.2 : 8.6
       p.v += ((target - p.a) * k - p.v * c) * dt
+      // Доводчик: последние ~17° перед закрытием дверца идёт медленно и мягко (как петля с демпфером)
+      if (!open && hinge * p.a < SOFT_ZONE && hinge * p.v < 0) p.v = hinge * Math.max(hinge * p.v, -SOFT_SPEED)
       p.a += p.v * dt
     }
     // Упор «закрыто»: стук, если пришла с заметной скоростью; маленький отскок
     if (hinge * p.a < 0) {
-      if (Math.abs(p.v) > 0.35) labAudio.play('door-close', { at: soundAt(), gain: Math.min(1, Math.abs(p.v) / 2.2) })
+      // Один стук на одно закрытие (отскок и дрожание у упора звук не повторяют)
+      const now = performance.now()
+      if (Math.abs(p.v) > 0.25 && now - p.lastThud > 450) {
+        p.lastThud = now
+        labAudio.play('door-close', { at: soundAt(), gain: Math.min(1, 0.25 + Math.abs(p.v) / 2.2) })
+      }
       p.a = 0
       p.v = -p.v * 0.15
     }
@@ -162,12 +176,21 @@ function Door({
       >
         {children}
       </group>
-      {/* Петли */}
+      {/* Петли: шарнир (цилиндр с колпачками) и пластина на дверце — поворачивается вместе с ней */}
       {[h * 0.38, -h * 0.38].map((y) => (
-        <mesh key={y} position={[0, y, -0.004]}>
-          <cylinderGeometry args={[0.004, 0.004, 0.04, 8]} />
-          <meshStandardMaterial color="#9aa4ae" metalness={0.8} roughness={0.3} />
-        </mesh>
+        <group key={y} position={[0, y, -0.004]}>
+          <mesh material={mats.chrome}>
+            <cylinderGeometry args={[0.0045, 0.0045, 0.05, 10]} />
+          </mesh>
+          {[0.026, -0.026].map((cy) => (
+            <mesh key={cy} position-y={cy} material={mats.chrome}>
+              <sphereGeometry args={[0.0045, 8, 4]} />
+            </mesh>
+          ))}
+          <mesh position={[-hinge * 0.014, 0, -0.0045]} material={mats.chrome}>
+            <boxGeometry args={[0.024, 0.044, 0.0015]} />
+          </mesh>
+        </group>
       ))}
     </group>
   )
@@ -351,9 +374,27 @@ function BarHandle({ mats, len = 0.12, vertical = false }: { mats: LabMaterials;
   )
 }
 
+/** Дверцы тумбы, за которыми хранится посуда (наклейка-подсказка на фасаде). */
+const BENCH_DOORS_WITH_ITEMS = new Set(LAB_ITEMS.flatMap((d) => (d.store.kind === 'cabinet' && d.store.doorId.startsWith('bench:') ? [d.store.doorId] : [])))
+const INSIDE_TEXT: Record<LabLang, string> = { ru: 'Посуда внутри', en: 'Glassware inside', uz: 'Ichida idishlar' }
+const STICKER_W = 0.15
+const STICKER_H = 0.034
+
 /** Тумба под столом: полый корпус, полка, ящики сверху, 4 дверцы. */
-export function BenchCabinet({ mats }: { mats: LabMaterials }) {
+export function BenchCabinet({ mats, lang = 'ru' }: { mats: LabMaterials; lang?: LabLang }) {
   const { doors } = useHand()
+  // Наклейка на фасаде: видна, пока дверца закрыта (открыли — уходит вместе с дверцей), за мебелью прячется сама
+  const sticker = useMemo(() => {
+    const map = signTexture(INSIDE_TEXT[lang], '#2b6cb0', '#ffffff', Math.round((96 * STICKER_W) / STICKER_H), 96)
+    return { map, mat: new THREE.MeshStandardMaterial({ map, roughness: 0.55 }) }
+  }, [lang])
+  useEffect(
+    () => () => {
+      sticker.map.dispose()
+      sticker.mat.dispose()
+    },
+    [sticker],
+  )
   const c = BENCH_CAB
   const cz = BENCH.centerZ
   const y0 = c.bodyY0
@@ -401,11 +442,16 @@ export function BenchCabinet({ mats }: { mats: LabMaterials }) {
             <CabinetGlow open={!!doors[id]} w={c.doorW - 0.03} h={doorH} position={[x, doorY, c.backZ + 0.02]} />
             {/* Дверца на петле */}
             <group position={[x + hinge * (c.doorW / 2 - 0.006), doorY, c.frontZ + 0.009]}>
-              <Door id={id} open={!!doors[id]} hinge={hinge} w={c.doorW - 0.012} h={doorH}>
+              <Door id={id} open={!!doors[id]} hinge={hinge} w={c.doorW - 0.012} h={doorH} mats={mats}>
                 <RoundedBox args={[c.doorW - 0.012, doorH, 0.018]} radius={0.004} smoothness={2} material={mats.door} castShadow />
                 <group position={[-hinge * (c.doorW / 2 - 0.07), doorH / 2 - 0.06, 0.009]}>
                   <BarHandle mats={mats} len={0.1} vertical />
                 </group>
+                {BENCH_DOORS_WITH_ITEMS.has(id) && (
+                  <mesh position={[0, doorH / 2 - 0.17, 0.0096]} material={sticker.mat} raycast={() => null}>
+                    <planeGeometry args={[STICKER_W, STICKER_H]} />
+                  </mesh>
+                )}
               </Door>
             </group>
           </group>
@@ -466,6 +512,11 @@ export function WallCabinet({ mats }: { mats: LabMaterials }) {
   const t = 0.018
   const doorW = w / 2 - 0.006
   const doorH = h - 0.02
+  const glint = useMemo(
+    () => new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.1, depthWrite: false, blending: THREE.AdditiveBlending }),
+    [],
+  )
+  useEffect(() => () => glint.dispose(), [glint])
   return (
     <group>
       {/* Корпус: дно, крыша, боковины, стенка */}
@@ -492,7 +543,7 @@ export function WallCabinet({ mats }: { mats: LabMaterials }) {
         const hx = hinge === -1 ? WALL_CAB.x0 + 0.004 : WALL_CAB.x1 - 0.004
         return (
           <group key={id} position={[hx, cy, frontZ + 0.01]}>
-            <Door id={id} open={!!doors[id]} hinge={hinge} w={doorW} h={doorH}>
+            <Door id={id} open={!!doors[id]} hinge={hinge} w={doorW} h={doorH} mats={mats}>
               {/* Рамка */}
               {[
                 [0, doorH / 2 - 0.012, doorW, 0.024],
@@ -504,10 +555,18 @@ export function WallCabinet({ mats }: { mats: LabMaterials }) {
                   <boxGeometry args={[fw, fh, 0.016]} />
                 </mesh>
               ))}
-              {/* Стекло */}
+              {/* Стекло и лёгкий косой блик */}
               <mesh material={mats.hoodGlass}>
                 <planeGeometry args={[doorW - 0.03, doorH - 0.03]} />
               </mesh>
+              <group position={[hinge * 0.04, doorH * 0.18, 0.0012]} rotation-z={0.62}>
+                <mesh material={glint} raycast={() => null}>
+                  <planeGeometry args={[Math.min(0.24, doorW * 0.5), 0.022]} />
+                </mesh>
+                <mesh position-y={-0.036} material={glint} raycast={() => null}>
+                  <planeGeometry args={[Math.min(0.16, doorW * 0.34), 0.008]} />
+                </mesh>
+              </group>
               <group position={[-hinge * (doorW / 2 - 0.04), -doorH / 2 + 0.09, 0.002]}>
                 <BarHandle mats={mats} len={0.09} vertical />
               </group>

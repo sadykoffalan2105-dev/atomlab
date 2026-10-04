@@ -90,9 +90,19 @@ function clearFires() {
 }
 
 const HOOK_X = -ROOM.w / 2 + 0.36
-const HOOK_Z = ROOM.frontZ + 0.1
+/** Ось баллона: рычаг головки (смотрит к стене) не доходит до стены ~5 мм. */
+const HOOK_Z = ROOM.frontZ + 0.118
 /** Нижняя точка корпуса на крючке. */
 const HOOK_Y = 0.3
+/**
+ * Вилка кронштейна: прутки r = 4 мм на x = ±47 мм. Купол баллона — полусфера R = 0,07 с центром на HOOK_Y + 0,52;
+ * высота прутков подобрана так, чтобы расстояние от центра купола до оси прутка = R + r (касание, купол лежит на вилке).
+ */
+const FORK_R = 0.004
+const FORK_X = 0.047
+const FORK_Y = HOOK_Y + 0.52 + Math.sqrt((0.07 + FORK_R) ** 2 - FORK_X ** 2)
+/** Конец прутков (от стены), с загибом вверх. */
+const FORK_END = HOOK_Z - ROOM.frontZ + 0.04
 const HOOK_AT: Vec3Tuple = [HOOK_X, HOOK_Y + 0.5, HOOK_Z]
 const SPRAY_SECONDS = 12
 const TEXT = {
@@ -375,15 +385,27 @@ export function LabExtinguisher({
 
   return (
     <>
-      {/* Крючок-кронштейн и табличка ТБ на передней стене */}
-      <group position={[HOOK_X, 0, ROOM.frontZ + 0.012]}>
-        <mesh position={[0, HOOK_Y + 0.5, 0.02]} material={mats.darkMetal}>
-          <boxGeometry args={[0.1, 0.05, 0.035]} />
+      {/* Кронштейн-вилка на передней стене: пластина прижата к стене (без зазора), два прутка выходят к баллону,
+          и плечи купола баллона лежат на них (касание без проникновения); на концах — загибы, чтобы не соскользнул.
+          Табличка ТБ — тонкая пластина вплотную к стене. */}
+      <group position={[HOOK_X, 0, ROOM.frontZ]}>
+        <mesh position={[0, FORK_Y - 0.01, 0.003]} material={mats.darkMetal}>
+          <boxGeometry args={[0.12, 0.1, 0.006]} />
         </mesh>
-        <mesh position={[0, HOOK_Y + 0.53, 0.05]} rotation-x={Math.PI / 2} material={mats.darkMetal}>
-          <cylinderGeometry args={[0.008, 0.008, 0.06, 8]} />
+        {[-FORK_X, FORK_X].map((x) => (
+          <group key={x}>
+            <mesh position={[x, FORK_Y, (0.006 + FORK_END) / 2]} rotation-x={Math.PI / 2} material={mats.darkMetal}>
+              <cylinderGeometry args={[FORK_R, FORK_R, FORK_END - 0.006, 10]} />
+            </mesh>
+            <mesh position={[x, FORK_Y + 0.009, FORK_END]} material={mats.darkMetal}>
+              <cylinderGeometry args={[FORK_R, FORK_R, 0.018, 8]} />
+            </mesh>
+          </group>
+        ))}
+        <mesh position={[0, HOOK_Y + 0.88, 0.0015]} material={mats.whitePlastic}>
+          <boxGeometry args={[0.156, 0.196, 0.003]} />
         </mesh>
-        <mesh position={[0, HOOK_Y + 0.88, 0.002]}>
+        <mesh position={[0, HOOK_Y + 0.88, 0.0032]}>
           <planeGeometry args={[0.15, 0.19]} />
           <meshStandardMaterial map={sign} roughness={0.55} />
         </mesh>
