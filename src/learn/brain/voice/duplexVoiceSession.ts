@@ -20,7 +20,8 @@ import { AudioActivityDetector } from './audioActivityDetector'
 import { BargeInDetector, TurnEndDetector, realScheduler, type TimingScheduler, type TurnCommit } from './conversationTiming'
 import { looksLikeAnyTeacherEcho, looksLikeTeacherEcho as looksLikeTeacherEchoImpl, sameUtterance } from './echoFilter'
 import { currentBrowserVoiceProfile, type ListenWhileSpeaking } from '../speech/browserProfile'
-import { fixTranscript } from '../speech/chemTranscript'
+import { fixTranscript, noteTeacherSpeech } from '../speech/chemTranscript'
+import { utteranceHoldMs } from '../speech/endOfUtterance'
 import { SpokenPhraseLog } from '../speech/echoGuard'
 import { setVoiceStatus } from '../speech/voiceStatus'
 import type { DialogTurn } from './interruptionController'
@@ -101,6 +102,11 @@ export interface DuplexSessionConfig {
   scheduler?: TimingScheduler
   /** Тишина после речи (мс) до конца реплики. */
   silenceMs?: number
+  /**
+   * Умный конец фразы: добавка к паузе по тексту (союз/предлог/число в конце → дольше).
+   * По умолчанию speech/endOfUtterance; null — выключить (старое поведение).
+   */
+  holdMs?: ((pendingText: string) => number) | null
 }
 
 export type TeacherTurnOutcome = 'completed' | 'interrupted' | 'cancelled'
@@ -189,6 +195,7 @@ export class DuplexVoiceSession {
       scheduler: this.s,
       silenceMs: config.silenceMs ?? 450,
       finalSettleMs: 220,
+      holdMs: config.holdMs === null ? undefined : (config.holdMs ?? utteranceHoldMs),
       onCommit: (commit) => this.onTurnCommit(commit),
     })
   }
@@ -559,6 +566,8 @@ export class DuplexVoiceSession {
       onSentence: (sentence) => {
         this.teacherTexts.push(sentence)
         if (this.teacherTexts.length > 24) this.teacherTexts.shift()
+        // Слова учителя — контекст выбора альтернативы STT (ученик чаще всего отвечает его словами).
+        noteTeacherSpeech(sentence)
         // Сравниваем эхо с тем, что реально произносится («H₂O» → «аш два о»).
         this.spokenLog.push(sentence, this.output.prepare(sentence), this.s.now())
       },

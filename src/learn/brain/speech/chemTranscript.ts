@@ -12,6 +12,7 @@
  * Чистый модуль: без DOM, тестируется в node (scripts/test-voice-transcript.mts).
  */
 import { CHEM_TERMS, KNOWN_WORDS } from './chemTerms.generated'
+import { STT_FIX_CHEM_TERMS, STT_FIX_PAIRS_EXTRA } from './sttFixesExtra'
 
 export type TranscriptLang = 'ru' | 'en' | 'uz'
 
@@ -56,7 +57,16 @@ export const STT_FIX_PAIRS: readonly (readonly [string, string])[] = [
   ['valentlik', 'valentlik'], ['oksit', 'oksid'], ['gidroksit', 'gidroksid'], ['reaksiya', 'reaksiya'], ['reaktsiya', 'reaksiya'],
 ]
 
-const FIX_MAP: ReadonlyMap<string, string> = new Map(STT_FIX_PAIRS.map(([a, b]) => [norm(a), b]))
+/** Все правила ослышек: базовые + расширенные (вещества, элементы, учёные, школьные фразы, узбекские слова). */
+export const ALL_STT_FIX_PAIRS: readonly (readonly [string, string])[] = [...STT_FIX_PAIRS, ...STT_FIX_PAIRS_EXTRA]
+
+const FIX_MAP: ReadonlyMap<string, string> = new Map(
+  ALL_STT_FIX_PAIRS.filter(([a]) => !a.includes(' ')).map(([a, b]) => [norm(a), b]),
+)
+/** Словосочетания-ослышки (2+ слова) — заменяем регуляркой целиком. */
+const PHRASE_FIXES: readonly (readonly [RegExp, string])[] = ALL_STT_FIX_PAIRS.filter(([a]) => a.includes(' ')).map(
+  ([heard, fix]) => [new RegExp(`(^|[^\\p{L}])${heard.replace(/ё/g, '[её]')}(?=[^\\p{L}]|$)`, 'giu'), fix] as const,
+)
 
 /* ------------------------------------------------------------ словарь терминов */
 
@@ -68,6 +78,8 @@ const QUESTION_WORDS = [
 
 const EXTRA_TERMS = [
   ...STT_FIX_PAIRS.map(([, fix]) => fix),
+  // Расширенные правила: только химические «исправления» (не переводы узбекских/разговорных слов).
+  ...STT_FIX_CHEM_TERMS,
   'оксид', 'оксиды', 'гидроксид', 'кислота', 'кислоты', 'щёлочь', 'щёлочи', 'соль', 'соли', 'основание', 'основания',
   'катион', 'анион', 'моль', 'молярная', 'масса', 'валентность', 'электроотрицательность', 'реакция', 'уравнение',
   'коэффициент', 'индекс', 'формула', 'вещество', 'вещества', 'элемент', 'элементы', 'период', 'группа', 'подгруппа',
@@ -177,20 +189,36 @@ export function correctTerm(word: string): string | null {
 
 /* -------------------------------------------------------- (а) формулы словами */
 
-type FormulaToken = { sym: string; strong: boolean; kind: 'letter' | 'element' | 'number' }
+type FormulaToken = {
+  sym: string
+  strong: boolean
+  kind: 'letter' | 'element' | 'number'
+  /** Слабая буква («а», «и», «же»…): входит в формулу только как вторая буква символа (эн а → Na). */
+  joinOnly?: boolean
+}
 
 const SUB: Record<string, string> = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉' }
 
 const FORMULA_TOKENS: Record<TranscriptLang, Record<string, FormulaToken>> = {
   ru: {
     аш: { sym: 'H', strong: true, kind: 'letter' }, о: { sym: 'O', strong: false, kind: 'letter' },
-    эс: { sym: 'S', strong: true, kind: 'letter' }, эн: { sym: 'N', strong: true, kind: 'letter' },
+    эс: { sym: 'S', strong: true, kind: 'letter' },
     це: { sym: 'C', strong: true, kind: 'letter' }, ка: { sym: 'K', strong: true, kind: 'letter' },
     эль: { sym: 'L', strong: true, kind: 'letter' }, эф: { sym: 'F', strong: true, kind: 'letter' },
     пэ: { sym: 'P', strong: true, kind: 'letter' }, пе: { sym: 'P', strong: true, kind: 'letter' },
-    а: { sym: 'A', strong: false, kind: 'letter' }, у: { sym: 'U', strong: false, kind: 'letter' },
-    е: { sym: 'E', strong: false, kind: 'letter' }, и: { sym: 'I', strong: false, kind: 'letter' },
+    а: { sym: 'A', strong: false, kind: 'letter', joinOnly: true }, у: { sym: 'U', strong: false, kind: 'letter', joinOnly: true },
+    е: { sym: 'E', strong: false, kind: 'letter', joinOnly: true }, и: { sym: 'I', strong: false, kind: 'letter', joinOnly: true },
+    же: { sym: 'G', strong: false, kind: 'letter', joinOnly: true }, жэ: { sym: 'G', strong: false, kind: 'letter', joinOnly: true },
+    гэ: { sym: 'G', strong: false, kind: 'letter', joinOnly: true }, ге: { sym: 'G', strong: false, kind: 'letter', joinOnly: true },
+    эр: { sym: 'R', strong: false, kind: 'letter', joinOnly: true }, эн: { sym: 'N', strong: true, kind: 'letter' },
     бэ: { sym: 'B', strong: true, kind: 'letter' }, h: { sym: 'H', strong: true, kind: 'letter' },
+    эл: { sym: 'L', strong: true, kind: 'letter' }, эм: { sym: 'M', strong: true, kind: 'letter' },
+    зет: { sym: 'Z', strong: true, kind: 'letter' }, зэт: { sym: 'Z', strong: true, kind: 'letter' },
+    ош: { sym: 'H', strong: true, kind: 'letter' }, ашь: { sym: 'H', strong: true, kind: 'letter' },
+    йод: { sym: 'I', strong: true, kind: 'element' }, сера: { sym: 'S', strong: true, kind: 'element' },
+    фтор: { sym: 'F', strong: true, kind: 'element' }, барий: { sym: 'Ba', strong: true, kind: 'element' },
+    литий: { sym: 'Li', strong: true, kind: 'element' }, серебро: { sym: 'Ag', strong: true, kind: 'element' },
+    свинец: { sym: 'Pb', strong: true, kind: 'element' },
     натрий: { sym: 'Na', strong: true, kind: 'element' }, калий: { sym: 'K', strong: true, kind: 'element' },
     кальций: { sym: 'Ca', strong: true, kind: 'element' }, магний: { sym: 'Mg', strong: true, kind: 'element' },
     хлор: { sym: 'Cl', strong: true, kind: 'element' }, железо: { sym: 'Fe', strong: true, kind: 'element' },
@@ -239,7 +267,13 @@ const FORMULA_TOKENS: Record<TranscriptLang, Record<string, FormulaToken>> = {
 }
 
 /** Две буквы подряд, означающие один символ: «эн а» → Na, «це а» → Ca, «це у» → Cu, «эф е» → Fe, «це эль» → Cl. */
-const DIGRAPHS: Record<string, string> = { NA: 'Na', CA: 'Ca', CU: 'Cu', FE: 'Fe', CL: 'Cl', MG: 'Mg', AL: 'Al', ZN: 'Zn', BA: 'Ba', LI: 'Li', BE: 'Be', SI: 'Si', BR: 'Br', AG: 'Ag', HE: 'He', NE: 'Ne' }
+const DIGRAPHS: Record<string, string> = {
+  NA: 'Na', CA: 'Ca', CU: 'Cu', FE: 'Fe', CL: 'Cl', MG: 'Mg', AL: 'Al', ZN: 'Zn', BA: 'Ba', LI: 'Li', BE: 'Be', SI: 'Si',
+  BR: 'Br', AG: 'Ag', HE: 'He', NE: 'Ne', MN: 'Mn', HG: 'Hg', PB: 'Pb', NI: 'Ni', CR: 'Cr', SN: 'Sn',
+}
+/** Металл + галоген/сера: «натрий хлор» → NaCl, «железо сера» → FeS (два названия элементов подряд). */
+const SALT_METALS = new Set(['Na', 'K', 'Ca', 'Mg', 'Fe', 'Cu', 'Zn', 'Al', 'Ba', 'Li', 'Ag', 'Pb'])
+const SALT_ANIONS = new Set(['Cl', 'Br', 'I', 'F', 'S'])
 
 function buildFormula(tokens: FormulaToken[]): string {
   const syms: string[] = []
@@ -254,7 +288,12 @@ function buildFormula(tokens: FormulaToken[]): string {
     if (pair) syms[syms.length - 1] = pair
     else syms.push(t.sym)
   }
-  return syms.join('')
+  const out = syms.join('')
+  if (out === 'PH') return 'pH'
+  // «це а о аш два» → Ca(OH)₂: гидроксогруппа с индексом после металла.
+  const hydroxide = out.match(/^([A-Z][a-z]?)OH([₂₃₄])$/)
+  if (hydroxide && SALT_METALS.has(hydroxide[1]!)) return `${hydroxide[1]}(OH)${hydroxide[2]}`
+  return out
 }
 
 function qualifiesAsFormula(tokens: FormulaToken[]): boolean {
@@ -264,6 +303,11 @@ function qualifiesAsFormula(tokens: FormulaToken[]): boolean {
   const letters = tokens.length - numbers
   if (tokens[0]!.kind === 'number') return false
   if (tokens.every((t) => t.kind === 'number')) return false
+  // Только названия элементов («азот кислород водород») — это перечисление, а не формула;
+  // исключение — соль «металл + галоген/сера» (натрий хлор → NaCl).
+  if (tokens.every((t) => t.kind === 'element')) {
+    return tokens.length === 2 && SALT_METALS.has(tokens[0]!.sym) && SALT_ANIONS.has(tokens[1]!.sym)
+  }
   if (strong >= 2) return true
   return strong >= 1 && numbers >= 1 && letters >= 2
 }
@@ -290,7 +334,14 @@ export function spokenFormulasToText(text: string, lang: TranscriptLang): string
       continue
     }
     const key = norm(part)
-    const token = key ? table[key] : undefined
+    let token = key ? table[key] : undefined
+    if (token?.joinOnly) {
+      // Слабая буква входит в формулу только как вторая буква символа: «эн а» → Na, «и» между словами — союз.
+      const prev = run?.tokens[run.tokens.length - 1]
+      if (!prev || prev.kind !== 'letter' || prev.sym.length !== 1 || !DIGRAPHS[prev.sym + token.sym]) token = undefined
+      // Пара букв дала символ элемента (Mg, Ca) — это уже сильный признак формулы.
+      else token = { ...token, strong: true }
+    }
     if (token) {
       if (!run) run = { tokens: [], start: out.length }
       run.tokens.push(token)
@@ -395,9 +446,8 @@ export function spokenNumbersToDigits(text: string, lang: TranscriptLang): strin
 function fixWords(text: string): string {
   // сначала словосочетания из таблицы (2 слова)
   let t = text
-  for (const [heard, fix] of STT_FIX_PAIRS) {
-    if (!heard.includes(' ')) continue
-    const re = new RegExp(`(^|[^\\p{L}])${heard.replace(/ё/g, '[её]')}(?=[^\\p{L}]|$)`, 'giu')
+  for (const [re, fix] of PHRASE_FIXES) {
+    re.lastIndex = 0
     t = t.replace(re, (_m, pre: string) => `${pre}${fix}`)
   }
   return t
@@ -432,6 +482,51 @@ export interface SttAlternative {
   confidence?: number
 }
 
+/* ------------------------------------------------- контекст диалога (для альтернатив) */
+
+/** Слова текущей темы урока и недавних реплик учителя: ученик чаще всего отвечает ими же. */
+const contextWords = new Map<string, number>()
+let contextSeq = 0
+const CONTEXT_LIMIT = 160
+const STOP = new Set(['это', 'что', 'как', 'для', 'или', 'так', 'там', 'тут', 'его', 'она', 'они', 'оно', 'все', 'был', 'была', 'будет', 'есть'])
+
+function addContext(text: string): void {
+  for (const raw of text.split(/[^\p{L}\p{N}]+/u)) {
+    const w = norm(raw)
+    if (w.length < 3 || STOP.has(w) || /^\d+$/.test(w)) continue
+    contextWords.set(w, ++contextSeq)
+  }
+  if (contextWords.size > CONTEXT_LIMIT) {
+    const old = [...contextWords].sort((a, b) => a[1] - b[1]).slice(0, contextWords.size - CONTEXT_LIMIT)
+    for (const [w] of old) contextWords.delete(w)
+  }
+}
+
+/** Тема урока (название раздела/главы) — подсказка выбору альтернативы STT. */
+export function setRecognitionTopic(...titles: (string | null | undefined)[]): void {
+  for (const t of titles) if (t) addContext(t)
+}
+
+/** Фраза учителя ушла в озвучку — её слова становятся контекстом. */
+export function noteTeacherSpeech(sentence: string): void {
+  if (sentence) addContext(sentence)
+}
+
+/** Сбросить контекст (тесты / новый урок). */
+export function resetRecognitionContext(): void {
+  contextWords.clear()
+  contextSeq = 0
+}
+
+/** Доля слов из контекста диалога. */
+export function contextScore(text: string): number {
+  const ws = text.split(/\s+/).map(norm).filter((w) => w.length >= 3)
+  if (ws.length === 0 || contextWords.size === 0) return 0
+  let hit = 0
+  for (const w of ws) if (contextWords.has(w)) hit++
+  return hit / ws.length
+}
+
 /** Доля «химических» слов (термины + слова вопроса + формулы) в тексте. */
 export function chemScore(text: string): number {
   const ws = text.split(/\s+/).map(norm).filter(Boolean)
@@ -444,18 +539,42 @@ export function chemScore(text: string): number {
   return hit / ws.length
 }
 
-/** Лучшая из альтернатив STT: химический счёт + вероятность. */
+/** Подробности выбора альтернативы (для отладки ?debugVoice=1 и тестов). */
+export interface ScoredAlternative {
+  transcript: string
+  score: number
+  chem: number
+  context: number
+  confidence: number
+}
+
+/**
+ * Оценка альтернатив STT: химический словарь + контекст диалога + вероятность + порядок.
+ * Chrome даёт confidence только первой альтернативе (у остальных 0) — для них берём 0,5 и
+ * небольшую премию за ранг: без химических/контекстных слов выигрывает первая.
+ */
+export function scoreAlternatives(alts: readonly SttAlternative[]): ScoredAlternative[] {
+  const out: ScoredAlternative[] = []
+  alts.forEach((alt, rank) => {
+    const text = alt.transcript?.trim()
+    if (!text) return
+    const confidence = typeof alt.confidence === 'number' && alt.confidence > 0 ? alt.confidence : 0.5
+    const chem = chemScore(text)
+    const context = contextScore(text)
+    const score = chem + context * 0.5 + confidence * 0.6 + Math.max(0, 0.06 - rank * 0.02)
+    out.push({ transcript: text, score, chem, context, confidence })
+  })
+  return out
+}
+
+/** Лучшая из альтернатив STT: химический счёт + контекст + вероятность. */
 export function pickBestAlternative(alts: readonly SttAlternative[]): string {
   let best = ''
   let bestScore = -Infinity
-  for (const alt of alts) {
-    const text = alt.transcript?.trim()
-    if (!text) continue
-    const conf = typeof alt.confidence === 'number' && alt.confidence > 0 ? alt.confidence : 0.5
-    const score = chemScore(text) + conf * 0.6
-    if (score > bestScore) {
-      bestScore = score
-      best = text
+  for (const a of scoreAlternatives(alts)) {
+    if (a.score > bestScore) {
+      bestScore = a.score
+      best = a.transcript
     }
   }
   return best
