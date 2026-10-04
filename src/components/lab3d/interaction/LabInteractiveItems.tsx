@@ -140,7 +140,10 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
       if (a.t >= 1 && zone !== 'hand') {
         // Коснулся поверхности: мягкая «посадка» с маленьким отскоком и стук по материалу
         ph.settle = 0
-        labAudio.play('glass-place', { at: [target.x, target.y, target.z], material: itemSoundMaterial(def.id), gain: zone === 'home' ? 0.6 : 0.9 })
+        // Громкость стука — по скорости касания: чем дальше летел предмет за те же 0,6 с, тем быстрее и громче
+        const speed = a.from.distanceTo(target) / 0.6
+        const land = THREE.MathUtils.clamp(0.35 + speed * 0.28, 0.35, 1)
+        labAudio.play('glass-place', { at: [target.x, target.y, target.z], material: itemSoundMaterial(def.id), gain: (zone === 'home' ? 0.7 : 0.95) * land })
       }
     } else if (zone === 'hand') {
       // Пружина с затуханием: при повороте камеры предмет чуть отстаёт и покачивается (инерция)
