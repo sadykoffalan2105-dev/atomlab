@@ -10,6 +10,7 @@ import { Pose, Target, ease, hill, mix, mixV, useCrossing, useRig, type PFn, typ
 import { Bubbles, Droplets, GasFill, OUTLET, PopFlash, PourStream, StopperWithTube, playFizz, playPop, plateDropPoints } from '../parts/effects'
 import { BOTTLE_H, GlassPlate, LabStand, ReagentBottle, TUBE_H, TestTube, TubeRack, TubeTag, WatchGlass, ZnGranule } from '../parts/glassware'
 import { Flame, FlameLight, Match, Matchbox, SpiritLamp } from '../parts/fire'
+import { GripHand } from '../parts/practicalware'
 
 const Z0 = -0.05
 const TUBE_X = -0.3
@@ -207,6 +208,10 @@ export function H2PracticalRig() {
         <GlassPlate />
         <Droplets points={drops} show={(p) => ease(p, 6.8, 7)} />
         <Target name="glass-plate" size={[0.1, 0.04, 0.07]} center={[0, 0.01, 0]} hintY={0.07} />
+        {/* пластинку держат за край над пламенем */}
+        <group position={[0.047, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <GripHand r={0.0026} hold={(p) => ease(p, 6.2, 6.4)} />
+        </group>
       </Pose>
     </group>
   )
