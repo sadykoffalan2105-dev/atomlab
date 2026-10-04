@@ -191,7 +191,7 @@ function SceneContent(props: Lab3DCanvasProps) {
       <LabInteractiveItems mats={mats} lang={lang} quality={quality} bridge={props.bridge} />
       <LabHotBadges lang={lang} />
       {/* Вытяжка: створка, тумблер тяги, струйки воздуха; звук — слушатель у камеры */}
-      <LabHoodControls mats={mats} quality={quality} />
+      <LabHoodControls mats={mats} quality={quality} busy={inHood} />
       <LabAudioListener />
       <LabExtinguisher mats={mats} lang={lang} quality={quality} experimentId={props.experimentId} />
       <LabCameraRig view={props.view} viewNonce={props.viewNonce} bridge={props.bridge} leftInsetPx={props.leftInsetPx} />
