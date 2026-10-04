@@ -5,7 +5,7 @@
  */
 import { RoundedBox, useCursor } from '@react-three/drei'
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { labAudio } from '../audio/labAudio'
 import * as THREE from 'three'
@@ -397,6 +397,8 @@ export function BenchCabinet({ mats }: { mats: LabMaterials }) {
             <group position={[x, topY - c.drawerH / 2 - 0.006, c.frontZ + 0.009]}>
               <Drawer id={`drawer:${i}`} open={!!doors[`drawer:${i}`]} w={c.doorW - 0.012} h={c.drawerH - 0.012} depth={c.depth - 0.08} mats={mats} kind={i} />
             </group>
+            {/* Свет внутри отделения при открытой дверце */}
+            <CabinetGlow open={!!doors[id]} w={c.doorW - 0.03} h={doorH} position={[x, doorY, c.backZ + 0.02]} />
             {/* Дверца на петле */}
             <group position={[x + hinge * (c.doorW / 2 - 0.006), doorY, c.frontZ + 0.009]}>
               <Door id={id} open={!!doors[id]} hinge={hinge} w={c.doorW - 0.012} h={doorH}>
@@ -409,6 +411,44 @@ export function BenchCabinet({ mats }: { mats: LabMaterials }) {
           </group>
         )
       })}
+    </group>
+  )
+}
+
+/**
+ * Мягкий свет внутри отделения: светодиодная полоска под крышкой и тёплое свечение задней стенки, плавно
+ * загорается, когда дверца открыта (без настоящего источника света — число источников не меняется,
+ * шейдеры сцены не пересобираются).
+ */
+function CabinetGlow({ open, w, h, position }: { open: boolean; w: number; h: number; position: [number, number, number] }) {
+  const strip = useMemo(() => new THREE.MeshBasicMaterial({ color: '#fff6e6', transparent: true, opacity: 0, toneMapped: false }), [])
+  const wash = useMemo(
+    () => new THREE.MeshBasicMaterial({ color: '#ffe9c4', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+    [],
+  )
+  useEffect(
+    () => () => {
+      strip.dispose()
+      wash.dispose()
+    },
+    [strip, wash],
+  )
+  const k = useRef(0)
+  useFrame((_, dt) => {
+    const goal = open ? 1 : 0
+    if (k.current === goal) return
+    k.current = goal > k.current ? Math.min(goal, k.current + dt * 3) : Math.max(goal, k.current - dt * 4)
+    strip.opacity = k.current
+    wash.opacity = k.current * 0.22
+  })
+  return (
+    <group position={position}>
+      <mesh position={[0, h / 2 - 0.012, 0.05]} rotation-x={Math.PI / 2} material={strip}>
+        <planeGeometry args={[w - 0.06, 0.012]} />
+      </mesh>
+      <mesh position={[0, 0, 0.001]} material={wash}>
+        <planeGeometry args={[w - 0.03, h - 0.02]} />
+      </mesh>
     </group>
   )
 }

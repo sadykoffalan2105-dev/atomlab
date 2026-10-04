@@ -161,10 +161,32 @@ function setZone(id: LabItemId, zone: ItemZone, extra: Partial<HandState> = {}) 
 let lastContact: LabItemId | null = null
 let lastClinkAt = 0
 
+/** Нагретые у пламени предметы: до какого времени (performance.now) горячие. Остывают за 90 с. */
+const hotUntil = new Map<LabItemId, number>()
+const HOT_MS = 90_000
+let hintLang: 'ru' | 'en' | 'uz' = 'ru'
+const HOT_TEXT = {
+  hot: { ru: 'Горячо!', en: 'Hot!', uz: 'Issiq!' },
+  gloves: { ru: 'Горячо! Наденьте перчатки, чтобы взять', en: 'Hot! Put on gloves to pick it up', uz: 'Issiq! Olish uchun qo‘lqop kiying' },
+} as const
+const itemPoint = (id: LabItemId): [number, number, number] | null => {
+  const xz = itemXZ.get(id)
+  const h = LAB_ITEM_BY_ID.get(id)?.h ?? 0.1
+  return xz ? [xz[0], BENCH_Y + h + 0.06, xz[1]] : null
+}
+
 export const labHand = {
   /** Взять предмет в руку (если в руке был другой — он возвращается на своё место). */
   pick(id: LabItemId) {
     if (state.held === id) return
+    // Нагретый у пламени предмет без перчаток не берём (правила ТБ)
+    if (labHand.isHot(id) && !state.worn.includes('gloves')) {
+      const at = itemPoint(id)
+      if (at) labEvents.emit({ type: 'hint', at, text: HOT_TEXT.gloves[hintLang] })
+      labEvents.emit({ type: 'sound', name: 'error', gain: 0.6 })
+      labHand.setGearNeed(['gloves'])
+      return
+    }
     if (state.held) labHand.putBack()
     const from = zoneOf(id)
     const xz = itemXZ.get(id)
@@ -266,8 +288,24 @@ export const labHand = {
   setRulesOpen(open: boolean) {
     set({ rulesOpen: open })
   },
+  /** Предмет нагрелся у пламени (сцена узнаёт по событиям 'fire' / 'flame-loop'). */
+  markHot(id: LabItemId) {
+    const first = !labHand.isHot(id)
+    hotUntil.set(id, performance.now() + HOT_MS)
+    const at = itemPoint(id)
+    if (first && at) labEvents.emit({ type: 'hint', at, text: HOT_TEXT.hot[hintLang] })
+  },
+  isHot(id: LabItemId): boolean {
+    const t = hotUntil.get(id)
+    return t !== undefined && t > performance.now()
+  },
+  /** Язык подсказок, которые публикует стор (сцена сообщает при смене языка). */
+  setLang(lang: 'ru' | 'en' | 'uz') {
+    hintLang = lang
+  },
   /** Смена опыта: всё возвращается на полки и в шкафы, рука пуста (подсказка о первом взятии остаётся скрытой). */
   reset() {
+    hotUntil.clear()
     itemXZ.clear()
     set({ held: null, zones: {}, dragging: null })
   },

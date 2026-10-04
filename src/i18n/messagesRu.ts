@@ -1157,6 +1157,13 @@ export const messagesRu = {
   'lab3d.safety.rule7': 'Опыты с пахучими и ядовитыми газами проводите только в вытяжном шкафу с включённой тягой.',
   'lab3d.safety.rule8': 'Кислота или щёлочь попала на кожу — сразу смойте большим количеством воды и скажите учителю.',
   'lab3d.safety.close': 'Понятно',
+  'lab3d.safety.extAria': 'Огнетушитель в руке',
+  'lab3d.safety.extInHand': 'В руке: огнетушитель · заряд {n}%',
+  'lab3d.safety.extFire': '· горит пламя!',
+  'lab3d.safety.extHang': 'Повесить на место',
+  'lab3d.safety.extPin': 'Выдернуть чеку',
+  'lab3d.safety.extSpray': 'Нажать рычаг (держать)',
+  'lab3d.safety.extEmpty': 'Заряд кончился',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

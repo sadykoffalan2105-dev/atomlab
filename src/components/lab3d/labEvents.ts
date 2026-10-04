@@ -58,6 +58,12 @@ export type LabEvent =
   | { readonly type: 'needGear'; readonly gear: readonly LabGearId[] }
   /** Звук события (сцена проигрывает пространственно у точки at; опыт может звучать и сам). */
   | { readonly type: 'sound'; readonly name: string; readonly at?: Vec3Tuple; readonly gain?: number }
+  /**
+   * Пламя у точки at: опыт публикует on: true, когда зажёг спиртовку/горелку (сцена знает, где горит, —
+   * огнетушитель, «горячие» предметы рядом), и on: false, когда погасил. Сцена публикует on: false, когда
+   * ученик потушил пламя огнетушителем, — опыт гасит своё пламя у этой точки.
+   */
+  | { readonly type: 'fire'; readonly on: boolean; readonly at?: Vec3Tuple }
 
 type Handler<T extends LabEvent['type']> = (e: Extract<LabEvent, { type: T }>) => void
 

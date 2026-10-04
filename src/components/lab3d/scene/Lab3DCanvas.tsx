@@ -3,7 +3,7 @@
  * комната, оборудование, электронная доска, установка опыта на рабочем месте, камера.
  * Всё, что может «подвиснуть» (Suspense), — в своей Suspense внутри Canvas, чтобы не прятать холст целиком.
  */
-import { ContactShadows, Environment, Lightformer, useCursor } from '@react-three/drei'
+import { Environment, Lightformer, PerformanceMonitor, useCursor } from '@react-three/drei'
 import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useCallback, useMemo, useState } from 'react'
 import * as THREE from 'three'
@@ -27,6 +27,8 @@ import { LabRoom } from './LabRoom'
 import type { LabSceneBridge } from './labBridge'
 import { useLabMaterials } from './labMaterials'
 import { HOOD, ROOM, type LabViewId } from './labSceneLayout'
+import { ContactShadowBake, LabPerfProbe, RenderGate } from './labPerf'
+import { LabExtinguisher } from '../interaction/LabExtinguisher'
 
 export interface Lab3DCanvasProps {
   readonly experimentId: LabExperimentId
@@ -62,6 +64,12 @@ export function rigCenterFor(id: LabExperimentId): THREE.Vector3 {
   return LAB_EXPERIMENTS.find((e) => e.id === id)?.place === 'hood' ? HOOD_WORK_CENTER : WORK_AREA_CENTER
 }
 
+/** Места контактных теней: рабочее место стола и вытяжки (постоянные массивы — без пересоздания буферов). */
+const SHADOW_SPOTS = [
+  { id: 'bench', position: [WORK_AREA_CENTER.x, WORK_AREA_CENTER.y + 0.0015, WORK_AREA_CENTER.z] as [number, number, number], scale: [2.5, 0.95] as [number, number] },
+  { id: 'hood', position: [HOOD_WORK_CENTER.x, HOOD_WORK_CENTER.y + 0.0015, HOOD_WORK_CENTER.z] as [number, number, number], scale: [1.05, 0.6] as [number, number] },
+] as const
+
 function RigSlot(props: ExperimentRigProps) {
   const [hover, setHover] = useState(false)
   const [root, setRoot] = useState<THREE.Group | null>(null)
@@ -87,7 +95,8 @@ function SceneContent(props: Lab3DCanvasProps) {
     l.target.position.set(0, 0.9, -0.2)
     if (high) {
       l.castShadow = true
-      l.shadow.mapSize.set(2048, 2048)
+      // 1024² вместо 2048²: тени по-прежнему мягкие (radius), карта в 4 раза дешевле
+      l.shadow.mapSize.set(1024, 1024)
       l.shadow.bias = -0.0003
       l.shadow.normalBias = 0.025
       l.shadow.radius = 4
@@ -152,17 +161,22 @@ function SceneContent(props: Lab3DCanvasProps) {
       {high && <primitive object={hoodSpot} />}
       {high && <primitive object={hoodSpot.target} />}
       {/* Мягкие контактные тени под рабочим местом (только ПК) */}
-      {high && (
-        <ContactShadows
-          position={[rigCenter.x, rigCenter.y + 0.0015, rigCenter.z]}
-          scale={inHood ? [1.05, 0.6] : [2.5, 0.95]}
-          resolution={512}
-          blur={2.2}
-          far={0.5}
-          opacity={0.42}
-          color="#1d2a3a"
-        />
-      )}
+      {/* Два постоянных экземпляра (стол и вытяжка) с неизменными параметрами: drei ContactShadows не освобождает
+          свои буферы при пересоздании — так они не пересоздаются; неактивный — прозрачный */}
+      {high &&
+        SHADOW_SPOTS.map((s) => (
+          <ContactShadowBake
+            key={s.id}
+            bakeKey={`${props.experimentId}:${props.step}`}
+            position={s.position}
+            scale={s.scale}
+            resolution={512}
+            blur={2.2}
+            far={0.5}
+            opacity={(s.id === 'hood') === inHood ? 0.42 : 0}
+            color="#1d2a3a"
+          />
+        ))}
       {/* Двойной клик/тап по любой поверхности — камера приближается к этой точке */}
       <group onDoubleClick={onSceneDoubleClick}>
         <LabRoom mats={mats} lang={lang} quality={quality} />
@@ -174,23 +188,39 @@ function SceneContent(props: Lab3DCanvasProps) {
       {/* Вытяжка: створка, тумблер тяги, струйки воздуха; звук — слушатель у камеры */}
       <LabHoodControls mats={mats} quality={quality} />
       <LabAudioListener />
+      <LabExtinguisher mats={mats} lang={lang} quality={quality} experimentId={props.experimentId} />
       <LabCameraRig view={props.view} viewNonce={props.viewNonce} bridge={props.bridge} leftInsetPx={props.leftInsetPx} />
+      {/* Кадр рисуется только когда шейдеры собраны (без «замерзания» при смене опыта) */}
+      <RenderGate compileKey={`${props.experimentId}:${quality}`} onFirstReady={props.onReady} />
+      <LabPerfProbe />
     </>
   )
 }
 
+/** Пределы плотности пикселей: на ПК до 1,75, на слабых устройствах до 1,25; при просадке кадров — плавно ниже. */
+const DPR_RANGE: Readonly<Record<'low' | 'high', readonly [number, number]>> = { high: [1, 1.75], low: [0.8, 1.25] }
+
 export default function Lab3DCanvas(props: Lab3DCanvasProps) {
   const high = props.quality === 'high'
+  const [lo, hi] = DPR_RANGE[props.quality]
+  const deviceDpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1
+  const [dpr, setDpr] = useState(() => Math.min(hi, deviceDpr))
   return (
     <Canvas
       shadows={high ? 'percentage' : false}
-      dpr={high ? [1, 1.75] : [1, 1.25]}
+      dpr={dpr}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.94 }}
       camera={{ fov: 48, near: 0.03, far: 40, position: [0, 1.8, 1.8] }}
-      onCreated={() => props.onReady?.()}
       aria-label={props.ariaLabel}
       role="img"
     >
+      {/* Просели кадры — снижаем плотность пикселей шагами (между lo и hi), выросли — возвращаем */}
+      <PerformanceMonitor
+        factor={1}
+        flipflops={4}
+        onChange={({ factor }) => setDpr(Math.round((lo + (Math.min(hi, deviceDpr) - lo) * factor) * 20) / 20)}
+        onFallback={() => setDpr(lo)}
+      />
       <SceneContent {...props} />
     </Canvas>
   )

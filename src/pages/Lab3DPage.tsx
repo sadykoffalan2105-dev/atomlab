@@ -7,7 +7,7 @@ import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { Link, useSearchParams } from 'react-router-dom'
 import { labAudio } from '../components/lab3d/audio/labAudio'
 import { LAB_EXPERIMENTS } from '../components/lab3d/experiments'
-import { LabHandBar } from '../components/lab3d/interaction/LabHandBar'
+import { LabExtinguisherBar, LabHandBar } from '../components/lab3d/interaction/LabHandBar'
 import { labHand } from '../components/lab3d/interaction/labHandStore'
 import type { LabExperimentId, LabLang, LabRunState } from '../components/lab3d/labContract'
 import { createLabSceneBridge } from '../components/lab3d/scene/labBridge'
@@ -216,6 +216,8 @@ export function Lab3DPage() {
 
       {/* «Рука»: подсказка о взятии и слот «В руке» (на телефоне — пока панель опыта свёрнута) */}
       {hasWebgl && ready && !(narrow && panelOpen) && <LabHandBar lang={lang} leftInsetPx={leftInset} />}
+      {/* Огнетушитель в руке: чека, рычаг, вернуть на крючок */}
+      {hasWebgl && ready && !(narrow && panelOpen) && <LabExtinguisherBar leftInsetPx={leftInset} />}
 
       {/* Виджеты: секундомер, журнал наблюдений, средства защиты, звук, план; «очки на лице»; правила ТБ */}
       {hasWebgl && ready && (
