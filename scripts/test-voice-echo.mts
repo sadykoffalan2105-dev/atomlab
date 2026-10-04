@@ -307,6 +307,100 @@ async function main() {
     assert.equal(edge.supportedLocales.includes('uz'), true)
   })
 
+  console.log('\n# «Нажми и говори» и контекст распознавания')
+  await test('«нажми и говори» во время речи учителя: учитель замолкает, реплика ученика уходит сразу после отпускания', async () => {
+    const s = new FakeScheduler()
+    const { output } = fakeOutput(s)
+    const rec = new FakeRecognition()
+    const utterances: string[] = []
+    const session = new DuplexVoiceSession({
+      lang: 'ru',
+      controller: {} as LearnSpeechController,
+      speechOutput: output,
+      recognition: rec,
+      scheduler: s,
+      listenWhileSpeaking: 'soft_echo_filter',
+      createVad: () => ({ attach: async () => true, detach() {} }),
+      onUserUtterance: (t) => utterances.push(t),
+    })
+    await session.begin({} as MediaStream)
+    const turn = session.beginTeacherTurn()
+    turn.push('Оксиды — это сложные вещества из двух элементов.')
+    turn.end()
+    await Promise.resolve()
+    s.advance(200)
+    assert.equal(session.isAiSpeaking(), true)
+    assert.equal(session.holdToTalk(true), true)
+    assert.equal(session.isAiSpeaking(), false, 'учитель замолчал в момент нажатия')
+    assert.equal(await turn.done, 'interrupted')
+    rec.final('а оксид кальция')
+    s.advance(2000)
+    assert.deepEqual(utterances, [], 'пока зажато — не коммитим')
+    rec.final('это основный оксид')
+    session.holdToTalk(false)
+    s.advance(300)
+    assert.deepEqual(utterances, ['а оксид кальция это основный оксид'])
+    session.end()
+  })
+  await test('Chrome (жёсткая пауза): нажатие сразу возобновляет распознавание, без 500 мс', async () => {
+    const s = new FakeScheduler()
+    const { output } = fakeOutput(s)
+    const rec = new FakeRecognition()
+    const session = new DuplexVoiceSession({
+      lang: 'ru',
+      controller: {} as LearnSpeechController,
+      speechOutput: output,
+      recognition: rec,
+      scheduler: s,
+      listenWhileSpeaking: 'hard_pause',
+      createVad: () => ({ attach: async () => true, detach() {} }),
+      onUserUtterance: () => {},
+    })
+    await session.begin({} as MediaStream)
+    const turn = session.beginTeacherTurn()
+    turn.push('Кислоты — это сложные вещества.')
+    turn.end()
+    await Promise.resolve()
+    s.advance(100)
+    assert.equal(rec.paused, 1)
+    session.holdToTalk(true)
+    assert.ok(rec.resumed >= 1, 'resume вызван в момент нажатия')
+    session.end()
+  })
+  await test('слова учителя становятся контекстом выбора альтернатив (а эхо всё равно отсекается)', async () => {
+    const { contextScore, resetRecognitionContext } = await import('../src/learn/brain/speech/chemTranscript.ts')
+    resetRecognitionContext()
+    const s = new FakeScheduler()
+    const { output, finish } = fakeOutput(s)
+    const rec = new FakeRecognition()
+    const utterances: string[] = []
+    const session = new DuplexVoiceSession({
+      lang: 'ru',
+      controller: {} as LearnSpeechController,
+      speechOutput: output,
+      recognition: rec,
+      scheduler: s,
+      listenWhileSpeaking: 'soft_echo_filter',
+      createVad: () => ({ attach: async () => true, detach() {} }),
+      onUserUtterance: (t) => utterances.push(t),
+    })
+    await session.begin({} as MediaStream)
+    assert.equal(contextScore('аллотропия озон'), 0)
+    const turn = session.beginTeacherTurn()
+    turn.push('Озон — аллотропная модификация кислорода.')
+    turn.end()
+    await Promise.resolve()
+    s.advance(200)
+    rec.final('аллотропная модификация кислорода')
+    finish()
+    await turn.done
+    s.advance(1500)
+    assert.deepEqual(utterances, [], 'эхо не стало репликой')
+    assert.ok(contextScore('а озон ядовит') > 0, 'озон теперь в контексте')
+    resetRecognitionContext()
+    session.end()
+  })
+
   console.log(`\n${passed} passed, ${failed} failed`)
   process.exit(failed ? 1 : 0)
 }

@@ -11,7 +11,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { BOARD_CENTER, BOARD_SIZE } from '../labContract'
 import { labEvents } from '../labEvents'
 import type { LabSceneBridge } from './labBridge'
-import { CAMERA_BOUNDS, TARGET_BOUNDS, cameraPoseFor, type LabViewId } from './labSceneLayout'
+import { CAMERA_BOUNDS, TARGET_BOUNDS, cameraPoseFor, keepCameraOutOfFurniture, type LabViewId } from './labSceneLayout'
 
 interface Flight {
   fromP: THREE.Vector3
@@ -36,6 +36,7 @@ const ease = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 
 export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props) {
   const controls = useRef<OrbitControlsImpl>(null)
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
+  const scene = useThree((s) => s.scene)
   const size = useThree((s) => s.size)
   const flight = useRef<Flight | null>(null)
   const portrait = size.width < size.height
@@ -68,6 +69,8 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
   }
 
   const flyTo = (toP: THREE.Vector3, toT: THREE.Vector3, dur = 0.9) => {
+    // Конечная точка перелёта — не внутри шкафа/вытяжки
+    keepCameraOutOfFurniture(toP)
     const c = controls.current
     if (!c) {
       camera.position.copy(toP)
@@ -174,10 +177,31 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
       c.update()
       return
     }
-    // Не за стены, не под столешницу
+    // Не за стены, не под столешницу, не внутрь вытяжки/шкафов (изнутри коробки её грани не видны — «просвечивает»)
     camera.position.clamp(CAMERA_BOUNDS.min, CAMERA_BOUNDS.max)
+    keepCameraOutOfFurniture(camera.position)
     c.target.clamp(TARGET_BOUNDS.min, TARGET_BOUNDS.max)
   })
+
+  // Для автоматических проверок: …#/vr-lab?debugLab=1 — window.__labCam.get() / set(позиция, цель)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !/[?&]debug(Lab|Cam)=1/.test(window.location.hash)) return
+    const w = window as unknown as { __labCam?: unknown }
+    const r3 = (v: THREE.Vector3) => [v.x, v.y, v.z].map((n) => Math.round(n * 1000) / 1000)
+    w.__labCam = {
+      scene: () => scene,
+      get: () => ({ position: r3(camera.position), target: controls.current ? r3(controls.current.target) : null }),
+      set: (p: [number, number, number], t: [number, number, number]) => {
+        flight.current = null
+        camera.position.set(...p)
+        controls.current?.target.set(...t)
+        controls.current?.update()
+      },
+    }
+    return () => {
+      delete w.__labCam
+    }
+  }, [camera, scene])
 
   return (
     <OrbitControls

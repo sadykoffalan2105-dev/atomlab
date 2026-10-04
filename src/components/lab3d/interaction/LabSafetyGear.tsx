@@ -4,7 +4,8 @@
  * ('needGear') — нужное пульсирует и подписано «Наденьте».
  * HeldHand — рука, держащая предмет перед камерой: в перчатке (если надеты), рукав халата (если надет).
  */
-import { Html, RoundedBox, useCursor } from '@react-three/drei'
+import { RoundedBox, useCursor } from '@react-three/drei'
+import { LabLabel } from '../scene/labOccluders'
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
@@ -80,23 +81,92 @@ function GogglesModel({ mats }: { mats: LabMaterials }) {
   )
 }
 
-function GlovesModel({ mats }: { mats: LabMaterials }) {
+/** Пальцы плоской нитриловой перчатки: z — поперёк ладони, длина (м). Средний — самый длинный. */
+const GLOVE_FINGERS: ReadonlyArray<readonly [number, number]> = [
+  [-0.03, 0.04],
+  [-0.01, 0.052],
+  [0.01, 0.056],
+  [0.03, 0.048],
+]
+
+/** Одна нитриловая перчатка, лежит плашмя на столе (низ = столешница), пальцы к −x. mirror — левая/правая. */
+function Glove({ mats, mirror }: { mats: LabMaterials; mirror: boolean }) {
+  const m = mats.rubberBlue
   return (
-    <group>
-      {[0, 0.05].map((dx, i) => (
-        <group key={i} position={[dx, 0.008, i * 0.02]} rotation-y={i * 0.3}>
-          <mesh rotation-z={Math.PI / 2} scale={[1, 1, 0.35]} material={mats.rubberBlue}>
-            <capsuleGeometry args={[0.03, 0.1, 6, 12]} />
-          </mesh>
-          {[-0.02, -0.007, 0.007, 0.02].map((fz) => (
-            <mesh key={fz} position={[-0.1, 0, fz]} rotation-z={Math.PI / 2} scale={[1, 1, 0.8]} material={mats.rubberBlue}>
-              <capsuleGeometry args={[0.006, 0.04, 4, 8]} />
-            </mesh>
-          ))}
-        </group>
+    <group scale-z={mirror ? -1 : 1}>
+      {/* Ладонь: сплющенная капсула толщиной ~2 см */}
+      <mesh position={[0, 0.0095, 0]} rotation-z={Math.PI / 2} scale={[0.32, 1, 1.42]} material={m} castShadow>
+        <capsuleGeometry args={[0.03, 0.06, 6, 14]} />
+      </mesh>
+      {/* Четыре пальца разной длины */}
+      {GLOVE_FINGERS.map(([fz, len]) => (
+        <mesh key={fz} position={[-0.062 - len / 2, 0.0055, fz]} rotation-z={Math.PI / 2} scale={[0.62, 1, 1]} material={m} castShadow>
+          <capsuleGeometry args={[0.0088, len - 0.0176, 4, 10]} />
+        </mesh>
       ))}
+      {/* Большой палец — в сторону, под углом */}
+      <group position={[-0.03, 0.0055, 0.05]} rotation-y={-0.75}>
+        <mesh position-x={-0.022} rotation-z={Math.PI / 2} scale={[0.62, 1, 1]} material={m} castShadow>
+          <capsuleGeometry args={[0.0095, 0.03, 4, 10]} />
+        </mesh>
+      </group>
+      {/* Манжета с закатанным валиком */}
+      <mesh position={[0.088, 0.008, 0]} rotation-z={Math.PI / 2} scale={[0.26, 1, 1.5]} material={m}>
+        <capsuleGeometry args={[0.031, 0.04, 4, 12]} />
+      </mesh>
+      <mesh position={[0.127, 0.006, 0]} rotation-x={Math.PI / 2} material={m}>
+        <cylinderGeometry args={[0.006, 0.006, 0.094, 8]} />
+      </mesh>
     </group>
   )
+}
+
+/** Пара перчаток рядом (правая и левая), чуть развёрнуты — как их кладут на стол. */
+function GlovesModel({ mats }: { mats: LabMaterials }) {
+  return (
+    <group position-z={-0.052}>
+      <Glove mats={mats} mirror={false} />
+      <group position={[0.025, 0, 0.105]} rotation-y={0.14}>
+        <Glove mats={mats} mirror />
+      </group>
+    </group>
+  )
+}
+
+/**
+ * «Надевание»: средство защиты не исчезает мгновенно — за 0,55 с поднимается со стола к ученику (к камере) и
+ * уменьшается, затем пропадает (на руке уже перчатки, см. HeldHand). При снятии — снова лежит на месте.
+ */
+function WearAway({ worn, children }: { worn: boolean; children: ReactNode }) {
+  const g = useRef<THREE.Group>(null)
+  const [gone, setGone] = useState(worn)
+  const anim = useRef<{ t: number; to: THREE.Vector3 } | null>(null)
+  useEffect(() => {
+    if (worn) return
+    anim.current = null
+    setGone(false)
+    g.current?.position.set(0, 0, 0)
+    g.current?.scale.setScalar(1)
+  }, [worn])
+  useFrame((s, dt) => {
+    const grp = g.current
+    if (!worn || gone || !grp?.parent) return
+    if (!anim.current) {
+      // Куда лететь: чуть ниже и впереди камеры — в локальных координатах места предмета
+      const to = s.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(0.35).add(s.camera.position)
+      to.y -= 0.18
+      anim.current = { t: 0, to: grp.parent.worldToLocal(to) }
+    }
+    const a = anim.current
+    a.t = Math.min(1, a.t + dt / 0.55)
+    const e = a.t * a.t * (3 - 2 * a.t)
+    grp.position.copy(a.to).multiplyScalar(e * 0.8)
+    grp.position.y += Math.sin(Math.PI * a.t) * 0.08
+    grp.scale.setScalar(1 - 0.55 * e)
+    if (a.t >= 1) setGone(true)
+  })
+  if (gone) return null
+  return <group ref={g}>{children}</group>
 }
 
 /** Халат на плечиках, крючок на стене. Локально: стена позади (−z), халат висит перед ней. */
@@ -198,9 +268,9 @@ function GearSpot({
         </mesh>
       )}
       {!worn && needed && (
-        <Html position={[0, labelY, gear === 'coat' ? 0.1 : 0]} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+        <LabLabel position={[0, labelY, gear === 'coat' ? 0.1 : 0]}>
           <div className={css.tagGear}>{WEAR_LABEL[lang]}</div>
-        </Html>
+        </LabLabel>
       )}
     </group>
   )
@@ -215,16 +285,20 @@ export function LabSafetyGear({ mats, lang }: { mats: LabMaterials; lang: LabLan
   return (
     <group>
       <GearSpot gear="goggles" lang={lang} needed={n('goggles')} worn={w('goggles')} ringR={0.1} ringY={0.003} labelY={0.1}>
-        {!w('goggles') && <GogglesModel mats={mats} />}
+        <WearAway worn={w('goggles')}>
+          <GogglesModel mats={mats} />
+        </WearAway>
         {/* Невидимая зона нажатия */}
         <mesh position-y={0.03} visible={false}>
           <boxGeometry args={[0.2, 0.07, 0.12]} />
         </mesh>
       </GearSpot>
       <GearSpot gear="gloves" lang={lang} needed={n('gloves')} worn={w('gloves')} ringR={0.1} ringY={0.003} labelY={0.08}>
-        {!w('gloves') && <GlovesModel mats={mats} />}
-        <mesh position={[-0.02, 0.02, 0.01]} visible={false}>
-          <boxGeometry args={[0.22, 0.05, 0.12]} />
+        <WearAway worn={w('gloves')}>
+          <GlovesModel mats={mats} />
+        </WearAway>
+        <mesh position={[0, 0.02, 0]} visible={false}>
+          <boxGeometry args={[0.28, 0.05, 0.2]} />
         </mesh>
       </GearSpot>
       <GearSpot gear="coat" lang={lang} needed={n('coat')} worn={w('coat')} ringR={0.3} ringY={-0.45} labelY={0.12}>

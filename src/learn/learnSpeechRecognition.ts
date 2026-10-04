@@ -9,8 +9,14 @@
  *    в режим удержания кнопки (push-to-talk);
  *  • push-to-talk (startPushToTalk / stopPushToTalk) — continuous=false, interimResults=true.
  *
- * Везде maxAlternatives = 5 и выбор альтернативы по «химическому» счёту (chemTranscript).
- * 'uz-UZ' в Chrome не поддерживается → повтор с 'ru-RU' и пометка 'language-fallback'.
+ * Везде maxAlternatives = 5 и выбор альтернативы по «химическому» счёту + контексту диалога (chemTranscript).
+ * 'uz-UZ' в Chrome не поддерживается → сразу 'ru-RU' (профиль браузера) или повтор после ошибки,
+ * пометка 'language-fallback'.
+ *
+ * Не терять сказанное: Chrome закрывает continuous-сессию после тишины/≈60 с, и interim-хвост,
+ * не успевший стать финалом, раньше пропадал. Теперь при onend такой хвост дописывается в
+ * committed, а новая сессия стартует через 60 мс (после результата) или 250 мс (после тишины).
+ * 'aborted' (Edge при смене вкладки/устройства) — тихий перезапуск.
  * Жёсткая пауза на время речи учителя: pauseListening() / resumeListening(delayMs).
  *
  * Конструктор SpeechRecognition и таймеры внедряются (тесты на моках:
@@ -19,6 +25,7 @@
 import { pickBestAlternative, type SttAlternative } from './brain/speech/chemTranscript'
 import { getVoiceStatus, setVoiceStatus } from './brain/speech/voiceStatus'
 import { realScheduler, type TimingScheduler } from './brain/voice/conversationTiming'
+import { currentBrowserVoiceProfile, type BrowserVoiceProfile } from './brain/speech/browserProfile'
 
 export type RecognitionLocale = 'ru' | 'en' | 'uz'
 
@@ -58,6 +65,10 @@ export function isSpeechRecognitionSupported(): boolean {
 
 /** Паузы перезапуска непрерывного режима (мс). */
 export const RESTART_BACKOFF_MS = [250, 500, 1000] as const
+/** Сессия закрылась после речи ученика — новая сразу (меньше «глухое окно» между сессиями). */
+export const RESTART_AFTER_RESULT_MS = 60
+/** Столько 'aborted' подряд перезапускаем молча (дальше — как пустая сессия). */
+export const ABORTED_SILENT_RESTARTS = 3
 /** Столько пустых сессий подряд → «распознавание не отвечает». */
 export const EMPTY_SESSIONS_LIMIT = 5
 /** Столько эпизодов «не отвечает» → переход в push-to-talk. */
@@ -77,6 +88,8 @@ function bestOf(result: SpeechRecognitionResult | undefined): string {
 export interface LearnSpeechRecognitionOptions {
   ctor?: SpeechRecognitionCtor | null
   scheduler?: TimingScheduler
+  /** Профиль браузера (Chrome без uz-UZ → сразу ru-RU). По умолчанию — без предположений. */
+  profile?: Pick<BrowserVoiceProfile, 'vendor' | 'supportedLocales'> | null
 }
 
 export class LearnSpeechRecognition {
@@ -90,10 +103,20 @@ export class LearnSpeechRecognition {
   private unresponsiveEpisodes = 0
   private readonly ctorOverride: SpeechRecognitionCtor | null | undefined
   private readonly s: TimingScheduler
+  private readonly profile: LearnSpeechRecognitionOptions['profile']
 
   constructor(options: LearnSpeechRecognitionOptions = {}) {
     this.ctorOverride = options.ctor
     this.s = options.scheduler ?? realScheduler
+    // Настоящий браузер (без внедрённого конструктора) — берём его профиль; в тестах — без предположений.
+    this.profile = options.profile !== undefined ? options.profile : options.ctor === undefined ? currentBrowserVoiceProfile() : null
+  }
+
+  /** Язык, который браузер точно не распознаёт (Chrome + uz) → сразу ru, без лишней ошибки. */
+  private preferredLocale(locale: RecognitionLocale): RecognitionLocale | null {
+    const p = this.profile
+    if (!p || p.vendor !== 'chrome') return null
+    return p.supportedLocales.includes(locale) ? null : 'ru'
   }
 
   private ctor(): SpeechRecognitionCtor | null {
@@ -173,7 +196,12 @@ export class LearnSpeechRecognition {
     const isCurrent = () => this.oralListenActive && this.oralGeneration === generation
     /** Пустые сессии подряд (без единого результата) — растущая пауза, потом «не отвечает». */
     let emptySessions = 0
-    let langOverride: RecognitionLocale | null = null
+    let abortedInRow = 0
+    let langOverride: RecognitionLocale | null = this.preferredLocale(locale)
+    if (langOverride) {
+      setVoiceStatus('language_fallback')
+      onError?.('language-fallback', false)
+    }
 
     const scheduleNextSession = (delayMs: number) => {
       if (!isCurrent() || this.paused) return
@@ -213,28 +241,49 @@ export class LearnSpeechRecognition {
       recognition.continuous = true
       let gotResult = false
       let gotNoSpeech = false
+      /** Последний interim этой сессии, ещё не ставший финалом (не терять при onend). */
+      let pendingInterim = ''
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         // Финальные куски остановленной сессии (stop() дожидается их) — это та же речь ученика.
         if (!isCurrent() && this.oralGeneration !== generation) return
         gotResult = true
         emptySessions = 0
+        abortedInRow = 0
         let interim = ''
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i]
           if (!result) continue
+          // Interim — первая альтернатива (она ещё меняется), финал — лучшая по словарю и контексту.
           const text = result.isFinal ? bestOf(result) : (result[0]?.transcript ?? '')
           if (!text) continue
-          if (result.isFinal) session.committed = `${session.committed}${text} `
+          if (result.isFinal) session.committed = `${session.committed}${text.trim()} `
           else interim += text
         }
-        onUpdate(session.committed.trim(), interim.trim())
+        pendingInterim = interim.trim()
+        onUpdate(session.committed.trim(), pendingInterim)
+      }
+
+      /** Сессия закрылась, а хвост так и остался interim — дописываем его, чтобы слова не пропали. */
+      const promotePendingInterim = () => {
+        if (!pendingInterim) return
+        session.committed = `${session.committed}${pendingInterim} `
+        pendingInterim = ''
+        onUpdate(session.committed.trim(), '')
       }
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         if (!isCurrent()) return
         const code = event.error
-        if (code === 'aborted') return
+        if (code === 'aborted') {
+          // Edge/Chrome обрывают сессию при смене устройства/вкладки — перезапуск без штрафа (до 3 раз подряд).
+          abortedInRow++
+          if (abortedInRow <= ABORTED_SILENT_RESTARTS) {
+            gotNoSpeech = true
+            scheduleNextSession(RESTART_BACKOFF_MS[0])
+          }
+          return
+        }
         if (code === 'language-not-supported' && (langOverride ?? locale) === 'uz') {
           langOverride = 'ru'
           setVoiceStatus('language_fallback')
@@ -270,6 +319,8 @@ export class LearnSpeechRecognition {
 
       recognition.onend = () => {
         if (this.recognition === recognition) this.recognition = null
+        // Закрылась сама (тишина/лимит) или по stop() — недослушанный interim не теряем.
+        if (this.oralGeneration === generation) promotePendingInterim()
         if (!isCurrent()) {
           if (this.oralGeneration === generation) this.listening = false
           return
@@ -277,7 +328,12 @@ export class LearnSpeechRecognition {
         if (this.paused) return
         // Если перезапуск уже запланирован (onerror) — не дублируем.
         if (this.oralRestartTimer) return
-        if (gotResult || gotNoSpeech) {
+        if (gotResult) {
+          emptySessions = 0
+          scheduleNextSession(RESTART_AFTER_RESULT_MS)
+          return
+        }
+        if (gotNoSpeech) {
           emptySessions = 0
           scheduleNextSession(RESTART_BACKOFF_MS[0])
           return
@@ -364,6 +420,7 @@ export class LearnSpeechRecognition {
     recognition.maxAlternatives = 5
     recognition.continuous = false
     let finalText = ''
+    let lastInterim = ''
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interim = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -372,7 +429,8 @@ export class LearnSpeechRecognition {
         if (result.isFinal) finalText = `${finalText} ${bestOf(result)}`.trim()
         else interim += result[0]?.transcript ?? ''
       }
-      onUpdate(interim.trim())
+      lastInterim = interim.trim()
+      onUpdate(lastInterim)
     }
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error === 'aborted') return
@@ -383,7 +441,9 @@ export class LearnSpeechRecognition {
       if (this.recognition === recognition) this.recognition = null
       this.pttActive = false
       this.listening = false
-      if (finalText) onFinal(finalText)
+      // Кнопку отпустили раньше, чем пришёл финал, — отдаём последний interim, а не пустоту.
+      const text = `${finalText} ${lastInterim}`.replace(/\s+/g, ' ').trim()
+      if (text) onFinal(text)
     }
     this.recognition = recognition
     try {

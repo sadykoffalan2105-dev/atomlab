@@ -271,9 +271,16 @@ export function SpiritLamp({ flame, capOff }: { flame: PFn; capOff: PFn }) {
     const g = capRef.current
     if (!g) return
     const k = capOff(p.current ?? 0)
-    // колпачок поднимается и откладывается в сторону, на стол
-    const up = Math.sin(Math.min(1, k) * Math.PI) * 0.06
-    g.position.set(0.075 * k, 0.062 + up - 0.062 * k, 0.012 * k)
+    // колпачок: невысоко вверх (снять с фитиля) → в сторону → вниз на стол; не выше 12 см — над спиртовкой
+    // часто кольцо штатива, сквозь которое колпачок проходить не должен
+    const st = (x: number) => {
+      const c = Math.min(1, Math.max(0, x))
+      return c * c * (3 - 2 * c)
+    }
+    const a = st(k / 0.3)
+    const b = st((k - 0.3) / 0.4)
+    const c = st((k - 0.7) / 0.3)
+    g.position.set(0.075 * b, 0.062 + 0.022 * a - 0.084 * c, 0.012 * b)
     g.rotation.set(0, 0, 0)
   })
   return (

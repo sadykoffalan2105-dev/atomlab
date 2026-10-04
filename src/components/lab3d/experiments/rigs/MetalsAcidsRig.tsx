@@ -9,7 +9,7 @@ import { Pose, Target, ease, hill, mix, mixV, useSoundAt, type PFn, type V3 } fr
 import { Bubbles, PopFlash, PourStream } from '../parts/effects'
 import { BOTTLE_H, ReagentBottle, TUBE_H, TestTube, TubeRack, TubeTag, WatchGlass, ZnGranule } from '../parts/glassware'
 import { Match, Matchbox } from '../parts/fire'
-import { PpeTray } from '../parts/practicalware'
+import { PpeTray, WhiteCard } from '../parts/practicalware'
 import { useGearStep } from './useGearStep'
 import { Shavings, bottlePose, pourLevel, pourShow } from './worksKit'
 
@@ -84,7 +84,8 @@ export function MetalsAcidsRig() {
     [5, XS[1], Z, LIP],
     [7, XS[2], Z, LIP],
   ])
-  const lift = (i: number) => (p: number) => TUBE_Y + 0.035 * ease(p, 8.05 + i * 0.05, 8.4 + i * 0.05)
+  // пробирки на сравнении остаются в штативе (раньше «всплывали» на 3,5 см без руки — висели в воздухе)
+  const lift = (_i: number) => (_p: number) => TUBE_Y
 
   return (
     <group>
@@ -108,12 +109,10 @@ export function MetalsAcidsRig() {
           </group>
         </Pose>
       ))}
-      <Pose pose={(p) => ({ pos: [0, 0.1, Z - 0.045], scale: ease(p, 8.05, 8.45) })}>
-        <mesh>
-          <planeGeometry args={[0.32, 0.14]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.9} />
-        </mesh>
-      </Pose>
+      {/* белая карточка на ножках стоит за штативом — окраски видно на белом (не висит в воздухе) */}
+      <group position={[0, 0, Z - 0.046]}>
+        <WhiteCard w={0.32} />
+      </group>
 
       {/* Металлы на часовых стёклах */}
       {[MG_DISH, ZN_DISH, CU_DISH].map((d, i) => (

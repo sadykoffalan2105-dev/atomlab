@@ -9,7 +9,7 @@ import * as THREE from 'three'
 import { Pose, Target, ease, hill, mix, mixV, useRig, useSoundAt, type PFn, type V3 } from '../rigCore'
 import { Bubbles, PourStream } from '../parts/effects'
 import { BOTTLE_H, ReagentBottle, TUBE_H, TubeRack, TubeTag, WatchGlass } from '../parts/glassware'
-import { ColorTube, DropperBottle, Falling, Pipette, PpeTray, Puffs, type ColorStage } from '../parts/practicalware'
+import { ColorTube, DropperBottle, Falling, Pipette, PpeTray, Puffs, WhiteCard, type ColorStage } from '../parts/practicalware'
 import { useGearStep } from './useGearStep'
 import { MilkFill, PowderHeap, Spatula, bottlePose, pipettePose, pourLevel, pourShow } from './worksKit'
 
@@ -119,7 +119,7 @@ export function WaterOxidesRig() {
         <Target name="rack" size={[0.3, 0.12, 0.08]} center={[0, 0.07, 0]} hintY={0.21} />
       </group>
       {TUBES.map((tb, i) => (
-        <Pose key={i} pose={(p) => ({ pos: [tb.x, TUBE_Y + 0.035 * ease(p, 8.05 + i * 0.05, 8.4 + i * 0.05), Z] })}>
+        <Pose key={i} pose={() => ({ pos: [tb.x, TUBE_Y, Z] })}>
           <ColorTube base={i === 1 ? C.soda : C.water} stages={tb.stages} level={tb.level} />
           <group position={[0, 0.1, 0]}>
             <TubeTag text={tb.tag} />
@@ -137,12 +137,10 @@ export function WaterOxidesRig() {
           {i === 1 ? <Bubbles level={tb.level} rate={(p) => ease(p, 3.5, 3.7) * mix(0.45, 0.18, ease(p, 4, 9))} fromY={0.012} spread={0.9} /> : null}
         </Pose>
       ))}
-      <Pose pose={(p) => ({ pos: [0, 0.1, Z - 0.045], scale: ease(p, 8.05, 8.45) })}>
-        <mesh>
-          <planeGeometry args={[0.32, 0.14]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.9} />
-        </mesh>
-      </Pose>
+      {/* белая карточка на ножках стоит за штативом — окраски видно на белом (не висит в воздухе) */}
+      <group position={[0, 0, Z - 0.046]}>
+        <WhiteCard w={0.32} />
+      </group>
       {/* пар над пробиркой 1 — реакция идёт с выделением тепла */}
       <Puffs origin={[XS[0], TOP + 0.004, Z]} rate={(p) => hill(p, 2.58, 3.9, 0.25)} count={26} rise={0.11} spread={0.018} size={0.011} opacity={0.32} life={1.4} />
 

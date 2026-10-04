@@ -10,6 +10,7 @@ import * as THREE from 'three'
 import type { LabLang } from '../labContract'
 import { BenchCabinet, WallCabinet } from '../interaction/LabCabinets'
 import { labHand } from '../interaction/labHandStore'
+import { SHELF_BOARD_Y, SHELF_X0 } from '../interaction/labItems'
 import { BENCH, COUNTER, HOOD, ROOM, SINK_X } from './labSceneLayout'
 import type { LabMaterials } from './labMaterials'
 import {
@@ -17,8 +18,57 @@ import {
   floorTexture,
   periodicPosterTexture,
   safetyPosterTexture,
+  signTexture,
   windowViewTexture,
 } from './labTextures'
+
+/**
+ * Планки-подписи на кромке полок с реактивами — по реальному порядку банок (labItems: шаг 0,152 м от SHELF_X0):
+ * нижняя полка — HCl, H₂SO₄ | NaOH, Ca(OH)₂ | BaCl₂, NaCl, CuSO₄; верхняя — Zn, Fe, Al | CuO, CaO | спирт.
+ */
+const SHELF_GROUPS: ReadonlyArray<{ shelf: 0 | 1; from: number; to: number; color: string; text: Readonly<Record<LabLang, string>> }> = [
+  { shelf: 0, from: 0, to: 1, color: '#c8352b', text: { ru: 'Кислоты', en: 'Acids', uz: 'Kislotalar' } },
+  { shelf: 0, from: 2, to: 3, color: '#2a6fd6', text: { ru: 'Щёлочи', en: 'Alkalis', uz: 'Ishqorlar' } },
+  { shelf: 0, from: 4, to: 6, color: '#2b8a52', text: { ru: 'Соли', en: 'Salts', uz: 'Tuzlar' } },
+  { shelf: 1, from: 0, to: 2, color: '#5d6875', text: { ru: 'Металлы', en: 'Metals', uz: 'Metallar' } },
+  { shelf: 1, from: 3, to: 4, color: '#7a5a2e', text: { ru: 'Оксиды', en: 'Oxides', uz: 'Oksidlar' } },
+  { shelf: 1, from: 5, to: 5, color: '#c97a10', text: { ru: 'Спирт', en: 'Ethanol', uz: 'Spirt' } },
+]
+const SHELF_STEP = 0.152
+const SHELF_TAG_H = 0.03
+
+/** Подписи групп реактивов на кромке полок (одна текстура на группу, перерисовываются при смене языка). */
+function ShelfLabels({ lang }: { lang: LabLang }) {
+  const tags = useMemo(
+    () =>
+      SHELF_GROUPS.map((g) => {
+        const w = (g.to - g.from) * SHELF_STEP + 0.12
+        const tex = signTexture(g.text[lang], g.color, '#ffffff', Math.round((64 * w) / SHELF_TAG_H), 64)
+        tex.anisotropy = 4
+        const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55 })
+        return { g, w, x: SHELF_X0 + ((g.from + g.to) / 2) * SHELF_STEP, tex, mat }
+      }),
+    [lang],
+  )
+  useEffect(
+    () => () => {
+      for (const t of tags) {
+        t.tex.dispose()
+        t.mat.dispose()
+      }
+    },
+    [tags],
+  )
+  return (
+    <>
+      {tags.map((t) => (
+        <mesh key={`${t.g.shelf}:${t.g.from}`} position={[t.x, SHELF_BOARD_Y[t.g.shelf], ROOM.frontZ + 0.3 + 0.0015]} material={t.mat} raycast={() => null}>
+          <planeGeometry args={[t.w, SHELF_TAG_H]} />
+        </mesh>
+      ))}
+    </>
+  )
+}
 
 const DEPTH = ROOM.backZ - ROOM.frontZ
 const MID_Z = (ROOM.backZ + ROOM.frontZ) / 2
@@ -104,6 +154,7 @@ export function LabRoom({ mats, lang }: Props) {
       <StudentBench mats={mats} />
       <FumeHood mats={mats} />
       <SinkCounter mats={mats} />
+      <ShelfLabels lang={lang} />
 
       {/* Плакат «Техника безопасности» слева от вытяжки — нажатие открывает правила § 1.3–1.4 */}
       <group
@@ -534,7 +585,7 @@ function SinkCounter({ mats }: { mats: LabMaterials }) {
       <WallCabinet mats={mats} />
       <SinkDrop mats={mats} x={SINK_X} topY={top + 0.235} z={sinkZ - 0.06} bottomY={top - 0.19} />
       {/* Настенные полки для реактивов */}
-      {[1.42, 1.82].map((y) => (
+      {SHELF_BOARD_Y.map((y) => (
         <group key={y}>
           <mesh position={[(COUNTER.x0 + SINK_X - 0.3) / 2 + 0.02, y, z0 + 0.15]} material={mats.whitePlastic} castShadow receiveShadow>
             <boxGeometry args={[SINK_X - 0.3 - COUNTER.x0 - 0.04, 0.025, 0.3]} />

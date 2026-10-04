@@ -770,3 +770,70 @@ export function WaftHand() {
     </group>
   )
 }
+
+/* ── Рука ученика в нитриловой перчатке, держащая предмет ── */
+let gloveMat: THREE.MeshStandardMaterial | null = null
+let sleeveMat: THREE.MeshStandardMaterial | null = null
+/**
+ * Кисть в синей нитриловой перчатке и манжета халата: пальцы обхватывают предмет вокруг локальной оси Y
+ * (радиус r), ладонь и запястье — со стороны +X. Видна, пока hold(p) > 0: предмет в руке, а не висит в воздухе.
+ */
+export function GripHand({ r, hold }: { r: number; hold: PFn }) {
+  const { p } = useRig()
+  const ref = useRef<THREE.Group>(null)
+  const glove = (gloveMat ??= new THREE.MeshStandardMaterial({ color: '#4d79cf', roughness: 0.48, metalness: 0 }))
+  const sleeve = (sleeveMat ??= new THREE.MeshStandardMaterial({ color: '#f1f1ec', roughness: 0.85, metalness: 0 }))
+  useFrame(() => {
+    const g = ref.current
+    if (g) g.visible = hold(p.current ?? 0) > 0.02
+  })
+  const fr = 0.0047
+  const wrap = r + fr * 0.95
+  return (
+    <group ref={ref} userData={{ labHand: true }}>
+      {/* ладонь */}
+      <mesh position={[wrap + 0.009, -0.004, -0.004]} scale={[0.5, 1, 0.85]} material={glove} castShadow>
+        <sphereGeometry args={[0.021, 14, 10]} />
+      </mesh>
+      {/* четыре пальца обхватывают предмет спереди */}
+      {[0.013, 0.004, -0.005, -0.014].map((y, i) => (
+        <mesh key={y} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]} material={glove} castShadow>
+          <torusGeometry args={[wrap, fr * (i === 3 ? 0.85 : 1), 6, 12, Math.PI * (0.95 - i * 0.04)]} />
+        </mesh>
+      ))}
+      {/* большой палец — сзади */}
+      <mesh position={[wrap * 0.35, 0.006, -wrap - 0.002]} rotation={[0, 0, 0.5]} material={glove} castShadow>
+        <capsuleGeometry args={[fr * 1.05, 0.016, 4, 8]} />
+      </mesh>
+      {/* запястье и манжета халата */}
+      <mesh position={[wrap + 0.03, -0.012, -0.006]} rotation={[0, 0, 1.25]} material={glove} castShadow>
+        <capsuleGeometry args={[0.0125, 0.03, 4, 10]} />
+      </mesh>
+      <mesh position={[wrap + 0.058, -0.022, -0.008]} rotation={[0, 0, 1.25]} material={sleeve} castShadow>
+        <cylinderGeometry args={[0.018, 0.018, 0.03, 14]} />
+      </mesh>
+    </group>
+  )
+}
+
+/* ── Белый экран для сравнения окрасок ── */
+/**
+ * Белая карточка на двух деревянных ножках-прорезях (начало — середина низа): стоит на столе за штативом
+ * с пробирками, чуть откинута назад; на её фоне окраски растворов читаются лучше. Ничего не висит в воздухе.
+ */
+export function WhiteCard({ w, h = 0.15 }: { w: number; h?: number }) {
+  const paper = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fbfbf8', roughness: 0.92 }), [])
+  const wood = useMemo(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.wood, roughness: 0.62 }), [])
+  return (
+    <group>
+      <mesh position={[0, h / 2 + 0.003, 0]} rotation={[-0.06, 0, 0]} material={paper} receiveShadow>
+        <boxGeometry args={[w, h, 0.0016]} />
+      </mesh>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[s * (w / 2 - 0.035), 0.006, 0]} material={wood} castShadow receiveShadow>
+          <boxGeometry args={[0.04, 0.012, 0.026]} />
+        </mesh>
+      ))}
+    </group>
+  )
+}

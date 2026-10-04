@@ -1169,4 +1169,6 @@ export const messagesUz: Record<MessageKey, string> = {
   'compound.obtLab.open': 'Laboratoriyada ochish',
   'compound.obtLab.aria': 'Reaksiyani laboratoriyada ochish: {equation}',
   'compound.obtLab.balance': 'tenglang va ishga tushiring',
+  'learn.teacherUi.holdToTalk': 'Bosib turib gapiring',
+  'learn.teacherUi.holdToTalkHint': 'Shovqinli sinf uchun: tugmani bosib turing, gapiring, qo‘yib yuboring — ustoz darhol javob beradi',
 }

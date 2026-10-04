@@ -47,6 +47,9 @@ export interface TeacherKnowledgeHit {
   citation?: string
   score?: number
   type?: string
+  /** wf16: id фрагмента энциклопедии («wb-…» — большая энциклопедия) и похожие статьи для уточняющего вопроса. */
+  id?: string
+  alts?: string[]
 }
 
 export type TeacherKnowledgeProviderName = 'kb' | 'legacy' | 'custom' | 'none'
@@ -355,7 +358,8 @@ async function searchViaKb(rawQuery: string, ctx: TeacherKnowledgeContext): Prom
   try {
     const { encyclopediaHitsFor } = await import('./kb/encyclopedia')
     for (const h of await encyclopediaHitsFor(kb, searchQuery, { locale: ctx.locale }, hits)) {
-      out.push({ title: h.title, text: h.text, source: h.source, citation: kb.citationFor(h), score: h.score, type: h.type })
+      const alts = (h as { alts?: string[] }).alts
+      out.push({ title: h.title, text: h.text, source: h.source, citation: kb.citationFor(h), score: h.score, type: h.type, id: h.id, ...(alts?.length ? { alts } : {}) })
     }
   } catch {
     /* без энциклопедии — школьный ответ */
