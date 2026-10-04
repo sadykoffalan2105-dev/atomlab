@@ -134,6 +134,8 @@ type Post = { T: Map<string, number[]>; A: Map<string, number[]>; K: Map<string,
 const shards = new Map<string, Post>()
 const keyOf = (term: string) => term.codePointAt(0)!.toString(36)
 function add(kind: keyof Post, term: string, doc: number) {
+  // В редких статьях анализатор отдаёт не строку — такие «слова» в индекс не кладём
+  if (typeof term !== 'string' || !term) return
   const k = keyOf(term)
   let p = shards.get(k)
   if (!p) shards.set(k, (p = { T: new Map(), A: new Map(), K: new Map() }))
