@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url'
 import { composeLocalTeacherReply } from '../src/learn/learnTeacherRouter.ts'
 import { preloadKnowledge } from '../src/learn/kb/index.ts'
 import type { LearnLocalAssistantContext } from '../src/learn/learnLocalAssistant.ts'
+import { setWikiBigLoader, searchWikiBig } from '../src/learn/kb/wikiBig.ts'
+import { BIG_QUESTIONS } from './teacher-wiki-big-questions.mts'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const CORPUS = path.join(ROOT, 'src', 'data', 'kb', 'corpus')
@@ -131,6 +133,11 @@ const SCHOOL: { q: string; lang?: 'ru' | 'en' | 'uz'; grade?: string }[] = [
 ]
 
 await preloadKnowledge({})
+// wf16: большая энциклопедия подключена и для прежних вопросов — как в браузере (там fetch из BASE_URL/kb/wiki/)
+{
+  const dir = path.join(ROOT, 'public', 'kb', 'wiki')
+  if (fs.existsSync(path.join(dir, 'meta.json'))) setWikiBigLoader(async (rel) => JSON.parse(fs.readFileSync(path.join(dir, rel), 'utf8')))
+}
 const WIKI_SIGN = /\[(Википедия|Wikipedia|Vikipediya): .+ — CC BY-SA\]/
 const t0 = performance.now()
 let encOk = 0
@@ -164,6 +171,58 @@ for (const item of SCHOOL) {
   check(`school: ${item.q}`, ok, `confident=${res.confident} :: ${res.text.slice(0, 140).replace(/\n/g, ' ')}`)
 }
 console.log(`[answers] encyclopedia ${encOk}/${ENC.length} (${encSigned} from Wikipedia), school untouched ${schoolOk}/${SCHOOL.length}, ${Math.round(performance.now() - t0)} ms`)
+
+/* ------------------------------------------------------------------ 3. большая энциклопедия (wf16, public/kb/wiki) */
+const BIG_DIR = path.join(ROOT, 'public', 'kb', 'wiki')
+if (fs.existsSync(path.join(BIG_DIR, 'meta.json'))) {
+  const meta = JSON.parse(fs.readFileSync(path.join(BIG_DIR, 'meta.json'), 'utf8')) as { n: number; shards: number; license: string; titles: string[]; tags: string }
+  const files = [path.join(BIG_DIR, 'meta.json'), ...fs.readdirSync(path.join(BIG_DIR, 's')).map((f) => path.join(BIG_DIR, 's', f)), ...fs.readdirSync(path.join(BIG_DIR, 'i')).map((f) => path.join(BIG_DIR, 'i', f))]
+  const sizes = files.map((f) => fs.statSync(f).size)
+  const totalMb = sizes.reduce((a, b) => a + b, 0) / 1e6
+  console.log(`[big] ${meta.n} статей, ${meta.shards} шардов текста, ${files.length} файлов, ${totalMb.toFixed(1)} МБ, крупнейший ${(Math.max(...sizes) / 1e6).toFixed(2)} МБ`)
+  check('big: license CC BY-SA', /CC BY-SA/.test(meta.license))
+  check('big: every file ≤ 4 MB', sizes.every((s) => s <= 4_000_000))
+  check('big: total ≤ 60 MB', totalMb <= 60, totalMb.toFixed(1))
+  check('big: titles = n, tags = n', meta.titles.length === meta.n && meta.tags.length === meta.n)
+  const unsafeBig = meta.titles.filter((t) => UNSAFE_TITLE.test(t))
+  check('big: no unsafe titles', unsafeBig.length === 0, unsafeBig.slice(0, 5).join('; '))
+  // в тесте — файлы с диска (в браузере — fetch из BASE_URL/kb/wiki/)
+  setWikiBigLoader(async (rel) => JSON.parse(fs.readFileSync(path.join(BIG_DIR, rel), 'utf8')))
+  await searchWikiBig('гемоглобин') // загрузка meta (в браузере — один раз за сессию)
+  let bigOk = 0
+  let fromWiki = 0
+  const times: number[] = []
+  const bad: string[] = []
+  for (const item of BIG_QUESTIONS) {
+    const t = performance.now()
+    const res = await composeLocalTeacherReply([{ role: 'user', content: item.q }], ctxOf('ru', 'g8'))
+    times.push(performance.now() - t)
+    const body = res.text.replace(/\n\n\[[^\]]+\]\s*$/u, '')
+    const ok = res.confident && item.has.test(body)
+    if (WIKI_SIGN.test(res.text)) fromWiki++
+    if (ok) bigOk++
+    else bad.push(`${item.q} :: ${res.text.slice(0, 130).replace(/\n/g, ' ')}`)
+  }
+  times.sort((a, b) => a - b)
+  const acc = bigOk / BIG_QUESTIONS.length
+  console.log(
+    `[big] вопросы «за пределами школы»: ${bigOk}/${BIG_QUESTIONS.length} (${(acc * 100).toFixed(1)} %), из Википедии ${fromWiki}; ` +
+      `время ответа медиана ${times[times.length >> 1]!.toFixed(0)} мс, p90 ${times[Math.floor(times.length * 0.9)]!.toFixed(0)} мс`,
+  )
+  for (const b of bad) console.log(`  miss ${b}`)
+  check('big: ≥ 150 questions', BIG_QUESTIONS.length >= 150, String(BIG_QUESTIONS.length))
+  check('big: accuracy ≥ 90 %', acc >= 0.9, `${(acc * 100).toFixed(1)} %`)
+  check('big: median answer ≤ 300 ms', times[times.length >> 1]! <= 300, `${times[times.length >> 1]!.toFixed(0)} ms`)
+  // школьные вопросы по-прежнему отвечает учебник (большая энциклопедия их не перебивает)
+  let schoolStill = 0
+  for (const item of SCHOOL) {
+    const res = await composeLocalTeacherReply([{ role: 'user', content: item.q }], ctxOf(item.lang ?? 'ru', item.grade ?? 'g8'))
+    if (res.confident && !WIKI_SIGN.test(res.text)) schoolStill++
+  }
+  check('big: school answers untouched', schoolStill === SCHOOL.length, `${schoolStill}/${SCHOOL.length}`)
+} else {
+  check('big: public/kb/wiki/meta.json exists', false)
+}
 
 console.log(`\n${passed} passed, ${failed} failed`)
 if (failed) {
