@@ -151,7 +151,7 @@ export function LabRoom({ mats, lang }: Props) {
       </mesh>
 
       <CeilingLights mats={mats} />
-      <StudentBench mats={mats} />
+      <StudentBench mats={mats} lang={lang} />
       <FumeHood mats={mats} />
       <SinkCounter mats={mats} />
       <ShelfLabels lang={lang} />
@@ -382,7 +382,7 @@ function CabinetRun({
   )
 }
 
-function StudentBench({ mats }: { mats: LabMaterials }) {
+function StudentBench({ mats, lang }: { mats: LabMaterials; lang: LabLang }) {
   return (
     <group>
       <RoundedBox
@@ -395,7 +395,7 @@ function StudentBench({ mats }: { mats: LabMaterials }) {
         receiveShadow
       />
       {/* Полая тумба с открывающимися дверцами — внутри посуда (interaction/LabCabinets) */}
-      <BenchCabinet mats={mats} />
+      <BenchCabinet mats={mats} lang={lang} />
       {/* Газовые краны у задней кромки стола */}
       {[-1.0, 1.0].map((x) => (
         <group key={x} position={[x, BENCH.topY, BENCH.centerZ - BENCH.d / 2 + 0.07]}>
