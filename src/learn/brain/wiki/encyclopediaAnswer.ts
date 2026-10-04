@@ -107,6 +107,12 @@ const HOOKS = {
   },
 } as const
 
+const NEUTRAL_HOOKS = {
+  ru: ['Хочешь, расскажу подробнее?', 'Рассказать ещё что-нибудь интересное об этом?', 'Есть ещё вопрос по этой теме?'],
+  en: ['Want me to tell you more?', 'Shall I share something else interesting about it?', 'Any other question on this topic?'],
+  uz: ['Batafsilroq aytib beraymi?', 'Bu haqida yana qiziqarli narsa aytaymi?', 'Bu mavzu bo‘yicha yana savol bormi?'],
+} as const
+
 function langOf(h: EncyclopediaHit): KbLang {
   if (/^Wikipedia/i.test(h.source ?? '')) return 'en'
   if (/^Vikipediya/i.test(h.source ?? '')) return 'uz'
@@ -256,7 +262,8 @@ export function composeEncyclopediaAnswer(
         ? `Aytgancha, ${alts.map((t) => `«${t}»`).join(' yoki ')} haqida so‘radingizmi? Ayting — u haqida ham aytib beraman.`
         : `Кстати, может, ты про ${alts.map((t) => `«${t}»`).join(' или ')}? Скажи — расскажу и об этом.`
     : null
-  const hook = clarify ?? pick(HOOKS[lang][kind], 1)
+  // большая энциклопедия — темы шире химии (почки, чёрные дыры): «на уровне атомов» там не к месту
+  const hook = clarify ?? (big && kind === 'topic' ? pick(NEUTRAL_HOOKS[lang], 1) : pick(HOOKS[lang][kind], 1))
   const hookWithName = !clarify && opts.name && seed % 2 === 0 ? `${opts.name}, ${lowerFirst(hook)}` : hook
   const citation = citationFor(hit.title, articleLang)
 
