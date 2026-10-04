@@ -404,6 +404,8 @@
   .chip,
   .chipActive {
     padding: 0 14px;
+    /* корень сайта на телефоне мельче — подписи видов не мельче 12 px */
+    font-size: max(12px, 0.86rem);
   }
 
   .boardNav {
@@ -424,7 +426,7 @@
   .chip,
   .chipActive {
     padding: 0 11px;
-    font-size: 0.86rem;
+    font-size: max(12px, 0.86rem);
   }
 
   .cards {
