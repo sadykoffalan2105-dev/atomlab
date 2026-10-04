@@ -7,7 +7,7 @@
  */
 import { createContext, useContext, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
+import { LabLabel } from '../scene/labOccluders'
 import * as THREE from 'three'
 import { LAB_COLORS, type LabLang } from '../labContract'
 import type { RigGesture } from './rigTargets'
@@ -227,12 +227,13 @@ export function Target({
       {active && !dragging ? (
         <>
           <ActiveGlow size={size} center={c} ringR={Math.min(0.07, ringR ?? Math.max(size[0], size[2]) * 0.75)} ring={ring} />
-          <Html position={[c[0], hintY ?? c[1] + size[1] / 2 + 0.03, c[2]]} center zIndexRange={[30, 10]} style={{ pointerEvents: 'none' }}>
+          {/* подпись прячется за непрозрачной мебелью (шкаф, вытяжка, доска), сквозь стекло — видна */}
+          <LabLabel position={[c[0], hintY ?? c[1] + size[1] / 2 + 0.03, c[2]]} center zIndexRange={[30, 10]}>
             <div style={{ ...hintStyle, transform: hover ? 'scale(1.06)' : undefined }} data-lab3d-hint={name}>
               <HandIcon />
               {HINT[kind][lang]}
             </div>
-          </Html>
+          </LabLabel>
         </>
       ) : null}
     </group>

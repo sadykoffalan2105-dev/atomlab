@@ -22,7 +22,7 @@ export const RIG_TARGETS = {
   halogens: ['ppe', 'cl-water', 'br-water', 'starch', 'rack'],
   'water-oxides': ['ppe', 'spatula', 'bottle-water', 'bottle-soda', 'phenolphthalein', 'litmus', 'rack'],
   co2: ['ppe', 'marble', 'bottle-hcl', 'stopper', 'outlet', 'tube-lime', 'litmus'],
-  'metals-acids': ['ppe', 'mg', 'bottle-h2so4', 'match', 'zn', 'bottle-hcl', 'cu', 'rack'],
+  'metals-acids': ['ppe', 'mg', 'bottle-h2so4', 'match', 'zn', 'bottle-hcl', 'cu', 'spirit-lamp', 'holder', 'rack'],
 } as const satisfies Record<LabExperimentId, readonly string[]>
 
 /** Сколько секунд длится анимация действия шага (шаг s: прогресс p идёт от s к s + 1). */
@@ -36,7 +36,7 @@ export const RIG_STEP_SECONDS: Readonly<Record<LabExperimentId, readonly number[
   halogens: [1.6, 3.6, 3.6, 3.6, 3.2, 3.4, 2.4],
   'water-oxides': [1.6, 2.6, 4.6, 3.2, 2.8, 3.2, 3, 3, 2.4],
   co2: [1.6, 2.4, 3.2, 2.6, 4.2, 4.6, 3.6, 3.2, 5],
-  'metals-acids': [1.6, 2.2, 4.2, 3.2, 2.2, 4.4, 2.2, 3.8, 2.4],
+  'metals-acids': [1.6, 2.2, 4.2, 3.2, 2.2, 4.4, 2.2, 3.8, 3.2, 10, 2.6],
 }
 
 /**
@@ -187,6 +187,10 @@ export const RIG_GESTURES: Readonly<Record<LabExperimentId, readonly RigGesture[
     drag([0.3, 0.06, -0.08], [0, 0.22, -0.06], 0.42),
     drag([0.22, 0.02, 0.18], [0.08, 0.2, -0.06], 0.5),
     drag([0.3, 0.06, -0.08], [0.08, 0.22, -0.06], 0.42),
+    // зажечь спиртовку (колпачок снимают, спичку подносят к фитилю)
+    tap,
+    // держатель — на пробирку 2, затем в пламя спиртовки
+    drag([0.19, 0.01, 0.06], [0, 0.2, -0.06], 0.09),
     tap,
   ],
 }
@@ -250,6 +254,8 @@ export const RIG_FOCUS: Readonly<Record<LabExperimentId, readonly RigFocus[]>> =
     { from: 3.45, to: 3.85, point: [-0.08, 0.17, -0.06], dist: 0.32 },
     { from: 5.45, to: 5.97, point: [0, 0.06, -0.06], dist: 0.28 },
     { from: 7.45, to: 7.97, point: [0.08, 0.06, -0.06], dist: 0.28 },
+    { from: 9.22, to: 9.46, point: [-0.15, 0.15, 0.09], dist: 0.34 },
+    { from: 9.76, to: 9.91, point: [-0.15, 0.15, 0.09], dist: 0.34 },
   ],
 }
 
@@ -322,6 +328,8 @@ export const RIG_LABELS: Readonly<Record<LabExperimentId, readonly RigLabel[]>> 
     { at: 3.55, pos: [-0.08, 0.23, -0.06], text: L('хлопок — это водород', 'a pop: it is hydrogen', 'qarsillash — bu vodorod') },
     { at: 5.7, pos: [0.05, 0.19, -0.06], text: L('пузырьки на цинке', 'bubbles on the zinc', 'ruxda pufakchalar') },
     { at: 7.7, pos: [0.13, 0.12, -0.06], text: L('изменений нет', 'no change', 'o‘zgarish yo‘q') },
-    { at: 8.5, pos: [0, 0.27, -0.06], text: L('Mg > Zn > (H₂) > Cu', 'activity: Mg > Zn > (H₂) > Cu', 'faollik: Mg > Zn > (H₂) > Cu') },
+    { at: 9.36, pos: [-0.15, 0.36, 0.09], text: L('при нагревании Zn — быстрее', 'heated Zn reacts faster', 'qizdirilganda Zn — tezroq') },
+    { at: 9.84, pos: [-0.15, 0.36, 0.09], text: L('Cu — без изменений', 'Cu: no change', 'Cu — o‘zgarishsiz') },
+    { at: 10.5, pos: [0, 0.27, -0.06], text: L('Mg > Zn > (H₂) > Cu', 'activity: Mg > Zn > (H₂) > Cu', 'faollik: Mg > Zn > (H₂) > Cu') },
   ],
 }

@@ -272,7 +272,7 @@ export function Instrument({ experimentId, step, inStep, lang }: { experimentId:
     // ряд активности (с. 125) и интенсивность выделения H₂ в трёх пробирках
     const bars: readonly { m: string; done: boolean; k: number }[] = [
       { m: 'Mg', done: step >= 3, k: 1 },
-      { m: 'Zn', done: step >= 6, k: 0.4 },
+      { m: 'Zn', done: step >= 6, k: step >= 10 ? 0.7 : 0.4 },
       { m: 'Cu', done: step >= 8, k: 0 },
     ]
     return (
