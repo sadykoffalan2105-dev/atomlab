@@ -13,6 +13,8 @@ let acc = 0
 
 export function LabAudioListener() {
   useEffect(() => labEvents.on('sound', (e) => labAudio.play(e.name, { at: e.at, gain: e.gain })), [])
+  // Скрытая вкладка — без звука; вернулись — звук продолжается
+  useEffect(() => labAudio.attachVisibility(), [])
   useFrame(({ camera }, dt) => {
     // Слушатель обновляется ~20 раз в секунду — этого достаточно, а звуковой поток не нагружаем
     acc += dt

@@ -93,50 +93,106 @@ export function ceilingTexture(): THREE.CanvasTexture {
 
 /** Вид из окна: светлое небо, облака, деревья и дома вдали (яркий, без тон-маппинга). */
 export function windowViewTexture(): THREE.CanvasTexture {
+  // Вид из окна: небо с кучевыми облаками, два плана домов (дальний — голубоватая дымка), деревья кронами, газон.
   const W = 1024
   const H = 512
   const [c, ctx] = makeCanvas(W, H)
-  const sky = ctx.createLinearGradient(0, 0, 0, H)
-  sky.addColorStop(0, '#9fcaf4')
-  sky.addColorStop(0.55, '#d8ecfb')
-  sky.addColorStop(1, '#f4f8fb')
+  const sky = ctx.createLinearGradient(0, 0, 0, H * 0.75)
+  sky.addColorStop(0, '#7fb3e6')
+  sky.addColorStop(0.6, '#bcdaf3')
+  sky.addColorStop(1, '#e6f0f7')
   ctx.fillStyle = sky
   ctx.fillRect(0, 0, W, H)
   const r = rng(23)
-  for (let k = 0; k < 14; k++) {
-    const x = r() * W
-    const y = 40 + r() * 160
-    const rad = 40 + r() * 70
-    const g = ctx.createRadialGradient(x, y, 0, x, y, rad)
-    g.addColorStop(0, 'rgba(255,255,255,0.85)')
-    g.addColorStop(1, 'rgba(255,255,255,0)')
-    ctx.fillStyle = g
-    ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2)
+  // Кучевые облака: группы мягких пятен, плоское основание, низ чуть серее
+  for (let k = 0; k < 7; k++) {
+    const cx = r() * W
+    const cy = 50 + r() * 130
+    const span = 90 + r() * 120
+    for (let j = 0; j < 9; j++) {
+      const x = cx + (r() - 0.5) * span
+      const y = cy - r() * 26
+      const rad = 22 + r() * 34
+      const g = ctx.createRadialGradient(x, y, 0, x, y, rad)
+      g.addColorStop(0, 'rgba(255,255,255,0.92)')
+      g.addColorStop(0.6, 'rgba(250,252,255,0.55)')
+      g.addColorStop(1, 'rgba(255,255,255,0)')
+      ctx.fillStyle = g
+      ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2)
+    }
+    const base = ctx.createLinearGradient(0, cy, 0, cy + 22)
+    base.addColorStop(0, 'rgba(205,214,226,0.35)')
+    base.addColorStop(1, 'rgba(205,214,226,0)')
+    ctx.fillStyle = base
+    ctx.fillRect(cx - span * 0.55, cy, span * 1.1, 22)
   }
-  // Дома вдали
-  for (let k = 0; k < 9; k++) {
-    const bw = 60 + r() * 90
-    const bh = 60 + r() * 120
-    const x = r() * W
-    ctx.fillStyle = `rgb(${206 + r() * 20},${210 + r() * 18},${218 + r() * 14})`
-    ctx.fillRect(x, H * 0.72 - bh, bw, bh + 40)
-    ctx.fillStyle = 'rgba(160,185,210,0.55)'
-    for (let wy = H * 0.72 - bh + 10; wy < H * 0.72; wy += 18) {
-      for (let wx = x + 8; wx < x + bw - 10; wx += 16) ctx.fillRect(wx, wy, 8, 9)
+  const horizon = H * 0.72
+  // Дома: дальний план (дымка) и ближний (тёплые фасады, ряды окон, кровля)
+  const houses = (n: number, near: boolean) => {
+    for (let k = 0; k < n; k++) {
+      const bw = (near ? 90 : 60) + r() * (near ? 110 : 80)
+      const bh = (near ? 70 : 90) + r() * (near ? 110 : 120)
+      const x = r() * W - 30
+      const top = horizon - bh + (near ? 18 : 0)
+      const t = r()
+      ctx.fillStyle = near
+        ? `rgb(${Math.round(214 + t * 22)},${Math.round(200 + t * 18)},${Math.round(178 + t * 14)})`
+        : `rgb(${Math.round(188 + t * 14)},${Math.round(200 + t * 12)},${Math.round(214 + t * 10)})`
+      ctx.fillRect(x, top, bw, bh + 60)
+      ctx.fillStyle = near ? 'rgba(120,96,80,0.55)' : 'rgba(150,166,186,0.6)'
+      ctx.fillRect(x - 3, top - 5, bw + 6, 6)
+      for (let wy = top + 12; wy < horizon + 10; wy += near ? 22 : 16) {
+        for (let wx = x + 9; wx < x + bw - 12; wx += near ? 20 : 14) {
+          const lit = r()
+          ctx.fillStyle = near
+            ? lit > 0.85 ? 'rgba(236,232,210,0.9)' : 'rgba(92,116,140,0.75)'
+            : 'rgba(150,172,196,0.55)'
+          ctx.fillRect(wx, wy, near ? 10 : 7, near ? 12 : 8)
+        }
+      }
     }
   }
-  // Кроны деревьев
-  for (let k = 0; k < 60; k++) {
+  houses(8, false)
+  // Лёгкая дымка между планами
+  const haze = ctx.createLinearGradient(0, horizon - 140, 0, horizon)
+  haze.addColorStop(0, 'rgba(225,236,246,0)')
+  haze.addColorStop(1, 'rgba(225,236,246,0.45)')
+  ctx.fillStyle = haze
+  ctx.fillRect(0, horizon - 140, W, 140)
+  houses(5, true)
+  // Газон и дорожка
+  const lawn = ctx.createLinearGradient(0, horizon + 10, 0, H)
+  lawn.addColorStop(0, '#8fae6c')
+  lawn.addColorStop(1, '#6f9152')
+  ctx.fillStyle = lawn
+  ctx.fillRect(0, horizon + 10, W, H - horizon)
+  ctx.fillStyle = 'rgba(214,206,190,0.9)'
+  ctx.beginPath()
+  ctx.moveTo(W * 0.58, horizon + 12)
+  ctx.lineTo(W * 0.64, horizon + 12)
+  ctx.lineTo(W * 0.86, H)
+  ctx.lineTo(W * 0.68, H)
+  ctx.closePath()
+  ctx.fill()
+  // Деревья: ствол и крона из нескольких пятен, тень снизу кроны
+  for (let k = 0; k < 16; k++) {
     const x = r() * W
-    const y = H * 0.74 + r() * 30
-    const rad = 26 + r() * 34
-    ctx.fillStyle = `rgb(${96 + r() * 40},${150 + r() * 40},${92 + r() * 30})`
-    ctx.beginPath()
-    ctx.arc(x, y, rad, 0, Math.PI * 2)
-    ctx.fill()
+    const baseY = horizon + 14 + r() * 26
+    const size = 30 + r() * 26
+    ctx.fillStyle = '#6b5442'
+    ctx.fillRect(x - 3, baseY - size * 0.9, 6, size * 0.9)
+    const g0 = 70 + r() * 30
+    for (let j = 0; j < 7; j++) {
+      const bx = x + (r() - 0.5) * size * 1.1
+      const by = baseY - size * 1.15 + (r() - 0.5) * size * 0.8
+      const br = size * (0.38 + r() * 0.22)
+      const shade = by > baseY - size * 1.1 ? 0.82 : 1
+      ctx.fillStyle = `rgb(${Math.round((g0 - 10) * shade)},${Math.round((g0 + 62) * shade)},${Math.round((g0 - 22) * shade)})`
+      ctx.beginPath()
+      ctx.arc(bx, by, br, 0, Math.PI * 2)
+      ctx.fill()
+    }
   }
-  ctx.fillStyle = '#b9c7a4'
-  ctx.fillRect(0, H * 0.85, W, H * 0.15)
   return toTexture(c)
 }
 
