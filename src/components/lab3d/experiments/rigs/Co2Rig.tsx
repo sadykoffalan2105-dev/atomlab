@@ -32,7 +32,6 @@ const STOPPER_REST: V3 = [-0.02, 0, 0.17]
 const LT: V3 = [0.3, 0, 0.12]
 /** Стеклянное колено на пробке: конец (здесь надет шланг) в координатах пробки. */
 const ELBOW: V3 = [0.035, 0.045, 0]
-const TIP_LEN = 0.1
 const LEVEL = 0.06
 
 const C = {
@@ -61,29 +60,58 @@ function stopperPos(p: number): V3 {
   return pos
 }
 
-/** Конец стеклянного наконечника (низ) и наклон: лежит на столе → над известковой водой → по пробиркам. */
+/**
+ * Стеклянный наконечник (начало — нижний конец). Как в жизни: прямая трубочка длиннее пробирки-приёмника —
+ * опущена через горлышко почти до дна, верх (где надет шланг) выступает над краем на ~3 см, поэтому шланг
+ * подходит сверху и нигде не проходит сквозь стекло. Пока не нужен — лежит на столе.
+ */
+const TIP_LEN = 0.168
+/** Нижний конец наконечника в приёмнике: 12 мм над дном, под жидкостью. */
+const DIP_Y = TUBE_Y + 0.012
+/** Над приёмниками наконечник переносят так, что его низ выше края пробирок. */
+const PARK_Y = TOP + 0.04
+/** Лежит на столе (низ — справа, верх — слева, к штативу): опора — столешница. */
+const TIP_REST: V3 = [0.2, 0.0026, 0.2]
+
+/** Конец наконечника (низ) и доля «лёжа» 0…1: стол → известковая вода → вода → на стол (лакмус) → NaOH. */
 function tipPose(p: number): { end: V3; lie: number } {
-  const rest: V3 = [0.15, 0.004, 0.19]
-  const park = (x: number): V3 => [x, 0.2, Z]
-  const dip = (x: number): V3 => [x, TUBE_Y + 0.012, Z]
-  let end = mixV(rest, park(LIME_X), ease(p, 3.2, 3.6))
-  end = mixV(end, dip(LIME_X), ease(p, 4, 4.6))
+  const park = (x: number): V3 => [x, PARK_Y, Z]
+  const dip = (x: number): V3 => [x, DIP_Y, Z]
+  const restHi: V3 = [TIP_REST[0], 0.06, TIP_REST[2]]
+  // шаг 4: со стола → над известковой водой → вниз через горлышко (до шага 4 наконечник лежит на столе)
+  let end = mixV(TIP_REST, park(LIME_X), ease(p, 4, 4.3))
+  end = mixV(end, dip(LIME_X), ease(p, 4.3, 4.6))
+  // вверх через горлышко → над водой → вниз через горлышко
   end = mixV(end, park(LIME_X), ease(p, 6, 6.2))
   end = mixV(end, park(WATER_X), ease(p, 6.18, 6.4))
   end = mixV(end, dip(WATER_X), ease(p, 6.4, 6.6))
-  // перед лакмусом трубку вынимают и отводят в сторону
-  end = mixV(end, park(WATER_X), ease(p, 7, 7.14))
-  end = mixV(end, [WATER_X + 0.06, 0.21, Z + 0.03], ease(p, 7.12, 7.26))
+  // перед лакмусом наконечник вынимают (вверх через горлышко) и кладут на стол — пипетке нужно место
+  end = mixV(end, park(WATER_X), ease(p, 7, 7.09))
+  end = mixV(end, restHi, ease(p, 7.08, 7.3))
+  end = mixV(end, TIP_REST, ease(p, 7.3, 7.42))
+  // NaOH: со стола → над пробиркой → вниз через горлышко
   end = mixV(end, park(NAOH_X), ease(p, 8, 8.2))
   end = mixV(end, dip(NAOH_X), ease(p, 8.2, 8.6))
-  return { end, lie: 1 - ease(p, 3.2, 3.6) }
+  const lie = 1 - ease(p, 4, 4.3) + ease(p, 7.08, 7.3) - ease(p, 8, 8.2)
+  return { end, lie }
+}
+
+/** Ось наконечника (от низа к верху): лёжа — в −X, стоя — вверх. */
+function tipDir(p: number): V3 {
+  const a = (Math.PI / 2) * tipPose(p).lie
+  return [-Math.sin(a), Math.cos(a), 0]
 }
 
 function tipTop(p: number): V3 {
-  const { end, lie } = tipPose(p)
-  // лежит: верх смотрит в −X; стоит: верх над концом
-  const a = (Math.PI / 2) * lie
-  return [end[0] - Math.sin(a) * TIP_LEN, end[1] + Math.cos(a) * TIP_LEN, end[2]]
+  const { end } = tipPose(p)
+  const d = tipDir(p)
+  return [end[0] + d[0] * TIP_LEN, end[1] + d[1] * TIP_LEN, end[2]]
+}
+
+/** Ниже чего шлангу нельзя опускаться: над штативом с приёмниками — не ниже края пробирок (поверх, а не сквозь). */
+function hoseFloor(x: number, z: number): number {
+  const overRack = x > LIME_X - 0.05 && x < NAOH_X + 0.05 && Math.abs(z - Z) < 0.04
+  return overRack ? TOP + 0.008 : 0
 }
 
 export function Co2Rig() {
@@ -165,11 +193,14 @@ export function Co2Rig() {
         <GlassPath points={[[0, 0.004, 0], [0, 0.034, 0], [0.008, 0.044, 0], ELBOW]} radius={0.0028} />
         <Target name="stopper" size={[0.05, 0.06, 0.05]} center={[0.012, 0.025, 0]} hintY={0.08} />
       </Pose>
+      {/* шланг надет на колено пробки и на верх наконечника (по ~1 см на стекле), провисает между ними */}
       <RubberHose
         ends={(p) => {
           const s = stopperPos(p)
           return [[s[0] + ELBOW[0], s[1] + ELBOW[1], s[2] + ELBOW[2]], tipTop(p)]
         }}
+        dirs={(p) => [[1, 0, 0], tipDir(p)]}
+        floor={hoseFloor}
       />
       <Pose
         pose={(p) => {

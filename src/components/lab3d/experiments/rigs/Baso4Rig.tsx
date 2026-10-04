@@ -5,7 +5,8 @@
  */
 import { Pose, Target, ease, hill, mix, type PFn } from '../rigCore'
 import { Precipitate, PourStream } from '../parts/effects'
-import { TUBE_H, TestTube, TubeRack, TubeTag } from '../parts/glassware'
+import { TUBE_H, TUBE_R, TestTube, TubeRack, TubeTag } from '../parts/glassware'
+import { GripHand } from '../parts/practicalware'
 
 const XA = -0.03
 const XB = 0.03
@@ -57,6 +58,10 @@ export function Baso4Rig() {
             <TubeTag text="H₂SO₄" />
           </group>
           <Target name="tube-h2so4" size={[0.045, 0.17, 0.045]} center={[0, 0.085, 0]} ring={false} hintY={0.2} />
+          {/* пока пробирка не в штативе — она в руке ученика, а не висит в воздухе */}
+          <group position={[0, 0.082, 0]}>
+            <GripHand r={TUBE_R} hold={(p) => ease(p, 1, 1.4) * (1 - ease(p, 3.55, 3.9))} />
+          </group>
         </group>
       </Pose>
 

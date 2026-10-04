@@ -17,6 +17,7 @@ import { getLabExperiment, LAB_STEP_ACTIONS } from '../../../data/labWorks/labEx
 import { RigContext, type RigContextValue } from './rigCore'
 import { RIG_FOCUS, RIG_GESTURES, RIG_STEP_SECONDS } from './rigTargets'
 import { GestureGhost, ObsLabels } from './rigGuides'
+import { auditRig, auditSelfTest } from './dev/rigAudit'
 import { Baso4Rig } from './rigs/Baso4Rig'
 import { Ch4BurnRig } from './rigs/Ch4BurnRig'
 import { H2PracticalRig } from './rigs/H2PracticalRig'
@@ -75,6 +76,7 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   // крупные планы и звуки считаются от фактического положения группы установки (её ставит сцена)
   const center = def.place === 'hood' ? HOOD_WORK_CENTER : WORK_AREA_CENTER
   const p = useRef(Math.min(step, total))
+  const forceP = useRef<number | null>(null)
   const time = useRef(0)
   const anim = useRef<{ from: number; dur: number } | null>(null)
   const scrub = useRef<Scrub | null>(null)
@@ -122,6 +124,11 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05)
     time.current += dt
+    // отладочный аудит (debugLab=1) держит прогресс на заданном значении
+    if (forceP.current != null) {
+      p.current = forceP.current
+      return
+    }
     const a = anim.current
     if (a) {
       if (stepRef.current !== a.from) {
@@ -254,10 +261,25 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
       })
       return gst.kind === 'tap' ? { kind: 'tap', step: s, target: name, at: hit } : { kind: gst.kind, step: s, target: name, at: hit, from: px(gst.from), to: px(gst.to) }
     }
+    // аудит физики установки: прогресс ставится вручную (setP), audit() — «сквозь стекло» / «висит» по мешам,
+    // view() — камера на точку установки (кадры с разных ракурсов)
+    const wr = window as unknown as { __labRig?: unknown }
+    wr.__labRig = {
+      total,
+      setP: (v: number | null) => {
+        forceP.current = v
+        if (v != null) p.current = v
+      },
+      audit: () => (root.current ? auditRig(root.current) : []),
+      selfTest: () => (root.current ? auditSelfTest(root.current) : null),
+      view: (pos: readonly number[], target: readonly number[]) =>
+        labEvents.emit({ type: 'focus', position: toWorld([pos[0]!, pos[1]!, pos[2]!]), target: toWorld([target[0]!, target[1]!, target[2]!]) }),
+    }
     return () => {
       delete w.__labGesture
+      delete wr.__labRig
     }
-  }, [camera, def, experimentId, gl, total])
+  }, [camera, def, experimentId, gl, total, toWorld])
 
   // реактив со стеллажа: сцена подсвечивает его; взял/поставил — шаг засчитан
   const need = step < total ? (LAB_STEP_ACTIONS[experimentId][step]?.need ?? null) : null
