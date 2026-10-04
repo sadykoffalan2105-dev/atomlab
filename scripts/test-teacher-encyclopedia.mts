@@ -198,7 +198,7 @@ if (fs.existsSync(path.join(BIG_DIR, 'meta.json'))) {
     const res = await composeLocalTeacherReply([{ role: 'user', content: item.q }], ctxOf('ru', 'g8'))
     times.push(performance.now() - t)
     const body = res.text.replace(/\n\n\[[^\]]+\]\s*$/u, '')
-    const ok = res.confident && item.has.test(body)
+    const ok = res.confident && item.has.test(body) && !item.not?.test(res.text)
     if (WIKI_SIGN.test(res.text)) fromWiki++
     if (ok) bigOk++
     else bad.push(`${item.q} :: ${res.text.slice(0, 130).replace(/\n/g, ' ')}`)
@@ -211,7 +211,9 @@ if (fs.existsSync(path.join(BIG_DIR, 'meta.json'))) {
   )
   for (const b of bad) console.log(`  miss ${b}`)
   check('big: ≥ 150 questions', BIG_QUESTIONS.length >= 150, String(BIG_QUESTIONS.length))
-  check('big: accuracy ≥ 90 %', acc >= 0.9, `${(acc * 100).toFixed(1)} %`)
+  check('big: accuracy ≥ 97 %', acc >= 0.97, `${(acc * 100).toFixed(1)} %`)
+  // wf17: 177 прежних вопросов + ≥ 60 ловушек (имя ≠ фамилия, упоминание ≠ тема, «кто открыл», «витамин C»)
+  check('big: ≥ 237 questions incl. traps', BIG_QUESTIONS.length >= 237, String(BIG_QUESTIONS.length))
   check('big: median answer ≤ 300 ms', times[times.length >> 1]! <= 300, `${times[times.length >> 1]!.toFixed(0)} ms`)
   // школьные вопросы по-прежнему отвечает учебник (большая энциклопедия их не перебивает)
   let schoolStill = 0

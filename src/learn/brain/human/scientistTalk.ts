@@ -86,13 +86,23 @@ function addCyr(map: Map<string, Set<string>>, word: string, id: string): void {
   for (const st of cyrForms(word)) if (st.length >= 3 && !CYR_STOP.has(st)) add(map, st, id)
 }
 
+/** Ключевое слово «Имя Фамилия» (оба слова — не термины): индексируем только фамилию. */
+function isPersonPair(kw: string): boolean {
+  const parts = kw.toLowerCase().split(/\s+/)
+  return parts.length === 2 && parts.every((p) => (isCyr(p) ? !CYR_STOP.has(stemRussian(p)) : !LAT_STOP.has(p))) && !/^(ибн|ibn|ван|van|ле|de|al|аль|ар)$/.test(parts[0]!)
+}
+
 function buildIndex(): NameIndex {
   const cyr = new Map<string, Set<string>>()
   const lat = new Map<string, Set<string>>()
   for (const e of SCIENTIST_ENTRIES) {
     const display = SCIENTIST_DISPLAY_NAME[e.id] ?? ''
-    const nameWords = display.replace(/[()]/g, ' ').split(/\s+/).filter((w) => w.length >= 3 && !/\./.test(w))
-    for (const w of nameWords) {
+    // Только фамилия (последнее слово имени; в скобках — латинский вариант): «Николай Коперник» ≠ «Николай Зинин».
+    const surnameWords = display
+      .split(/[()]/)
+      .map((part) => part.trim().split(/\s+/).filter((w) => w.length >= 3 && !/\./.test(w)).pop())
+      .filter((w): w is string => Boolean(w))
+    for (const w of surnameWords) {
       const low = w.toLowerCase()
       if (isCyr(low)) {
         addCyr(cyr, low, e.id)
@@ -104,7 +114,8 @@ function buildIndex(): NameIndex {
     for (const kw of e.keywords) {
       const parts = kw.toLowerCase().split(/\s+/)
       if (parts.length > 2) continue
-      for (const p of parts) {
+      // «нильс бор», «мария кюри», «отто ган» — имя не индексируем, только фамилию (второе слово)
+      for (const p of parts.length === 2 && isPersonPair(kw) ? parts.slice(1) : parts) {
         if (isCyr(p)) {
           if (!CYR_STOP.has(stemRussian(p))) addCyr(cyr, p, e.id)
         } else if (isLat(p)) {
