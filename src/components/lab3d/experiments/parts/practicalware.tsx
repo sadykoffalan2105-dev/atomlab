@@ -256,7 +256,7 @@ export function PorcelainDish({ level, crystals, boil, liquidColor = '#e8f3ff' }
       </instancedMesh>
       <instancedMesh ref={bubbles} args={[undefined, undefined, nb]}>
         <sphereGeometry args={[1, 8, 6]} />
-        <meshPhysicalMaterial color="#ffffff" transparent opacity={0.65} roughness={0.05} depthWrite={false} />
+        <meshStandardMaterial color="#ffffff" transparent opacity={0.65} roughness={0.05} depthWrite={false} />
       </instancedMesh>
     </group>
   )
@@ -342,7 +342,7 @@ export function GlassRod({ length = 0.2, wetColor }: { length?: number; wetColor
       {wetColor ? (
         <mesh position={[0, 0.003, 0]}>
           <sphereGeometry args={[0.0036, 10, 8]} />
-          <meshPhysicalMaterial color={wetColor} transparent opacity={0.6} roughness={0.05} />
+          <meshStandardMaterial color={wetColor} transparent opacity={0.6} roughness={0.05} />
         </mesh>
       ) : null}
     </group>
@@ -414,7 +414,7 @@ export function DropperBottle({ color, label, amber = false }: { color: string; 
   }, [label])
   const glass = useMemo(() => {
     if (!amber) return sharedGlass(quality)
-    return new THREE.MeshPhysicalMaterial({ color: '#8a5a2b', transparent: true, opacity: 0.55, roughness: 0.1, depthWrite: false, side: THREE.DoubleSide })
+    return new THREE.MeshStandardMaterial({ color: '#8a5a2b', transparent: true, opacity: 0.55, roughness: 0.1, depthWrite: false, side: THREE.DoubleSide })
   }, [amber, quality])
   const liq = useMemo(() => labLiquidMaterial(color, 0.7), [color])
   return (
@@ -547,7 +547,7 @@ export function PpeTray({ worn, gloves = true, coat = false }: { worn: PFn; glov
   const { p } = useRig()
   const items = useRef<THREE.Group>(null)
   const frame = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2f7cf6', roughness: 0.4 }), [])
-  const lens = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#e8f4ff', transparent: true, opacity: 0.45, roughness: 0.05, depthWrite: false }), [])
+  const lens = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e8f4ff', transparent: true, opacity: 0.45, roughness: 0.05, depthWrite: false }), [])
   const nitrile = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5b8de8', roughness: 0.6 }), [])
   useFrame(() => {
     const g = items.current
@@ -720,7 +720,7 @@ export function Falling({ from, toY, a, b, n, color, size = 0.0022, box = false,
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, n]} frustumCulled={false}>
       {box ? <boxGeometry args={[1, 1, 1]} /> : <sphereGeometry args={[1, 8, 6]} />}
-      <meshPhysicalMaterial color={color} roughness={box ? 0.8 : 0.05} transparent={!box} opacity={box ? 1 : 0.85} />
+      <meshStandardMaterial color={color} roughness={box ? 0.8 : 0.05} transparent={!box} opacity={box ? 1 : 0.85} />
     </instancedMesh>
   )
 }

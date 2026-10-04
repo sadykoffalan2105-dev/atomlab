@@ -3,7 +3,7 @@
  * газовая горелка с газовым краном и шлангом, спичка.
  * Пламя рисуется обычным смешиванием (не аддитивным) — на светлом фоне лаборатории оно остаётся видимым.
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { LAB_COLORS } from '../../labContract'
@@ -166,19 +166,80 @@ export function Flame({
   )
 }
 
-/** Тёплый свет от пламени (только на компьютере). */
+/**
+ * Постоянный пул точечных источников для пламени. Число источников света входит в ключ шейдерной программы three.js:
+ * если свет пламени появляется и исчезает вместе с опытом, ВСЕ материалы сцены пересобираются (пауза и рост числа
+ * программ). Поэтому в сцене всегда стоят FLAME_LIGHT_SLOTS источников с нулевой яркостью, а FlameLight лишь занимает слот.
+ */
+export const FLAME_LIGHT_SLOTS = 2
+const flamePool: { light: THREE.PointLight; owner: object | null }[] = []
+
+/** Ставится один раз в сцене (только на высоком качестве): источники пула, изначально погашены. */
+export function FlameLightPool() {
+  const lights = useMemo(
+    () =>
+      Array.from({ length: FLAME_LIGHT_SLOTS }, () => {
+        const l = new THREE.PointLight('#ffb35c', 0, 0.6, 2)
+        l.position.set(0, -50, 0)
+        return l
+      }),
+    [],
+  )
+  useEffect(() => {
+    const slots = lights.map((light) => ({ light, owner: null as object | null }))
+    flamePool.push(...slots)
+    return () => {
+      for (const s of slots) {
+        const i = flamePool.indexOf(s)
+        if (i >= 0) flamePool.splice(i, 1)
+      }
+    }
+  }, [lights])
+  return (
+    <>
+      {lights.map((l, i) => (
+        <primitive key={i} object={l} />
+      ))}
+    </>
+  )
+}
+
+/** Тёплый свет от пламени (только на компьютере): берёт свободный источник из пула FlameLightPool, свой не создаёт. */
 export function FlameLight({ intensity, color, power = 0.6 }: { intensity: PFn; color: string; power?: number }) {
   const { p, time, quality } = useRig()
-  const ref = useRef<THREE.PointLight>(null)
+  const anchor = useRef<THREE.Object3D>(null)
+  const slot = useRef<(typeof flamePool)[number] | null>(null)
   const douse = useDouse(false)
+  useEffect(
+    () => () => {
+      const s = slot.current
+      if (s) {
+        s.light.intensity = 0
+        s.light.position.set(0, -50, 0)
+        s.owner = null
+      }
+      slot.current = null
+    },
+    [],
+  )
   useFrame(() => {
-    const l = ref.current
-    if (!l) return
+    const a = anchor.current
+    if (!a) return
+    let s = slot.current
+    if (!s) {
+      s = flamePool.find((x) => x.owner === null) ?? null
+      if (!s) return
+      s.owner = a
+      slot.current = s
+    }
+    const l = s.light
+    l.color.set(color)
+    a.getWorldPosition(l.position)
     const t = time.current ?? 0
-    l.intensity = douse(intensity(p.current ?? 0), l) * power * (0.9 + 0.1 * Math.sin(t * 17))
+    l.intensity = douse(intensity(p.current ?? 0), a) * power * (0.9 + 0.1 * Math.sin(t * 17))
   })
   if (quality === 'low') return null
-  return <pointLight ref={ref} color={color} distance={0.6} decay={2} intensity={0} />
+  return <object3D ref={anchor} />
 }
 
 /** Спиртовка: сосуд со спиртом, металлический диск, фитиль, колпачок. Начало — центр дна. */
@@ -221,7 +282,7 @@ export function SpiritLamp({ flame, capOff }: { flame: PFn; capOff: PFn }) {
         <mesh geometry={body} material={sharedGlassEdge()} renderOrder={4} />
       <mesh position={[0, 0.017, 0]} renderOrder={2}>
         <cylinderGeometry args={[0.033, 0.034, 0.028, 28]} />
-        <meshPhysicalMaterial color="#e9f4ff" transparent opacity={0.35} roughness={0.1} depthWrite={false} />
+        <meshStandardMaterial color="#e9f4ff" transparent opacity={0.35} roughness={0.1} depthWrite={false} />
       </mesh>
       {/* металлический диск с трубкой фитиля */}
       <mesh position={[0, 0.066, 0]} castShadow>

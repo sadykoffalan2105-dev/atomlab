@@ -222,7 +222,7 @@ export function Co2Rig() {
       <Pose pose={(p) => ({ pos: tipPose(p).end, scale: hill(p, 4.6, 6, 0.05) + hill(p, 6.6, 7, 0.1) + hill(p, 8.6, 9, 0.1) > 0 ? 1 : 0 })}>
         <mesh>
           <sphereGeometry args={[0.0022, 8, 6]} />
-          <meshPhysicalMaterial color="#ffffff" transparent opacity={0.6} roughness={0.05} depthWrite={false} />
+          <meshStandardMaterial color="#ffffff" transparent opacity={0.6} roughness={0.05} depthWrite={false} />
         </mesh>
       </Pose>
     </group>

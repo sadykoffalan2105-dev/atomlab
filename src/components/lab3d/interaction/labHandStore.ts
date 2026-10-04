@@ -299,6 +299,16 @@ export const labHand = {
     const t = hotUntil.get(id)
     return t !== undefined && t > performance.now()
   },
+  /** Горячие предметы, что лежат на столе, и точка над ними (для постоянной метки «Горячо»). */
+  hotItems(): { id: LabItemId; at: [number, number, number] }[] {
+    const out: { id: LabItemId; at: [number, number, number] }[] = []
+    for (const id of hotUntil.keys()) {
+      if (!labHand.isHot(id) || state.held === id) continue
+      const at = itemPoint(id)
+      if (at) out.push({ id, at: [at[0], at[1] + 0.04, at[2]] })
+    }
+    return out
+  },
   /** Язык подсказок, которые публикует стор (сцена сообщает при смене языка). */
   setLang(lang: 'ru' | 'en' | 'uz') {
     hintLang = lang
