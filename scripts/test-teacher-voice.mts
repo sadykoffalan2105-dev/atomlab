@@ -237,6 +237,33 @@ for (const [lang, q] of no) {
   const r = scientistTalk(q, lang, seed++)
   if (r) fail(`ложное срабатывание: [${lang}] «${q}» → ${r.ids.join(',')}`)
 }
+// Голос → понимание: ослышки распознавания исправляются ДО ответа учителя (fixTranscript),
+// и учитель узнаёт учёного; вся пост-обработка реплики укладывается в считанные миллисекунды.
+{
+  const { fixTranscript } = await import('../src/learn/brain/speech/chemTranscript.ts')
+  const heard: [string, string][] = [
+    ['кто такой бутлеров', 'butlerov'],
+    ['что сделал резерфорт', 'rutherford'],
+    ['расскажи про лаваузье', 'lavoisier'],
+    ['кто такой мендилеев', 'mendeleev'],
+    ['что открыл дальтан', 'dalton'],
+    ['расскажи про ламоносова', 'lomonosov'],
+  ]
+  const known = new Set(SCIENTIST_ENTRIES.map((e) => e.id))
+  let worst = 0
+  fixTranscript('прогрев словаря', 'ru') // первый вызов строит индексы — не считаем
+  for (const [raw, id] of heard) {
+    const t0 = performance.now()
+    const fixed = fixTranscript(raw, 'ru')
+    worst = Math.max(worst, performance.now() - t0)
+    const r = scientistTalk(fixed, 'ru', seed++)
+    if (!known.has(id)) continue
+    if (!r || !r.ids.includes(id)) fail(`голос: «${raw}» → «${fixed}» → учёный не найден (${r?.ids.join(',') ?? 'null'})`)
+  }
+  if (worst > 20) fail(`пост-обработка реплики слишком медленная: ${worst.toFixed(1)} мс`)
+  console.log(`  голос → учёный: ${heard.length} ослышек, худшее время fixTranscript ${worst.toFixed(2)} мс`)
+}
+
 // Пример живого ответа
 console.log('\n  пример:', scientistTalk('кто такой Бутлеров?', 'ru', 3)!.text.replace(/\n/g, ' | '))
 console.log('  пример:', scientistTalk('who was Dalton', 'en', 5)!.text.replace(/\n/g, ' | '))

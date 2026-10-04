@@ -38,14 +38,20 @@ export interface LabItemDef {
   readonly reagent?: ReagentInfo
 }
 
-/** Открытые полки над столешницей у мойки (верх полки). */
-export const SHELF_TOPS = [1.4325, 1.8325] as const
+/**
+ * Открытые полки над столешницей у мойки (верх полки = центр доски 1,42 / 1,75 + половина толщины 0,0125).
+ * Верхняя полка ниже навесного шкафа (дно 1,98): склянка со спиртом (0,19 м) раньше упиралась в дно шкафа и проходила сквозь него.
+ */
+export const SHELF_TOPS = [1.4325, 1.7625] as const
+/** Центры досок полок (LabRoom рисует их по этим высотам). */
+export const SHELF_BOARD_Y = [1.42, 1.75] as const
 export const SHELF_Z = ROOM.frontZ + 0.16
 export const SHELF_X0 = COUNTER.x0 + 0.14
 
 /** Навесной шкаф со стеклянными дверцами над полками. */
 export const WALL_CAB = { x0: COUNTER.x0 + 0.04, x1: COUNTER.x0 + 1.16, y0: 1.98, y1: 2.5, d: 0.32, z0: ROOM.frontZ } as const
-export const WALL_CAB_FLOOR = WALL_CAB.y0 + 0.02
+/** Верх дна навесного шкафа (дно толщиной 0,018 м) — посуда стоит на нём, а не висит над ним. */
+export const WALL_CAB_FLOOR = WALL_CAB.y0 + 0.018
 
 /** Тумба под рабочим столом: 4 секции с дверцами (фасад к ученику). */
 export const BENCH_CAB = (() => {
@@ -123,7 +129,8 @@ function buildItems(): readonly LabItemDef[] {
       out.push({ id: g.id, name: g.name, r: g.r, h: g.h, store: { kind: 'cabinet', doorId: g.at[0] < 0.56 ? 'wall:0' : 'wall:1' }, home: [WALL_CAB.x0 + g.at[0], WALL_CAB_FLOOR, wallZ + g.at[2]] })
     } else {
       const door = Number(g.place.slice(5))
-      const y = g.at[1] > 0 ? BENCH_CAB.shelfY + 0.012 : BENCH_CAB.bodyY0 + 0.02
+      // Верх внутренней полки (толщина 0,016) и верх дна тумбы (0,018) — без зазора в воздухе
+      const y = g.at[1] > 0 ? BENCH_CAB.shelfY + 0.008 : BENCH_CAB.bodyY0 + 0.018
       out.push({ id: g.id, name: g.name, r: g.r, h: g.h, store: { kind: 'cabinet', doorId: `bench:${door}` }, home: [benchDoorX(door) + g.at[0], y, CAB_IN_Z + g.at[2]] })
     }
   }

@@ -14,6 +14,8 @@ import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
 import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import { isSpeechRecognitionSupported } from '../../learn/learnSpeech'
 import { getVoiceStatus, subscribeVoiceStatus, voiceStatusMessageKey } from '../../learn/brain/speech/voiceStatus'
+import { resetRecognitionContext, setRecognitionTopic } from '../../learn/brain/speech/chemTranscript'
+import { utteranceHold } from '../../learn/brain/speech/endOfUtterance'
 import { useDualModeTeacher } from '../../learn/brain'
 import { prewarmLiveTeacher } from '../../learn/brain/dualMode'
 import type { TutorMode } from '../../learn/brain'
@@ -149,6 +151,12 @@ function LiveTutorSession({
   const { state, start, stop, setMode, sendText, askAnother, nextTopic, checkHomework, setMicMuted, interrupt } =
     teacher
 
+  // Тема урока — контекст распознавания: из 5 альтернатив STT выигрывает та, что ближе к теме.
+  useEffect(() => {
+    resetRecognitionContext()
+    setRecognitionTopic(sectionTitle, t(chapter.titleKey))
+  }, [sectionTitle, chapter.titleKey, t])
+
   // Старт/стоп сессии в одном эффекте: в StrictMode (dev) эффект монтируется дважды —
   // stop() гасит первую сессию, повторный start() создаёт новую (start сам защищён от дубля).
   useEffect(() => {
@@ -245,6 +253,23 @@ function LiveTutorSession({
   const doInterrupt = useCallback(() => {
     interrupt()
   }, [interrupt])
+
+  // «Нажми и говори» (шумный класс): зажал — слушаем без автоконца фразы, отпустил — ответ сразу.
+  const [holding, setHolding] = useState(false)
+  const holdingRef = useRef(false)
+  const holdStart = useCallback(() => {
+    if (!micUsable || holdingRef.current) return
+    if (teacher.holdToTalk(true)) {
+      holdingRef.current = true
+      setHolding(true)
+    }
+  }, [micUsable, teacher])
+  const holdEnd = useCallback(() => {
+    if (!holdingRef.current) return
+    holdingRef.current = false
+    setHolding(false)
+    teacher.holdToTalk(false)
+  }, [teacher])
 
   // Пробел — микрофон, Esc — выйти.
   useEffect(() => {
@@ -508,6 +533,43 @@ function LiveTutorSession({
           <button
             type="button"
             className={styles.pillBtn}
+            data-on={holding ? '1' : undefined}
+            disabled={!micUsable}
+            aria-pressed={holding}
+            title={t('learn.teacherUi.holdToTalkHint')}
+            style={holding ? { outline: '2px solid currentColor', outlineOffset: 2 } : undefined}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              e.currentTarget.setPointerCapture?.(e.pointerId)
+              holdStart()
+            }}
+            onPointerUp={holdEnd}
+            onPointerCancel={holdEnd}
+            onLostPointerCapture={holdEnd}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) {
+                e.preventDefault()
+                e.stopPropagation()
+                holdStart()
+              }
+            }}
+            onKeyUp={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                holdEnd()
+              }
+            }}
+            onBlur={holdEnd}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            <IconMic className={styles.btnIcon} />
+            <span>{t('learn.teacherUi.holdToTalk')}</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.pillBtn}
             onClick={doInterrupt}
             disabled={!state.aiSpeaking && !state.thinking}
             title={t('learn.teacherUi.interrupt')}
@@ -523,7 +585,64 @@ function LiveTutorSession({
         </div>
         <span className={styles.dockSpacer} aria-hidden />
       </footer>
+      <VoiceDebugOverlay metrics={state.metrics} partial={state.partial} />
     </>
+  )
+}
+
+/** ?debugVoice=1 — задержки голоса последнего хода (performance.now, мс) и «умный конец фразы». */
+function isVoiceDebug(): boolean {
+  if (typeof window === 'undefined') return false
+  const { search, hash } = window.location
+  return /[?&]debugVoice=1\b/.test(search) || /[?&]debugVoice=1\b/.test(hash)
+}
+
+function VoiceDebugOverlay({
+  metrics,
+  partial,
+}: {
+  metrics: ReturnType<typeof useDualModeTeacher>['state']['metrics']
+  partial: string
+}) {
+  const [on] = useState(isVoiceDebug)
+  if (!on) return null
+  const hold = partial ? utteranceHold(partial) : null
+  const row = (label: string, v: number | null | undefined) => (
+    <div>
+      {label}: <b>{v == null ? '—' : `${v} мс`}</b>
+    </div>
+  )
+  return (
+    <div
+      role="status"
+      aria-live="off"
+      style={{
+        position: 'fixed',
+        left: 8,
+        bottom: 8,
+        zIndex: 2147483000,
+        maxWidth: 'min(92vw, 340px)',
+        padding: '8px 10px',
+        borderRadius: 8,
+        background: 'rgba(15, 18, 28, 0.88)',
+        color: '#e8edf7',
+        font: '12px/1.45 ui-monospace, Consolas, monospace',
+        pointerEvents: 'none',
+      }}
+    >
+      <div>
+        <b>debugVoice</b> · ход {metrics?.turnId ?? '—'} · {metrics?.commitReason ?? metrics?.inputKind ?? '—'}
+      </div>
+      {row('конец речи → конец реплики', metrics?.speechEndToCommitMs)}
+      {row('конец реплики → 1-я фраза на экране', metrics?.commitToFirstSentenceMs)}
+      {row('конец реплики → 1-й звук', metrics?.commitToFirstAudioMs)}
+      {row('конец речи → 1-й звук', metrics?.speechEndToFirstAudioMs)}
+      {row('1-й токен ответа', metrics?.firstTokenMs)}
+      {row('весь ответ', metrics?.totalMs)}
+      <div>
+        слышу: «{partial || '…'}»{hold ? ` · хвост: ${hold.ending} (+${hold.holdMs} мс)` : ''}
+      </div>
+    </div>
   )
 }
 

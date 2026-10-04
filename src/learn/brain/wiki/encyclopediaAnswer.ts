@@ -15,7 +15,7 @@ import type { KbLang } from '../../kb/types'
 
 export { encyclopediaIntent, wantsEncyclopedia } from '../../kb/encyclopedia'
 
-export type EncyclopediaHit = { title: string; text: string; source?: string; type?: string; score?: number }
+export type EncyclopediaHit = { id?: string; title: string; text: string; source?: string; type?: string; score?: number; /** wf16: статьи с тем же названием — для уточняющего вопроса. */ alts?: string[] }
 
 export type EncyclopediaAnswer = {
   text: string
@@ -105,6 +105,12 @@ const HOOKS = {
     person: ['Bu hozir o‘rganayotgan mavzungizga qanday bog‘lanishini aytib beraymi?', 'Bu olim yoki uning davri haqida yana nimani bilmoqchisiz?', 'Bu mavzu ustida yana kim ishlaganini bilishni istaysizmi?'],
     topic: ['Hayotdan misol keltiraymi yoki dars mavzusiga bog‘laymizmi?', 'Bu kundalik hayotda qayerda uchrashini aytaymi?', 'Chuqurroq ko‘ramizmi — atomlar darajasida qanday ishlaydi?'],
   },
+} as const
+
+const NEUTRAL_HOOKS = {
+  ru: ['Хочешь, расскажу подробнее?', 'Рассказать ещё что-нибудь интересное об этом?', 'Есть ещё вопрос по этой теме?'],
+  en: ['Want me to tell you more?', 'Shall I share something else interesting about it?', 'Any other question on this topic?'],
+  uz: ['Batafsilroq aytib beraymi?', 'Bu haqida yana qiziqarli narsa aytaymi?', 'Bu mavzu bo‘yicha yana savol bormi?'],
 } as const
 
 function langOf(h: EncyclopediaHit): KbLang {
@@ -239,12 +245,26 @@ export function composeEncyclopediaAnswer(
       body.push(more)
     }
   }
-  const link = schoolLink(hit.title, hit.text, articleLang)
+  // wf16: статьи большой энциклопедии (id «wb-…») — связь со школой только по названию: текст о биологии или
+  // астрономии легко «совпадает» со словами вроде «основание», «соли»
+  const big = /^wb-/.test(hit.id ?? '')
+  const link = schoolLink(hit.title, big ? '' : hit.text, articleLang)
   if (link && body.length < 5) body.push(link)
-  while (body.length > 5) body.pop()
+  // wf16: ответ как человек — понятие 2–4 фразы (определение → главное → пример), учёный — до 5
+  while (body.length > (kind === 'topic' ? 4 : 5)) body.pop()
 
-  const hook = pick(HOOKS[lang][kind], 1)
-  const hookWithName = opts.name && seed % 2 === 0 ? (lang === 'ru' ? `${opts.name}, ${lowerFirst(hook)}` : `${opts.name}, ${lowerFirst(hook)}`) : hook
+  // wf16: несколько статей с похожим названием («Меркурий (планета)» / «Меркурий (мифология)») — уточняющий вопрос
+  const alts = (hit.alts ?? []).filter((t) => t !== hit.title).slice(0, 2)
+  const clarify = alts.length
+    ? lang === 'en'
+      ? `By the way, did you mean ${alts.map((t) => `“${t}”`).join(' or ')}? Tell me and I will explain that one.`
+      : lang === 'uz'
+        ? `Aytgancha, ${alts.map((t) => `«${t}»`).join(' yoki ')} haqida so‘radingizmi? Ayting — u haqida ham aytib beraman.`
+        : `Кстати, может, ты про ${alts.map((t) => `«${t}»`).join(' или ')}? Скажи — расскажу и об этом.`
+    : null
+  // большая энциклопедия — темы шире химии (почки, чёрные дыры): «на уровне атомов» там не к месту
+  const hook = clarify ?? (big && kind === 'topic' ? pick(NEUTRAL_HOOKS[lang], 1) : pick(HOOKS[lang][kind], 1))
+  const hookWithName = !clarify && opts.name && seed % 2 === 0 ? `${opts.name}, ${lowerFirst(hook)}` : hook
   const citation = citationFor(hit.title, articleLang)
 
   let text: string

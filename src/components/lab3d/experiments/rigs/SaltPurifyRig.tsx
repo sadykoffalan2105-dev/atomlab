@@ -62,7 +62,7 @@ function filtrateBeakerPose(p: number) {
 function rodPose(p: number) {
   const restRot: V3 = [0, 0, -Math.PI / 2]
   const lifted: V3 = [ROD_REST[0], 0.24, ROD_REST[2]]
-  const inBeaker: V3 = [BM[0] + 0.006, 0.006, BM[2]]
+  const inBeaker: V3 = [BM[0] + 0.003, 0.006, BM[2]]
   const atFilter: V3 = [FUN[0] + 0.008, FUN[1] + 0.02, FUN[2]]
   let pos = mixV(ROD_REST, lifted, ease(p, 1, 1.15))
   pos = mixV(pos, [BM[0], 0.22, BM[2]], ease(p, 1.12, 1.28))
@@ -70,7 +70,8 @@ function rodPose(p: number) {
   // круговое перемешивание
   const stir = ease(p, 1.34, 1.4) * (1 - ease(p, 1.84, 1.9))
   const ang = (p - 1.3) * Math.PI * 2 * 5
-  pos = [pos[0] + Math.cos(ang) * 0.012 * stir, pos[1], pos[2] + Math.sin(ang) * 0.012 * stir]
+  // радиус круга — чтобы наклонённая палочка не заходила в стенку стакана
+  pos = [pos[0] + Math.cos(ang) * 0.008 * stir, pos[1], pos[2] + Math.sin(ang) * 0.008 * stir]
   pos = mixV(pos, lifted, ease(p, 1.88, 1.96))
   pos = mixV(pos, ROD_REST, ease(p, 1.95, 2))
   // шаг 4 — палочка у фильтра
@@ -79,7 +80,7 @@ function rodPose(p: number) {
   pos = mixV(pos, [atFilter[0], 0.3, atFilter[2]], ease(p, 4.86, 4.94))
   pos = mixV(pos, ROD_REST, ease(p, 4.93, 5))
   const upright = (ease(p, 1, 1.2) * (1 - ease(p, 1.9, 2))) + ease(p, 4, 4.14) * (1 - ease(p, 4.9, 5))
-  const lean = 0.22 * stir
+  const lean = 0.12 * stir // наклон палочки — верх не упирается в стенку стакана
   return { pos, rot: [0, 0, mix(restRot[2], -lean, upright)] as V3 }
 }
 

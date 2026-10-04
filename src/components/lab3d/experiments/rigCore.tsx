@@ -81,7 +81,11 @@ export function Pose({ pose, children }: { pose: (p: number, t: number) => PoseV
     g.scale.setScalar(Math.max(1e-4, s))
     g.visible = s > 1e-3
   })
-  return <group ref={ref}>{children}</group>
+  return (
+    <group ref={ref} userData={{ labPose: true }}>
+      {children}
+    </group>
+  )
 }
 
 /** Значение-функция прогресса для свойств деталей. */

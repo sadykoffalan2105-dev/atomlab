@@ -2,7 +2,7 @@
  * Постоянная метка «Горячо» над нагретым у пламени предметом, пока он не остыл (labHand.markHot, 90 с).
  * Без источников света и новых материалов: обычный HTML поверх холста (drei Html), опрос раз в полсекунды.
  */
-import { Html } from '@react-three/drei'
+import { LabLabel } from '../scene/labOccluders'
 import { useEffect, useState, type CSSProperties } from 'react'
 import type { LabLang } from '../labContract'
 import { labHand } from './labHandStore'
@@ -40,12 +40,12 @@ export function LabHotBadges({ lang }: { lang: LabLang }) {
   return (
     <>
       {hot.map((h) => (
-        <Html key={h.id} position={h.at} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+        <LabLabel key={h.id} position={h.at} center>
           <div style={badgeStyle} role="status">
             {'\u{1F525} '}
             {HOT_LABEL[lang]}
           </div>
-        </Html>
+        </LabLabel>
       ))}
     </>
   )
