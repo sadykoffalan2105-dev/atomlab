@@ -4,11 +4,12 @@
  */
 import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Html, Line } from '@react-three/drei'
+import { Line } from '@react-three/drei'
 import * as THREE from 'three'
 import { LAB_COLORS, type LabExperimentId } from '../labContract'
 import { HandIcon, smooth, useRig } from './rigCore'
 import { RIG_LABELS, type RigGesture } from './rigTargets'
+import { isPointOccluded, LabLabel } from '../scene/labOccluders'
 
 const ghostStyle: CSSProperties = {
   color: LAB_COLORS.accent,
@@ -19,12 +20,16 @@ const ghostStyle: CSSProperties = {
   transition: 'opacity 0.12s linear',
 }
 
+const gw = new THREE.Vector3()
+
 /** Призрачная рука движется по пути жеста; у цели — пульсирующий «магнит», путь — пунктир со стрелкой. */
 export function GestureGhost({ gesture }: { gesture: Extract<RigGesture, { kind: 'drag' | 'swipe' }> }) {
   const { time } = useRig()
   const hand = useRef<THREE.Group>(null)
   const ring = useRef<THREE.Mesh>(null)
   const dom = useRef<HTMLDivElement>(null)
+  const root = useRef<THREE.Group>(null)
+  const tick = useRef(0)
   const from = useMemo(() => new THREE.Vector3(...gesture.from), [gesture])
   const to = useMemo(() => new THREE.Vector3(...gesture.to), [gesture])
   const dir = useMemo(() => to.clone().sub(from).normalize(), [from, to])
@@ -34,7 +39,11 @@ export function GestureGhost({ gesture }: { gesture: Extract<RigGesture, { kind:
     const mid = from.clone().lerp(to, 0.5).add(new THREE.Vector3(0, gesture.kind === 'drag' ? 0.03 : 0, 0))
     return new THREE.QuadraticBezierCurve3(from, mid, to).getPoints(24)
   }, [from, to, gesture.kind])
-  useFrame(() => {
+  useFrame(({ camera }) => {
+    // путь жеста рисуется поверх всего (depthTest off) — за непрозрачной мебелью прячем его целиком
+    if (root.current && ++tick.current % 4 === 0) {
+      root.current.visible = !isPointOccluded(camera, root.current.localToWorld(gw.copy(to)))
+    }
     const t = (time.current ?? 0) % 2.2
     const k = smooth(Math.min(1, Math.max(0, (t - 0.35) / 1.25)))
     const idx = k * (points.length - 1)
@@ -50,7 +59,7 @@ export function GestureGhost({ gesture }: { gesture: Extract<RigGesture, { kind:
     }
   })
   return (
-    <group>
+    <group ref={root}>
       <Line points={points} color={LAB_COLORS.accent} lineWidth={2} dashed dashSize={0.008} gapSize={0.006} transparent opacity={0.75} depthTest={false} renderOrder={20} />
       <mesh position={to} quaternion={arrowQuat} renderOrder={20}>
         <coneGeometry args={[0.006, 0.016, 12]} />
@@ -61,11 +70,11 @@ export function GestureGhost({ gesture }: { gesture: Extract<RigGesture, { kind:
         <meshBasicMaterial color={LAB_COLORS.accent} transparent opacity={0.13} depthWrite={false} depthTest={false} />
       </mesh>
       <group ref={hand}>
-        <Html center zIndexRange={[28, 10]} style={{ pointerEvents: 'none' }}>
+        <LabLabel position={[0, 0, 0]} center zIndexRange={[28, 10]}>
           <div ref={dom} style={ghostStyle} data-lab3d-ghost={gesture.kind}>
             <HandIcon />
           </div>
-        </Html>
+        </LabLabel>
       </group>
     </group>
   )
@@ -126,12 +135,12 @@ export function ObsLabels({ experimentId }: { experimentId: LabExperimentId }) {
     <>
       {labels.map((l, i) =>
         vis[i] ? (
-          <Html key={i} position={l.pos as unknown as THREE.Vector3Tuple} center zIndexRange={[26, 10]} style={{ pointerEvents: 'none' }}>
+          <LabLabel key={i} position={l.pos} center zIndexRange={[26, 10]}>
             <div style={labelStyle} data-lab3d-obs={i}>
               <span style={dotStyle} />
               {l.text[lang]}
             </div>
-          </Html>
+          </LabLabel>
         ) : null,
       )}
     </>

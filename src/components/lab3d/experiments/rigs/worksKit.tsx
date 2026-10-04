@@ -10,11 +10,13 @@ import { BOTTLE_H, TUBE_R } from '../parts/glassware'
 
 /**
  * Белая муть в пробирке (начало — дно): известковая вода с CaCO₃, суспензия Ca(OH)₂. cloud(p) — 0 прозрачно … 1 молочно.
+ * При cloud = 1 взвесь почти непрозрачная и чуть кремовая (матовая, со светотенью) — на светлом столе и белой
+ * стене её видно; при cloud → 0 снова прозрачно (избыток CO₂: CaCO₃ → растворимый Ca(HCO₃)₂).
  */
-export function MilkFill({ level, cloud, color = '#f6f6f3' }: { level: (p: number) => number; cloud: (p: number) => number; color?: string }) {
+export function MilkFill({ level, cloud, color = '#ece8de' }: { level: (p: number) => number; cloud: (p: number) => number; color?: string }) {
   const { p } = useRig()
   const ref = useRef<THREE.Mesh>(null)
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0, roughness: 1, depthWrite: false }), [color])
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0, roughness: 0.95, depthWrite: false }), [color])
   useFrame(() => {
     const m = ref.current
     if (!m) return
@@ -22,14 +24,14 @@ export function MilkFill({ level, cloud, color = '#f6f6f3' }: { level: (p: numbe
     const k = cloud(pv)
     const lv = level(pv)
     m.visible = k > 0.01 && lv > 0.006
-    mat.opacity = 0.8 * k
+    mat.opacity = 0.97 * Math.min(1, k * 1.15)
     const h = Math.max(0.001, lv - 0.004)
     m.scale.set(1, h, 1)
     m.position.y = 0.004 + h / 2
   })
   return (
     <mesh ref={ref} material={mat} renderOrder={2}>
-      <cylinderGeometry args={[TUBE_R * 0.78, TUBE_R * 0.78, 1, 18]} />
+      <cylinderGeometry args={[TUBE_R * 0.83, TUBE_R * 0.83, 1, 20]} />
     </mesh>
   )
 }

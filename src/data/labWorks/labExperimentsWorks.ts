@@ -337,13 +337,33 @@ export const LAB_WORKS_EXPERIMENTS: readonly LabExperimentDef[] = [
         ),
       },
       {
+        id: 'lamp',
+        target: 'spirit-lamp',
+        instruction: t('Снимите колпачок спиртовки и зажгите её спичкой.', 'Take the cap off the spirit lamp and light it with a match.', 'Spirtovka qalpoqchasini oling va uni gugurt bilan yoqing.'),
+        observation: t('Фитиль горит ровным пламенем; колпачок лежит рядом на столе.', 'The wick burns with a steady flame; the cap lies next to it on the table.', 'Pilik tekis alanga bilan yonadi; qalpoqcha yonida stolda turibdi.'),
+      },
+      {
+        id: 'heat',
+        target: 'holder',
+        instruction: t(
+          'Держателем по очереди внесите пробирки с цинком и медью в пламя спиртовки и нагрейте.',
+          'Using the holder, put the tubes with zinc and with copper into the spirit-lamp flame one after the other and heat them.',
+          'Ushlagich bilan rux va misli probirkalarni navbatma-navbat spirtovka alangasiga kiriting va qizdiring.',
+        ),
+        observation: t(
+          'При нагревании цинк реагирует с кислотой быстрее — пузырьков водорода становится намного больше. С медью и при нагревании — без изменений.',
+          'When heated, zinc reacts with the acid faster: there are many more hydrogen bubbles. With copper there is no change even when heated.',
+          'Qizdirilganda rux kislota bilan tezroq reaksiyaga kirishadi — vodorod pufakchalari ancha ko‘payadi. Mis bilan qizdirilganda ham o‘zgarish yo‘q.',
+        ),
+      },
+      {
         id: 'compare',
         target: 'rack',
-        instruction: t('Сравните три пробирки.', 'Compare the three tubes.', 'Uchta probirkani taqqoslang.'),
+        instruction: t('Сравните три пробирки и погасите спиртовку колпачком.', 'Compare the three tubes and put out the spirit lamp with its cap.', 'Uchta probirkani taqqoslang va spirtovkani qalpoqcha bilan o‘chiring.'),
         observation: t(
-          'Mg — бурно, Zn — спокойнее, Cu — не реагирует. Mg и Zn стоят в ряду активности до водорода, Cu — после.',
-          'Mg reacts vigorously, Zn more calmly, Cu not at all. Mg and Zn stand before hydrogen in the activity series, Cu after it.',
-          'Mg — shiddatli, Zn — sokinroq, Cu — reaksiyaga kirishmaydi. Faollik qatorida Mg va Zn vodoroddan oldin, Cu — keyin turadi.',
+          'Mg — бурно, Zn — спокойнее (при нагревании быстрее), Cu — не реагирует и при нагревании. Mg и Zn стоят в ряду активности до водорода, Cu — после.',
+          'Mg reacts vigorously, Zn more calmly (faster when heated), Cu not at all, even when heated. Mg and Zn stand before hydrogen in the activity series, Cu after it.',
+          'Mg — shiddatli, Zn — sokinroq (qizdirilganda tezroq), Cu — qizdirilganda ham reaksiyaga kirishmaydi. Faollik qatorida Mg va Zn vodoroddan oldin, Cu — keyin turadi.',
         ),
       },
     ],
@@ -405,6 +425,8 @@ export const LAB_WORKS_STEP_ACTIONS: Readonly<Record<WorksId, readonly Act[]>> =
     drag(t('Перетащите склянку HCl к пробирке 2.', 'Drag the HCl bottle to tube 2.', 'HCl shishasini 2-probirkaga torting.'), 'reagent:HCl'),
     drag(t('Перетащите медные стружки к пробирке 3.', 'Drag the copper turnings to tube 3.', 'Mis qirindilarini 3-probirkaga torting.')),
     drag(t('Перетащите склянку HCl к пробирке 3.', 'Drag the HCl bottle to tube 3.', 'HCl shishasini 3-probirkaga torting.')),
+    tap(t('Нажмите на спиртовку — снимите колпачок и зажгите фитиль.', 'Tap the spirit lamp to take off the cap and light the wick.', 'Spirtovkani bosing — qalpoqchani oling va pilikni yoqing.')),
+    drag(t('Перетащите держатель к пробирке 2 — пробирки 2 и 3 по очереди нагреются в пламени.', 'Drag the holder to tube 2: tubes 2 and 3 are heated in the flame one after the other.', 'Ushlagichni 2-probirkaga torting — 2 va 3-probirkalar navbatma-navbat alangada qiziydi.')),
     tap(t('Нажмите на штатив — сравните три пробирки.', 'Tap the rack to compare the three tubes.', 'Shtativni bosing — uchta probirkani taqqoslang.')),
   ],
 }

@@ -75,7 +75,7 @@ for (const e of LAB_EXPERIMENTS) {
   if (e.safety.length < 2) fail(`${e.id}: мало правил ТБ`)
   e.equipment.forEach((t, i) => checkText(`${e.id}.equipment[${i}]`, t))
   e.safety.forEach((t, i) => checkText(`${e.id}.safety[${i}]`, t))
-  if (e.steps.length < 4 || e.steps.length > 9) fail(`${e.id}: шагов ${e.steps.length}, нужно 4–9`)
+  if (e.steps.length < 4 || e.steps.length > 11) fail(`${e.id}: шагов ${e.steps.length}, нужно 4–11`)
   const targets: readonly string[] = RIG_TARGETS[e.id]
   const stepIds = new Set<string>()
   e.steps.forEach((s, i) => {
@@ -195,7 +195,7 @@ const order: Record<string, string> = {
   halogens: 'gear,cl-nabr,cl-nai,br-nai,br-nacl,starch,compare',
   'water-oxides': 'gear,cao,water,mineral,distilled,phenolphthalein,litmus-acid,litmus-water,compare',
   co2: 'gear,marble,acid,stopper,limewater,excess,water,litmus,alkali',
-  'metals-acids': 'gear,mg,mg-acid,test,zn,zn-acid,cu,cu-acid,compare',
+  'metals-acids': 'gear,mg,mg-acid,test,zn,zn-acid,cu,cu-acid,lamp,heat,compare',
 }
 for (const [id, want] of Object.entries(order)) {
   const e = LAB_EXPERIMENTS.find((x) => x.id === id)
@@ -226,6 +226,9 @@ if (!/исчезает/.test(obs('co2', 'alkali'))) fail('co2: малинова�
 if (!/активно/.test(obs('metals-acids', 'mg-acid'))) fail('metals-acids: магний реагирует активно')
 if (!/хлопок/.test(obs('metals-acids', 'test'))) fail('metals-acids: водород — хлопок')
 if (!/Изменений нет/.test(obs('metals-acids', 'cu-acid'))) fail('metals-acids: медь не реагирует')
+// Kimyo 7, с. 124: пробирки с Zn и Cu нагревают — цинк реагирует быстрее, у меди без изменений
+if (!/цинк[^.]*быстрее/.test(obs('metals-acids', 'heat'))) fail('metals-acids: при нагревании цинк реагирует быстрее')
+if (!/медью[^.]*без изменений/.test(obs('metals-acids', 'heat'))) fail('metals-acids: медь при нагревании — без изменений')
 // средства защиты: шаг 0 — «наденьте» (цель ppe), если опыт требует защиту
 for (const e of LAB_EXPERIMENTS) if ((e.gear ?? []).length && e.id !== 'salt-purify' && !['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical'].includes(e.id) && e.steps[0]?.target !== 'ppe') fail(`${e.id}: первый шаг — средства защиты`)
 
