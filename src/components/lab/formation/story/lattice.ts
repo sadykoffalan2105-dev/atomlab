@@ -322,7 +322,8 @@ function copiesFragment(kind: 'molecular' | 'chain', model: SchoolHeroModel, scr
     let span = 0
     for (const a of model.atoms) span = Math.max(span, Math.abs(dot(sub(a.pos, origin), axis)) + a.r)
     const L = 2 * span + 0.15 * ext
-    for (const s of [-1, 1, 2]) offs.push(scale(axis, s * L))
+    // звено без общей вершины (V₂O₅ — слой) — по соседу с каждой стороны: длинный ряд уводил камеру и звено мельчало
+    for (const s of [-1, 1]) offs.push(scale(axis, s * L))
   }
   for (const off of offs) {
     const center = addv(origin, off)
