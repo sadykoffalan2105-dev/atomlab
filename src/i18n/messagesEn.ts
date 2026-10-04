@@ -1169,4 +1169,6 @@ export const messagesEn: Record<MessageKey, string> = {
   'compound.obtLab.open': 'Open in the lab',
   'compound.obtLab.aria': 'Open the reaction in the lab: {equation}',
   'compound.obtLab.balance': 'balance it and run',
+  'learn.teacherUi.holdToTalk': 'Hold to talk',
+  'learn.teacherUi.holdToTalkHint': 'For a noisy classroom: hold the button, say your phrase, release — the teacher answers right away',
 }
