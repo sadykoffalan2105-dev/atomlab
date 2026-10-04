@@ -261,6 +261,36 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     }
   })
 
+  // Исходные вещества не наползают друг на друга: группы, чьи шары перекрываются (много частиц — карналлит, гидраты),
+  // расталкиваются вдоль линии центров (молекула H₂, Cl₂ или кучка металла сдвигается целиком).
+  const groupOf = new Map<number, number>()
+  groups.forEach((g, gi) => g.atoms.forEach((a) => groupOf.set(a, gi)))
+  for (let it = 0; it < 16; it++) {
+    let moved = false
+    for (let i = 0; i < n; i++)
+      for (let j = i + 1; j < n; j++) {
+        const gi = groupOf.get(i)
+        const gj = groupOf.get(j)
+        if (gi == null || gj == null || gi === gj) continue
+        const dv: V3 = [P0[j]![0] - P0[i]![0], P0[j]![1] - P0[i]![1], P0[j]![2] - P0[i]![2]]
+        const dd = len(dv)
+        const need = 1.02 * (model.atoms[i]!.r + model.atoms[j]!.r)
+        if (dd >= need || dd < 1e-6) continue
+        const u: V3 = [dv[0] / dd, dv[1] / dd, dv[2] / dd]
+        const push = (need - dd) / 2
+        for (const a of groups[gi]!.atoms) {
+          P0[a] = add(P0[a]!, u, -push)
+          P1[a] = add(P1[a]!, u, -push)
+        }
+        for (const a of groups[gj]!.atoms) {
+          P0[a] = add(P0[a]!, u, push)
+          P1[a] = add(P1[a]!, u, push)
+        }
+        moved = true
+      }
+    if (!moved) break
+  }
+
   // ── Палочки итоговой модели и их порядок ──
   const nbrs: number[][] = model.atoms.map(() => [])
   for (const b of model.bonds) {

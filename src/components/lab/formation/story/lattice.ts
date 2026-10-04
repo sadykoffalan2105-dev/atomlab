@@ -184,9 +184,9 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
     // Многоатомный ион длиннее шага сетки (NaAlO₂: O–Al–O) — копии легли бы на атомы модели: тогда — формульные единицы.
     const heavy = model.atoms.filter((a) => a.el !== 'H')
     // мера — ближайшие атомы катион–анион модели (K–O у KClO₃), а не центры ионов
-    let dMin = d
+    let dMin = Infinity
     for (const x of C0.tpl) for (const y of A0.tpl) dMin = Math.min(dMin, lenv(sub(addv(C0.c, x.rel), addv(A0.c, y.rel))))
-    const covers = list.some((u) => u.atoms.some((x) => x.el !== 'H' && heavy.some((a) => lenv(sub(a.pos, x.pos)) < 0.45 * Math.max(dMin, d))))
+    const covers = list.some((u) => u.atoms.some((x) => x.el !== 'H' && heavy.some((a) => lenv(sub(a.pos, x.pos)) < 0.45 * (Number.isFinite(dMin) ? dMin : d))))
     if (!covers) return withK(list, addv(C0.c, u, 0.5 * d), 150)
     list.length = 0
   }
@@ -209,11 +209,34 @@ function schemaFragment(plan: FormationPlan, model: SchoolHeroModel, screenToMod
     const c = dot(r, Z)
     return addv(addv(scale(X, -a), Y, b), Z, -c)
   }
+  // Шаг растёт, пока выступающие атомы соседних единиц (O повёрнутого ClO₃⁻ у KClO₃) не отойдут от атомов модели
+  // хотя бы на 0,45 расстояния «катион — ближайший атом аниона» (как в проверке геометрии).
+  const heavyAll = model.atoms.filter((a) => a.el !== 'H')
+  let dCA = Infinity
+  for (const c of cat) for (const x of c.tpl) for (const an0 of an) for (const y of an0.tpl) dCA = Math.min(dCA, lenv(sub(addv(c.c, x.rel), addv(an0.c, y.rel))))
+  if (!Number.isFinite(dCA)) dCA = 2 * avgR
+  let f = 1
+  for (let tries = 0; tries < 8; tries++, f *= 1.08) {
+    let ok = true
+    for (let i = -1; i <= 1 && ok; i++)
+      for (let j = -1; j <= 1 && ok; j++)
+        for (let k = -1; k <= 1 && ok; k++) {
+          if (i === 0 && j === 0 && k === 0) continue
+          const off = addv(addv(scale(X, i * LX * f), Y, j * LY * f), Z, k * LZ * f)
+          const odd = (((i + j + k) % 2) + 2) % 2 === 1
+          for (const a of model.atoms) {
+            if (a.el === 'H') continue
+            const P = addv(addv(origin, off), odd ? flip(a.pos) : sub(a.pos, origin))
+            if (heavyAll.some((h) => lenv(sub(h.pos, P)) < 0.46 * dCA)) ok = false
+          }
+        }
+    if (ok) break
+  }
   for (let i = -1; i <= 1; i++)
     for (let j = -1; j <= 1; j++)
       for (let k = -1; k <= 1; k++) {
         if (i === 0 && j === 0 && k === 0) continue
-        const off = addv(addv(scale(X, i * LX), Y, j * LY), Z, k * LZ)
+        const off = addv(addv(scale(X, i * LX * f), Y, j * LY * f), Z, k * LZ * f)
         const odd = (((i + j + k) % 2) + 2) % 2 === 1
         const center = addv(origin, off)
         list.push({
