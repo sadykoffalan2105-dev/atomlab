@@ -5,6 +5,7 @@ import { primaryReactionForCompound } from '../../chemistry/schoolReactionBank'
 import { schoolSceneLinkForCompound } from '../../lab/schoolSceneLinks'
 import { obtainingMethodsOf, obtainingStepLabLink, type ObtainingLabLink } from '../../lab/obtainingLabLinks'
 import { compoundById } from '../../data/compounds'
+import { catalogObtainingSteps } from '../../data/catalog/catalogObtaining200'
 import { getElementBySymbol } from '../../data/elements'
 import { getCompoundLocaleStrings, type CompoundLocaleStrings } from '../../i18n/compoundLocale'
 import type { MessageKey } from '../../i18n/useT'
@@ -316,7 +317,7 @@ export function CompoundDetailModal({
                 ) : (
                   <div className={styles.labExampleWrap}>
                     <p className={styles.labExample} aria-label={t('compound.labExampleAria')}>
-                      {loc.laboratoryRecipe}
+                      {catalogObtainingSteps(c.id)?.recipeRu ?? loc.laboratoryRecipe}
                     </p>
                     <ObtainingLabButton link={stepLinks[0]?.link ?? null} equation={stepLinks[0]?.equation ?? ''} t={t} />
                   </div>
