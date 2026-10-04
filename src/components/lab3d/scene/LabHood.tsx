@@ -186,7 +186,7 @@ function puffTexture(): THREE.Texture {
 }
 
 /** Тяга: струйки воздуха и пары опытов в вытяжке поднимаются к воздуховоду (пул частиц без перерисовок React). */
-function HoodDraft({ quality }: { quality: 'low' | 'high' }) {
+function HoodDraft({ quality, busy }: { quality: 'low' | 'high'; busy: boolean }) {
   const { hoodFan } = useHand()
   const N = quality === 'high' ? 140 : 56
   const geo = useMemo(() => {
@@ -203,6 +203,9 @@ function HoodDraft({ quality }: { quality: 'low' | 'high' }) {
   const sim = useMemo(() => ({ life: new Float32Array(N), vel: new Float32Array(N * 3), next: 0, acc: 0 }), [N])
   const fanRef = useRef(hoodFan)
   fanRef.current = hoodFan
+  // Опыт идёт в вытяжке (NH₃, галогены): лёгкий пар всё время поднимается от места опыта (только на высоком качестве)
+  const vapor = busy && quality === 'high'
+  const vaporAcc = useRef(0)
   const x0 = HOOD.x - HOOD.w / 2 + 0.1
   const x1 = HOOD.x + HOOD.w / 2 - 0.1
   const z0 = ROOM.frontZ + 0.08
@@ -242,6 +245,13 @@ function HoodDraft({ quality }: { quality: 'low' | 'high' }) {
         spawn(x0 + Math.random() * (x1 - x0), BENCH_TOP_Y + 0.05 + Math.random() * 0.25, z1 - Math.random() * 0.1, 0.02)
       }
     }
+    if (vapor) {
+      vaporAcc.current += dt * 3
+      while (vaporAcc.current > 1) {
+        vaporAcc.current -= 1
+        spawn(HOOD.x + (Math.random() - 0.5) * 0.3, BENCH_TOP_Y + 0.14, (z0 + z1) / 2, 0.06)
+      }
+    }
     const pos = geo.attributes.position.array as Float32Array
     const topY = HOOD.h - CANOPY_H - 0.05
     const ventX = HOOD.x
@@ -277,12 +287,12 @@ function HoodDraft({ quality }: { quality: 'low' | 'high' }) {
   return <points geometry={geo} material={mat} frustumCulled={false} raycast={() => null} />
 }
 
-export function LabHoodControls({ mats, quality }: { mats: LabMaterials; quality: 'low' | 'high' }) {
+export function LabHoodControls({ mats, quality, busy = false }: { mats: LabMaterials; quality: 'low' | 'high'; busy?: boolean }) {
   return (
     <group>
       <HoodSash mats={mats} />
       <FanSwitch mats={mats} />
-      <HoodDraft quality={quality} />
+      <HoodDraft quality={quality} busy={busy} />
     </group>
   )
 }

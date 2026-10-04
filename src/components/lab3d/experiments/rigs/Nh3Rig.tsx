@@ -165,7 +165,7 @@ export function Nh3Rig() {
         {[0, 1, 2, 3, 4].map((i) => (
           <mesh key={i} position={[-i * 0.006, (i % 2) * 0.002, (i % 3) * 0.003 - 0.003]}>
             <sphereGeometry args={[0.0013 + (i % 2) * 0.0005, 8, 6]} />
-            <meshPhysicalMaterial color="#e9f5ff" transparent opacity={0.85} roughness={0.02} />
+            <meshStandardMaterial color="#e9f5ff" transparent opacity={0.85} roughness={0.02} />
           </mesh>
         ))}
       </Pose>

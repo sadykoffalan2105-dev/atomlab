@@ -8,6 +8,7 @@ import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { Suspense, useCallback, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import { LabInteractiveItems } from '../interaction/LabInteractiveItems'
+import { LabHotBadges } from '../interaction/LabHotBadges'
 import { LabAudioListener } from '../audio/LabAudioListener'
 import {
   BENCH_TOP_Y,
@@ -19,6 +20,7 @@ import {
   type LabLang,
 } from '../labContract'
 import { ExperimentRig, LAB_EXPERIMENTS } from '../experiments'
+import { FlameLightPool } from '../experiments/parts/fire'
 import { LabBoard } from './LabBoard'
 import { LabCameraRig } from './LabCameraRig'
 import { LabEquipment } from './LabEquipment'
@@ -160,6 +162,8 @@ function SceneContent(props: Lab3DCanvasProps) {
       {/* Подсвеченная рабочая зона вытяжного шкафа */}
       {high && <primitive object={hoodSpot} />}
       {high && <primitive object={hoodSpot.target} />}
+      {/* Постоянные источники для света пламени: число источников не меняется при смене опыта — шейдеры не пересобираются */}
+      {high && <FlameLightPool />}
       {/* Мягкие контактные тени под рабочим местом (только ПК) */}
       {/* Два постоянных экземпляра (стол и вытяжка) с неизменными параметрами: drei ContactShadows не освобождает
           свои буферы при пересоздании — так они не пересоздаются; неактивный — прозрачный */}
@@ -185,8 +189,9 @@ function SceneContent(props: Lab3DCanvasProps) {
       <LabBoard mats={mats} panel={panel} bridge={props.bridge} />
       <RigSlot experimentId={props.experimentId} step={props.step} onAdvance={props.onAdvance} quality={quality} lang={lang} />
       <LabInteractiveItems mats={mats} lang={lang} quality={quality} bridge={props.bridge} />
+      <LabHotBadges lang={lang} />
       {/* Вытяжка: створка, тумблер тяги, струйки воздуха; звук — слушатель у камеры */}
-      <LabHoodControls mats={mats} quality={quality} />
+      <LabHoodControls mats={mats} quality={quality} busy={inHood} />
       <LabAudioListener />
       <LabExtinguisher mats={mats} lang={lang} quality={quality} experimentId={props.experimentId} />
       <LabCameraRig view={props.view} viewNonce={props.viewNonce} bridge={props.bridge} leftInsetPx={props.leftInsetPx} />
