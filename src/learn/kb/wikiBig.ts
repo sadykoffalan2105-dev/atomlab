@@ -10,6 +10,7 @@
  * Всё кешируется в памяти (и в Cache API браузера, если он есть) — второй вопрос не ходит в сеть.
  * Ни одного исключения наружу: при сбое сети — пустой результат (учитель ответит из своих баз).
  */
+import { publicAssetUrl } from '../../utils/publicAssetUrl'
 import { analyzeTerms } from './analyzer'
 import type { KbHit } from './types'
 
@@ -26,18 +27,11 @@ export type WikiBigHit = KbHit & {
 
 const CACHE_NAME = 'atomlab-kb-wiki-v1'
 
-function baseUrl(): string {
-  try {
-    const b = (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL
-    return b ?? '/'
-  } catch {
-    return '/'
-  }
-}
 
 /** Загрузка по умолчанию: fetch из public/kb/wiki/ (+ Cache API, если доступен). */
 const defaultLoader: WikiBigLoader = async (rel) => {
-  const url = `${baseUrl()}kb/wiki/${rel}`
+  // BASE_URL «./» (GitHub Pages, Electron file://, hash-router) — абсолютный адрес через общий помощник
+  const url = publicAssetUrl(`kb/wiki/${rel}`)
   const caches_ = (globalThis as { caches?: CacheStorage }).caches
   if (caches_) {
     try {
@@ -226,7 +220,8 @@ export function wikiQueryCoverage(hit: { title: string; text: string; score?: nu
   if ((hit.score ?? 0) >= 90) return 1
   const q = queryContentTerms(query)
   if (!q.length) return 0
-  const head = hit.text.split(/\s[—–]\s/)[0]!.slice(0, 200)
+  // название + начало первой фразы («Марс — … планета Солнечной системы»): «планета Марс» — ровно эта статья
+  const head = hit.text.slice(0, 160)
   const have = new Set(analyzeTerms(`${hit.title} ${head}`))
   return q.filter((t) => have.has(t)).length / q.length
 }
