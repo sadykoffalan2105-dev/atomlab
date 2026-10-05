@@ -13,6 +13,13 @@ import { OrganicMoleculeHero } from './OrganicMoleculeHero'
 import styles from '../lab/CompoundDetailModal.module.css'
 import own from './OrganicMoleculeDetailModal.module.css'
 
+/** Кнопки органики v2 (#/organic): «Как образуется» = Синтез, «Собрать в конструкторе» = Конструктор. */
+const OV2_LINKS = {
+  ru: { formation: 'Как образуется', build: 'Собрать в конструкторе' },
+  en: { formation: 'How it forms', build: 'Build in the Constructor' },
+  uz: { formation: 'Qanday hosil boʻladi', build: 'Konstruktorda yigʻish' },
+} as const
+
 function compositionEntries(comp: Record<string, number>): [string, number][] {
   return Object.entries(comp)
     .filter(([, n]) => n > 0)
@@ -138,21 +145,33 @@ export function OrganicMoleculeDetailModal({
               ) : null}
 
               <div className={own.actions}>
-                <Link className={own.openLab} to={`/organic?mol=${encodeURIComponent(mol.id)}`} onClick={onClose}>
+                <Link
+                  className={own.openLab}
+                  to={`/organic?mode=molecule&mol=${encodeURIComponent(mol.id)}`}
+                  onClick={onClose}
+                  data-ov2-link="molecule"
+                >
                   {t('organicLab.open3d')}
                   <span className={own.linkArrow} aria-hidden>
                     →
                   </span>
                 </Link>
-                {mol.challengeId ? (
-                  <Link
-                    className={own.buildLink}
-                    to={`/organic?mode=build&challenge=${encodeURIComponent(mol.challengeId)}&mol=${encodeURIComponent(mol.challengeId)}`}
-                    onClick={onClose}
-                  >
-                    {t('organicLab.buildYourself')}
-                  </Link>
-                ) : null}
+                <Link
+                  className={own.buildLink}
+                  to={`/organic?mode=synthesis&mol=${encodeURIComponent(mol.id)}`}
+                  onClick={onClose}
+                  data-ov2-link="synthesis"
+                >
+                  ▶ {OV2_LINKS[locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'].formation}
+                </Link>
+                <Link
+                  className={own.buildLink}
+                  to={`/organic?mode=constructor&mol=${encodeURIComponent(mol.id)}`}
+                  onClick={onClose}
+                  data-ov2-link="constructor"
+                >
+                  {OV2_LINKS[locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'].build}
+                </Link>
               </div>
             </div>
 
