@@ -163,7 +163,7 @@ function eigenSym3(m: number[][]): { values: number[]; vectors: V3[] } {
  * Удобный ракурс: центр масс тяжёлых атомов в начало координат, длинная ось — по X, вторая — по Y,
  * «толщина» — к зрителю (Z), плюс лёгкий наклон для объёма. Поворот жёсткий: длины/углы не меняются.
  */
-export function orientForView(points: readonly (readonly number[])[], tiltDeg = 18): V3[] {
+export function orientForView(points: readonly (readonly number[])[], tiltDeg = 18, yawDeg = tiltDeg * 1.3): V3[] {
   if (points.length === 0) return []
   const c: V3 = [0, 0, 0]
   for (const p of points) {
@@ -189,6 +189,7 @@ export function orientForView(points: readonly (readonly number[])[], tiltDeg = 
     ez = cross(ex, ey)
   }
   const t = (tiltDeg * Math.PI) / 180
+  const yw = (yawDeg * Math.PI) / 180
   return points.map((p) => {
     const d = sub(p, c)
     let x = dot(d, ex)
@@ -199,8 +200,8 @@ export function orientForView(points: readonly (readonly number[])[], tiltDeg = 
     const z1 = y * Math.sin(t) + z * Math.cos(t)
     y = y1
     z = z1
-    const x2 = x * Math.cos(t * 1.3) + z * Math.sin(t * 1.3)
-    const z2 = -x * Math.sin(t * 1.3) + z * Math.cos(t * 1.3)
+    const x2 = x * Math.cos(yw) + z * Math.sin(yw)
+    const z2 = -x * Math.sin(yw) + z * Math.cos(yw)
     x = x2
     z = z2
     return [x, y, z]
@@ -245,6 +246,51 @@ export function fitDistanceBox(h: readonly number[], fovDeg: number, aspect: num
   const tv = Math.tan(vf / 2)
   const th = tv * Math.max(aspect, 0.05)
   return Math.max((h[0] * margin) / th, (h[1] * margin) / tv) + h[2]
+}
+
+/**
+ * Ракурс «для экрана»: длинная ось — по горизонтали, у вытянутых молекул (жиры, β-каротин, длинные алканы,
+ * полисахариды) наклон меньше, чтобы цепь не уходила в глубину; рамка атомов — в центре кадра (не центр масс).
+ */
+export function orientForScreen(points: readonly (readonly number[])[]): V3[] {
+  const flat = orientForView(points, 0, 0)
+  const h: V3 = [0, 0, 0]
+  for (const p of flat) for (let d = 0; d < 3; d++) h[d] = Math.max(h[d], Math.abs(p[d]))
+  const elong = h[0] / Math.max(0.6, h[1])
+  const tilt = elong > 2.4 ? 12 : 18
+  const yaw = elong > 2.4 ? 6 : elong > 1.6 ? 14 : 23.4
+  const pos = orientForView(points, tilt, yaw)
+  const lo: V3 = [Infinity, Infinity, Infinity]
+  const hi: V3 = [-Infinity, -Infinity, -Infinity]
+  for (const p of pos)
+    for (let d = 0; d < 3; d++) {
+      lo[d] = Math.min(lo[d], p[d])
+      hi[d] = Math.max(hi[d], p[d])
+    }
+  const c: V3 = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2]
+  return pos.map((p) => [p[0] - c[0], p[1] - c[1], p[2] - c[2]])
+}
+
+/**
+ * Расстояние камеры (на оси +Z, смотрит в −Z) по проекции на экран: каждый атом с радиусом попадает в кадр
+ * с запасом mx по ширине и my по высоте. Плотнее, чем рамка+глубина: большие молекулы занимают почти весь кадр.
+ */
+export function fitDistancePoints(
+  points: readonly (readonly number[])[],
+  radii: readonly number[],
+  fovDeg: number,
+  aspect: number,
+  mx = 1.05,
+  my = 1.1,
+): number {
+  const tv = Math.tan((fovDeg * Math.PI) / 360)
+  const th = tv * Math.max(aspect, 0.05)
+  let d = 1
+  points.forEach((p, i) => {
+    const r = radii[i] ?? 0
+    d = Math.max(d, p[2] + ((Math.abs(p[0]) + r) * mx) / th, p[2] + ((Math.abs(p[1]) + r) * my) / tv, p[2] + r + 0.5)
+  })
+  return d
 }
 
 /**

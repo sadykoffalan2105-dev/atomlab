@@ -26,13 +26,14 @@ import {
   dot,
   fitDistance,
   fitDistanceBox,
+  fitDistancePoints,
   halfExtents,
   isRotatable,
   len,
   neighbors,
   newmanProjection,
   norm,
-  orientForView,
+  orientForScreen,
   piNormal,
   rotateAround,
   scale,
@@ -395,13 +396,26 @@ function HybridLayer({ mol, pos, adj, seg }: { mol: OV2Molecule; pos: readonly V
 
 // ───────────────────────── камера ─────────────────────────
 
-function FitCamera({ radius, ext, fitKey, controls }: { radius: number; ext: V3; fitKey: string; controls: React.RefObject<OrbitControlsImpl | null> }) {
+function FitCamera(props: {
+  radius: number
+  ext: V3
+  pts: readonly V3[]
+  radii: readonly number[]
+  /** compact с постоянным вращением: длинная ось уходит в глубину — запас по сфере/рамке */
+  spinning: boolean
+  fitKey: string
+  controls: React.RefObject<OrbitControlsImpl | null>
+}) {
+  const { radius, ext, pts, radii, spinning, fitKey, controls } = props
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
-  const aspect = Math.round((size.width / Math.max(1, size.height)) * 10) / 10
+  const aspect = Math.round((size.width / Math.max(1, size.height)) * 20) / 20
   useLayoutEffect(() => {
-    const d = Math.min(fitDistance(radius, FOV, aspect, 1.04), fitDistanceBox(ext, FOV, aspect, 1.12))
+    // по проекции каждого атома на экран: крупные молекулы занимают почти весь кадр (не «половину»)
+    const d = spinning
+      ? Math.min(fitDistance(radius, FOV, aspect, 1.04), fitDistanceBox(ext, FOV, aspect, 1.12))
+      : fitDistancePoints(pts, radii, FOV, aspect, aspect < 1 ? 1.06 : 1.05, aspect < 1 ? 1.08 : 1.12)
     camera.position.set(0, 0, d)
     camera.near = Math.max(0.05, d / 40)
     camera.far = d * 12
@@ -414,7 +428,7 @@ function FitCamera({ radius, ext, fitKey, controls }: { radius: number; ext: V3;
       c.saveState()
     }
     invalidate()
-  }, [radius, ext, fitKey, aspect, camera, controls, invalidate])
+  }, [radius, ext, pts, radii, spinning, fitKey, aspect, camera, controls, invalidate])
   return null
 }
 
@@ -438,13 +452,50 @@ function CameraLights() {
   )
 }
 
-function AutoSpin({ on, children }: { on: boolean; children: React.ReactNode }) {
+const INTRO_S = 2.6
+
+/**
+ * compact + autoRotate — постоянное вращение (карточки); иначе — короткий «показ» при первом открытии:
+ * плавный поворот туда-обратно (~2,6 с) и возврат в исходный ракурс; касание сразу останавливает.
+ */
+function AutoSpin({ on, intro, introKey, stopRef, children }: { on: boolean; intro: boolean; introKey: string; stopRef: React.RefObject<(() => void) | null>; children: React.ReactNode }) {
   const g = useRef<THREE.Group>(null)
-  useFrame((_, dt) => {
-    if (on && g.current) g.current.rotation.y += dt * 0.45
+  const t0 = useRef<number | null>(null)
+  const active = useRef(false)
+  const invalidate = useThree((s) => s.invalidate)
+  useEffect(() => {
+    active.current = intro
+    t0.current = null
+    if (g.current) g.current.rotation.y = 0
+    stopRef.current = () => {
+      active.current = false
+    }
+    if (intro) invalidate()
+    return () => {
+      stopRef.current = null
+    }
+  }, [intro, introKey, invalidate, stopRef])
+  useFrame(({ clock }, dt) => {
+    const grp = g.current
+    if (!grp) return
+    if (on) {
+      grp.rotation.y += dt * 0.45
+      return
+    }
+    if (!active.current) return
+    const now = clock.getElapsedTime()
+    if (t0.current === null) t0.current = now
+    const k = (now - t0.current) / INTRO_S
+    if (k >= 1) {
+      grp.rotation.y = 0
+      active.current = false
+    } else grp.rotation.y = 0.62 * Math.sin(Math.PI * 2 * k) * Math.sin(Math.PI * k)
+    invalidate()
   })
   return <group ref={g}>{children}</group>
 }
+
+const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 // ───────────────────────── компонент ─────────────────────────
 
@@ -475,7 +526,7 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
   const radial = compact ? 7 : phone ? 10 : 16
 
   const adj = useMemo(() => neighbors(mol), [mol])
-  const basePos = useMemo(() => orientForView(mol.atoms.map((a) => a.p)), [mol])
+  const basePos = useMemo(() => orientForScreen(mol.atoms.map((a) => a.p)), [mol])
 
   // ── вращение вокруг одинарной связи ──
   const [rotBond, setRotBond] = useState<number | null>(null)
@@ -640,6 +691,8 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
   useEffect(() => () => arcGeo?.dispose(), [arcGeo])
 
   const controls = useRef<OrbitControlsImpl | null>(null)
+  const stopIntro = useRef<(() => void) | null>(null)
+  const intro = !compact && !props.autoRotate && !reducedMotion() && (typeof navigator === 'undefined' || !navigator.webdriver)
   const fitKey = `${mol.id}|${style}`
   const resetView = useCallback(() => {
     controls.current?.reset()
@@ -655,6 +708,8 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
       data-app-night=""
       data-ov2-mol3d={mol.id}
       onDoubleClick={compact ? undefined : resetView}
+      onPointerDown={compact ? undefined : () => stopIntro.current?.()}
+      onWheel={compact ? undefined : () => stopIntro.current?.()}
       title={compact ? undefined : t.reset}
     >
       <div className={styles.floor} aria-hidden />
@@ -667,8 +722,8 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
         camera={{ fov: FOV, position: [0, 0, 12], near: 0.1, far: 200 }}
       >
         <CameraLights />
-        <FitCamera radius={radius} ext={ext} fitKey={fitKey} controls={controls} />
-        <AutoSpin on={!!props.autoRotate && compact}>
+        <FitCamera radius={radius} ext={ext} pts={basePos} radii={radii} spinning={!!props.autoRotate} fitKey={fitKey} controls={controls} />
+        <AutoSpin on={!!props.autoRotate && compact} intro={intro} introKey={mol.id} stopRef={stopIntro}>
           <AtomsMesh
             key={`a${mol.id}`}
             pos={pos}

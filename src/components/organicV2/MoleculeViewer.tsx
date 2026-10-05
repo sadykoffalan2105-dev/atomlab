@@ -8,6 +8,7 @@ import type { MoleculeOverlay, MoleculeStyle, MoleculeTool, MoleculeViewerProps 
 import type { OV2GroupKey } from '../../data/organicV2/types'
 import { Molecule3D } from './Molecule3D'
 import { Formula2D } from './Formula2D'
+import { BIG_HEAVY, ZoomFormula } from './viewer/ZoomFormula'
 import { CLASS_LABELS, classifyMolecule, semiStructuralFormula, skeletonFromOV2, subscriptDigits } from '../../chemistry/organicV2'
 import { atomCaption, hybridCounts, molarMass, stereoMarks } from './viewer/molMath'
 import { GROUP_COLOR, GROUP_NAME, GROUP_SHORT, VIEWER_T } from './viewer/i18n'
@@ -153,6 +154,8 @@ export function MoleculeViewer(props: MoleculeViewerProps) {
     return r && (r.p.length || r.s.length) ? [[g, r] as const] : []
   })
   const lesson = useMemo(() => lessonForMoleculeV2(mol.id), [mol.id])
+  // крупная молекула (жиры, полисахариды, β-каротин): 2D с лупой и прокруткой вместо мелкой «каши»
+  const big = useMemo(() => mol.atoms.filter((a) => a.el !== 'H').length > BIG_HEAVY, [mol])
 
   const seg = <T extends string>(list: readonly T[], value: T, set: (v: T) => void, label: (v: T) => string, title: string) => (
     <div className={styles.toolGroup} role="group" aria-label={title}>
@@ -210,8 +213,12 @@ export function MoleculeViewer(props: MoleculeViewerProps) {
                 ))}
               </div>
             </div>
-            <div className={styles.formulaBox}>
-              <Formula2D mol={mol} kind={kind2d} lang={lang} highlightAtoms={highlight} />
+            <div className={styles.formulaBox} style={big ? { position: 'relative' } : undefined}>
+              {big ? (
+                <ZoomFormula mol={mol} kind={kind2d} lang={lang} highlightAtoms={highlight} />
+              ) : (
+                <Formula2D mol={mol} kind={kind2d} lang={lang} highlightAtoms={highlight} />
+              )}
             </div>
           </div>
           <div className={`${styles.card} ${styles.cardInfo}`}>
