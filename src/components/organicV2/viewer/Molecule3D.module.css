@@ -305,6 +305,17 @@
   background: rgba(251, 146, 60, 0.25);
 }
 
+@media (min-width: 761px) {
+  /* на широком экране Ньюмен — справа сверху, молекула остаётся видна */
+  .newman {
+    left: auto;
+    right: 10px;
+    top: 10px;
+    bottom: auto;
+    width: min(400px, calc(100% - 20px));
+  }
+}
+
 @media (max-width: 760px) {
   .newman {
     left: 6px;

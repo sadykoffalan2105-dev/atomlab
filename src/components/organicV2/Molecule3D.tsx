@@ -25,6 +25,8 @@ import {
   dist,
   dot,
   fitDistance,
+  fitDistanceBox,
+  halfExtents,
   isRotatable,
   len,
   neighbors,
@@ -392,13 +394,13 @@ function HybridLayer({ mol, pos, adj, seg }: { mol: OV2Molecule; pos: readonly V
 
 // ───────────────────────── камера ─────────────────────────
 
-function FitCamera({ radius, fitKey, controls }: { radius: number; fitKey: string; controls: React.RefObject<OrbitControlsImpl | null> }) {
+function FitCamera({ radius, ext, fitKey, controls }: { radius: number; ext: V3; fitKey: string; controls: React.RefObject<OrbitControlsImpl | null> }) {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const size = useThree((s) => s.size)
   const invalidate = useThree((s) => s.invalidate)
   const aspect = Math.round((size.width / Math.max(1, size.height)) * 10) / 10
   useLayoutEffect(() => {
-    const d = fitDistance(radius, FOV, aspect, 1.06)
+    const d = Math.min(fitDistance(radius, FOV, aspect, 1.04), fitDistanceBox(ext, FOV, aspect, 1.12))
     camera.position.set(0, 0, d)
     camera.near = Math.max(0.05, d / 40)
     camera.far = d * 12
@@ -411,7 +413,7 @@ function FitCamera({ radius, fitKey, controls }: { radius: number; fitKey: strin
       c.saveState()
     }
     invalidate()
-  }, [radius, fitKey, aspect, camera, controls, invalidate])
+  }, [radius, ext, fitKey, aspect, camera, controls, invalidate])
   return null
 }
 
@@ -527,6 +529,7 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
   )
   const segs = useMemo(() => buildSegments(mol, pos, adj, style, (i) => atomColors[i]), [mol, pos, adj, style, atomColors])
   const radius = useMemo(() => boundingRadius(basePos, radii), [basePos, radii])
+  const ext = useMemo(() => halfExtents(basePos, radii), [basePos, radii])
 
   // ── инструменты ──
   const onAtom = useCallback(
@@ -558,7 +561,7 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
     const r = (i: number) => (style === 'wire' ? 0.32 : radii[i] * k)
     for (const i of props.highlightAtoms ?? []) if (pos[i]) out.push({ p: pos[i], s: [r(i), r(i), r(i)], color: '#facc15' })
     for (const i of picks) out.push({ p: pos[i], s: [r(i) * 1.05, r(i) * 1.05, r(i) * 1.05], color: '#22d3ee' })
-    if (rot) for (const i of [rot.a, rot.b]) out.push({ p: pos[i], s: [r(i), r(i), r(i)], color: '#fb923c' })
+    if (rot) for (const i of [rot.a, rot.b]) out.push({ p: pos[i], s: [r(i) * 0.72, r(i) * 0.72, r(i) * 0.72], color: '#fb923c' })
     if (overlay === 'groups')
       for (const g of mol.groups) for (const i of g.atoms) out.push({ p: pos[i], s: [r(i) * 1.1, r(i) * 1.1, r(i) * 1.1], color: GROUP_COLOR[g.key] })
     return out
@@ -662,7 +665,7 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
         camera={{ fov: FOV, position: [0, 0, 12], near: 0.1, far: 200 }}
       >
         <CameraLights />
-        <FitCamera radius={radius} fitKey={fitKey} controls={controls} />
+        <FitCamera radius={radius} ext={ext} fitKey={fitKey} controls={controls} />
         <AutoSpin on={!!props.autoRotate && compact}>
           <AtomsMesh
             key={`a${mol.id}`}

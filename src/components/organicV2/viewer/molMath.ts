@@ -227,6 +227,26 @@ export function fitDistance(r: number, fovDeg: number, aspect: number, margin = 
   return (r * margin) / Math.sin(f / 2)
 }
 
+/** Полуразмеры рамки молекулы (по осям вида) с учётом радиусов атомов. */
+export function halfExtents(points: readonly (readonly number[])[], radii: readonly number[]): V3 {
+  const h: V3 = [0.5, 0.5, 0.5]
+  points.forEach((p, i) => {
+    for (let d = 0; d < 3; d++) h[d] = Math.max(h[d], Math.abs(p[d]) + (radii[i] ?? 0))
+  })
+  return h
+}
+
+/**
+ * Камера по рамке (а не по описанной сфере): длинные молекулы (жиры, жирные кислоты) заполняют кадр по ширине.
+ * Камера смотрит вдоль −Z; ближняя грань рамки — на hz ближе центра.
+ */
+export function fitDistanceBox(h: readonly number[], fovDeg: number, aspect: number, margin = 1.1): number {
+  const vf = (fovDeg * Math.PI) / 180
+  const tv = Math.tan(vf / 2)
+  const th = tv * Math.max(aspect, 0.05)
+  return Math.max((h[0] * margin) / th, (h[1] * margin) / tv) + h[2]
+}
+
 /**
  * Нормаль к плоскости σ-скелета у кратной связи a=b (π-облака лежат вдоль неё, над и под связью).
  * Берётся из соседей a и b; если соседей нет (C≡C, O=C=O) — любой перпендикуляр.
@@ -513,7 +533,10 @@ export function isomerKind(a: OV2Molecule, b: OV2Molecule): IsomerVerdict {
   } catch {
     /* класс не определён — считаем «структурной» */
   }
-  if (ca !== cb) return { kind: 'interclass', highlight: groupAtoms.length ? groupAtoms : multiAtoms }
+  if (ca !== cb) {
+    const ringAtoms = [...new Set(b.rings.flat())]
+    return { kind: 'interclass', highlight: groupAtoms.length ? groupAtoms : multiAtoms.length ? multiAtoms : ringAtoms }
+  }
   const skA = safeCode(carbonSkeleton(ga))
   const skB = safeCode(carbonSkeleton(gb))
   if (skA !== skB) {

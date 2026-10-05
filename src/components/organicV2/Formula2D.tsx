@@ -24,6 +24,8 @@ interface Label {
   readonly main: string
   /** текст после главного символа (H, H₃, ⁺) */
   readonly post: string
+  /** H под символом (атом в середине цепи) */
+  readonly below: string
   readonly el: string
   readonly small: boolean
 }
@@ -61,11 +63,13 @@ export function layoutFormula2D(mol: Pick<OV2Molecule, 'atoms' | 'bonds' | 'ring
 
   const labels: Label[] = []
   const labelled = new Set<number>()
+  // этан, этилен, ацетилен: голая черта неоднозначна — подписываем все C (H₃C–CH₃, H₂C=CH₂, HC≡CH)
+  const fewC = mol.atoms.filter((a) => a.el === 'C').length <= 2
   for (let i = 0; i < n; i++) {
     if (!shown[i]) continue
     const a = mol.atoms[i]
     const heavyNb = adj[i].filter((j) => shown[j])
-    const isLabelled = kind === 'structural' || a.el !== 'C' || !adj[i].some((j) => mol.atoms[j].el === 'C') || a.ch !== 0
+    const isLabelled = kind === 'structural' || a.el !== 'C' || fewC || !adj[i].some((j) => mol.atoms[j].el === 'C') || a.ch !== 0
     if (!isLabelled) continue
     labelled.add(i)
     const h = kind === 'structural' ? 0 : hCount(i)
@@ -75,13 +79,16 @@ export function layoutFormula2D(mol: Pick<OV2Molecule, 'atoms' | 'bonds' | 'ring
     let dx = 0
     for (const j of heavyNb) dx += X(j) - X(i)
     const left = hs !== '' && heavyNb.length > 0 && dx > S * 0.3
+    // атом в середине цепи (–NH–, >CH– у подписанного C): H под символом, чтобы связи не налезали на подпись
+    const below = hs !== '' && heavyNb.length >= 2
     labels.push({
       i,
       x: X(i),
       y: Y(i),
-      pre: left ? hs : '',
+      pre: left && !below ? hs : '',
       main: a.el,
-      post: (left ? '' : hs) + charge,
+      post: (left || below ? '' : hs) + charge,
+      below: below ? hs : '',
       el: a.el,
       small: kind === 'structural' && a.el === 'H',
     })
@@ -203,7 +210,7 @@ export function Formula2D(props: Formula2DProps) {
         <g className={styles.hl}>
           {hl.map((i) => {
             const [x, y] = pos(i)
-            return <circle key={i} cx={x} cy={y} r={0.46 * S} />
+            return <circle key={i} cx={x} cy={y} r={0.34 * S} />
           })}
         </g>
       )}
@@ -220,11 +227,18 @@ export function Formula2D(props: Formula2DProps) {
           const anchor = l.pre ? 'end' : l.post ? 'start' : 'middle'
           const x = l.pre ? l.x + half : l.post ? l.x - half : l.x
           return (
-            <text key={l.i} x={x.toFixed(1)} y={(l.y + f * 0.36).toFixed(1)} textAnchor={anchor} fontSize={f} className={cls}>
-              {l.pre}
-              {l.main}
-              {l.post}
-            </text>
+            <g key={l.i}>
+              <text x={x.toFixed(1)} y={(l.y + f * 0.36).toFixed(1)} textAnchor={anchor} fontSize={f} className={cls}>
+                {l.pre}
+                {l.main}
+                {l.post}
+              </text>
+              {l.below && (
+                <text x={l.x.toFixed(1)} y={(l.y + f * 1.3).toFixed(1)} textAnchor="middle" fontSize={f * 0.9} className={cls}>
+                  {l.below}
+                </text>
+              )}
+            </g>
           )
         })}
       </g>
