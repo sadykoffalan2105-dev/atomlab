@@ -229,19 +229,61 @@ section('3D собранного: качество и скорость')
     const list: Rec[] = 'molecules' in raw && Array.isArray(raw.molecules) ? raw.molecules : Object.entries(raw as Record<string, Omit<Rec, 'id'>>).map(([id, v]) => ({ id, ...v }))
     const acyclic = list.filter((m) => m.bonds.length === m.atoms.length - 1 && !/[@]/.test(m.smiles)).filter((m) => { const h = m.atoms.filter((a) => a.el !== 'H').length; return h >= 3 && h <= 9 })
     const sample = acyclic.slice(0, 60)
+    // Сверяем ВНУТРЕННЮЮ геометрию (длины связей 1–2 и расстояния 1–3, т. е. валентные углы) — она не зависит от
+    // конформера. RMSD всей молекулы — только для справки: данные v2 нарочно берут вытянутый зигзаг длинных цепей,
+    // а встраиватель может выбрать другой поворот вокруг одинарных связей — геометрия при этом верная.
     const rms: { id: string; r: number }[] = []
+    const d12: number[] = []
+    const d13: number[] = []
+    const dist = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
     for (const m of sample) {
       const g = parseSmiles(m.smiles.replace(/[/\\]/g, ''))
       const e = embed3D(g)
       const heavy = m.atoms.filter((a) => a.el !== 'H').map((a) => a.p)
       const mine = e.atoms.slice(0, e.heavy).map((a) => a.p)
-      rms.push({ id: m.id, r: symmetryRmsd(toMol(g), mine, heavy) })
+      const mol = toMol(g)
+      rms.push({ id: m.id, r: symmetryRmsd(mol, mine, heavy) })
+      // Порядок атомов в данных v2 (граф реестра) и в разборе SMILES разный — сравниваем отсортированные наборы
+      // расстояний по типам («C–O», «C–C–O»), нумерация не нужна.
+      const groupsOf = (els: string[], nbrs: number[][], pos: Vec3[]) => {
+        const m12 = new Map<string, number[]>(), m13 = new Map<string, number[]>()
+        const push = (mp: Map<string, number[]>, k: string, v: number) => { const a = mp.get(k) ?? []; a.push(v); mp.set(k, a) }
+        for (let i = 0; i < els.length; i++) {
+          for (const j of nbrs[i]) if (j > i) push(m12, [els[i], els[j]].sort().join('-'), dist(pos[i], pos[j]))
+          for (let a = 0; a < nbrs[i].length; a++) for (let b = a + 1; b < nbrs[i].length; b++) {
+            const [x, y] = [els[nbrs[i][a]], els[nbrs[i][b]]].sort()
+            push(m13, `${x}-${els[i]}-${y}`, dist(pos[nbrs[i][a]], pos[nbrs[i][b]]))
+          }
+        }
+        return { m12, m13 }
+      }
+      const mineG = groupsOf(mol.el, mol.adj.map((xs) => xs.map((x) => x.to)), mine)
+      const hIdx = m.atoms.map((a, i) => (a.el !== 'H' ? i : -1)).filter((i) => i >= 0)
+      const back = new Map(hIdx.map((i, k) => [i, k]))
+      const refN: number[][] = hIdx.map(() => [])
+      for (const b of m.bonds as { a: number; b: number }[]) {
+        const A = back.get(b.a), B = back.get(b.b)
+        if (A !== undefined && B !== undefined) { refN[A].push(B); refN[B].push(A) }
+      }
+      const refG = groupsOf(hIdx.map((i) => m.atoms[i].el), refN, heavy)
+      const cmp = (A: Map<string, number[]>, B: Map<string, number[]>, out: number[]) => {
+        for (const [k, xs] of A) {
+          const ys = B.get(k)
+          if (!ys || ys.length !== xs.length) { out.push(9); continue }
+          const s1 = [...xs].sort((p, r) => p - r), s2 = [...ys].sort((p, r) => p - r)
+          s1.forEach((v, i) => out.push(Math.abs(v - s2[i])))
+        }
+      }
+      cmp(mineG.m12, refG.m12, d12)
+      cmp(mineG.m13, refG.m13, d13)
     }
     rms.sort((a, b) => a.r - b.r)
+    const q = (xs: number[], p: number) => [...xs].sort((a, b) => a - b)[Math.min(xs.length - 1, Math.floor(xs.length * p))]
     const within = rms.filter((x) => x.r <= 0.35).length
-    console.log(`  ${file}: ${sample.length} ациклических молекул (3–9 тяжёлых атомов); RMSD ≤ 0,35 Å: ${within}; медиана ${rms[rms.length >> 1].r.toFixed(3)} Å`)
-    for (const x of rms.filter((y) => y.r > 0.35)) console.log(`   · ${x.id}: ${x.r.toFixed(2)} Å (другой конформер RDKit)`)
-    ok(sample.length >= 50 && within / sample.length >= 0.8 && rms[rms.length >> 1].r <= 0.25, `RMSD к RDKit: ≥ 80 % ≤ 0,35 Å, медиана ≤ 0,25 Å`)
+    console.log(`  ${file}: ${sample.length} ациклических молекул (3–9 тяжёлых атомов)`)
+    console.log(`  связи 1–2: медиана |Δ| ${q(d12, 0.5).toFixed(3)} Å, 95 % ${q(d12, 0.95).toFixed(3)} Å; через атом 1–3: медиана ${q(d13, 0.5).toFixed(3)} Å, 95 % ${q(d13, 0.95).toFixed(3)} Å`)
+    console.log(`  (справка) RMSD всей молекулы ≤ 0,35 Å: ${within}/${sample.length}, медиана ${rms[rms.length >> 1].r.toFixed(3)} Å — разница конформеров, не ошибка`)
+    ok(sample.length >= 50 && q(d12, 0.5) <= 0.02 && q(d12, 0.95) <= 0.05 && q(d13, 0.5) <= 0.05 && q(d13, 0.95) <= 0.12, 'внутренняя геометрия = RDKit: связи (медиана ≤ 0,02, 95 % ≤ 0,05 Å), углы через 1–3 (медиана ≤ 0,05, 95 % ≤ 0,12 Å)')
   }
   // скорость: 30 тяжёлых атомов
   const g30 = parseSmiles('CCCCCCCCC(C)CCCC(O)CCCCC(=O)OCCC(C)CCC=CCC')
