@@ -498,9 +498,17 @@ def main():
             if i in atoms_cip and atoms_cip[i] in ('R', 'S'):
                 at['cip'] = atoms_cip[i]
             atoms.append(at)
+        # Кекуле ароматических колец — как в графе реестра (иначе скелет учебника «не совпадёт»: o-ксилол и т. п.)
+        reg_order = {}
+        if same_graph:
+            pos = {a['id']: k for k, a in enumerate(m['atoms'])}
+            for x, y, o in m['bonds']:
+                reg_order[frozenset((pos[x], pos[y]))] = o
         bonds = []
         for b in kek.GetBonds():
             o = {Chem.BondType.SINGLE: 1, Chem.BondType.DOUBLE: 2, Chem.BondType.TRIPLE: 3}[b.GetBondType()]
+            if b.GetIsAromatic() and reg_order:
+                o = reg_order[frozenset((b.GetBeginAtomIdx(), b.GetEndAtomIdx()))]
             bd = {'a': b.GetBeginAtomIdx(), 'b': b.GetEndAtomIdx(), 'o': o}
             if b.GetIsAromatic():
                 bd['ar'] = True

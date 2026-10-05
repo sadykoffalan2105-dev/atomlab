@@ -4,7 +4,7 @@ import {
   type OrganicClassId,
   type OrganicBuildChallenge,
 } from '../researchLab/organicBuildCatalog'
-import { organicGradeForMolecule } from '../curriculum/compoundGradeIndex'
+import { organicGradeForMolecule, organicGradeFromTextbook } from '../curriculum/compoundGradeIndex'
 import { hybridizationOf } from '../../chemistry/organic/organicLayout'
 import { buildShowcaseGraph } from './buildShowcaseGraph'
 import { accentForClass, inferFunctionalGroups } from './inferFunctionalGroups'
@@ -14,18 +14,22 @@ import {
   sucroseSimplifiedGraph,
 } from './geometries/carbGeometries'
 import { triacetinGraph } from './geometries/fatGeometries'
+import { organicV2Graph } from './geometries/v2Geometry'
 import type { OrganicMoleculeDef } from './organicMoleculeTypes'
 import { TEXTBOOK_ORGANIC_SPECS, type TextbookOrganicSpec } from './textbookOrganic.data'
 import { applySkeletonBonds, autoBondKitHydrogens, createFormulaKit } from '../../chemistry/organic/organicGraph'
 import { layoutOrganicGraph } from '../../chemistry/organic/organicLayout'
 
-/** Молекула каталога: 3D-граф (раскладка + релаксация) строится лениво, при первом показе. */
+/**
+ * Молекула каталога: 3D-граф — готовые координаты органики v2 (RDKit ETKDGv3 + MMFF94, molecules3d.json).
+ * Старая раскладка + релаксация остаётся только запасным путём для id без данных v2.
+ */
 function fromChallenge(c: OrganicBuildChallenge): OrganicMoleculeDef {
   const grade = organicGradeForMolecule(c.id, c.classId)
   let graph: OrganicMoleculeDef['graph'] | undefined
   let groups: OrganicMoleculeDef['functionalGroups'] | undefined
   let hints: OrganicMoleculeDef['viewHints'] | null = null
-  const build = () => (graph ??= buildShowcaseGraph(c))
+  const build = () => (graph ??= organicV2Graph(c.id) ?? buildShowcaseGraph(c))
   return {
     id: c.id,
     classId: c.classId,
@@ -68,12 +72,15 @@ function fromChallenge(c: OrganicBuildChallenge): OrganicMoleculeDef {
 
 function extraCarb(
   id: string,
-  graph: OrganicMoleculeDef['graph'],
+  legacyGraph: () => OrganicMoleculeDef['graph'],
   names: { ru: string; en: string; uz: string },
   desc: { ru: string; en: string; uz: string },
   formula: string,
   equationRu: string,
 ): OrganicMoleculeDef {
+  let graph: OrganicMoleculeDef['graph'] | undefined
+  let groups: OrganicMoleculeDef['functionalGroups'] | undefined
+  const build = () => (graph ??= organicV2Graph(id) ?? legacyGraph())
   return {
     id,
     classId: 'carb',
@@ -84,9 +91,13 @@ function extraCarb(
     descriptionRu: desc.ru,
     descriptionEn: desc.en,
     descriptionUz: desc.uz,
-    grade: 'g10',
-    graph,
-    functionalGroups: inferFunctionalGroups(graph, 'carb'),
+    grade: organicGradeForMolecule(id, 'carb'),
+    get graph() {
+      return build()
+    },
+    get functionalGroups() {
+      return (groups ??= inferFunctionalGroups(build(), 'carb'))
+    },
     equationRu,
     equationEn: equationRu,
     equationUz: equationRu,
@@ -99,7 +110,9 @@ function fromTextbookSpec(s: TextbookOrganicSpec): OrganicMoleculeDef {
   let graph: OrganicMoleculeDef['graph'] | undefined
   let groups: OrganicMoleculeDef['functionalGroups'] | undefined
   const build = () =>
-    (graph ??= layoutOrganicGraph(autoBondKitHydrogens(applySkeletonBonds(createFormulaKit(s.kit), s.skeleton))))
+    (graph ??=
+      organicV2Graph(s.id) ??
+      layoutOrganicGraph(autoBondKitHydrogens(applySkeletonBonds(createFormulaKit(s.kit), s.skeleton))))
   return {
     id: s.id,
     classId: s.classId,
@@ -110,7 +123,7 @@ function fromTextbookSpec(s: TextbookOrganicSpec): OrganicMoleculeDef {
     descriptionRu: s.descriptionRu,
     descriptionEn: s.descriptionEn,
     descriptionUz: s.descriptionEn,
-    grade: s.grade,
+    grade: organicGradeFromTextbook(s.id, s.grade),
     get graph() {
       return build()
     },
@@ -124,12 +137,16 @@ function fromTextbookSpec(s: TextbookOrganicSpec): OrganicMoleculeDef {
   }
 }
 
+let triacetinCache: OrganicMoleculeDef['graph'] | undefined
+let triacetinGroups: OrganicMoleculeDef['functionalGroups'] | undefined
+const triacetinV2 = () => (triacetinCache ??= organicV2Graph('triacetin') ?? triacetinGraph())
+
 const fromCatalog = ORGANIC_BUILD_CHALLENGES.map((c) => fromChallenge(c))
 
 const extras: OrganicMoleculeDef[] = [
   extraCarb(
     'glucose-pyranose',
-    glucosePyranoseGraph(),
+    glucosePyranoseGraph,
     {
       ru: 'β-D-Глюкопираноза',
       en: 'β-D-Glucopyranose',
@@ -145,7 +162,7 @@ const extras: OrganicMoleculeDef[] = [
   ),
   extraCarb(
     'fructose',
-    fructoseOpenGraph(),
+    fructoseOpenGraph,
     { ru: 'Фруктоза', en: 'Fructose', uz: 'Fruktoza' },
     {
       ru: 'Кетоза C₆H₁₂O₆ — изомер глюкозы (учебная открытая форма).',
@@ -157,7 +174,7 @@ const extras: OrganicMoleculeDef[] = [
   ),
   extraCarb(
     'sucrose',
-    sucroseSimplifiedGraph(),
+    sucroseSimplifiedGraph,
     { ru: 'Сахароза', en: 'Sucrose', uz: 'Saxaroza' },
     {
       ru: 'Дисахарид: глюкоза + фруктоза (упрощённая 3D-схема для 10 класса).',
@@ -180,9 +197,13 @@ const extras: OrganicMoleculeDef[] = [
       'Teaching triglyceride model: glycerol + three acetates. In nature R are long fatty acids.',
     descriptionUz:
       'Triglisarid oʻquv modeli: glitserin + uch atsetat. Tabiatda R — uzun yogʻ kislotalari.',
-    grade: 'g10',
-    graph: triacetinGraph(),
-    functionalGroups: inferFunctionalGroups(triacetinGraph(), 'ester'),
+    grade: organicGradeForMolecule('triacetin', 'ester'),
+    get graph() {
+      return triacetinV2()
+    },
+    get functionalGroups() {
+      return (triacetinGroups ??= inferFunctionalGroups(triacetinV2(), 'ester'))
+    },
     equationRu: 'жир + 3NaOH → глицерин + 3RCOONa',
     equationEn: 'fat + 3NaOH → glycerol + 3RCOONa',
     equationUz: 'yogʻ + 3NaOH → glitserin + 3RCOONa',

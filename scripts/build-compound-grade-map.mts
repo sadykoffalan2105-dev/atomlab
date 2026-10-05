@@ -321,10 +321,16 @@ for (const [k, rx] of BOOK_RX) {
   const mols = organicByKey.get(k)
   if (!mols?.length) continue
   for (const g of rx.grades) {
-    if (mols.some((m) => organicBase(m).includes(g))) continue
+    const shown = mols.find((m) => organicBase(m).includes(g))
+    if (shown) {
+      // класс уже показан — запоминаем страницу реакции (порядок «как в книге»), классы не меняем
+      if (organicMap[shown.id] === undefined && typeof rx.firstPage === 'number')
+        organicMap[shown.id] = { grades: organicBase(shown), firstPage: rx.firstPage }
+      continue
+    }
     const m = mols[0]!
-    // без свидетельств текста — только классы реакций учебника (догадка «ступень 3D-модели» не добавляется)
-    const grades = mergeGrades(organicMap[m.id]?.grades ?? [], [g])
+    // класс реакции учебника добавляется к ступени 3D-модели — молекула не пропадает из своего класса
+    const grades = mergeGrades(organicMap[m.id]?.grades ?? organicBase(m), [g])
     const firstPage = organicMap[m.id]?.firstPage ?? rx.firstPage
     organicMap[m.id] = { grades, ...(typeof firstPage === 'number' ? { firstPage } : {}) }
     organicRxAdded++

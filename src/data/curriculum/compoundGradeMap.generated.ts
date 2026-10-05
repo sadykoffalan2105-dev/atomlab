@@ -2,7 +2,7 @@
  * АВТОГЕНЕРАЦИЯ — не редактировать вручную.
  * Пересборка: npx tsx scripts/build-compound-grade-map.mts
  * Источники: сверка учебников Kimyo 7–11 (evidence + TEXTBOOK_EXTRA_GRADES), schoolInorganicManifest, правила ФГОС.
- * Статистика: 7 кл.=178, 8 кл.=278, 9 кл.=307, 10 кл.=106, 11 кл.=181, всего=494; органика=68
+ * Статистика: 7 кл.=178, 8 кл.=278, 9 кл.=307, 10 кл.=106, 11 кл.=181, всего=494; органика=120
  */
 import type { InorganicSchoolGrade } from './compoundGradeIndex'
 
@@ -4398,6 +4398,151 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     ],
     "firstPage": 67
   },
+  "1-2-dichloroethane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 27
+  },
+  "n-decane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 27
+  },
+  "terephthalic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 28
+  },
+  "n-tricosane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 37
+  },
+  "sucrose-structure": {
+    "grades": [
+      10
+    ],
+    "firstPage": 37
+  },
+  "bromoethane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 46
+  },
+  "bromomethane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 46
+  },
+  "isooctane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 47
+  },
+  "n-dodecane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 47
+  },
+  "dichloromethane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 49
+  },
+  "chloroform": {
+    "grades": [
+      10
+    ],
+    "firstPage": 49
+  },
+  "tetrachloromethane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 49
+  },
+  "3-chloro-3-methylpentane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 50
+  },
+  "1-5-dibromopentane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 54
+  },
+  "chlorocyclohexane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 54
+  },
+  "1-2-dibromoethane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 59
+  },
+  "2-bromopropane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 59
+  },
+  "1-2-dibromopropane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 60
+  },
+  "1-chloropropane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 60
+  },
+  "chloroprene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 66
+  },
+  "1-4-dibromobut-2-ene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 66
+  },
+  "propanoic-acid": {
+    "grades": [
+      10,
+      11
+    ],
+    "firstPage": 75
+  },
+  "hept-1-ene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 79
+  },
+  "bromobenzene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 79
+  },
   "nitrobenzene": {
     "grades": [
       10
@@ -4410,7 +4555,43 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     ],
     "firstPage": 80
   },
+  "2-4-6-tribromotoluene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 80
+  },
+  "benzoic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 80
+  },
+  "hexachlorocyclohexane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 80
+  },
   "ethylbenzene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 82
+  },
+  "1-2-dichloroethylbenzene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 82
+  },
+  "1-chloroethylbenzene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 82
+  },
+  "1-phenylethanol": {
     "grades": [
       10
     ],
@@ -4434,6 +4615,12 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     ],
     "firstPage": 102
   },
+  "vinyl-chloride": {
+    "grades": [
+      10
+    ],
+    "firstPage": 102
+  },
   "ethyl-nitrate": {
     "grades": [
       10
@@ -4445,6 +4632,24 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
       10
     ],
     "firstPage": 110
+  },
+  "iodoform": {
+    "grades": [
+      10
+    ],
+    "firstPage": 112
+  },
+  "pentanal": {
+    "grades": [
+      10
+    ],
+    "firstPage": 112
+  },
+  "pentan-1-ol": {
+    "grades": [
+      10
+    ],
+    "firstPage": 112
   },
   "ethyl-pent-2-enoate": {
     "grades": [
@@ -4458,7 +4663,19 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     ],
     "firstPage": 119
   },
+  "2-chloroethanol": {
+    "grades": [
+      10
+    ],
+    "firstPage": 119
+  },
   "nitroglycerin": {
+    "grades": [
+      10
+    ],
+    "firstPage": 120
+  },
+  "1-2-3-trichloropropane": {
     "grades": [
       10
     ],
@@ -4482,6 +4699,72 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     ],
     "firstPage": 126
   },
+  "benzyl-chloride": {
+    "grades": [
+      10
+    ],
+    "firstPage": 127
+  },
+  "benzyl-alcohol": {
+    "grades": [
+      10
+    ],
+    "firstPage": 127
+  },
+  "benzenesulfonic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 127
+  },
+  "chlorobenzene": {
+    "grades": [
+      10
+    ],
+    "firstPage": 127
+  },
+  "butyl-isopropyl-ether": {
+    "grades": [
+      10
+    ],
+    "firstPage": 132
+  },
+  "1-iodobutane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 132
+  },
+  "2-2-dichloropropane": {
+    "grades": [
+      10
+    ],
+    "firstPage": 138
+  },
+  "chloroacetic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 142
+  },
+  "dichloroacetic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 142
+  },
+  "trichloroacetic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 142
+  },
+  "stearic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 142
+  },
   "tristearin": {
     "grades": [
       10
@@ -4494,17 +4777,47 @@ export const ORGANIC_GRADE_MAP: Readonly<Record<string, OrganicGradeEntry>> = {
     ],
     "firstPage": 153
   },
+  "oleic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 154
+  },
   "tripalmitin": {
     "grades": [
       10
     ],
     "firstPage": 155
   },
+  "methyl-glucoside": {
+    "grades": [
+      10
+    ],
+    "firstPage": 158
+  },
+  "glucose-pentaacetate": {
+    "grades": [
+      10
+    ],
+    "firstPage": 158
+  },
+  "gluconic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 158
+  },
   "sorbitol": {
     "grades": [
       10
     ],
     "firstPage": 159
+  },
+  "pentanoic-acid": {
+    "grades": [
+      10
+    ],
+    "firstPage": 179
   },
   "pentanamide": {
     "grades": [

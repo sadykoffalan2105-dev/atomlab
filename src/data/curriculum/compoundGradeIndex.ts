@@ -67,42 +67,21 @@ export const INORGANIC_CHAPTERS: readonly InorganicChapter[] = [
   'прочее',
 ] as const
 
-/** Классы органики 11 кл. (Kimyo): арены, фенолы, азотсодержащие, сложные эфиры и полиолы. */
-const ORGANIC_G11_CLASS_IDS = new Set([
-  'arene',
-  'phenol',
-  'nitrogen',
-  'ester',
-  'alkadiene',
-  'polyol',
-])
-
-const ORGANIC_G11_MOLECULE_IDS = new Set([
-  'adamantane',
-  'glycerol',
-  'ethylene-glycol',
-  'glucose-open',
-  'triacetin',
-  'n-hexane',
-  '2-methylpentane',
-  '3-methylpentane',
-  '2-3-dimethylbutane',
-  '2-2-dimethylbutane',
-  'propyne',
-  'n-butanol',
-  'ethyl-acetate',
-  'diethyl-ether',
-  'styrene',
-  'toluene',
-  'aniline',
-  'methylamine',
-])
-
-/** Ступень 3D-модели молекулы (10/11) — используется реестром органики; не путать с классами учебников. */
-export function organicGradeForMolecule(id: string, classId: string): OrganicSchoolGrade {
-  if (ORGANIC_G11_MOLECULE_IDS.has(id)) return 'g11'
-  if (ORGANIC_G11_CLASS_IDS.has(classId)) return 'g11'
+/**
+ * Ступень 3D-модели молекулы (10/11) — по сверке учебников Kimyo (ORGANIC_GRADE_MAP): есть в 10 кл. → g10,
+ * только в 11 кл. → g11. Без свидетельств — g10 (органика начинается в Kimyo 10). Раньше здесь были жёсткие
+ * списки «арены/фенолы/эфиры/полиолы → 11 кл.», которые противоречили учебнику (бензол — 8–10 кл.).
+ */
+export function organicGradeForMolecule(id: string, _classId?: string): OrganicSchoolGrade {
+  const ev = ORGANIC_GRADE_MAP[id]?.grades
+  if (ev?.includes(10)) return 'g10'
+  if (ev?.includes(11)) return 'g11'
   return 'g10'
+}
+
+/** То же для вещества из инвентаря учебника: без свидетельств карты — ступень инвентаря. */
+export function organicGradeFromTextbook(id: string, inventoryGrade: OrganicSchoolGrade): OrganicSchoolGrade {
+  return ORGANIC_GRADE_MAP[id]?.grades?.length ? organicGradeForMolecule(id) : inventoryGrade
 }
 
 /**
