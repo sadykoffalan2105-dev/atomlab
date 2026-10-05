@@ -188,6 +188,8 @@ export function mechanismViolations(r: OV2Reaction, checked: Record<string, numb
     for (const c of lowered) {
       if (!isEl(L, c.a, 'C') || !isEl(L, c.b, 'C')) continue
       const add = (x: number) => formed.filter((f) => (f.a === x || f.b === x) && !isEl(L, f.a === x ? f.b : f.a, 'C')).map((f) => (f.a === x ? f.b : f.a))
+      // бензол + 3H₂: кольцо ароматическое, пары H по формуле Кекуле не задаются учебником
+      if (r.species.some((s) => s.side === 'L' && s.map.some((m, i) => (m === c.a || m === c.b) && s.atoms[i].ar))) continue
       const A = add(c.a)
       const B = add(c.b)
       if (!A.length || !B.length) continue
@@ -294,46 +296,176 @@ const changeCost = (r: OV2Reaction, ch: readonly OV2BondChange[]) => {
 }
 
 /**
- * Исправляет соответствие атомов перестановками номеров справа (атомы одного элемента), пока нарушения
- * механизмов не исчезнут и число изменённых связей не станет минимальным. Возвращает новую реакцию или null.
+ * Исправляет соответствие атомов перестановками номеров справа: тяжёлые атомы одного элемента меняются местами
+ * (одиночные обмены, затем двойные с участием атома-нарушителя), водороды после каждого обмена
+ * переназначаются «за своим соседом». Цель — нет нарушений механизмов и минимум изменённых связей.
+ * Возвращает новую реакцию или null (нарушений нет).
  */
 export function fixMechanisms(r0: OV2Reaction): OV2Reaction | null {
   const v0 = mechanismViolations(r0)
   if (!v0.length) return null
   const r = JSON.parse(JSON.stringify(r0)) as OV2Reaction & Mut
-  const score = () => {
-    const ch = recomputeChanges(r)
-    ;(r as { changes: OV2BondChange[] }).changes = ch
-    return mechanismViolations(r).length * 1000 + changeCost(r, ch)
+  const Ladj = new Map<number, number[]>()
+  const Lel = new Map<number, string>()
+  for (const s of r.species) {
+    if (s.side !== 'L') continue
+    s.atoms.forEach((a, i) => { Lel.set(s.map[i], a.el); Ladj.set(s.map[i], []) })
+    for (const b of s.bonds) { Ladj.get(s.map[b.a])!.push(s.map[b.b]); Ladj.get(s.map[b.b])!.push(s.map[b.a]) }
   }
-  let best = score()
-  // атомы справа: [вид, индекс]
   const pos: [number, number][] = []
   r.species.forEach((s, k) => { if (s.side === 'R') s.atoms.forEach((_, i) => pos.push([k, i])) })
-  for (let round = 0; round < 12; round++) {
-    // кандидаты — атомы, участвующие в изменениях, и их соседи (номера соответствия)
+  const heavy = pos.filter(([k, i]) => r.species[k].atoms[i].el !== 'H')
+  const hyd = pos.filter(([k, i]) => r.species[k].atoms[i].el === 'H')
+  const rNb = new Map<string, [number, number][]>()
+  r.species.forEach((s, k) => {
+    if (s.side !== 'R') return
+    for (const b of s.bonds) {
+      const A = `${k}:${b.a}`, B = `${k}:${b.b}`
+      if (!rNb.has(A)) rNb.set(A, [])
+      if (!rNb.has(B)) rNb.set(B, [])
+      rNb.get(A)!.push([k, b.b]); rNb.get(B)!.push([k, b.a])
+    }
+  })
+  /** водороды — за своим тяжёлым соседом (как шаг 3 ov2_mapper.py) */
+  const assignH = () => {
+    const pool = new Set(hyd.map(([k, i]) => r.species[k].map[i]))
+    const rest: [number, number][] = []
+    for (const [k, i] of hyd) {
+      const hn = (rNb.get(`${k}:${i}`) ?? []).find(([kk, ii]) => r.species[kk].atoms[ii].el !== 'H')
+      let got: number | undefined
+      if (hn) {
+        const mh = r.species[hn[0]].map[hn[1]]
+        const cur = r.species[k].map[i]
+        const opts = (Ladj.get(mh) ?? []).filter((x) => Lel.get(x) === 'H' && pool.has(x))
+        got = opts.includes(cur) ? cur : opts[0]
+      }
+      if (got === undefined) rest.push([k, i])
+      else { pool.delete(got); r.species[k].map[i] = got }
+    }
+    const left = [...pool].sort((x, y) => x - y)
+    for (const [k, i] of rest) r.species[k].map[i] = left.shift()!
+  }
+  const W = (v: Violation[]) => v.reduce((s, x) => s + (x.rule === 'skeleton' ? 3000 : 1000), 0)
+  const score = () => {
+    assignH()
+    const ch = recomputeChanges(r)
+    ;(r as { changes: OV2BondChange[] }).changes = ch
+    return W(mechanismViolations(r)) + changeCost(r, ch)
+  }
+  const snap = () => r.species.map((s) => s.map.slice())
+  const restore = (m: number[][]) => r.species.forEach((s, k) => { s.map = m[k].slice() })
+  const swap = (x: [number, number], y: [number, number]) => {
+    const s1 = r.species[x[0]], s2 = r.species[y[0]]
+    const m = s1.map[x[1]]
+    s1.map[x[1]] = s2.map[y[1]]
+    s2.map[y[1]] = m
+  }
+  /** перестановки номеров справа по отображению m: номер x → m(x) */
+  const relabel = (m: Map<number, number>) => {
+    for (const s of r.species) if (s.side === 'R') s.map = s.map.map((x) => m.get(x) ?? x)
+  }
+  const groupMoves = (): (() => void)[] => {
+    const mv: (() => void)[] = []
+    // кольца: простые циклы из 6 ароматических атомов
+    r.species.forEach((s) => {
+      if (s.side !== 'R') return
+      const adj = new Map<number, number[]>()
+      for (const b of s.bonds) if (b.ar) {
+        if (!adj.has(b.a)) adj.set(b.a, [])
+        if (!adj.has(b.b)) adj.set(b.b, [])
+        adj.get(b.a)!.push(b.b); adj.get(b.b)!.push(b.a)
+      }
+      const seen = new Set<number>()
+      for (const st of adj.keys()) {
+        if (seen.has(st) || adj.get(st)!.length !== 2) continue
+        const ring = [st]
+        let prev = -1, cur = st
+        for (let g = 0; g < 7; g++) {
+          const nx = adj.get(cur)!.find((x) => x !== prev && adj.get(x)!.length === 2)
+          if (nx === undefined || nx === st) break
+          ring.push(nx); prev = cur; cur = nx
+        }
+        ring.forEach((x) => seen.add(x))
+        if (ring.length !== 6) continue
+        for (let rot = 0; rot < 6; rot++) for (const refl of [false, true]) {
+          if (rot === 0 && !refl) continue
+          mv.push(() => {
+            const vals = ring.map((i) => s.map[i])
+            ring.forEach((i, j) => { s.map[i] = vals[refl ? (6 - j + rot) % 6 : (j + rot) % 6] })
+          })
+        }
+      }
+    })
+    // одинаковые молекулы слева
+    const L = r.species.filter((s) => s.side === 'L')
+    for (let a = 0; a < L.length; a++) for (let b = a + 1; b < L.length; b++) {
+      if (L[a].ref !== L[b].ref || L[a].map.length !== L[b].map.length || L[a].map.length < 3) continue
+      mv.push(() => {
+        const m = new Map<number, number>()
+        L[a].map.forEach((x, i) => { m.set(x, L[b].map[i]); m.set(L[b].map[i], x) })
+        relabel(m)
+      })
+    }
+    return mv
+  }
+  let best = score()
+  let bestMap = snap()
+  const sameEl = (x: [number, number], y: [number, number]) => r.species[x[0]].atoms[x[1]].el === r.species[y[0]].atoms[y[1]].el
+  for (let round = 0; round < 10; round++) {
     const hot = new Set<number>()
     for (const c of r.changes) { hot.add(c.a); hot.add(c.b) }
-    for (const s of r.species) for (const b of s.bonds) {
-      const A = s.map[b.a], B = s.map[b.b]
-      if (hot.has(A) || hot.has(B)) { hot.add(A); hot.add(B) }
-    }
-    const cand = pos.filter(([k, i]) => hot.has(r.species[k].map[i]))
+    for (const m of [...hot]) for (const y of Ladj.get(m) ?? []) hot.add(y)
+    const cand = heavy.filter(([k, i]) => hot.has(r.species[k].map[i]))
+    const pairs: [[number, number], [number, number]][] = []
+    for (let x = 0; x < cand.length; x++) for (let y = x + 1; y < cand.length; y++) if (sameEl(cand[x], cand[y])) pairs.push([cand[x], cand[y]])
     let improved = false
-    for (let x = 0; x < cand.length; x++) {
-      for (let y = x + 1; y < cand.length; y++) {
-        const [k1, i1] = cand[x], [k2, i2] = cand[y]
-        const s1 = r.species[k1], s2 = r.species[k2]
-        if (s1.atoms[i1].el !== s2.atoms[i2].el) continue
-        const m1 = s1.map[i1], m2 = s2.map[i2]
-        s1.map[i1] = m2; s2.map[i2] = m1
+    for (const [x, y] of pairs) {
+      swap(x, y)
+      const sc = score()
+      if (sc < best - 1e-9) { best = sc; bestMap = snap(); improved = true }
+      else restore(bestMap)
+    }
+    if (improved) continue
+    // поворот / отражение бензольного кольца справа (12 симметрий) и обмен целых одинаковых молекул слева
+    for (const mv of groupMoves()) {
+      const before = snap()
+      mv()
+      const sc = score()
+      if (sc < best - 1e-9) { best = sc; bestMap = snap(); improved = true }
+      else restore(before)
+    }
+    if (improved) continue
+    // двойные обмены: первый — с участием атома из сообщения о нарушении
+    const vs = mechanismViolations(r)
+    if (!vs.length || cand.length > 40) break
+    const vAtoms = new Set<number>()
+    for (const v of vs) for (const m of v.msg.matchAll(/#(\d+)/g)) vAtoms.add(+m[1])
+    const first = pairs.filter(([x, y]) => vAtoms.has(r.species[x[0]].map[x[1]]) || vAtoms.has(r.species[y[0]].map[y[1]]))
+    for (const [x, y] of first) {
+      for (const [u, w] of pairs) {
+        if ((u === x && w === y)) continue
+        swap(x, y); swap(u, w)
         const sc = score()
-        if (sc < best - 1e-9) { best = sc; improved = true }
-        else { s1.map[i1] = m1; s2.map[i2] = m2 }
+        if (sc < best - 1e-9) { best = sc; bestMap = snap(); improved = true; break }
+        restore(bestMap)
       }
+      if (improved) break
     }
     if (!improved) break
   }
-  ;(r as { changes: OV2BondChange[] }).changes = recomputeChanges(r)
+  restore(bestMap)
+  // форма Кекуле справа — как слева (после поворота кольца двойные связи не должны «прыгать»)
+  const Lar = new Map<string, number>()
+  for (const s of r.species) if (s.side === 'L') for (const b of s.bonds) if (b.ar) {
+    const A = s.map[b.a], B = s.map[b.b]
+    Lar.set(A < B ? `${A}-${B}` : `${B}-${A}`, b.o)
+  }
+  for (const s of r.species) if (s.side === 'R') for (const b of s.bonds as { a: number; b: number; o: number; ar?: boolean }[]) {
+    if (!b.ar) continue
+    const A = s.map[b.a], B = s.map[b.b]
+    const o = Lar.get(A < B ? `${A}-${B}` : `${B}-${A}`)
+    if (o !== undefined) b.o = o
+  }
+  score()
   return r
 }
