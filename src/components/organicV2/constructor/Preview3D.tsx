@@ -19,7 +19,7 @@ export interface Preview3DProps {
 const COLOR: Record<string, string> = {
   C: '#4b5563', H: '#f1f5f9', O: '#ef4444', N: '#3b82f6', S: '#facc15', Cl: '#22c55e', Br: '#b45309', I: '#7e22ce', F: '#86efac', P: '#f97316',
 }
-const RADIUS: Record<string, number> = { H: 0.25, C: 0.38, N: 0.37, O: 0.36, S: 0.48, Cl: 0.46, Br: 0.5, I: 0.56, F: 0.33, P: 0.46 }
+const RADIUS: Record<string, number> = { H: 0.28, C: 0.44, N: 0.42, O: 0.41, S: 0.54, Cl: 0.52, Br: 0.56, I: 0.62, F: 0.38, P: 0.52 }
 
 function shade(hex: string, k: number): string {
   const n = parseInt(hex.slice(1), 16)
@@ -41,13 +41,16 @@ export function Preview3D({ atoms, bonds, label, className }: Preview3DProps) {
     let raf = 0
     let last = performance.now()
     let visible = true
+    let drawn: unknown = null
     const io = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver((e) => { visible = e[0]?.isIntersecting ?? true }) : null
     io?.observe(cv)
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw)
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
-      if (!visible) return
+      // вне экрана не крутим, но новую молекулу рисуем хотя бы один раз
+      if (!visible && drawn === data.current) return
+      drawn = data.current
       const r = rot.current
       if (r.auto && !r.drag) r.yaw += dt * 0.5
       const dpr = Math.min(2, window.devicePixelRatio || 1)

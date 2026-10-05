@@ -243,7 +243,7 @@ export const EditorCanvas = memo(function EditorCanvas(p: EditorCanvasProps) {
 
   const labelW = (t: string) => {
     let w = 0
-    for (const ch of t) w += SUBS.includes(ch) ? 0.17 : ch === 'l' || ch === 'I' ? 0.16 : 0.3
+    for (const ch of t) w += SUBS.includes(ch) ? 0.15 : ch === 'l' || ch === 'I' ? 0.14 : 0.27
     return Math.max(0.44, w + 0.14)
   }
 

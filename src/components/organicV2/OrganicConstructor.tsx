@@ -82,8 +82,11 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
     if (an.empty || an.name || an.issues.length) return
     let live = true
     const code = an.code
-    nameInBackground(sk.graph).then((n) => { if (live) { rememberName(code, n); setBgName({ code, name: n }) } }).catch(() => {})
-    return () => { live = false }
+    // после паузы в рисовании (пока ученик тянет цепь, большой намер не запускаем)
+    const timer = setTimeout(() => {
+      nameInBackground(sk.graph).then((n) => { rememberName(code, n); if (live) setBgName({ code, name: n }) }).catch(() => {})
+    }, 180)
+    return () => { live = false; clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [an])
 
@@ -148,6 +151,12 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
     else if (v.kind === 'notInList') setIsoMsg({ text: t.notInList, tone: 'bad' })
     else setIsoMsg({ text: an.empty ? t.emptyCanvas : t.invalidIsomer, tone: 'bad' })
   }
+
+  // группа или кольцо ставятся один раз, затем инструмент возвращается к «C» (иначе следующее касание добавит ещё кольцо)
+  const onCanvasCommit = useCallback((s: CState) => {
+    commit(s)
+    setTool((tl) => (tl.kind === 'group' ? { kind: 'draw', el: 'C' } : tl))
+  }, [commit])
 
   // ── действия панели ──
   const tidy = () => { commit(tidyLayout(hist.now, an.match ? molecules[an.match.id] : null)); setFitKey((k) => k + 1) }
@@ -256,7 +265,7 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
               <span className={styles.sep} />
               {toolBtn(false, t.undo, undo, <Icon d={IC.undo} />, hist.past.length ? '' : styles.btnDim)}
               {toolBtn(false, t.redo, redo, <Icon d={IC.redo} />, hist.future.length ? '' : styles.btnDim)}
-              {toolBtn(false, t.tidy, tidy, <><Icon d={IC.tidy} /><span className={styles.btnText}>{t.tidy}</span></>, styles.btnWide)}
+              {toolBtn(false, t.tidy, tidy, <><Icon d={IC.tidy} /><span className={`${styles.btnText} ${styles.btnTextOpt}`}>{t.tidy}</span></>, styles.btnWide)}
               {toolBtn(false, t.clear, clear, <Icon d={IC.clear} />)}
               {toolBtn(showDeg, t.degrees, () => setShowDeg((v) => !v), <span className={styles.btnText}>I–IV</span>, styles.btnWide)}
             </div>
@@ -278,7 +287,7 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
               fitKey={fitKey}
               label={t.canvasLabel}
               emptyText={t.emptyCanvas}
-              onCommit={commit}
+              onCommit={onCanvasCommit}
               onPreview={setPreview}
               onFocus={setFocus}
             />

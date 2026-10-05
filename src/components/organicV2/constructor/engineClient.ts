@@ -7,25 +7,37 @@ import type { P3Atom, P3Bond } from './Preview3D'
 
 export interface Embedded { readonly atoms: readonly P3Atom[]; readonly bonds: readonly P3Bond[] }
 
-let worker: Worker | null = null
+type Kind = 'name' | 'embed'
+/** Два воркера (название и 3D), чтобы долгий намер большой молекулы не задерживал 3D. «Побеждает последний»:
+ * новый запрос, пока старый ещё считается, перезапускает воркер — очередь устаревших расчётов не копится. */
+const workers: Record<Kind, Worker | null> = { name: null, embed: null }
+const busy: Record<Kind, number> = { name: 0, embed: 0 }
 let seq = 0
-const waiting = new Map<number, (v: { ok: boolean; value?: unknown }) => void>()
+const waiting = new Map<number, { kind: Kind; cb: (v: { ok: boolean; value?: unknown }) => void }>()
 
-function getWorker(): Worker | null {
-  if (worker) return worker
+function getWorker(kind: Kind): Worker | null {
+  if (busy[kind] && workers[kind]) {
+    workers[kind]!.terminate()
+    workers[kind] = null
+    for (const [id, w] of waiting) if (w.kind === kind) { waiting.delete(id); w.cb({ ok: false }) }
+    busy[kind] = 0
+  }
+  if (workers[kind]) return workers[kind]
   if (typeof Worker === 'undefined') return null
   try {
-    worker = new Worker(new URL('./engine.worker.ts', import.meta.url), { type: 'module' })
-    worker.onmessage = (e: MessageEvent<{ id: number; ok: boolean; value?: unknown }>) => {
+    const w = new Worker(new URL('./engine.worker.ts', import.meta.url), { type: 'module' })
+    w.onmessage = (e: MessageEvent<{ id: number; ok: boolean; value?: unknown }>) => {
       const cb = waiting.get(e.data.id)
       waiting.delete(e.data.id)
-      cb?.(e.data)
+      busy[kind] = Math.max(0, busy[kind] - 1)
+      cb?.cb(e.data)
     }
-    worker.onerror = () => { worker = null }
+    w.onerror = () => { workers[kind] = null }
+    workers[kind] = w
   } catch {
-    worker = null
+    workers[kind] = null
   }
-  return worker
+  return workers[kind]
 }
 
 function local(kind: 'name' | 'embed', graph: SkeletonGraph): unknown {
@@ -37,12 +49,13 @@ function local(kind: 'name' | 'embed', graph: SkeletonGraph): unknown {
   return { atoms: em.atoms.map((a) => ({ el: a.el, p: a.p })), bonds: em.bonds.map((b) => ({ a: b.a, b: b.b, o: b.o })) }
 }
 
-function run<T>(kind: 'name' | 'embed', graph: SkeletonGraph): Promise<T> {
-  const w = getWorker()
+function run<T>(kind: Kind, graph: SkeletonGraph): Promise<T> {
+  const w = getWorker(kind)
   if (!w) return new Promise((res, rej) => setTimeout(() => { try { res(local(kind, graph) as T) } catch (e) { rej(e) } }, 0))
   const id = ++seq
+  busy[kind]++
   return new Promise((res, rej) => {
-    waiting.set(id, (r) => (r.ok ? res(r.value as T) : rej(new Error('engine'))))
+    waiting.set(id, { kind, cb: (r) => (r.ok ? res(r.value as T) : rej(new Error('engine'))) })
     // граф без лишних полей — структурное клонирование дешёвое
     w.postMessage({ id, kind, graph: { atoms: graph.atoms.map((a) => ({ ...a })), bonds: graph.bonds.map((b) => ({ ...b })) } })
   })

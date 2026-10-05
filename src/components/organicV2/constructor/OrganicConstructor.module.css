@@ -140,7 +140,7 @@
 .atom { cursor: pointer; }
 .atomBg { fill: var(--c-canvas); }
 .atomHot .atomBg { fill: color-mix(in srgb, var(--c-primary) 28%, var(--c-canvas)); }
-.atomText { font-size: 21px; font-weight: 700; fill: var(--c-text); font-family: var(--sans, system-ui, sans-serif); pointer-events: none; }
+.atomText { font-size: 19px; font-weight: 700; fill: var(--c-text); font-family: var(--sans, system-ui, sans-serif); pointer-events: none; }
 .elO { fill: var(--c-O); color: var(--c-O); }
 .elN { fill: var(--c-N); color: var(--c-N); }
 .elS { fill: var(--c-S); color: var(--c-S); }
@@ -207,6 +207,10 @@
   .view3dBody { height: 220px; }
   .taskTitle { font-size: 19px; }
   .nameText { font-size: 20px; }
+}
+@media (max-width: 480px) {
+  .btnTextOpt { display: none; }
+  .btnWide { padding: 0 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .errRing { animation: none; }
