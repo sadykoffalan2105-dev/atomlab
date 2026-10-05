@@ -133,6 +133,8 @@ export function OrganicLabPage() {
   )
 
   const [pathOpen, setPathOpen] = useState(false)
+  const tabsRef = useRef<HTMLDivElement>(null)
+  useEffect(() => centerSelected(tabsRef.current), [mode, lesson.id])
   const lessonIndex = ORGANIC_CURRICULUM.indexOf(lesson)
   const doneCount = ORGANIC_CURRICULUM.filter((l) => isLessonDoneV2(progress[l.id], modesOfLesson(l, formulaOf))).length
   const lessonDone = isLessonDoneV2(progress[lesson.id], modes)
@@ -239,7 +241,7 @@ export function OrganicLabPage() {
           <p className={shell.goal}>
             <b>{T.goal}:</b> {goal}
           </p>
-          <div className={shell.tabs} role="tablist" aria-label={T.stepsOfLesson}>
+          <div className={shell.tabs} role="tablist" aria-label={T.stepsOfLesson} ref={tabsRef}>
             {modes.map((m) => (
               <button
                 key={m}
@@ -340,10 +342,7 @@ function MoleculeStrip({ ids, active, mols, lang, T, onPick }: {
 }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const box = ref.current
-    const el = box?.querySelector<HTMLElement>('[aria-selected="true"]')
-    if (!box || !el || box.scrollWidth <= box.clientWidth) return
-    box.scrollLeft = Math.max(0, el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2)
+    centerSelected(ref.current)
   }, [active])
   return (
     <div className={shell.strip}>
@@ -525,6 +524,15 @@ function ReactionStage({ mode, file, lessonRx, rxId, molId, lang, T, onPick, onD
 
 /* ── Мелочи ───────────────────────────────────────────────────────── */
 
+/** Прокрутить строку (чипы, вкладки) так, чтобы выбранный элемент был по центру; страница не дёргается. */
+function centerSelected(box: HTMLElement | null) {
+  const el = box?.querySelector<HTMLElement>('[aria-selected="true"]')
+  if (!box || !el || box.scrollWidth <= box.clientWidth) return
+  const b = box.getBoundingClientRect()
+  const e = el.getBoundingClientRect()
+  box.scrollLeft = Math.max(0, box.scrollLeft + (e.left - b.left) - (b.width - e.width) / 2)
+}
+
 function StageLoading({ text }: { text: string }) {
   return (
     <div className={shell.loading} role="status">
@@ -552,7 +560,9 @@ function ProgressRing({ share, n }: { share: number; n: number }) {
     <span className={shell.ring} data-done={share >= 1 ? 'true' : undefined} aria-hidden>
       <svg width="32" height="32" viewBox="0 0 32 32">
         <circle cx="16" cy="16" r={r} className={shell.ringBg} />
-        <circle cx="16" cy="16" r={r} className={shell.ringFg} strokeDasharray={`${c * share} ${c}`} transform="rotate(-90 16 16)" />
+        {share > 0 ? (
+          <circle cx="16" cy="16" r={r} className={shell.ringFg} strokeDasharray={`${c * share} ${c}`} transform="rotate(-90 16 16)" />
+        ) : null}
       </svg>
       <span className={shell.ringNum}>{share >= 1 ? '✓' : n}</span>
     </span>

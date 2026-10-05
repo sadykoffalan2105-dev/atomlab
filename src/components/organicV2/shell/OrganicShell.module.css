@@ -116,7 +116,7 @@
   flex: 1;
   height: 6px;
   border-radius: 99px;
-  background: var(--lt-surface-3);
+  background: var(--lt-border);
   overflow: hidden;
 }
 
@@ -224,7 +224,7 @@
 
 .ringBg {
   fill: none;
-  stroke: var(--lt-surface-3);
+  stroke: var(--lt-border-strong);
   stroke-width: 3;
 }
 

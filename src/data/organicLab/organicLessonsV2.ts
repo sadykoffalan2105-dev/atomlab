@@ -150,7 +150,8 @@ export function lessonIsomerSets(lesson: OrganicLesson, formulaOf: (id: string) 
   for (const chId of lesson.isomerChallengeIds) {
     const ch = ISOMER_CHALLENGES.find((c) => c.id === chId)
     if (!ch) continue
-    const f = asciiFormula(ch.formula)
+    // «C₇H₁₆ · C5», «C₄H₈ · цикл» — уточнение задания после брутто-формулы
+    const f = asciiFormula(ch.formula.trim().split(/\s/)[0] ?? '')
     const set = out.get(f) ?? new Set<string>()
     for (const c of ch.candidates) if (c.correct && organicMoleculeById[c.id] && formulaOf(c.id) === f) set.add(c.id)
     out.set(f, set)
