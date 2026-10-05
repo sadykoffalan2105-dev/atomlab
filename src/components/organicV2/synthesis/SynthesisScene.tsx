@@ -47,7 +47,7 @@ const BOND_BASE = new THREE.Color('#b8c2d8')
 const BOND_CHANGE = new THREE.Color('#fbbf24')
 const BOND_BREAK = new THREE.Color('#fb7185')
 const BOND_FORM = new THREE.Color('#34d399')
-const HILITE = new THREE.Color('#fde68a')
+const HILITE = new THREE.Color('#fffbe8')
 const DIM = new THREE.Color('#3a4560')
 const Y = new THREE.Vector3(0, 1, 0)
 
@@ -108,8 +108,8 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
         let r = radii[i]
         col.copy(baseColors[i])
         if (atom.center && st >= 1 && st <= 3) {
-          col.lerp(HILITE, 0.18 + 0.22 * pulse)
-          r *= 1.06
+          col.lerp(HILITE, 0.12 + 0.2 * pulse)
+          r *= 1.05 + 0.04 * pulse
         }
         if (focusAtoms && focusAtoms.size && st >= 4 && !focusAtoms.has(i)) col.lerp(DIM, 0.35)
         p.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2])
@@ -175,7 +175,8 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
 
     // электроны разрыва (• радикал, : пара)
     const em = eMesh.current
-    if (em) {
+    if (em) em.count = eCount
+    if (em && eCount) {
       let k = 0
       for (const e of sc.electrons) {
         const alpha = electronAlpha(e, t)
@@ -264,7 +265,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
         <meshStandardMaterial roughness={0.45} metalness={0.05} />
       </instancedMesh>
       <instancedMesh ref={eMesh} args={[undefined, undefined, Math.max(1, eCount)]} frustumCulled={false}>
-        <sphereGeometry args={[0.085, 10, 8]} />
+        <sphereGeometry args={[0.11, 10, 8]} />
         <meshBasicMaterial color="#fde047" toneMapped={false} />
       </instancedMesh>
       {labels.map((lb, li) => (
