@@ -117,3 +117,27 @@ export function lessonShareV2(p: OV2LessonProgress | undefined, modes: readonly 
   if (!modes.length) return 0
   return modes.filter((m) => modeDone(p, m)).length / modes.length
 }
+
+/* ── «Изомеры»: какие карточки галереи ученик уже открыл ─────────────── */
+
+export const ORGANIC_ISOMERS_SEEN_KEY = 'atomlab-organic-v2-isomers-seen'
+
+/** Открытые карточки изомеров урока (id молекул). */
+export function loadIsomersSeen(lessonId: string): readonly string[] {
+  const ids = readJson<Record<string, unknown>>(ORGANIC_ISOMERS_SEEN_KEY)?.[lessonId]
+  return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : []
+}
+
+export function markIsomerSeen(lessonId: string, molId: string): readonly string[] {
+  const map = readJson<Record<string, string[]>>(ORGANIC_ISOMERS_SEEN_KEY) ?? {}
+  const cur = loadIsomersSeen(lessonId)
+  const next = cur.includes(molId) ? cur : [...cur, molId]
+  map[lessonId] = [...next]
+  writeJson(ORGANIC_ISOMERS_SEEN_KEY, map)
+  return next
+}
+
+/** «Изомеры» засчитываются, когда открыты все карточки хотя бы одной формулы урока (или решено задание «все изомеры»). */
+export function isomersExplored(seen: readonly string[], formulaSets: readonly (readonly string[])[]): boolean {
+  return formulaSets.some((ids) => ids.length > 0 && ids.every((id) => seen.includes(id)))
+}

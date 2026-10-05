@@ -54,6 +54,9 @@ const RU = {
   prevLesson: 'Предыдущий урок',
   nextLesson: 'Следующий урок',
   pickMol: 'Выбери молекулу',
+  isoSeen: (n: number, total: number) => `Открыто карточек: ${n} из ${total}`,
+  isoHint: 'Открой каждую карточку (3D и строение) — или найди все изомеры сам в Конструкторе.',
+  isoFind: 'Найти все изомеры самому',
 }
 
 type Dict = typeof RU
@@ -110,6 +113,9 @@ const EN: Dict = {
   prevLesson: 'Previous lesson',
   nextLesson: 'Next lesson',
   pickMol: 'Pick a molecule',
+  isoSeen: (n, total) => `Cards opened: ${n} of ${total}`,
+  isoHint: 'Open every card (3D and structure) — or find all the isomers yourself in the Constructor.',
+  isoFind: 'Find all isomers yourself',
 }
 
 const UZ: Dict = {
@@ -164,6 +170,9 @@ const UZ: Dict = {
   prevLesson: 'Oldingi dars',
   nextLesson: 'Keyingi dars',
   pickMol: 'Molekulani tanlang',
+  isoSeen: (n, total) => `Ochilgan kartochkalar: ${total} tadan ${n}`,
+  isoHint: 'Har bir kartochkani oching (3D va tuzilishi) — yoki barcha izomerlarni Konstruktorda oʻzingiz toping.',
+  isoFind: 'Barcha izomerlarni oʻzim topaman',
 }
 
 export function shellText(lang: OV2Lang): Dict {

@@ -21,8 +21,11 @@ import {
 } from '../data/organicLab/organicCurriculum'
 import {
   isLessonDoneV2,
+  isomersExplored,
   lessonShareV2,
+  loadIsomersSeen,
   loadProgressV2,
+  markIsomerSeen,
   markModeDone,
   modeDone,
   type OV2ProgressMap,
@@ -41,6 +44,7 @@ import {
   type OV2Mode,
 } from '../data/organicLab/organicLessonsV2'
 import { organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
+import { reactionTypeName } from '../chemistry/organicV2/synthesis/teacher'
 import { loadOrganicV2Molecules } from '../data/organicV2/molecules'
 import { loadOrganicV2Reactions } from '../data/organicV2/reactions'
 import type { OV2Molecule, OV2Reaction, OV2ReactionsFile } from '../data/organicV2/types'
@@ -122,7 +126,9 @@ export function OrganicLabPage() {
   const [progress, setProgress] = useState<OV2ProgressMap>(() => loadProgressV2())
   const done = useCallback((m: OV2Mode) => setProgress(markModeDone(lesson.id, m)), [lesson.id])
   useEffect(() => {
-    if ((mode === 'molecule' && mol) || mode === 'isomers') done(mode)
+    // «Молекула» — по открытию; «Изомеры» — когда открыты все карточки формулы или решено задание «все изомеры»;
+    // «Синтез/Реакции» — по onDone проигрывателя; «Конструктор» и «Название» — по решённому заданию
+    if (mode === 'molecule' && mol) done(mode)
   }, [mode, mol, done])
 
   const go = useCallback(
@@ -137,7 +143,9 @@ export function OrganicLabPage() {
   const tabsRef = useRef<HTMLDivElement>(null)
   useEffect(() => centerSelected(tabsRef.current), [mode, lesson.id])
   const lessonIndex = ORGANIC_CURRICULUM.indexOf(lesson)
-  const doneCount = ORGANIC_CURRICULUM.filter((l) => isLessonDoneV2(progress[l.id], modesOfLesson(l, formulaOf))).length
+  // режимы всех 26 уроков — один раз на загрузку данных (не на каждое переключение режима)
+  const allModes = useMemo(() => new Map(ORGANIC_CURRICULUM.map((l) => [l.id, modesOfLesson(l, formulaOf)])), [formulaOf])
+  const doneCount = ORGANIC_CURRICULUM.filter((l) => isLessonDoneV2(progress[l.id], allModes.get(l.id) ?? [])).length
   const lessonDone = isLessonDoneV2(progress[lesson.id], modes)
   const goal = lessonGoalV2(lesson, lang) ?? pickLessonGoal(lesson, lang)
   const showStrip = mode === 'molecule' || mode === 'synthesis' || mode === 'reactions'
@@ -188,7 +196,7 @@ export function OrganicLabPage() {
               <h3 className={shell.chapterTitle}>{ORGANIC_CHAPTER_LABELS[ch][lang]}</h3>
               <ol className={shell.lessons}>
                 {ORGANIC_CURRICULUM.filter((l) => l.chapter === ch).map((l) => {
-                  const lm = modesOfLesson(l, formulaOf)
+                  const lm = allModes.get(l.id) ?? []
                   const share = lessonShareV2(progress[l.id], lm)
                   const active = l.id === lesson.id
                   return (
@@ -283,11 +291,18 @@ export function OrganicLabPage() {
               {mode === 'molecule' && mol ? <MoleculeViewer key={mol.id} mol={mol} lang={lang} className={shell.fill} /> : null}
               {mode === 'constructor' && mols ? (
                 <ConstructorStage lesson={lesson} isoSets={isoSets} taskParam={url.task} mols={mols} lang={lang} T={T}
-                  onTask={(k) => go({ task: k })} onSolved={() => done('constructor')} />
+                  onTask={(k) => go({ task: k })}
+                  onSolved={(kind) => {
+                    done('constructor')
+                    if (kind === 'isomers' && modes.includes('isomers')) done('isomers')
+                  }} />
               ) : null}
               {mode === 'isomers' && mols ? (
-                <IsomerStage sets={isoSets} active={url.formula} mols={mols} lang={lang} T={T}
-                  onFormula={(f) => go({ f })} onOpen={(id) => go({ mode: 'molecule', mol: id })} />
+                <IsomerStage lessonId={lesson.id} sets={isoSets} active={url.formula} mols={mols} lang={lang} T={T}
+                  onFormula={(f) => go({ f })}
+                  onExplored={() => done('isomers')}
+                  onFind={(f) => go({ mode: 'constructor', task: `iso:${f}` })}
+                  onOpen={(id) => go({ mode: 'molecule', mol: id })} />
               ) : null}
               {(mode === 'synthesis' || mode === 'reactions') && mols ? (
                 rxQ.error ? (
@@ -392,7 +407,7 @@ function ConstructorStage({ lesson, isoSets, taskParam, mols, lang, T, onTask, o
   lang: OV2Lang
   T: ShellDict
   onTask: (key: string) => void
-  onSolved: () => void
+  onSolved: (kind: ConstructorTask['kind']) => void
 }) {
   const tasks = useMemo(() => lessonConstructorTasks(lesson, isoSets), [lesson, isoSets])
   const fromParam = useMemo((): ConstructorTask | null => {
@@ -432,7 +447,7 @@ function ConstructorStage({ lesson, isoSets, taskParam, mols, lang, T, onTask, o
         onSolved={(r: ConstructorSolved) => {
           void r
           setSolved(key)
-          onSolved()
+          onSolved(task.kind)
         }}
       />
     </div>
@@ -441,7 +456,8 @@ function ConstructorStage({ lesson, isoSets, taskParam, mols, lang, T, onTask, o
 
 /* ── Изомеры ──────────────────────────────────────────────────────── */
 
-function IsomerStage({ sets, active, mols, lang, T, onFormula, onOpen }: {
+function IsomerStage({ lessonId, sets, active, mols, lang, T, onFormula, onOpen, onExplored, onFind }: {
+  lessonId: string
   sets: ReturnType<typeof lessonIsomerSets>
   active: string | null
   mols: MolMap
@@ -449,9 +465,20 @@ function IsomerStage({ sets, active, mols, lang, T, onFormula, onOpen }: {
   T: ShellDict
   onFormula: (f: string) => void
   onOpen: (id: string) => void
+  onExplored: () => void
+  onFind: (formula: string) => void
 }) {
   const formula = sets.find((s) => s.formula === active)?.formula ?? sets[0]?.formula ?? ''
   const list = useMemo(() => Object.values(mols).filter((m) => m.formula === formula), [mols, formula])
+  const [seen, setSeen] = useState<readonly string[]>(() => loadIsomersSeen(lessonId))
+  const seenHere = list.filter((m) => seen.includes(m.id)).length
+  const open = (id: string) => {
+    const next = markIsomerSeen(lessonId, id)
+    setSeen(next)
+    const bySet = sets.map((s) => Object.values(mols).filter((m) => m.formula === s.formula).map((m) => m.id))
+    if (isomersExplored(next, bySet)) onExplored()
+    onOpen(id)
+  }
   return (
     <div className={shell.split}>
       {sets.length > 1 ? (
@@ -465,7 +492,16 @@ function IsomerStage({ sets, active, mols, lang, T, onFormula, onOpen }: {
           ))}
         </div>
       ) : null}
-      <IsomerGallery key={formula} formula={formula} molecules={list} lang={lang} onOpen={onOpen} className={shell.fill} />
+      <div className={shell.isoBar} data-iso-seen={seenHere} data-iso-total={list.length}>
+        <span className={shell.isoSeen}>
+          <b>{T.isoSeen(seenHere, list.length)}</b>
+          <span className={shell.isoHint}>{T.isoHint}</span>
+        </span>
+        <button type="button" className={shell.navBtn} data-iso-find={formula} onClick={() => onFind(formula)}>
+          ⇄ {T.isoFind}
+        </button>
+      </div>
+      <IsomerGallery key={formula} formula={formula} molecules={list} lang={lang} onOpen={open} className={shell.fill} />
     </div>
   )
 }
@@ -518,7 +554,7 @@ function ReactionStage({ mode, file, lessonRx, rxId, molId, lang, T, onPick, onD
                       data-rx={r.id} onClick={() => onPick(r.id)}>
                       <span className={shell.rxEq}>{r.equation}</span>
                       <span className={shell.rxMeta}>
-                        {r.typeRu ?? lbl?.[1] ?? ''}
+                        {lang === 'ru' ? (r.typeRu ?? lbl?.[1] ?? '') : reactionTypeName(r, lang)}
                         {r.source.page ? ` · ${T.page(r.source.page)}` : ''} · {T.grade(r.source.grade)}
                       </span>
                     </button>

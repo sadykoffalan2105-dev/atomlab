@@ -857,3 +857,63 @@
     font-size: 12px;
   }
 }
+
+/* «Изомеры»: сколько карточек открыто + путь в Конструктор */
+.isoBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.18));
+  border-radius: 12px;
+  background: var(--lt-surface-2, rgba(255, 255, 255, 0.03));
+  margin: 10px 12px 8px;
+}
+.isoSeen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14px;
+}
+.isoHint {
+  font-size: 13px;
+  color: var(--lt-text-2, #9aa6c8);
+}
+
+/* Синтез/Реакции: у проигрывателя своя доска справа — до 1600 px список реакций идёт полосой сверху,
+   иначе 3D-сцена сжимается в узкую колонку, а кнопки скорости вылезают на доску */
+@media (min-width: 761px) and (max-width: 1600px) {
+  .rxLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rxList {
+    display: flex;
+    gap: 8px;
+    max-height: none;
+    padding: 8px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--lt-border);
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .rxGroup {
+    display: contents;
+  }
+
+  .rxGroupTitle {
+    display: none;
+  }
+
+  .rxGroup ul {
+    flex-direction: row;
+  }
+
+  .rxItem {
+    width: 280px;
+  }
+}

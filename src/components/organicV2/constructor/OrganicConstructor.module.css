@@ -50,6 +50,11 @@
   box-shadow: var(--lt-shadow-sm, none);
 }
 .taskSolved { border-color: color-mix(in srgb, var(--c-ok) 60%, transparent); background: color-mix(in srgb, var(--c-ok) 10%, var(--c-surface)); }
+/* задание «собери» на широком экране — одной строкой (заголовок слева, кнопки справа): холст выше, меньше прокрутки */
+@media (min-width: 900px) {
+  .taskInline { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 10px 14px; gap: 6px 14px; }
+  .taskInline > .warnLine { flex: 1 0 100%; }
+}
 .taskHead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; }
 .taskKicker { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-text-3); font-weight: 600; }
 .taskTitle { font-size: 22px; font-weight: 700; color: var(--c-text); }
@@ -197,6 +202,7 @@
 .view3dHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px 0; font-size: 13px; font-weight: 600; color: #b6c0e0; }
 .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(91, 140, 255, 0.2); color: #c7d7ff; font-weight: 600; }
 .view3dBody { height: 240px; }
+.view3dScene { position: relative; width: 100%; height: 100%; }
 .view3dEmpty { height: 100%; display: grid; place-items: center; color: #8793b8; font-size: 14px; padding: 0 16px; text-align: center; }
 .view3dFoot { font-size: 12px; color: #8793b8; padding: 0 12px 8px; }
 
