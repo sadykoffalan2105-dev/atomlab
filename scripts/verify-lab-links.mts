@@ -33,8 +33,14 @@ import {
   type ReactorLinkResult,
 } from '../src/lab/reactorDeepLink.ts'
 import { prepareGuaranteedSynthesisRun } from '../src/lab/synthesisGuarantee.ts'
+import { buildOrganicV2Index, matchOrganicV2Reaction, organicV2IdFromBackHref } from '../src/lab/organicV2Bridge.ts'
+import type { OV2ReactionsFile } from '../src/data/organicV2/types.ts'
 
 const LIST = process.argv.includes('--list')
+/** Органика v2: stage 'organic' → синтез по атомному соответствию (LaboratoryPage + src/lab/organicV2Bridge.ts). */
+const ov2Index = buildOrganicV2Index(
+  (JSON.parse(fs.readFileSync('src/data/organicV2/reactions.json', 'utf8')) as OV2ReactionsFile).reactions,
+)
 
 let idN = 0
 const newId = () => `t${++idN}`
@@ -301,6 +307,7 @@ for (const grade of [10, 11]) {
   let ok = 0
   let schemes = 0
   let withOrganicLab = 0
+  let organicSynth = 0
   const stage: Record<string, number> = {}
   const fails: Record<string, string[]> = {}
   for (const u of book.units) {
@@ -327,6 +334,12 @@ for (const grade of [10, 11]) {
       if (r.ok) {
         ok++
         if (r.stageOnly) stage[r.stageOnly] = (stage[r.stageOnly] ?? 0) + 1
+        // органика: синтез v2 доступен (кнопка запуска открывает проигрыватель, а не «появится позже»)
+        if (r.stageOnly === 'organic') {
+          const m = matchOrganicV2Reaction(ov2Index, { sourceId: organicV2IdFromBackHref(linkSpec?.backHref), equation: r.equationUnicode })
+          if (m) organicSynth++
+          else tbProblems.push(`${label}: органика без синтеза v2 (нет реакции с атомным соответствием)`)
+        }
         tbProblems.push(...checkOk(label, r))
       } else {
         ;(fails[r.code] ??= []).push(`p${rx.page} ${rx.equationAscii}`)
@@ -341,7 +354,7 @@ for (const grade of [10, 11]) {
   const failText = Object.entries(fails)
     .map(([k, v]) => `${k} ${v.length}`)
     .join(', ')
-  const line = `g${grade}: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'}; с органической лабораторией второй кнопкой: ${withOrganicLab}; не открываются: ${failText || '0'}; общих схем (карточки без реактора): ${schemes}`
+  const line = `g${grade}: ${ok}/${n} открываются (${((ok / n) * 100).toFixed(1)}%), из них только «шарами»: ${stageText || '0'} (органика с синтезом v2: ${organicSynth}); с органической лабораторией второй кнопкой: ${withOrganicLab}; не открываются: ${failText || '0'}; общих схем (карточки без реактора): ${schemes}`
   coverage.push(line)
   console.log(`\n${line}`)
   for (const [code, list] of Object.entries(fails)) console.log(`  ${code}: ${list.length}\n    - ${list.join('\n    - ')}`)

@@ -159,6 +159,17 @@ export function matchOrganicV2Reaction(index: OrganicV2Index, q: OrganicV2Query)
   return null
 }
 
+/** Молекула-продукт v2 с составом главного продукта реактора (подсветка в проигрывателе); иначе первый органический продукт. */
+export function focusMoleculeForProduct(r: OV2Reaction, composition: Readonly<FormulaCounts> | null | undefined): string | undefined {
+  const products = r.species.filter((s) => s.side === 'R' && !s.ref.startsWith('inorg:'))
+  if (composition) {
+    const key = formulaCompositionKey(composition)
+    const same = products.find((s) => formulaCompositionKey(speciesCounts(s)) === key)
+    if (same) return same.ref
+  }
+  return products[0]?.ref
+}
+
 let indexPromise: Promise<OrganicV2Index> | null = null
 
 /** Индекс по всем реакциям v2 (файл реакций грузится отдельным чанком один раз за сессию). */
