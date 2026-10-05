@@ -1,648 +1,626 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+/**
+ * #/organic — органика v2 (план docs/plans/organic-v2.md): путь по учебнику Kimyo 10 слева, вкладки режимов
+ * «Молекула · Конструктор · Изомеры · Синтез · Реакции · Название», сцена режима в центре.
+ * Состояние — только в URL (organicUrl.ts): lesson, mode, mol, rx, task, f, src (ссылка назад к учебнику).
+ * Данные молекул и реакций (RDKit) грузятся отдельными чанками; геометрия в браузере не пересчитывается.
+ */
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { LabDomainTabs } from '../components/lab/LabDomainTabs'
-import { OrganicMoleculeViewer } from '../components/organicLab/OrganicMoleculeViewer'
 import { OrganicNomenclatureMode } from '../components/organicLab/OrganicNomenclatureMode'
-import { ResearchBuilderMode } from '../components/learn/research/ResearchBuilderMode'
-import { ResearchEquationBuilder } from '../components/learn/research/ResearchEquationBuilder'
-import { ResearchIsomersMode } from '../components/learn/research/ResearchIsomersMode'
+import type { ConstructorSolved, ConstructorTask, OV2Lang } from '../components/organicV2/contracts'
+import { MiniSkeleton } from '../components/organicV2/shell/MiniSkeleton'
+import { patchOrganicParams, resolveOrganicUrl } from '../components/organicV2/shell/organicUrl'
+import { shellText, type ShellDict } from '../components/organicV2/shell/shellI18n'
+import shell from '../components/organicV2/shell/OrganicShell.module.css'
 import {
-  defaultMolForLesson,
-  lessonForChallengeId,
-  lessonForMoleculeId,
-  lessonHasBuild,
-  lessonHasEquation,
-  lessonHasIsomer,
-  lessonHasName,
-  ORGANIC_CURRICULUM,
-  ORGANIC_CURRICULUM_BY_ID,
-  pickChapterLabel,
+  ORGANIC_CHAPTER_LABELS,
   pickLessonGoal,
   pickLessonTitle,
-  resolveOrganicLessonFromLearn,
   type OrganicLesson,
-  type OrganicLessonMode,
 } from '../data/organicLab/organicCurriculum'
 import {
-  getLessonProgress,
-  isLessonComplete,
-  loadOrganicCurriculumProgress,
-  markLessonProgress,
-  type OrganicCurriculumProgressMap,
+  isLessonDoneV2,
+  lessonShareV2,
+  loadProgressV2,
+  markModeDone,
+  type OV2ProgressMap,
 } from '../data/organicLab/organicCurriculumProgress'
+import { ORGANIC_REACTION_LABELS } from '../data/organicLab/organicLessonReactions.gen'
 import {
-  ORGANIC_BUILD_CHALLENGES,
-  challengeBuildStage,
-} from '../data/researchLab/organicBuildCatalog'
-import {
-  organicMoleculeById,
-  pickOrganicClassLabel,
-} from '../data/organicLab/organicMoleculeRegistry'
-import type { OrganicDisplayMode, OrganicMoleculeDef } from '../data/organicLab/organicMoleculeTypes'
+  asciiFormula,
+  lessonConstructorTasks,
+  lessonGoalV2,
+  lessonIsomerSets,
+  lessonModesV2,
+  lessonMoleculeIds,
+  lessonReactionIds,
+  ORGANIC_CURRICULUM,
+  taskKey,
+  type OV2Mode,
+} from '../data/organicLab/organicLessonsV2'
+import { organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
+import { loadOrganicV2Molecules } from '../data/organicV2/molecules'
+import { loadOrganicV2Reactions } from '../data/organicV2/reactions'
+import type { OV2Molecule, OV2Reaction, OV2ReactionsFile } from '../data/organicV2/types'
 import { useLocale } from '../i18n/useLocale'
-import { useT } from '../i18n/useT'
 import { sanitizeBackHref } from '../lab/reactorDeepLink'
-import labStyles from './LaboratoryPage.module.css'
-import styles from './OrganicLabPage.module.css'
 
-function pickName(m: OrganicMoleculeDef, locale: string) {
-  if (locale === 'en') return m.nameEn
-  if (locale === 'uz') return m.nameUz
-  return m.nameRu
+const MoleculeViewer = lazy(() => import('../components/organicV2/MoleculeViewer').then((m) => ({ default: m.MoleculeViewer })))
+const OrganicConstructor = lazy(() =>
+  import('../components/organicV2/OrganicConstructor').then((m) => ({ default: m.OrganicConstructor })),
+)
+const IsomerGallery = lazy(() => import('../components/organicV2/IsomerGallery').then((m) => ({ default: m.IsomerGallery })))
+const SynthesisPlayer = lazy(() =>
+  import('../components/organicV2/SynthesisPlayer').then((m) => ({ default: m.SynthesisPlayer })),
+)
+
+type MolMap = Readonly<Record<string, OV2Molecule>>
+
+const subscript = (f: string) => f.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[+d]!)
+
+function molName(id: string, lang: OV2Lang): string {
+  const m = organicMoleculeById[id]
+  if (!m) return id
+  return lang === 'en' ? m.nameEn : lang === 'uz' ? m.nameUz : m.nameRu
 }
 
-function pickDesc(m: OrganicMoleculeDef, locale: string) {
-  if (locale === 'en') return m.descriptionEn
-  if (locale === 'uz') return m.descriptionUz
-  return m.descriptionRu
-}
-
-function pickEq(m: OrganicMoleculeDef, locale: string) {
-  if (locale === 'en') return m.equationEn
-  if (locale === 'uz') return m.equationUz
-  return m.equationRu
-}
-
-function buildableIds(lesson: OrganicLesson): string[] {
-  const catalog = new Set(
-    ORGANIC_BUILD_CHALLENGES.filter((c) => challengeBuildStage(c) !== 'cage' && !c.viewOnly).map((c) => c.id),
-  )
-  return lesson.challengeIds.filter((id) => catalog.has(id))
-}
-
-function parseMode(raw: string | null): OrganicLessonMode | null {
-  if (raw === 'view' || raw === 'build' || raw === 'equation' || raw === 'isomer' || raw === 'name') {
-    return raw
-  }
-  return null
+/** Данные v2 грузятся один раз; ошибка сети — кнопка «Повторить». */
+function useAsyncData<T>(enabled: boolean, load: () => Promise<T>): { data: T | null; error: boolean; retry: () => void } {
+  const [data, setData] = useState<T | null>(null)
+  const [error, setError] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    if (!enabled || data) return
+    let alive = true
+    load().then(
+      (d) => alive && setData(d),
+      () => alive && setError(true),
+    )
+    return () => {
+      alive = false
+    }
+    // load — стабильная функция модуля
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, attempt, data])
+  return { data, error, retry: () => (setError(false), setAttempt((a) => a + 1)) }
 }
 
 export function OrganicLabPage() {
-  const { t } = useT()
   const { locale } = useLocale()
+  const lang: OV2Lang = locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
+  const T = shellText(lang)
   const [params, setParams] = useSearchParams()
-  /** Пришли из интерактивного учебника (src=): ссылка «назад к учебнику» переживает смену урока/режима в URL. */
-  const srcBack = sanitizeBackHref(params.get('src'))
-  const [backHref, setBackHref] = useState(srcBack)
-  if (srcBack && srcBack !== backHref) setBackHref(srcBack)
+  const url = useMemo(() => resolveOrganicUrl(params), [params])
+  const { lesson } = url
+  const backHref = sanitizeBackHref(params.get('src'))
 
-  const initialLesson = useMemo(() => {
-    const lessonParam = params.get('lesson')
-    if (lessonParam && ORGANIC_CURRICULUM_BY_ID[lessonParam]) {
-      return ORGANIC_CURRICULUM_BY_ID[lessonParam]!
-    }
-    const ch = Number(params.get('chapter'))
-    if (Number.isFinite(ch) && ch >= 1) {
-      const secRaw = params.get('section')
-      const sec = secRaw != null ? Number(secRaw) : undefined
-      return resolveOrganicLessonFromLearn(ch, sec)
-    }
-    const challenge = params.get('challenge')
-    if (challenge) {
-      const fromCh = lessonForChallengeId(challenge)
-      if (fromCh) return fromCh
-    }
-    const mol = params.get('mol')
-    if (mol) {
-      const fromMol = lessonForMoleculeId(mol)
-      if (fromMol) return fromMol
-    }
-    return ORGANIC_CURRICULUM[0]!
-  }, [params])
-
-  const [lessonId, setLessonId] = useState(initialLesson.id)
-  const lesson = ORGANIC_CURRICULUM_BY_ID[lessonId] ?? ORGANIC_CURRICULUM[0]!
-
-  const canBuild = lessonHasBuild(lesson) && buildableIds(lesson).length > 0
-  const canEquation = lessonHasEquation(lesson)
-  const canIsomer = lessonHasIsomer(lesson)
-  const canName = lessonHasName(lesson)
-
-  const resolvedMode = useMemo((): OrganicLessonMode => {
-    const m = parseMode(params.get('mode'))
-    const buildOk = lessonHasBuild(initialLesson) && buildableIds(initialLesson).length > 0
-    const eqOk = lessonHasEquation(initialLesson)
-    const isoOk = lessonHasIsomer(initialLesson)
-    const nameOk = lessonHasName(initialLesson)
-    if (m === 'build' && buildOk) return 'build'
-    if (m === 'equation' && eqOk) return 'equation'
-    if (m === 'isomer' && isoOk) return 'isomer'
-    if (m === 'name' && nameOk) return 'name'
-    if (m === 'view') return 'view'
-    if (params.get('challenge') && buildOk) return 'build'
-    return 'view'
-  }, [params, initialLesson])
-
-  const [mode, setMode] = useState<OrganicLessonMode>(resolvedMode)
-  const [displayMode, setDisplayMode] = useState<OrganicDisplayMode>('ballStick')
-  const [showMoreModes, setShowMoreModes] = useState(false)
-  /** Телефон: список уроков свёрнут (на широком экране колонка открыта всегда). */
-  const [lessonsOpen, setLessonsOpen] = useState(false)
-  const [progressMap, setProgressMap] = useState<OrganicCurriculumProgressMap>(() =>
-    loadOrganicCurriculumProgress(),
+  const molsQ = useAsyncData<MolMap>(true, loadOrganicV2Molecules)
+  const mols = molsQ.data
+  const formulaOf = useCallback(
+    (id: string) => mols?.[id]?.formula ?? (organicMoleculeById[id] ? asciiFormula(organicMoleculeById[id]!.formula) : undefined),
+    [mols],
   )
+  const isoSets = useMemo(() => lessonIsomerSets(lesson, formulaOf), [lesson, formulaOf])
+  const lessonRx = lessonReactionIds(lesson)
+  const modes = useMemo(() => {
+    const m = lessonModesV2(lesson, isoSets)
+    if (url.mode === 'reactions' && url.rxId && !m.includes('reactions')) m.splice(m.indexOf('synthesis') + 1, 0, 'reactions')
+    return m
+  }, [lesson, isoSets, url.mode, url.rxId])
+  const mode: OV2Mode = modes.includes(url.mode) ? url.mode : 'molecule'
+  const rxQ = useAsyncData<OV2ReactionsFile>(mode === 'synthesis' || mode === 'reactions', loadOrganicV2Reactions)
 
-  const molCandidates = useMemo(() => {
-    return lesson.challengeIds
-      .map((id) => organicMoleculeById[id])
-      .filter((m): m is OrganicMoleculeDef => Boolean(m))
-  }, [lesson])
+  const molIds = useMemo(() => {
+    const ids = lessonMoleculeIds(lesson)
+    return ids.includes(url.molId) ? ids : [url.molId, ...ids]
+  }, [lesson, url.molId])
+  const molId = url.molId
+  const mol = mols?.[molId]
 
-  const resolvedMolId = useMemo(() => {
-    const mol = params.get('mol')
-    if (mol && initialLesson.challengeIds.includes(mol) && organicMoleculeById[mol]) return mol
-    const challenge = params.get('challenge')
-    if (
-      challenge &&
-      initialLesson.challengeIds.includes(challenge) &&
-      organicMoleculeById[challenge]
-    ) {
-      return challenge
-    }
-    return defaultMolForLesson(initialLesson)
-  }, [params, initialLesson])
-
-  const [browseMolId, setBrowseMolId] = useState(resolvedMolId)
-
+  const [progress, setProgress] = useState<OV2ProgressMap>(() => loadProgressV2())
+  const done = useCallback((m: OV2Mode) => setProgress(markModeDone(lesson.id, m)), [lesson.id])
   useEffect(() => {
-    setLessonId(initialLesson.id)
-    setBrowseMolId(resolvedMolId)
-    setMode(resolvedMode)
-  }, [initialLesson.id, resolvedMolId, resolvedMode])
-  const displayMol = organicMoleculeById[browseMolId] ?? molCandidates[0] ?? null
-  /** Формулы, которые в уроке встречаются больше одного раза (изомеры): у таких чипов — название. */
-  const dupFormulas = useMemo(() => {
-    const seen = new Map<string, number>()
-    for (const m of molCandidates) seen.set(m.formula, (seen.get(m.formula) ?? 0) + 1)
-    return new Set([...seen].filter(([, n]) => n > 1).map(([f]) => f))
-  }, [molCandidates])
-  /** Строка чипов прокручивается: активная молекула всегда в поле зрения (терефталевая кислота — 13-я из 15). */
-  const chipsRef = useRef<HTMLDivElement>(null)
-  const displayMolId = displayMol?.id
-  useEffect(() => {
-    const box = chipsRef.current
-    const el = box?.querySelector<HTMLElement>('[aria-selected="true"]')
-    if (!box || !el) return
-    if (box.scrollWidth <= box.clientWidth) return
-    box.scrollLeft = Math.max(0, el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2)
-  }, [displayMolId, mode, lessonId])
+    if ((mode === 'molecule' && mol) || mode === 'isomers') done(mode)
+  }, [mode, mol, done])
 
-  const buildIds = useMemo(() => buildableIds(lesson), [lesson])
-  const buildInitialId = useMemo(() => {
-    const challenge = params.get('challenge')
-    if (challenge && buildIds.includes(challenge)) return challenge
-    if (buildIds.includes(browseMolId)) return browseMolId
-    return buildIds[0]
-  }, [params, buildIds, browseMolId])
-
-  const syncParams = useCallback(
-    (next: { lessonId: string; mode: OrganicLessonMode; molId: string }) => {
-      const p = new URLSearchParams()
-      p.set('lesson', next.lessonId)
-      p.set('mode', next.mode)
-      p.set('mol', next.molId)
-      setParams(p, { replace: true })
+  const go = useCallback(
+    (patch: Parameters<typeof patchOrganicParams>[1]) => {
+      const base = { lesson: lesson.id, mode, mol: molId, task: url.task, ...patch }
+      setParams(patchOrganicParams(params, base), { replace: true })
     },
-    [setParams],
+    [lesson.id, mode, molId, url.task, params, setParams],
   )
 
-  const selectLesson = useCallback(
-    (next: OrganicLesson) => {
-      const molId = defaultMolForLesson(next)
-      setLessonId(next.id)
-      setBrowseMolId(molId)
-      setMode('view')
-      setDisplayMode('ballStick')
-      syncParams({ lessonId: next.id, mode: 'view', molId })
-    },
-    [syncParams],
-  )
+  const [pathOpen, setPathOpen] = useState(false)
+  const lessonIndex = ORGANIC_CURRICULUM.indexOf(lesson)
+  const doneCount = ORGANIC_CURRICULUM.filter((l) => isLessonDoneV2(progress[l.id], modesOfLesson(l, formulaOf))).length
+  const lessonDone = isLessonDoneV2(progress[lesson.id], modes)
+  const goal = lessonGoalV2(lesson, lang) ?? pickLessonGoal(lesson, lang)
+  const showStrip = mode === 'molecule' || mode === 'synthesis' || mode === 'reactions'
 
-  const selectMode = useCallback(
-    (next: OrganicLessonMode) => {
-      if (next === 'build' && !canBuild) return
-      if (next === 'equation' && !canEquation) return
-      if (next === 'isomer' && !canIsomer) return
-      if (next === 'name' && !canName) return
-      setMode(next)
-      const molId = browseMolId || defaultMolForLesson(lesson)
-      syncParams({ lessonId: lesson.id, mode: next, molId })
-    },
-    [canBuild, canEquation, canIsomer, canName, browseMolId, lesson, syncParams],
-  )
-
-  const selectMol = useCallback(
-    (id: string) => {
-      if (!organicMoleculeById[id]) return
-      setBrowseMolId(id)
-      syncParams({ lessonId: lesson.id, mode, molId: id })
-    },
-    [lesson.id, mode, syncParams],
-  )
-
-  const patchProgress = useCallback((lessonKey: string, patch: Parameters<typeof markLessonProgress>[1]) => {
-    setProgressMap(markLessonProgress(lessonKey, patch))
-  }, [])
-
-  useEffect(() => {
-    if (mode === 'view') {
-      patchProgress(lesson.id, { viewed: true })
-    }
-  }, [mode, lesson.id, patchProgress])
-
-  const lessonProgress = getLessonProgress(progressMap, lesson.id)
-  const lessonDone = isLessonComplete(lessonProgress, {
-    requireBuild: canBuild,
-    requireEquation: canEquation,
-    requireIsomer: canIsomer,
-    requireName: canName,
-  })
-
-  const primaryModes: { id: OrganicDisplayMode; label: string }[] = [
-    { id: 'ballStick', label: t('organicLab.modeBallStick') },
-    { id: 'skeleton2d', label: t('organicLab.modeSkeleton') },
-  ]
-  const extraModes: { id: OrganicDisplayMode; label: string }[] = [
-    { id: 'spaceFill', label: t('organicLab.modeSpaceFill') },
-    { id: 'hybridization', label: t('organicLab.modeHybrid') },
-  ]
-
-  const chapters = [1, 2, 3, 4] as const
-
-  const modeTab = (id: OrganicLessonMode, label: string, icon: ReactNode, disabled = false) => (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={mode === id}
-      disabled={disabled}
-      className={`${styles.modeTab} ${mode === id ? styles.modeTabActive : ''}`}
-      onClick={() => selectMode(id)}
-    >
-      <span className={styles.modeTabIcon} aria-hidden>
-        {icon}
-      </span>
-      <span className={styles.modeTabLabel}>{label}</span>
-    </button>
-  )
+  const selectLesson = (l: OrganicLesson) => {
+    setPathOpen(false)
+    setParams(patchOrganicParams(params, { lesson: l.id, mode: 'molecule', mol: null, rx: null, task: null, f: null }), {
+      replace: true,
+    })
+    window.scrollTo({ top: 0 })
+  }
 
   return (
-    <div className={`${labStyles.wrap} ${styles.programWrap}`}>
-      <div className={styles.programLayout}>
-        <aside
-          className={styles.pathPanel}
-          aria-label={t('organicLab.programAria')}
-          data-open={lessonsOpen ? 'true' : undefined}
-        >
+    <div className={shell.page} data-ov2-shell="" data-mode={mode}>
+      <div
+        className={shell.backdrop}
+        data-open={pathOpen ? 'true' : undefined}
+        onClick={() => setPathOpen(false)}
+        aria-hidden
+      />
+      <aside className={shell.path} data-open={pathOpen ? 'true' : undefined} aria-label={T.path} id="ov2-path">
+        <div className={shell.pathTop}>
           {backHref ? (
-            <Link
-              className={labStyles.backToBook}
-              style={{ position: 'static', alignSelf: 'flex-start', marginBottom: 8 }}
-              to={backHref}
-              data-lab-back-to-book=""
-            >
-              {t('lab.deepLink.backToBook')}
+            <Link className={shell.back} to={backHref} data-lab-back-to-book="">
+              {T.back}
             </Link>
           ) : null}
-          <div className={styles.domainTabsSlot}>
+          <div className={shell.domainTabs}>
             <LabDomainTabs active="organic" />
           </div>
-          {/* Телефон: программа свёрнута в строку «глава · текущий урок», список раскрывается по нажатию. */}
-          <button
-            type="button"
-            className={styles.pathToggle}
-            aria-expanded={lessonsOpen}
-            aria-controls="organic-lesson-path"
-            onClick={() => setLessonsOpen((v) => !v)}
-          >
-            <span className={styles.pathToggleIcon} aria-hidden>
-              <PathIcon />
-            </span>
-            <span className={styles.pathToggleText}>
-              <span className={styles.pathToggleKicker}>{pickChapterLabel(lesson.chapter, locale)}</span>
-              <span className={styles.pathToggleTitle}>{pickLessonTitle(lesson, locale)}</span>
-            </span>
-            <span className={styles.pathToggleChevron} aria-hidden>
-              <ChevronIcon />
-            </span>
+          <button type="button" className={shell.pathClose} onClick={() => setPathOpen(false)} aria-label={T.close}>
+            ×
           </button>
-          <div id="organic-lesson-path" className={styles.pathBody}>
-            <p className={styles.pathLead}>{t('organicLab.programLead')}</p>
-            {chapters.map((ch) => (
-              <div key={ch} className={styles.chapterBlock}>
-                <h2 className={styles.chapterTitle}>{pickChapterLabel(ch, locale)}</h2>
-                <ul className={styles.lessonList}>
-                  {ORGANIC_CURRICULUM.filter((l) => l.chapter === ch).map((l) => {
-                    const prog = getLessonProgress(progressMap, l.id)
-                    const done = isLessonComplete(prog, {
-                      requireBuild: lessonHasBuild(l) && buildableIds(l).length > 0,
-                      requireEquation: lessonHasEquation(l),
-                      requireIsomer: lessonHasIsomer(l),
-                      requireName: lessonHasName(l),
-                    })
-                    const active = l.id === lesson.id
-                    return (
-                      <li key={l.id}>
-                        <button
-                          type="button"
-                          className={`${styles.lessonBtn} ${active ? styles.lessonBtnActive : ''} ${done ? styles.lessonBtnDone : ''}`}
-                          aria-current={active ? 'true' : undefined}
-                          onClick={() => {
-                            selectLesson(l)
-                            setLessonsOpen(false)
-                          }}
-                        >
-                          <span
-                            className={styles.lessonCheck}
-                            data-state={done ? 'done' : prog.viewed ? 'viewed' : undefined}
-                            aria-hidden
-                          >
-                            {done ? <CheckIcon /> : null}
-                          </span>
-                          <span className={styles.lessonTitle}>{pickLessonTitle(l, locale)}</span>
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </div>
+        </div>
+        <div className={shell.pathHead}>
+          <h2 className={shell.pathTitle}>{T.path}</h2>
+          <p className={shell.pathLead}>{T.pathLead}</p>
+          <div className={shell.overall} aria-label={T.progress}>
+            <div className={shell.overallBar}>
+              <span style={{ width: `${(doneCount / ORGANIC_CURRICULUM.length) * 100}%` }} />
+            </div>
+            <span className={shell.overallText}>{T.lessonsDone(doneCount, ORGANIC_CURRICULUM.length)}</span>
+          </div>
+        </div>
+        <nav className={shell.pathList}>
+          {([1, 2, 3, 4] as const).map((ch) => (
+            <section key={ch} className={shell.chapter}>
+              <h3 className={shell.chapterTitle}>{ORGANIC_CHAPTER_LABELS[ch][lang]}</h3>
+              <ol className={shell.lessons}>
+                {ORGANIC_CURRICULUM.filter((l) => l.chapter === ch).map((l) => {
+                  const lm = modesOfLesson(l, formulaOf)
+                  const share = lessonShareV2(progress[l.id], lm)
+                  const active = l.id === lesson.id
+                  return (
+                    <li key={l.id}>
+                      <button
+                        type="button"
+                        className={shell.lessonBtn}
+                        data-active={active ? 'true' : undefined}
+                        data-lesson={l.id}
+                        aria-current={active ? 'page' : undefined}
+                        onClick={() => selectLesson(l)}
+                      >
+                        <ProgressRing share={share} n={ORGANIC_CURRICULUM.indexOf(l) + 1} />
+                        <span className={shell.lessonName}>{pickLessonTitle(l, lang)}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
+          ))}
+        </nav>
+      </aside>
+
+      <main className={shell.main}>
+        <header className={shell.head}>
+          <div className={shell.headTop}>
+            <button
+              type="button"
+              className={shell.pathToggle}
+              aria-expanded={pathOpen}
+              aria-controls="ov2-path"
+              onClick={() => setPathOpen(true)}
+            >
+              <PathIcon />
+              {T.openPath}
+            </button>
+            <p className={shell.kicker}>
+              {ORGANIC_CHAPTER_LABELS[lesson.chapter][lang]} · {T.lessonOf(lessonIndex + 1, ORGANIC_CURRICULUM.length)}
+            </p>
+            {backHref ? (
+              <Link className={`${shell.back} ${shell.backInline}`} to={backHref}>
+                {T.back}
+              </Link>
+            ) : null}
+          </div>
+          <div className={shell.titleRow}>
+            <h1 className={shell.title}>{pickLessonTitle(lesson, lang)}</h1>
+            {lessonDone ? <span className={shell.doneBadge}>✓ {T.done}</span> : null}
+          </div>
+          <p className={shell.goal}>
+            <b>{T.goal}:</b> {goal}
+          </p>
+          <div className={shell.tabs} role="tablist" aria-label={T.stepsOfLesson}>
+            {modes.map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                data-mode-tab={m}
+                aria-selected={m === mode}
+                className={shell.tab}
+                onClick={() => go({ mode: m, rx: m === mode ? url.rxId : m === 'reactions' ? url.rxId : null })}
+                title={T.modeHints[m]}
+              >
+                <ModeIcon mode={m} />
+                <span>{T.modes[m]}</span>
+                {progress[lesson.id]?.[m] ? <span className={shell.tabDone} aria-label={T.done}>✓</span> : null}
+              </button>
             ))}
           </div>
-        </aside>
+        </header>
 
-        <div className={styles.mainCol}>
-          <header className={styles.lessonHeader}>
-            <div className={styles.lessonIntro}>
-              <p className={styles.lessonKicker}>{pickChapterLabel(lesson.chapter, locale)}</p>
-              <div className={styles.headingRow}>
-                <h1 className={styles.lessonHeading}>{pickLessonTitle(lesson, locale)}</h1>
-                {lessonDone ? (
-                  <p className={styles.lessonComplete}>
-                    <CheckIcon />
-                    {t('organicLab.progressDone')}
-                  </p>
-                ) : null}
-              </div>
-              <p className={styles.lessonGoal}>
-                <span className={styles.goalLabel}>{t('organicLab.lessonGoal')}</span>{' '}
-                {pickLessonGoal(lesson, locale)}
-              </p>
-            </div>
-            <div className={styles.modeTabs} role="tablist" aria-label={t('organicLab.activityAria')}>
-              {modeTab('view', t('organicLab.modeView'), <ViewIcon />)}
-              {modeTab('build', t('organicLab.modeBuild'), <BuildIcon />, !canBuild)}
-              {modeTab('equation', t('organicLab.modeEquation'), <EquationIcon />, !canEquation)}
-              {canIsomer ? modeTab('isomer', t('organicLab.modeIsomer'), <IsomerIcon />) : null}
-              {canName ? modeTab('name', t('organicLab.modeName'), <NameIcon />) : null}
-            </div>
-          </header>
+        {showStrip ? (
+          <MoleculeStrip ids={molIds} active={molId} mols={mols} lang={lang} T={T} onPick={(id) => go({ mol: id, rx: mode === 'reactions' ? url.rxId : null })} />
+        ) : null}
 
-          {mode === 'view' && displayMol ? (
-            // data-app-night: 3D-вьюпорт и его HUD задуманы тёмными в обеих темах
-            // (ночные токены — src/theme/appTheme.css); шапка и список уроков — по теме.
-            <div
-              className={styles.viewStage}
-              data-app-night=""
-              style={{ ['--synth-glow' as string]: displayMol.accentColor ?? '#0a0c18' }}
-            >
-              <div
-                ref={chipsRef}
-                className={styles.molChips}
-                role="listbox"
-                aria-label={t('organicLab.moleculesAria')}
-              >
-                {molCandidates.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    role="option"
-                    aria-selected={m.id === displayMol.id}
-                    className={`${styles.molChip} ${m.id === displayMol.id ? styles.molChipActive : ''}`}
-                    title={`${pickName(m, locale)} · ${m.formula}`}
-                    onClick={() => selectMol(m.id)}
-                  >
-                    {dupFormulas.has(m.formula) ? pickName(m, locale) : m.formula}
-                  </button>
-                ))}
-              </div>
-
-              <OrganicMoleculeViewer mol={displayMol} mode={displayMode} fillParent key={displayMol.id}>
-                <div className={styles.hudTop}>
-                  <div className={styles.titleCard}>
-                    <div className={styles.titleRow}>
-                      <strong className={styles.molName}>{pickName(displayMol, locale)}</strong>
-                      <span className={styles.molFormula}>{displayMol.formula}</span>
-                    </div>
-                    <p className={styles.molDesc}>
-                      <span className={styles.molClass}>{pickOrganicClassLabel(displayMol.classId, locale)}</span>
-                      <span>{pickDesc(displayMol, locale)}</span>
-                    </p>
-                  </div>
+        <section className={shell.stage} data-stage={mode}>
+          {molsQ.error ? (
+            <LoadError T={T} retry={molsQ.retry} />
+          ) : !mols && mode !== 'name' ? (
+            <StageLoading text={T.loading} />
+          ) : (
+            <Suspense fallback={<StageLoading text={T.loading} />}>
+              {mode === 'molecule' && mol ? <MoleculeViewer key={mol.id} mol={mol} lang={lang} className={shell.fill} /> : null}
+              {mode === 'constructor' && mols ? (
+                <ConstructorStage lesson={lesson} isoSets={isoSets} taskParam={url.task} mols={mols} lang={lang} T={T}
+                  onTask={(k) => go({ task: k })} onSolved={() => done('constructor')} />
+              ) : null}
+              {mode === 'isomers' && mols ? (
+                <IsomerStage sets={isoSets} active={url.formula} mols={mols} lang={lang} T={T}
+                  onFormula={(f) => go({ f })} onOpen={(id) => go({ mode: 'molecule', mol: id })} />
+              ) : null}
+              {(mode === 'synthesis' || mode === 'reactions') && mols ? (
+                rxQ.error ? (
+                  <LoadError T={T} retry={rxQ.retry} />
+                ) : !rxQ.data ? (
+                  <StageLoading text={T.loadingRx} />
+                ) : (
+                  <ReactionStage
+                    mode={mode}
+                    file={rxQ.data}
+                    lessonRx={lessonRx}
+                    rxId={url.rxId}
+                    molId={molId}
+                    lang={lang}
+                    T={T}
+                    onPick={(id) => go({ rx: id })}
+                    onDone={() => done(mode)}
+                  />
+                )
+              ) : null}
+              {mode === 'name' && lesson.nomenclatureQuizId ? (
+                <div className={shell.quizWrap}>
+                  <OrganicNomenclatureMode
+                    key={lesson.id}
+                    quizId={lesson.nomenclatureQuizId}
+                    quizIds={[lesson.nomenclatureQuizId, ...(lesson.extraQuizIds ?? [])]}
+                    onComplete={() => done('name')}
+                  />
                 </div>
+              ) : null}
+            </Suspense>
+          )}
+        </section>
 
-                {/* Док HUD: на широком экране дети позиционируются по сцене (display: contents), на телефоне — колонка внизу. */}
-                <div className={styles.hudDock}>
-                  <div className={styles.modeCol} role="group" aria-label={t('organicLab.modeAria')}>
-                    {primaryModes.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        aria-pressed={displayMode === m.id}
-                        className={`${styles.modeBtn} ${displayMode === m.id ? styles.modeBtnActive : ''}`}
-                        onClick={() => setDisplayMode(m.id)}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      aria-expanded={showMoreModes}
-                      className={`${styles.modeBtn} ${styles.modeBtnMore}`}
-                      onClick={() => setShowMoreModes((v) => !v)}
-                    >
-                      {t('organicLab.moreModes')}
-                      <ChevronIcon />
-                    </button>
-                    {showMoreModes
-                      ? extraModes.map((m) => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            aria-pressed={displayMode === m.id}
-                            className={`${styles.modeBtn} ${displayMode === m.id ? styles.modeBtnActive : ''}`}
-                            onClick={() => setDisplayMode(m.id)}
-                          >
-                            {m.label}
-                          </button>
-                        ))
-                      : null}
-                  </div>
-
-                  {displayMode === 'hybridization' && displayMol.viewHints?.hybridFocus ? (
-                    <div className={styles.hybridPanel}>
-                      <span className={styles.hybridBadge}>{displayMol.viewHints.hybridFocus}</span>
-                      <span>{t('organicLab.hybridHint', { h: displayMol.viewHints.hybridFocus })}</span>
-                    </div>
-                  ) : null}
-
-                  <div className={styles.hudBottom}>
-                    <div className={styles.eqBar}>
-                      <span className={styles.eqLabel}>{t('organicLab.equation')}</span>
-                      <code className={styles.eqCode}>{pickEq(displayMol, locale)}</code>
-                    </div>
-                    {canBuild ? (
-                      <button type="button" className={styles.primaryLink} onClick={() => selectMode('build')}>
-                        <BuildIcon />
-                        {t('organicLab.modeBuild')}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </OrganicMoleculeViewer>
-            </div>
+        <footer className={shell.lessonNav}>
+          {lessonIndex > 0 ? (
+            <button type="button" className={shell.navBtn} onClick={() => selectLesson(ORGANIC_CURRICULUM[lessonIndex - 1]!)}>
+              ← {pickLessonTitle(ORGANIC_CURRICULUM[lessonIndex - 1]!, lang)}
+            </button>
+          ) : <span />}
+          {lessonIndex < ORGANIC_CURRICULUM.length - 1 ? (
+            <button type="button" className={`${shell.navBtn} ${shell.navNext}`} onClick={() => selectLesson(ORGANIC_CURRICULUM[lessonIndex + 1]!)}>
+              {pickLessonTitle(ORGANIC_CURRICULUM[lessonIndex + 1]!, lang)} →
+            </button>
           ) : null}
+        </footer>
+      </main>
+    </div>
+  )
+}
 
-          {mode === 'build' && canBuild ? (
-            <div className={styles.buildStage} data-app-night="">
-              <ResearchBuilderMode
-                key={`${lesson.id}-${buildInitialId ?? 'build'}`}
-                allowedChallengeIds={buildIds}
-                initialChallengeId={buildInitialId}
-                onMacro={() => {}}
-                onBuildComplete={() => patchProgress(lesson.id, { built: true, viewed: true })}
-              />
-            </div>
-          ) : null}
+function modesOfLesson(l: OrganicLesson, formulaOf: (id: string) => string | undefined): OV2Mode[] {
+  return lessonModesV2(l, lessonIsomerSets(l, formulaOf))
+}
 
-          {mode === 'equation' && canEquation ? (
-            <div className={styles.equationStage} data-app-night="">
-              <ResearchEquationBuilder
-                key={lesson.id}
-                onMacro={() => {}}
-                allowedEquationIds={lesson.equationIds}
-                hideGradeFilters
-                onSolved={() => patchProgress(lesson.id, { equation: true, viewed: true })}
-              />
-            </div>
-          ) : null}
+/* ── Полоса молекул урока ─────────────────────────────────────────── */
 
-          {mode === 'isomer' && canIsomer ? (
-            <div className={styles.equationStage} data-app-night="">
-              <ResearchIsomersMode
-                key={lesson.id}
-                allowedChallengeIds={lesson.isomerChallengeIds}
-                onComplete={() => patchProgress(lesson.id, { isomer: true, viewed: true })}
-              />
-            </div>
-          ) : null}
-
-          {mode === 'name' && canName && lesson.nomenclatureQuizId ? (
-            <div className={styles.equationStage} data-app-night="">
-              <OrganicNomenclatureMode
-                key={lesson.id}
-                quizId={lesson.nomenclatureQuizId}
-                quizIds={[lesson.nomenclatureQuizId, ...(lesson.extraQuizIds ?? [])]}
-                onComplete={() => patchProgress(lesson.id, { named: true, viewed: true })}
-              />
-            </div>
-          ) : null}
-
-          {mode === 'equation' && !canEquation ? (
-            <p className={styles.emptyNote} data-app-night="">{t('organicLab.eqEmpty')}</p>
-          ) : null}
-        </div>
+function MoleculeStrip({ ids, active, mols, lang, T, onPick }: {
+  ids: readonly string[]; active: string; mols: MolMap | null; lang: OV2Lang; T: ShellDict; onPick: (id: string) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const box = ref.current
+    const el = box?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!box || !el || box.scrollWidth <= box.clientWidth) return
+    box.scrollLeft = Math.max(0, el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2)
+  }, [active])
+  return (
+    <div className={shell.strip}>
+      <span className={shell.stripLabel}>
+        {T.molecules} <small>{T.moleculesCount(ids.length)}</small>
+      </span>
+      <div className={shell.chips} ref={ref} role="listbox" aria-label={T.pickMol}>
+        {ids.map((id) => {
+          const m = mols?.[id]
+          const reg = organicMoleculeById[id]
+          return (
+            <button key={id} type="button" role="option" aria-selected={id === active} className={shell.chip} data-mol={id} onClick={() => onPick(id)}>
+              <span className={shell.chipIcon}>{m ? <MiniSkeleton mol={m} size={40} /> : null}</span>
+              <span className={shell.chipText}>
+                <span className={shell.chipName}>{molName(id, lang)}</span>
+                <span className={shell.chipFormula}>{reg?.formula ?? (m ? subscript(m.formula) : '')}</span>
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-/* ── Иконки (SVG, currentColor) ─────────────────────────── */
+/* ── Конструктор ──────────────────────────────────────────────────── */
 
-function Svg({ children, size = 16 }: { children: ReactNode; size?: number }) {
+function ConstructorStage({ lesson, isoSets, taskParam, mols, lang, T, onTask, onSolved }: {
+  lesson: OrganicLesson
+  isoSets: ReturnType<typeof lessonIsomerSets>
+  taskParam: string | null
+  mols: MolMap
+  lang: OV2Lang
+  T: ShellDict
+  onTask: (key: string) => void
+  onSolved: () => void
+}) {
+  const tasks = useMemo(() => lessonConstructorTasks(lesson, isoSets), [lesson, isoSets])
+  const fromParam = useMemo((): ConstructorTask | null => {
+    if (!taskParam) return null
+    const known = tasks.find((t) => taskKey(t) === taskParam)
+    if (known) return known
+    if (taskParam.startsWith('build:') && mols[taskParam.slice(6)]) return { kind: 'build', targetId: taskParam.slice(6) }
+    if (taskParam.startsWith('iso:')) return { kind: 'isomers', formula: taskParam.slice(4) }
+    return taskParam === 'free' ? { kind: 'free' } : null
+  }, [taskParam, tasks, mols])
+  const task = fromParam ?? tasks[0]!
+  const list = fromParam && !tasks.some((t) => taskKey(t) === taskKey(fromParam)) ? [fromParam, ...tasks] : tasks
+  const [solved, setSolved] = useState<string | null>(null)
+  const key = taskKey(task)
+  const label = (t: ConstructorTask) =>
+    t.kind === 'build' ? molName(t.targetId, lang) : t.kind === 'isomers' ? T.taskIso(subscript(t.formula)) : T.taskFree
   return (
-    <svg
-      viewBox="0 0 16 16"
-      width={size}
-      height={size}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
+    <div className={shell.split}>
+      <div className={shell.taskBar} role="tablist" aria-label={T.tasks}>
+        {list.map((t) => (
+          <button key={taskKey(t)} type="button" role="tab" aria-selected={taskKey(t) === key} className={shell.taskChip}
+            data-task={taskKey(t)} data-kind={t.kind} onClick={() => onTask(taskKey(t))}>
+            {t.kind === 'build' && mols[t.targetId] ? <MiniSkeleton mol={mols[t.targetId]!} size={26} /> : null}
+            {t.kind === 'isomers' ? <span className={shell.taskGlyph}>⇄</span> : null}
+            {t.kind === 'free' ? <span className={shell.taskGlyph}>✎</span> : null}
+            <span>{label(t)}</span>
+            {solved === taskKey(t) ? <span className={shell.tabDone}>✓</span> : null}
+          </button>
+        ))}
+      </div>
+      <OrganicConstructor
+        key={key}
+        task={task}
+        lang={lang}
+        molecules={mols}
+        className={shell.fill}
+        onSolved={(r: ConstructorSolved) => {
+          void r
+          setSolved(key)
+          onSolved()
+        }}
+      />
+    </div>
+  )
+}
+
+/* ── Изомеры ──────────────────────────────────────────────────────── */
+
+function IsomerStage({ sets, active, mols, lang, T, onFormula, onOpen }: {
+  sets: ReturnType<typeof lessonIsomerSets>
+  active: string | null
+  mols: MolMap
+  lang: OV2Lang
+  T: ShellDict
+  onFormula: (f: string) => void
+  onOpen: (id: string) => void
+}) {
+  const formula = sets.find((s) => s.formula === active)?.formula ?? sets[0]?.formula ?? ''
+  const list = useMemo(() => Object.values(mols).filter((m) => m.formula === formula), [mols, formula])
+  return (
+    <div className={shell.split}>
+      {sets.length > 1 ? (
+        <div className={shell.taskBar} role="tablist" aria-label={T.formulas}>
+          {sets.map((s) => (
+            <button key={s.formula} type="button" role="tab" aria-selected={s.formula === formula} className={shell.taskChip}
+              data-formula={s.formula} onClick={() => onFormula(s.formula)}>
+              <b>{subscript(s.formula)}</b>
+              <small>{Object.values(mols).filter((m) => m.formula === s.formula).length}</small>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <IsomerGallery key={formula} formula={formula} molecules={list} lang={lang} onOpen={onOpen} className={shell.fill} />
+    </div>
+  )
+}
+
+/* ── Синтез и реакции ─────────────────────────────────────────────── */
+
+function ReactionStage({ mode, file, lessonRx, rxId, molId, lang, T, onPick, onDone }: {
+  mode: 'synthesis' | 'reactions'
+  file: OV2ReactionsFile
+  lessonRx: readonly string[]
+  rxId: string | null
+  molId: string
+  lang: OV2Lang
+  T: ShellDict
+  onPick: (id: string) => void
+  onDone: () => void
+}) {
+  const byId = useMemo(() => new Map(file.reactions.map((r) => [r.id, r])), [file])
+  const groups = useMemo(() => {
+    const pick = (ids: readonly string[] | undefined) => (ids ?? []).map((id) => byId.get(id)).filter((r): r is OV2Reaction => !!r)
+    if (mode === 'synthesis') return [{ title: T.routesOf(molName(molId, lang)), items: pick(file.routes[molId]) }]
+    const lessonItems = pick(lessonRx)
+    if (rxId && byId.has(rxId) && !lessonRx.includes(rxId)) lessonItems.unshift(byId.get(rxId)!)
+    return [
+      { title: T.lessonRx, items: lessonItems },
+      { title: T.molRx(molName(molId, lang)), items: pick(file.uses[molId]).filter((r) => !lessonItems.includes(r)) },
+    ].filter((g) => g.items.length > 0)
+  }, [mode, file, byId, lessonRx, rxId, molId, lang, T])
+  const all = groups.flatMap((g) => g.items)
+  const current = (rxId ? all.find((r) => r.id === rxId) : undefined) ?? all[0]
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    listRef.current?.querySelector<HTMLElement>('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [current?.id])
+  if (!current) return <p className={shell.empty}>{mode === 'synthesis' ? T.noRoutes : T.noRx}</p>
+  return (
+    <div className={shell.rxLayout}>
+      <div className={shell.rxList} ref={listRef}>
+        {groups.map((g) => (
+          <section key={g.title} className={shell.rxGroup}>
+            <h3 className={shell.rxGroupTitle}>
+              {g.title} <small>{g.items.length}</small>
+            </h3>
+            <ul>
+              {g.items.map((r) => {
+                const lbl = ORGANIC_REACTION_LABELS[r.id]
+                return (
+                  <li key={r.id}>
+                    <button type="button" className={shell.rxItem} aria-current={r.id === current.id ? 'true' : undefined}
+                      data-rx={r.id} onClick={() => onPick(r.id)}>
+                      <span className={shell.rxEq}>{r.equation}</span>
+                      <span className={shell.rxMeta}>
+                        {r.typeRu ?? lbl?.[1] ?? ''}
+                        {r.source.page ? ` · ${T.page(r.source.page)}` : ''} · {T.grade(r.source.grade)}
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
+      <div className={shell.rxStage} data-rx-current={current.id}>
+        <SynthesisPlayer key={current.id} reaction={current} lang={lang} focusMoleculeId={molId} onDone={onDone} className={shell.fill} />
+      </div>
+    </div>
+  )
+}
+
+/* ── Мелочи ───────────────────────────────────────────────────────── */
+
+function StageLoading({ text }: { text: string }) {
+  return (
+    <div className={shell.loading} role="status">
+      <span className={shell.spinner} aria-hidden />
+      {text}
+    </div>
+  )
+}
+
+function LoadError({ T, retry }: { T: ShellDict; retry: () => void }) {
+  return (
+    <div className={shell.loading} role="alert">
+      {T.loadError}
+      <button type="button" className={shell.navBtn} onClick={retry}>
+        {T.retry}
+      </button>
+    </div>
+  )
+}
+
+function ProgressRing({ share, n }: { share: number; n: number }) {
+  const r = 13
+  const c = 2 * Math.PI * r
+  return (
+    <span className={shell.ring} data-done={share >= 1 ? 'true' : undefined} aria-hidden>
+      <svg width="32" height="32" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r={r} className={shell.ringBg} />
+        <circle cx="16" cy="16" r={r} className={shell.ringFg} strokeDasharray={`${c * share} ${c}`} transform="rotate(-90 16 16)" />
+      </svg>
+      <span className={shell.ringNum}>{share >= 1 ? '✓' : n}</span>
+    </span>
+  )
+}
+
+function Svg({ children }: { children: ReactNode }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       {children}
     </svg>
   )
 }
 
-function ViewIcon() {
-  return (
-    <Svg>
-      <path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z" />
-      <circle cx="8" cy="8" r="2" />
-    </Svg>
-  )
-}
-
-function BuildIcon() {
-  return (
-    <Svg>
-      <circle cx="4" cy="4.5" r="2" />
-      <circle cx="12" cy="4.5" r="2" />
-      <circle cx="8" cy="12" r="2" />
-      <path d="M6 4.5h4M5 6.3l2 3.9M11 6.3l-2 3.9" />
-    </Svg>
-  )
-}
-
-function EquationIcon() {
-  return (
-    <Svg>
-      <path d="M2 8h9M8.5 5 11.5 8l-3 3" />
-      <path d="M13.5 4.5v7" />
-    </Svg>
-  )
-}
-
-function IsomerIcon() {
-  return (
-    <Svg>
-      <path d="M2.5 5h10M10 2.5 12.5 5 10 7.5" />
-      <path d="M13.5 11h-10M6 8.5 3.5 11 6 13.5" />
-    </Svg>
-  )
-}
-
-function NameIcon() {
-  return (
-    <Svg>
-      <path d="M2 3.5v4.1c0 .4.2.8.4 1l5 5c.6.6 1.5.6 2.1 0l3.9-3.9c.6-.6.6-1.5 0-2.1l-5-5c-.3-.3-.6-.4-1-.4H3.5C2.7 2.2 2 2.8 2 3.5Z" />
-      <circle cx="5.2" cy="5.4" r="1" />
-    </Svg>
-  )
-}
-
 function PathIcon() {
   return (
-    <Svg size={18}>
-      <path d="M3 2.5h7.5a2 2 0 0 1 2 2v9H5a2 2 0 0 1-2-2v-9Z" />
-      <path d="M3 11.5a2 2 0 0 1 2-2h7.5M6 5.5h4" />
+    <Svg>
+      <path d="M4 6h16M4 12h10M4 18h7" />
     </Svg>
   )
 }
 
-function ChevronIcon() {
-  return (
-    <Svg size={14}>
-      <path d="M4 6.5 8 10.5l4-4" />
-    </Svg>
-  )
-}
-
-function CheckIcon() {
-  return (
-    <Svg size={12}>
-      <path d="M3.5 8.4 6.6 11.4 12.5 4.8" strokeWidth="2" />
-    </Svg>
-  )
+function ModeIcon({ mode }: { mode: OV2Mode }) {
+  switch (mode) {
+    case 'molecule':
+      return (
+        <Svg>
+          <circle cx="12" cy="12" r="3" />
+          <circle cx="5" cy="6" r="2" />
+          <circle cx="19" cy="6" r="2" />
+          <circle cx="12" cy="20" r="2" />
+          <path d="M10 10.5 6.5 7.3M14 10.5l3.5-3.2M12 15v3" />
+        </Svg>
+      )
+    case 'constructor':
+      return (
+        <Svg>
+          <path d="m4 17 5-9 6 0 5 9" />
+          <path d="M9 8 6 3M15 8l3-5" />
+          <circle cx="4" cy="17" r="1.6" />
+          <circle cx="20" cy="17" r="1.6" />
+        </Svg>
+      )
+    case 'isomers':
+      return (
+        <Svg>
+          <path d="M3 8h7l3 4M3 16h5l3-4h4l3-4h3M15 12l3 4h3" />
+        </Svg>
+      )
+    case 'synthesis':
+      return (
+        <Svg>
+          <path d="M3 12h13M12 7l5 5-5 5" />
+          <circle cx="20" cy="12" r="2" />
+        </Svg>
+      )
+    case 'reactions':
+      return (
+        <Svg>
+          <path d="M9 3v6l-5 9a2 2 0 0 0 1.8 3h12.4A2 2 0 0 0 20 18l-5-9V3" />
+          <path d="M8 3h8M7 14h10" />
+        </Svg>
+      )
+    case 'name':
+      return (
+        <Svg>
+          <path d="M4 7V5h16v2M9 19h6M12 5v14" />
+        </Svg>
+      )
+  }
 }
