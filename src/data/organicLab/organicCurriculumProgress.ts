@@ -96,19 +96,24 @@ export function loadProgressV2(): OV2ProgressMap {
 
 export function markModeDone(lessonId: string, mode: OV2Mode): OV2ProgressMap {
   const map = loadProgressV2()
-  if (map[lessonId]?.[mode]) return map
+  if (modeDone(map[lessonId], mode)) return map
   map[lessonId] = { ...(map[lessonId] ?? {}), [mode]: true }
   writeJson(ORGANIC_PROGRESS_V2_KEY, map)
   return map
 }
 
+/** Режим пройден. Только === true: у обычного объекта p['constructor'] — это Object.prototype.constructor. */
+export function modeDone(p: OV2LessonProgress | undefined, m: OV2Mode): boolean {
+  return p != null && Object.prototype.hasOwnProperty.call(p, m) && p[m] === true
+}
+
 /** Урок пройден, когда пройдены все его режимы. */
 export function isLessonDoneV2(p: OV2LessonProgress | undefined, modes: readonly OV2Mode[]): boolean {
-  return modes.length > 0 && modes.every((m) => p?.[m])
+  return modes.length > 0 && modes.every((m) => modeDone(p, m))
 }
 
 /** Доля пройденных режимов урока 0..1 (для кольца прогресса). */
 export function lessonShareV2(p: OV2LessonProgress | undefined, modes: readonly OV2Mode[]): number {
   if (!modes.length) return 0
-  return modes.filter((m) => p?.[m]).length / modes.length
+  return modes.filter((m) => modeDone(p, m)).length / modes.length
 }

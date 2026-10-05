@@ -24,6 +24,7 @@ import {
   lessonShareV2,
   loadProgressV2,
   markModeDone,
+  modeDone,
   type OV2ProgressMap,
 } from '../data/organicLab/organicCurriculumProgress'
 import { ORGANIC_REACTION_LABELS } from '../data/organicLab/organicLessonReactions.gen'
@@ -250,12 +251,19 @@ export function OrganicLabPage() {
                 data-mode-tab={m}
                 aria-selected={m === mode}
                 className={shell.tab}
-                onClick={() => go({ mode: m, rx: m === mode ? url.rxId : m === 'reactions' ? url.rxId : null })}
+                onClick={() =>
+                  go({
+                    mode: m,
+                    rx: m === mode || m === 'reactions' ? url.rxId : null,
+                    // Конструктор с вкладки: собрать молекулу, которую смотрели (если она по силам), иначе первое задание урока
+                    task: m === 'constructor' && mode !== 'constructor' ? constructorTaskFor(lesson, isoSets, molId) : url.task,
+                  })
+                }
                 title={T.modeHints[m]}
               >
                 <ModeIcon mode={m} />
                 <span>{T.modes[m]}</span>
-                {progress[lesson.id]?.[m] ? <span className={shell.tabDone} aria-label={T.done}>✓</span> : null}
+                {modeDone(progress[lesson.id], m) ? <span className={shell.tabDone} aria-label={T.done}>✓</span> : null}
               </button>
             ))}
           </div>
@@ -329,6 +337,12 @@ export function OrganicLabPage() {
       </main>
     </div>
   )
+}
+
+function constructorTaskFor(lesson: OrganicLesson, isoSets: ReturnType<typeof lessonIsomerSets>, molId: string): string {
+  const tasks = lessonConstructorTasks(lesson, isoSets)
+  const own = tasks.find((t) => t.kind === 'build' && t.targetId === molId)
+  return taskKey(own ?? tasks[0]!)
 }
 
 function modesOfLesson(l: OrganicLesson, formulaOf: (id: string) => string | undefined): OV2Mode[] {

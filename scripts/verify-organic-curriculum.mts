@@ -228,11 +228,12 @@ console.log('alkanes eq count', equationsForLesson(alk).length)
   store.clear()
   markLessonProgress('alkanes', { viewed: true, built: true, equation: true })
   const v2 = loadProgressV2()
-  if (!v2.alkanes?.molecule || !v2.alkanes?.constructor || !v2.alkanes?.reactions) fail('v2: миграция прогресса v1')
+  if (v2.alkanes?.molecule !== true || v2.alkanes?.constructor !== true || v2.alkanes?.reactions !== true) fail('v2: миграция прогресса v1')
   const alkModes = lessonModesV2(alk, lessonIsomerSets(alk, formulaOf))
   for (const m of alkModes) markModeDone('alkanes', m)
   if (!isLessonDoneV2(loadProgressV2().alkanes, alkModes)) fail('v2: урок не засчитан после всех режимов')
   if (isLessonDoneV2(loadProgressV2().alkenes, lessonModesV2(ORGANIC_CURRICULUM[6]!, []))) fail('v2: чужой урок засчитан')
+  if (isLessonDoneV2({ molecule: true }, ['molecule', 'constructor'])) fail('v2: «constructor» засчитан без сборки (Object.prototype)')
 }
 
 console.log(errors.length === 0 ? 'OK verify-organic-curriculum' : `FAILED ${errors.length}`)
