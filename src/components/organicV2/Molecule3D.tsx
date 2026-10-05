@@ -447,8 +447,23 @@ function AutoSpin({ on, children }: { on: boolean; children: React.ReactNode }) 
 
 const ROMAN = ['0', 'I', 'II', 'III', 'IV']
 
+/** Контрактный компонент (props — ./contracts.ts). */
 export function Molecule3D(props: Molecule3DProps) {
-  const { mol, style, compact = false, lang } = props
+  return <Molecule3DCore {...props} />
+}
+
+/** Внутренние стартовые состояния инструментов (витрина, кадры, будущие уроки «покрути связь»). */
+export interface Molecule3DCoreProps extends Molecule3DProps {
+  /** индекс связи для инструмента rotate — сразу открыть Ньюмена */
+  readonly initialRotateBond?: number
+  /** стартовый двугранный угол φ, градусы */
+  readonly initialPhi?: number
+  /** стартовые атомы линейки (2 — расстояние, 3 — угол) */
+  readonly initialPicks?: readonly number[]
+}
+
+export function Molecule3DCore(props: Molecule3DCoreProps) {
+  const { mol, style, compact = false, lang, initialRotateBond, initialPhi, initialPicks } = props
   const overlay = compact ? 'none' : (props.overlay ?? 'none')
   const tool = compact ? 'none' : (props.tool ?? 'none')
   const t = VIEWER_T[lang]
@@ -465,11 +480,15 @@ export function Molecule3D(props: Molecule3DProps) {
   const [note, setNote] = useState<string | null>(null)
   const [picks, setPicks] = useState<number[]>([])
   useEffect(() => {
-    setRotBond(null)
-    setPhiTarget(null)
-    setPicks([])
+    const rb = tool === 'rotate' && initialRotateBond !== undefined && isRotatable(mol, adj, initialRotateBond) ? initialRotateBond : null
+    setRotBond(rb)
+    if (rb !== null) {
+      const bd = mol.bonds[rb]
+      setPhiTarget(initialPhi ?? Math.round(newmanProjection(mol, basePos, adj, bd.a, bd.b).phi))
+    } else setPhiTarget(null)
+    setPicks(tool === 'measure' && initialPicks ? initialPicks.slice(0, 3) : [])
     setNote(null)
-  }, [mol, tool])
+  }, [mol, tool, adj, basePos, initialRotateBond, initialPhi, initialPicks])
 
   const rot = useMemo(() => {
     if (rotBond === null) return null

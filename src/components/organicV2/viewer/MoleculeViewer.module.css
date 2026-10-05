@@ -1,0 +1,335 @@
+/* Органика v2 — просмотрщик «Молекула». Боковые карточки — токены темы; 3D — «ночной остров». */
+.viewer {
+  --mv-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  color: var(--lt-text, #e8edff);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── панель инструментов ── */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: flex-end;
+}
+.toolGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.toolTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lt-text-3, #8793b8);
+  padding-left: 4px;
+}
+.seg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--lt-surface, rgba(18, 24, 44, 0.72));
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+  box-shadow: var(--lt-shadow-sm, none);
+}
+.seg button,
+.seg2 button,
+.tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--lt-text-2, #b6c0e0);
+  font: 600 13px/1 inherit;
+  font-family: inherit;
+  padding: 7px 10px;
+  border-radius: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.seg button svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.seg button:hover,
+.seg2 button:hover,
+.tabs button:hover {
+  background: var(--lt-surface-hover, rgba(40, 52, 90, 0.85));
+  color: var(--lt-text, #e8edff);
+}
+.seg button.on,
+.seg2 button.on,
+.tabs button.on {
+  background: var(--lt-grad-primary, linear-gradient(135deg, #5b8cff, #8b5cf6));
+  color: #fff;
+  box-shadow: var(--lt-glow-primary, none);
+}
+
+/* ── сетка: 3D | 2D + карточка ── */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+.stage {
+  position: relative;
+  min-height: 520px;
+  height: min(72vh, 680px);
+  border-radius: var(--mv-radius);
+  overflow: hidden;
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+  box-shadow: var(--lt-shadow, 0 10px 30px -8px rgba(2, 6, 23, 0.6));
+}
+.stageTitle {
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+  color: #e8edff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+.stageTitle strong {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.stageTitle span {
+  font-size: 14px;
+  color: #a5b4fc;
+  font-weight: 600;
+}
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+}
+.card {
+  border-radius: var(--mv-radius);
+  background: var(--lt-surface, rgba(18, 24, 44, 0.72));
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+  box-shadow: var(--lt-shadow-sm, none);
+  backdrop-filter: var(--lt-blur, none);
+  padding: 12px 14px;
+  min-width: 0;
+}
+.card2d {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.seg2 {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--lt-surface-2, rgba(24, 32, 58, 0.78));
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+}
+.seg2 button {
+  padding: 6px 11px;
+  font-size: 12.5px;
+}
+.formulaBox {
+  height: 230px;
+  padding: 6px;
+}
+.cardInfo {
+  flex: 1;
+  overflow: auto;
+}
+.name {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--lt-text, #e8edff);
+}
+.badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.badgeClass {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--lt-g10-a, #34d399);
+  background: color-mix(in srgb, var(--lt-g10-a, #34d399) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--lt-g10-a, #34d399) 40%, transparent);
+}
+.dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+.dl dt {
+  color: var(--lt-text-3, #8793b8);
+  font-weight: 600;
+  font-size: 12.5px;
+  padding-top: 2px;
+}
+.dl dd {
+  margin: 0;
+  color: var(--lt-text, #e8edff);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mono {
+  font-family: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.muted {
+  color: var(--lt-text-3, #8793b8);
+}
+.hybRow span {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.sp3 {
+  background: #2dd4bf;
+  color: #062b27;
+}
+.sp2 {
+  background: #fbbf24;
+  color: #3a2502;
+}
+.sp {
+  background: #f472b6;
+  color: #3b0820;
+}
+.groupRow button {
+  border: 1px solid color-mix(in srgb, var(--gc) 55%, transparent);
+  background: color-mix(in srgb, var(--gc) 14%, transparent);
+  color: var(--lt-text, #e8edff);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font: 500 12.5px/1.2 inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.groupRow button b {
+  color: var(--gc);
+  margin-right: 2px;
+}
+:global(html[data-app-theme='light']) .groupRow button b {
+  color: color-mix(in srgb, var(--gc) 65%, #000);
+}
+.groupRow button.on {
+  background: color-mix(in srgb, var(--gc) 32%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gc) 60%, transparent);
+}
+.stereo {
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--lt-surface-2, rgba(24, 32, 58, 0.78));
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+}
+
+/* вкладки — только на телефоне */
+.tabs {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr);
+  }
+  .seg button span {
+    display: none;
+  }
+  .seg button.on span {
+    display: inline;
+  }
+}
+
+@media (max-width: 760px) {
+  .viewer {
+    gap: 8px;
+  }
+  .toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+  .toolTitle {
+    display: none;
+  }
+  .seg button {
+    padding: 8px 9px;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 14px;
+    background: var(--lt-surface, rgba(18, 24, 44, 0.72));
+    border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+  }
+  .tabs button {
+    flex: 1;
+    justify-content: center;
+    padding: 9px 6px;
+    font-size: 14px;
+  }
+  .grid {
+    display: block;
+  }
+  .stage {
+    height: 62vh;
+    min-height: 340px;
+  }
+  .side {
+    gap: 10px;
+  }
+  .formulaBox {
+    height: 46vh;
+  }
+  .viewer[data-tab='3d'] .side,
+  .viewer[data-tab='2d'] .stage,
+  .viewer[data-tab='2d'] .cardInfo,
+  .viewer[data-tab='info'] .stage,
+  .viewer[data-tab='info'] .card2d {
+    display: none;
+  }
+}
