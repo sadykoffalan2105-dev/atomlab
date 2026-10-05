@@ -5,9 +5,9 @@
 ## Итог
 
 - Органических реакций в учебниках 10–11 (участник — органика): **312** (10 кл. 300, 11 кл. 12).
-- Чистые схемы (CnH2n…, n/2, R без примера): 3.
-- В файле с атомным соответствием: **304** из 309 без чистых схем (**98.4 %**); из них общих схем, показанных на примере: 14.
-- Школьные пути по общим схемам учебника (generic, «не из учебника дословно»): **229**.
+- Чистые схемы (CnH2n…, n/2, R без примера): 0.
+- В файле с атомным соответствием: **307** из 312 без чистых схем (**98.4 %**); из них общих схем, показанных на примере: 17.
+- Школьные пути по общим схемам учебника (generic, «не из учебника дословно»): **228**.
 - Молекул реестра с маршрутом получения: **329 / 329**.
 
 ## Типы реакций
@@ -15,32 +15,33 @@
 | Тип | Кол-во |
 |---|---|
 | hydrogenation | 85 |
-| oxidation | 60 |
-| substitution | 58 |
-| dehydrogenation | 49 |
-| other | 36 |
+| substitution | 62 |
+| oxidation | 62 |
+| dehydrogenation | 51 |
+| esterification | 34 |
 | dehydration | 33 |
-| esterification | 32 |
 | hydrolysis | 27 |
-| substitutionRadical | 21 |
+| substitutionRadical | 23 |
+| other | 21 |
 | combustion | 17 |
 | acidBase | 16 |
 | hydration | 13 |
 | metal | 12 |
-| halogenation | 9 |
-| polymerization | 9 |
+| polymerization | 10 |
+| halogenation | 8 |
+| reduction | 8 |
+| wurtz | 8 |
 | hydrohalogenation | 7 |
 | dehydrohalogenation | 7 |
-| reduction | 7 |
-| polycondensation | 6 |
-| wurtz | 6 |
+| polycondensation | 5 |
+| addition | 5 |
 | cracking | 4 |
-| sulfonation | 4 |
+| trimerization | 4 |
 | isomerization | 3 |
-| addition | 3 |
-| trimerization | 3 |
 | nitration | 3 |
 | fermentation | 3 |
+| elimination | 2 |
+| sulfonation | 2 |
 
 ## Маршруты по классам
 
@@ -56,7 +57,7 @@
 | arene | 15 | 5 | 10 | 0 |
 | carb | 18 | 6 | 12 | 0 |
 | cycloalkane | 15 | 2 | 13 | 0 |
-| ester | 30 | 10 | 20 | 0 |
+| ester | 30 | 11 | 19 | 0 |
 | ether | 10 | 4 | 6 | 0 |
 | halo | 36 | 24 | 12 | 0 |
 | ketone | 9 | 1 | 8 | 0 |
@@ -70,9 +71,6 @@
 |---|---|---|---|
 | 10 | 46 | CH₃CH₂-Br + Br-CH₃ + Na → CH₃CH₂CH₃ + CH₃CH₃ + CH₃CH₂CH₂CH₃ | не уравнено: {'Br': 2, 'Na': 1} | {'C': 6, 'H': 16} |
 | 10 | 69 | (-CH₂-C(CH₃)=CH-CH₂-)n + nS → (C₅H₈S)n | не распознано (C5H8S)n |
-| 10 | 118 | C₃H₅(OCOR)₃ + 3H₂O ⇌ C₃H₅(OH)₃ + 3RCOOH | общая формула (CnH2n…) |
-| 10 | 121 | C₃H₅(OH)₃ + 3RCOOH → C₃H₅(OCOR)₃ + 3H₂O | общая формула (CnH2n…) |
-| 10 | 153 | C₃H₅(OCOR)₃ + 3H₂O ⇌ C₃H₅(OH)₃ + 3RCOOH | общая формула (CnH2n…) |
 | 11 | 59 | CH₃COO⁻ + Na⁺ + H₂O ⇌ CH₃COOH + Na⁺ + OH⁻ | ионное уравнение |
 | 11 | 59 | CH₃COO⁻ + H₂O ⇌ CH₃COOH + OH⁻ | ионное уравнение |
 | 11 | 59 | CH₃COO⁻ + NH₄⁺ + H₂O ⇌ CH₃COOH + NH₄OH | ионное уравнение |
@@ -84,7 +82,7 @@
 ## Вещества вне реестра (ref `new:<SMILES>`)
 
 - `new:CC(=O)[O][Na]` — 15
-- `new:[Na][O]c1ccccc1` — 11
+- `new:[Na][O]c1ccccc1` — 12
 - `new:CC[O][Na]` — 7
 - `new:CCCCCCCCCCCCCCCCCC(=O)[O][Na]` — 5
 - `new:CC(O)CO` — 4
@@ -115,6 +113,7 @@
 - `new:OCC(O)C(O)C(O)C(O)C(=O)[O-].[NH4+]` — 1
 - `new:OCC1OC(O)C([O][Cu][O]C2C(O)OC(CO)C(O)C2O)C(O)C1O` — 1
 - `new:CC(=O)[O-].[NH4+]` — 1
+- `new:CC(C)(C)Cl` — 1
 - `new:C=CC(C)CC` — 1
 - `new:C1=CC1` — 1
 - `new:C1=CCC1` — 1
@@ -145,6 +144,8 @@
 - `new:C=CC#CCCC` — 1
 - `new:C#CC(=C)CCC` — 1
 - `new:ClC(c1ccccc1)c1ccccc1` — 1
+- `new:C1CCC2CCCCC2C1` — 1
+- `new:C1CCC2CC3CCCCC3CC2C1` — 1
 - `new:C=C1CCCCC1` — 1
 - `new:C=CCC(C)C(C)C` — 1
 - `new:CCCC(CC)CC(C)(Cl)C(Cl)CC` — 1
@@ -177,7 +178,6 @@
 - `new:CCCCCCCCCCCCCCCC(=O)OCC(CO)OC(=O)CCCCCCCCCCCCCCC` — 1
 - `new:OCC1(O)OC(CCl)C(O)C1O` — 1
 - `new:C=CCCCCCCCCCCCCCCCCCCCCC` — 1
-- `new:CC(=O)OCC(CO)OC(C)=O` — 1
 - `new:C=CC(C)=CC(=C)C` — 1
 - `new:CC#CC(=CC)C(C)(C)C(C)C` — 1
 - `new:C=CCCCCCC` — 1

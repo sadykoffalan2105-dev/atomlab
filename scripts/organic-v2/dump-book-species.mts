@@ -29,6 +29,8 @@ function concretize(ascii: string): string {
     .replace(/R[′'’]|R1|R2/g, 'C2H5')
     .replace(/Hal|(?<![A-Za-z])X(?![a-z])/g, 'Cl')
     .replace(/(?<![A-Za-z])Me(?![a-z])/g, 'Na')
+    // жир C₃H₅(OCOR)₃ — R после O/C: пример — триацетин (R = CH₃)
+    .replace(/(?<=OCO)R(?![a-z])/g, 'CH3')
     .replace(/(?<![A-Za-z])R(?![a-z])/g, 'CH3')
     .replace(/Ar(?![a-z])/g, 'C6H5')
 }

@@ -41,6 +41,26 @@ TEMPLATES = [
 ]
 PAGE_HINT = {}
 
+# Молекулы, для которых ретро-шаблоны не дают школьного пути, а «фотосинтез» химически неверен:
+# цель → (ключ, исходные SMILES, продукты SMILES (цель первой), тип, тип словами, условия)
+SPECIAL = {
+    'neopentane': ('wurtz', ['CC(C)(C)Cl', 'CCl', '[Na]', '[Na]'], ['CC(C)(C)C', '[Na+].[Cl-]', '[Na+].[Cl-]'], 'wurtz',
+                   'реакция Вюрца (перекрёстная; на практике получается смесь алканов)', 't'),
+    'biphenyl': ('wurtz', ['Brc1ccccc1', 'Brc1ccccc1', '[Na]', '[Na]'], ['c1ccc(-c2ccccc2)cc1', '[Na+].[Br-]', '[Na+].[Br-]'],
+                 'wurtz', 'реакция Вюрца–Фиттига (арилгалогенид + Na)', 't'),
+    'naphthalene': ('dehydr', ['C1CCC2CCCCC2C1'], ['c1ccc2ccccc2c1'] + ['[H][H]'] * 5, 'dehydrogenation',
+                    'дегидрирование циклоалкана (как циклогексан → бензол)', 'Pt, 300 °C'),
+    'anthracene': ('dehydr', ['C1CCC2CC3CCCCC3CC2C1'], ['c1ccc2cc3ccccc3cc2c1'] + ['[H][H]'] * 7, 'dehydrogenation',
+                   'дегидрирование циклоалкана (как циклогексан → бензол)', 'Pt, 300 °C'),
+    'anisole': ('williamson', ['[Na]Oc1ccccc1', 'CCl'], ['COc1ccccc1', '[Na+].[Cl-]'], 'substitution',
+                'получение простого эфира: фенолят натрия + галогеналкан (RONa + R′Cl)', 't'),
+    'pyridine': ('cycl', ['C#C', 'C#C', 'C#N'], ['c1ccncc1'], 'trimerization',
+                 'циклизация ацетилена с HCN (как тримеризация ацетилена в бензол)', 't, кат.'),
+    'pyrrole': ('cycl', ['C#C', 'C#C', 'N'], ['c1cc[nH]c1', '[H][H]'], 'other', 'циклизация ацетилена с аммиаком', 't, кат.'),
+    'hexamine': ('cond', ['C=O'] * 6 + ['N'] * 4, ['C1N2CN3CN1CN(C2)C3'] + ['O'] * 6, 'other',
+                 'конденсация формальдегида с аммиаком (А. М. Бутлеров, 1859)', '—'),
+}
+
 
 def _sub(n):
     return str(n).translate(str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉'))
@@ -53,9 +73,15 @@ def _formula(smi):
     return ''.join(_sub(c) if c.isdigit() else c for c in f)
 
 
+# школьная запись (не формула Хилла) для неорганики и солей общих схем
+SCHOOL = {'[Na+].[Cl-]': 'NaCl', '[Na+].[Br-]': 'NaBr', 'N': 'NH₃', 'C#N': 'HCN', '[Na]Oc1ccccc1': 'C₆H₅ONa',
+          '[Na+].[OH-]': 'NaOH', 'OS(=O)(=O)O': 'H₂SO₄', 'O[N+](=O)[O-]': 'HNO₃', '[Ag]O[Ag]': 'Ag₂O', '[Cu]=O': 'CuO',
+          'CC(C)(C)Cl': '(CH₃)₃CCl', 'Brc1ccccc1': 'C₆H₅Br', 'C=O': 'HCHO'}
+
+
 def _side(smis):
     c = Counter(smis)
-    return ' + '.join((f'{n}' if n > 1 else '') + _formula(s) for s, n in c.items())
+    return ' + '.join((f'{n}' if n > 1 else '') + SCHOOL.get(s, _formula(s)) for s, n in c.items())
 
 
 def _registry_keys(SMILES):
@@ -79,7 +105,21 @@ def generic_routes(missing, SMILES, builder, pages=None):
             fails[tid] = 'нет SMILES'
             continue
         cands = []
-        for order, (k, rxn, lr, rr, ty, ru, cond) in enumerate(rxs):
+        if tid in SPECIAL:
+            k, ls, rs, ty, ru, cond = SPECIAL[tid]
+            ref_of = lambda x: keys.get(Chem.MolToInchiKey(Chem.MolFromSmiles(x)).split('-')[0]) if ('C' in x or 'c' in x) and x != 'C#N' else None  # noqa: E731
+            lhs = [(ref_of(x) or _inorg_ref(x), SMILES[ref_of(x)] if ref_of(x) else x, None) for x in ls]
+            rhs = [(tid, smi, None)] + [(ref_of(x) or _inorg_ref(x), SMILES[ref_of(x)] if ref_of(x) else x, None) for x in rs[1:]]
+            res, why = builder(lhs, rhs)
+            if res is not None:
+                cands = []
+                special = (k, res, ty, ru, cond, lhs, rhs)
+            else:
+                fails[tid] = why
+                special = None
+        else:
+            special = None
+        for order, (k, rxn, lr, rr, ty, ru, cond) in enumerate(rxs if special is None else []):
             try:
                 outs = rxn.RunReactants((target,))
             except Exception:  # noqa: BLE001
@@ -109,7 +149,7 @@ def generic_routes(missing, SMILES, builder, pages=None):
                 in_reg = sum(1 for s, r in zip(pre, regs) if r and ('C' in s or 'c' in s))
                 score = (in_reg == len(org), in_reg, -order)
                 cands.append((score, k, pre, regs, lr, rr, ty, ru, cond))
-        built = None
+        built = special
         for score, k, pre, regs, lr, rr, ty, ru, cond in sorted(cands, key=lambda c: c[0], reverse=True)[:4]:
             lhs = [(r if r else _inorg_ref(s), SMILES[r] if r else s, None) for s, r in zip(pre, regs)]
             lhs += [(_inorg_ref(s), s, None) for s in lr]
@@ -139,7 +179,7 @@ def generic_routes(missing, SMILES, builder, pages=None):
 
 def _inorg_ref(smi):
     names = {'O': 'H2O', '[H][H]': 'H2', 'Cl': 'HCl', 'Br': 'HBr', 'I': 'HI', 'ClCl': 'Cl2', 'BrBr': 'Br2', 'II': 'I2',
-             '[Cu]=O': 'CuO', '[Cu]': 'Cu', '[Ag]O[Ag]': 'Ag2O', '[Ag]': 'Ag', '[Na+].[OH-]': 'NaOH', '[Na+].[Cl-]': 'NaCl',
+             '[Na]': 'Na', '[Na+].[Br-]': 'NaBr', 'C#N': 'HCN', '[Cu]=O': 'CuO', '[Cu]': 'Cu', '[Ag]O[Ag]': 'Ag2O', '[Ag]': 'Ag', '[Na+].[OH-]': 'NaOH', '[Na+].[Cl-]': 'NaCl',
              'O[N+](=O)[O-]': 'HNO3', 'OS(=O)(=O)O': 'H2SO4', 'N': 'NH3', 'O=C=O': 'CO2', 'O=O': 'O2'}
     return 'inorg:' + names[smi] if smi in names else None
 

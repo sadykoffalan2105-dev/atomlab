@@ -23,7 +23,7 @@ from rdkit.Chem import AllChem, rdDepictor, rdMolDescriptors
 
 sys.path.insert(0, os.path.dirname(__file__))
 from ov2_mapper import bond_changes, map_reaction  # noqa: E402
-from ov2_types import classify, md_types, md_type_key  # noqa: E402
+from ov2_types import classify, md_types, md_type_key, type_ru  # noqa: E402
 from ov2_routes import generic_routes  # noqa: E402
 
 RDLogger.DisableLog('rdApp.*')
@@ -169,6 +169,9 @@ def atoms_bonds(mol, ref):
     if ref in MV0 and MV0[ref]['atoms'] and len(MV0[ref]['atoms']) == mol.GetNumAtoms() and \
             all(MV0[ref]['atoms'][i]['el'] == a.GetSymbol() for i, a in enumerate(mol.GetAtoms())):
         atoms = [dict(a) for a in MV0[ref]['atoms']]
+        for a in atoms:
+            if not math.isfinite(a.get('q', 0.0)):
+                a['q'] = 0.0
     else:
         key = Chem.MolToSmiles(mol)
         P, P2, Q = three_d(mol, key)
@@ -259,6 +262,42 @@ def counts_of(mols):
     return c
 
 
+def align_kekule(species):
+    """Кольцо, оставшееся ароматическим, рисуется справа той же формой Кекуле, что слева (без «прыжка» двойных связей)."""
+    left = {}
+    for sp in species:
+        if sp['side'] != 'L':
+            continue
+        for b in sp['bonds']:
+            if b.get('ar'):
+                x, y = sp['map'][b['a']], sp['map'][b['b']]
+                left[(min(x, y), max(x, y))] = b['o']
+    if not left:
+        return
+    for sp in species:
+        if sp['side'] != 'R' or not any(b.get('ar') for b in sp['bonds']):
+            continue
+        new = []
+        for b in sp['bonds']:
+            o = b['o']
+            if b.get('ar'):
+                x, y = sp['map'][b['a']], sp['map'][b['b']]
+                o = left.get((min(x, y), max(x, y)), o)
+            new.append(o)
+        # проверка: у каждого ароматического C ровно одна двойная связь кольца
+        dbl = Counter()
+        arom_atoms = set()
+        for b, o in zip(sp['bonds'], new):
+            if b.get('ar'):
+                arom_atoms.update((b['a'], b['b']))
+                if o == 2:
+                    dbl[b['a']] += 1
+                    dbl[b['b']] += 1
+        if all(dbl[a] == 1 for a in arom_atoms if sp['atoms'][a]['el'] == 'C'):
+            for b, o in zip(sp['bonds'], new):
+                b['o'] = o
+
+
 def build_reaction(rx, sp_override=None):
     """Одна реакция → OV2Reaction или (None, причина)."""
     species = sp_override or rx['species']
@@ -310,6 +349,7 @@ def build_reaction(rx, sp_override=None):
         if name and not ref.startswith(('inorg:',)) and ref not in SMILES:
             e['nameRu'] = name
         out_species.append(e)
+    align_kekule(out_species)
     ch = [{'a': a + 1, 'b': b + 1, 'from': f, 'to': t} for a, b, f, t in bond_changes(L, R, inv)]
     return {'species': out_species, 'changes': ch, 'polymer': poly}, None
 
@@ -329,6 +369,7 @@ def main():
             continue
         typeRu = mdt.get(md_type_key(rx['page'], rx['equationAscii']))
         t = classify(rx, res, typeRu)
+        typeRu = type_ru(t, typeRu, res)
         rid = f"g{rx['grade']}-{rx['unitId']}-{rx['id']}"
         seen_ids[rid] += 1
         if seen_ids[rid] > 1:
@@ -423,6 +464,7 @@ def build_reaction_from_smiles(lhs, rhs):
         if name and ref not in SMILES and not ref.startswith('inorg:'):
             e['nameRu'] = name
         out_species.append(e)
+    align_kekule(out_species)
     ch = [{'a': a + 1, 'b': b + 1, 'from': f, 'to': t} for a, b, f, t in bond_changes(L, R, inv)]
     return (out_species, ch), None
 
