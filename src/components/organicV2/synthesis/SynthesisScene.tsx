@@ -236,7 +236,8 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
     }
     const need = Math.min(
       (bb.r + 1.2) / Math.sin(Math.min(vfov, hfov) / 2),
-      Math.max((hx + 0.9) / Math.tan(hfov / 2), (hy + 1.5) / Math.tan(vfov / 2)) + dz,
+      // подписи (HTML ~50 px в полширины) не должны вылезать за край узкого окна
+      Math.max((hx + 0.7) / (Math.tan(hfov / 2) * Math.max(0.45, 1 - 50 / Math.max(1, size.width / 2))), (hy + 1.5) / Math.tan(vfov / 2)) + dz,
     )
     const f = fit.current
     const target = controls.current?.target

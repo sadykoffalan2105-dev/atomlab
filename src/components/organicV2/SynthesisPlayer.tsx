@@ -109,6 +109,19 @@ function speciesName(r: OV2Reaction, si: number, lang: Lang): string {
   return ''
 }
 
+/** пример общей схемы (ASCII) → уравнение: стрелки ⇌/→, коэффициент перед веществом — обычной цифрой, индексы — подстрочные */
+function exampleText(ex: string): string {
+  return ex
+    .replace(/<=>/g, '⇌')
+    .replace(/->/g, '→')
+    .split(/(\s+)/)
+    .map((w) => {
+      const m = /^(\d+)([A-Z(\[].*)$/.exec(w)
+      return m ? m[1] + subscript(m[2]) : subscript(w)
+    })
+    .join('')
+}
+
 function formulaOf(r: OV2Reaction, si: number): string {
   const s = r.species[si]
   if (s.ref.startsWith('inorg:')) return subscript(s.ref.slice(6))
@@ -279,7 +292,7 @@ function PlayerInner({ reaction, lang, focusMoleculeId, autoplay = true, onDone,
           {reaction.generic ? (
             <p className={styles.generic}>
               {ui.generic(src.page)}
-              {reaction.example ? <span className={styles.example}>{ui.example}: {subscript(reaction.example.replace(/->/g, '→'))}</span> : null}
+              {reaction.example ? <span className={styles.example}>{ui.example}: {exampleText(reaction.example)}</span> : null}
             </p>
           ) : null}
         </div>
