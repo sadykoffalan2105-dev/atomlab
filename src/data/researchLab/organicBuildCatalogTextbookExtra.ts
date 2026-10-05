@@ -166,9 +166,9 @@ const NITRO = '[N+](=O)[O-]'
 
 export const G10_TEXTBOOK_EXTRA_CHALLENGES: readonly OrganicBuildChallenge[] = [
   m('n-tricosane', 'alkane', 'C₂₃H₄₈', 'C'.repeat(23),
-    ['Трикозан C₂₃H₄₈ (парафин)', 'Неразветвлённый алкан из 23 атомов C — пример парафина. Учебник, с. 37: при нагревании с CuO углерод парафина окисляется до CO₂, водород — до H₂O (доказательство C и H в органике).', 'Трикозан собран — парафин.'],
-    ['Tricosane C₂₃H₄₈ (paraffin)', 'Unbranched alkane with 23 carbon atoms — a paraffin. Textbook p. 37: heated with CuO, the carbon of paraffin is oxidised to CO₂ and the hydrogen to H₂O (proof of C and H in organic matter).', 'Tricosane built — a paraffin.'],
-    ['Trikozan C₂₃H₄₈ (parafin)', '23 ta C atomli tarmoqlanmagan alkan — parafin. Darslik, 37-bet: CuO bilan qizdirilganda parafin uglerodi CO₂ gacha, vodorodi H₂O gacha oksidlanadi (organik moddada C va H ni isbotlash).', 'Trikozan yigʻildi — parafin.'],
+    ['Трикозан (парафин)', 'Неразветвлённый алкан из 23 атомов C — пример парафина. Учебник, с. 37: при нагревании с CuO углерод парафина окисляется до CO₂, водород — до H₂O (доказательство C и H в органике).', 'Трикозан собран — парафин.'],
+    ['Tricosane (paraffin)', 'Unbranched alkane with 23 carbon atoms — a paraffin. Textbook p. 37: heated with CuO, the carbon of paraffin is oxidised to CO₂ and the hydrogen to H₂O (proof of C and H in organic matter).', 'Tricosane built — a paraffin.'],
+    ['Trikozan (parafin)', '23 ta C atomli tarmoqlanmagan alkan — parafin. Darslik, 37-bet: CuO bilan qizdirilganda parafin uglerodi CO₂ gacha, vodorodi H₂O gacha oksidlanadi (organik moddada C va H ni isbotlash).', 'Trikozan yigʻildi — parafin.'],
     'C₂₃H₄₈ + 70CuO → 23CO₂ + 24H₂O + 70Cu', { viewOnly: true }),
   m('bromomethane', 'halo', 'CH₃Br', 'CBr',
     ['Бромметан', 'CH₃Br — галогеналкан. Учебник, с. 46: смесь бромэтана и бромметана с натрием (реакция Вюрца) даёт пропан, а также этан и бутан.', 'Бромметан собран.'],
