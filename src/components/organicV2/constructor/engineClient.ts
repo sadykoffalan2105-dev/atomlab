@@ -3,9 +3,9 @@
  */
 import { canonicalizeMol, embed3D, nameMol, toMol, type SkeletonGraph } from '../../../chemistry/organicV2'
 import type { NameSet } from './analysis'
-import type { P3Atom, P3Bond } from './Preview3D'
+import type { Embedded } from './toOV2'
 
-export interface Embedded { readonly atoms: readonly P3Atom[]; readonly bonds: readonly P3Bond[] }
+export type { Embedded }
 
 type Kind = 'name' | 'embed'
 /** Два воркера (название и 3D), чтобы долгий намер большой молекулы не задерживал 3D. «Побеждает последний»:
@@ -46,7 +46,7 @@ function local(kind: 'name' | 'embed', graph: SkeletonGraph): unknown {
     return { ru: nm.ru, en: nm.en, uz: nm.uz, synonymsRu: nm.synonymsRu, synonymsEn: nm.synonymsEn, synonymsUz: nm.synonymsUz, systematic: nm.systematic }
   }
   const em = embed3D(graph)
-  return { atoms: em.atoms.map((a) => ({ el: a.el, p: a.p })), bonds: em.bonds.map((b) => ({ a: b.a, b: b.b, o: b.o })) }
+  return { atoms: em.atoms.map((a) => ({ el: a.el, p: a.p, hyb: a.hyb, charge: a.charge })), bonds: em.bonds.map((b) => ({ a: b.a, b: b.b, o: b.o, ar: b.ar })) }
 }
 
 function run<T>(kind: Kind, graph: SkeletonGraph): Promise<T> {

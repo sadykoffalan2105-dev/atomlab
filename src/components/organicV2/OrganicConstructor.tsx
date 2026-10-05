@@ -3,17 +3,20 @@
  * название ИЮПАК (RU/EN/UZ) и живое 3D считает движок src/chemistry/organicV2.
  * Задания: build (собери по названию), isomers (найди все изомеры формулы), free. Контракт props — ./contracts.ts.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { OrganicConstructorProps } from './contracts'
 import { buildRegistryIndex, type RegistryIndex } from '../../chemistry/organicV2'
 import { EMPTY, GROUP_KEYS, PALETTE_ELEMENTS, bondById, removeAtom, removeBond, setBondOrder, setElement, toSkeleton, topologyKey, type CState, type GroupKey } from './constructor/model'
 import { analyze, entryName, isomerSet, judgeBuild, judgeIsomer, makeTarget, rememberName, type NameSet } from './constructor/analysis'
 import { tidyLayout } from './constructor/layout'
 import { EditorCanvas, type Focus, type Tool } from './constructor/EditorCanvas'
-import { Preview3D } from './constructor/Preview3D'
+import { embeddedToOV2 } from './constructor/toOV2'
 import { embedInBackground, nameInBackground, type Embedded } from './constructor/engineClient'
 import { CT, GROUP_LABEL, GROUP_TITLE, fmt, hintText } from './constructor/i18n'
 import styles from './constructor/OrganicConstructor.module.css'
+
+/** Общая 3D-сцена органики (тот же вид, что в «Молекуле»); чанк three грузится только при первом показе. */
+const Molecule3D = lazy(() => import('./Molecule3D').then((m) => ({ default: m.Molecule3D })))
 
 const INTRO_KEY = 'atomlab.ov2.constructor.intro.v1'
 const readIntroSeen = () => { try { return localStorage.getItem(INTRO_KEY) === '1' } catch { return false } }
@@ -60,6 +63,8 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
   const [isoMsg, setIsoMsg] = useState<{ text: string; tone: 'ok' | 'warn' | 'bad' } | null>(null)
   const solvedRef = useRef<string | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  // автоповорот 3D — на ПК; на телефоне сцена рисуется только при вращении пальцем (батарея, плавность холста)
+  const autoSpin = useMemo(() => typeof window !== 'undefined' && !window.matchMedia?.('(max-width: 760px), (prefers-reduced-motion: reduce)').matches, [])
 
   const state = preview ?? hist.now
   const index = useMemo(() => registryIndex(molecules), [molecules])
@@ -102,7 +107,13 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
     return () => { live = false; clearTimeout(timer) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [an, regMol])
-  const view3d = regMol ? { atoms: regMol.atoms, bonds: regMol.bonds } : emb && emb.key === an.code && !an.empty ? emb.data : null
+  // реестр → точные RDKit-координаты; иначе — встраиватель движка (атомы, связи, гибридизация) в формате OV2Molecule
+  const embData = emb && emb.key === an.code && !an.empty ? emb.data : null
+  const view3d = useMemo(
+    () => regMol ?? (embData ? embeddedToOV2(`ctor:${an.code}`, an.formula, embData) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [regMol, embData],
+  )
 
   const hById = useMemo(() => new Map(sk.ids.map((id, i) => [id, an.hCount[i] ?? 0])), [sk, an])
   const issueById = useMemo(() => new Map(an.issues.map((x) => [sk.ids[x.atom], lang === 'ru' ? x.messageRu : lang === 'en' ? x.messageEn : x.messageUz])), [an, sk, lang])
@@ -328,7 +339,13 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
               {view3d && <span className={styles.badge}>{regMol ? t.exact3d : t.approx3d}</span>}
             </div>
             <div className={styles.view3dBody}>
-              {view3d ? <Preview3D atoms={view3d.atoms} bonds={view3d.bonds} label={`${t.view3d}: ${nameText}`} /> : <div className={styles.view3dEmpty}>{an.empty ? t.emptyCanvas : an.issues.length ? t.valenceTitle : an.fragments > 1 ? t.fragments : '…'}</div>}
+              {view3d ? (
+                <Suspense fallback={<div className={styles.view3dEmpty}>…</div>}>
+                  <div className={styles.view3dScene} role="img" aria-label={`${t.view3d}: ${nameText}`} data-ctor-3d={regMol ? 'exact' : 'approx'}>
+                    <Molecule3D mol={view3d} style="ballStick" lang={lang} autoRotate={autoSpin} />
+                  </div>
+                </Suspense>
+              ) : <div className={styles.view3dEmpty}>{an.empty ? t.emptyCanvas : an.issues.length ? t.valenceTitle : an.fragments > 1 ? t.fragments : '…'}</div>}
             </div>
             {view3d && <div className={styles.view3dFoot}>{t.drag3d}</div>}
           </div>

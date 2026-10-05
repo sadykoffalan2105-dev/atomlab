@@ -857,3 +857,28 @@
     font-size: 12px;
   }
 }
+
+/* «Изомеры»: сколько карточек открыто + путь в Конструктор */
+.isoBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.18));
+  border-radius: 12px;
+  background: var(--lt-surface-2, rgba(255, 255, 255, 0.03));
+  margin: 0 0 10px;
+}
+.isoSeen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14px;
+}
+.isoHint {
+  font-size: 13px;
+  color: var(--lt-text-2, #9aa6c8);
+}

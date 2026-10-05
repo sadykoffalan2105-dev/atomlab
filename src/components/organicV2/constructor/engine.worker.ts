@@ -15,7 +15,7 @@ self.onmessage = (e: MessageEvent<EngineReq>) => {
       postMessage({ id, ok: true, value: { ru: nm.ru, en: nm.en, uz: nm.uz, synonymsRu: nm.synonymsRu, synonymsEn: nm.synonymsEn, synonymsUz: nm.synonymsUz, systematic: nm.systematic } })
     } else {
       const em = embed3D(graph)
-      postMessage({ id, ok: true, value: { atoms: em.atoms.map((a) => ({ el: a.el, p: a.p })), bonds: em.bonds.map((b) => ({ a: b.a, b: b.b, o: b.o })) } })
+      postMessage({ id, ok: true, value: { atoms: em.atoms.map((a) => ({ el: a.el, p: a.p, hyb: a.hyb, charge: a.charge })), bonds: em.bonds.map((b) => ({ a: b.a, b: b.b, o: b.o, ar: b.ar })) } })
     }
   } catch (err) {
     postMessage({ id, ok: false, error: String(err) })
