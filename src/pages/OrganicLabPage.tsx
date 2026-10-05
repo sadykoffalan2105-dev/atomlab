@@ -44,6 +44,7 @@ import {
   type OV2Mode,
 } from '../data/organicLab/organicLessonsV2'
 import { organicMoleculeById } from '../data/organicLab/organicMoleculeRegistry'
+import { reactionTypeName } from '../chemistry/organicV2/synthesis/teacher'
 import { loadOrganicV2Molecules } from '../data/organicV2/molecules'
 import { loadOrganicV2Reactions } from '../data/organicV2/reactions'
 import type { OV2Molecule, OV2Reaction, OV2ReactionsFile } from '../data/organicV2/types'
@@ -551,7 +552,7 @@ function ReactionStage({ mode, file, lessonRx, rxId, molId, lang, T, onPick, onD
                       data-rx={r.id} onClick={() => onPick(r.id)}>
                       <span className={shell.rxEq}>{r.equation}</span>
                       <span className={shell.rxMeta}>
-                        {r.typeRu ?? lbl?.[1] ?? ''}
+                        {lang === 'ru' ? (r.typeRu ?? lbl?.[1] ?? '') : reactionTypeName(r, lang)}
                         {r.source.page ? ` · ${T.page(r.source.page)}` : ''} · {T.grade(r.source.grade)}
                       </span>
                     </button>

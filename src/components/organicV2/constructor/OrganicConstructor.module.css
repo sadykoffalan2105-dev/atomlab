@@ -50,6 +50,11 @@
   box-shadow: var(--lt-shadow-sm, none);
 }
 .taskSolved { border-color: color-mix(in srgb, var(--c-ok) 60%, transparent); background: color-mix(in srgb, var(--c-ok) 10%, var(--c-surface)); }
+/* задание «собери» на широком экране — одной строкой (заголовок слева, кнопки справа): холст выше, меньше прокрутки */
+@media (min-width: 900px) {
+  .taskInline { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 10px 14px; gap: 6px 14px; }
+  .taskInline > .warnLine { flex: 1 0 100%; }
+}
 .taskHead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; }
 .taskKicker { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-text-3); font-weight: 600; }
 .taskTitle { font-size: 22px; font-weight: 700; color: var(--c-text); }

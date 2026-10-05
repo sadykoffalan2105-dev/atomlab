@@ -213,7 +213,7 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
     <div ref={rootRef} className={`${styles.root} ${className ?? ''}`} data-ov2-constructor="" data-task={task.kind} onKeyDown={onKey} tabIndex={-1}>
       {/* ── задание ── */}
       {task.kind === 'build' && target && (
-        <section className={`${styles.task} ${verdict?.kind === 'solved' ? styles.taskSolved : ''}`} aria-live="polite" data-solved={verdict?.kind === 'solved' ? '1' : '0'}>
+        <section className={`${styles.task} ${styles.taskInline} ${verdict?.kind === 'solved' ? styles.taskSolved : ''}`} aria-live="polite" data-solved={verdict?.kind === 'solved' ? '1' : '0'}>
           <div className={styles.taskHead}>
             <span className={styles.taskKicker}>{t.taskBuild}</span>
             <strong className={styles.taskTitle}>{target.name[lang]}</strong>
