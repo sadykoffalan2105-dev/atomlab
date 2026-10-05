@@ -3,7 +3,7 @@
  * ничьих (точно для школьных молекул; листья-«близнецы» у одного атома перебираются один раз).
  * Канонический код = канонический SMILES (Кекуле, с / \ для цис/транс) — «это та же молекула?».
  */
-import { bondKey, toMol, type Mol, type SkeletonGraph } from './graph'
+import { bondKey, toMol, type BondOrder, type Mol, type SkeletonGraph } from './graph'
 import { writeSmiles } from './smiles'
 
 /** Уточнение разбиения: ранги (0..n-1, равные — один класс). */
@@ -12,7 +12,7 @@ function refine(m: Mol, start: number[]): number[] {
   let classes = new Set(r).size
   for (;;) {
     const keys = r.map((ri, i) => {
-      const nb = m.adj[i].map((e) => r[e.to] * 4 + e.o).sort((a, b) => a - b)
+      const nb = m.adj[i].map((e) => r[e.to] * 5 + e.o).sort((a, b) => a - b)
       return [ri, ...nb]
     })
     const idx = r.map((_, i) => i).sort((a, b) => cmpArr(keys[a], keys[b]))
@@ -102,10 +102,71 @@ export interface CanonicalResult {
   readonly mol: Mol
 }
 
+/**
+ * Ароматические (бензольные) связи: связи 6-членных циклов, где у каждого атома (C/N) ровно одна двойная связь
+ * и она сама лежит в таком цикле. Нужны, чтобы две формы Кекуле одного бензольного кольца давали один код.
+ */
+export function aromaticBonds(m: Mol): Set<string> {
+  const cycles: number[][] = []
+  const seen = new Set<string>()
+  const okAtom = (v: number) => (m.el[v] === 'C' || m.el[v] === 'N') && m.adj[v].filter((e) => e.o === 2).length === 1 && m.adj[v].every((e) => e.o <= 2)
+  for (let s0 = 0; s0 < m.n; s0++) {
+    if (!okAtom(s0)) continue
+    const path = [s0]
+    const dfs = (v: number) => {
+      for (const e of m.adj[v]) {
+        if (e.o > 2) continue
+        if (path.length === 6) { if (e.to === s0) { const key = [...path].sort((a, b) => a - b).join(','); if (!seen.has(key)) { seen.add(key); cycles.push([...path]) } } continue }
+        if (e.to <= s0 || path.includes(e.to) || !okAtom(e.to)) continue
+        path.push(e.to); dfs(e.to); path.pop()
+      }
+    }
+    dfs(s0)
+  }
+  let cand = cycles
+  for (;;) {
+    const bonds = new Set<string>()
+    for (const c of cand) for (let i = 0; i < 6; i++) bonds.add(bondKey(c[i], c[(i + 1) % 6]))
+    const next = cand.filter((c) => c.every((v) => { const d = m.adj[v].find((e) => e.o === 2)!; return bonds.has(bondKey(v, d.to)) }))
+    if (next.length === cand.length) return bonds
+    cand = next
+  }
+}
+
+/** Молекула с порядком 4 у ароматических связей (для канонизации). */
+function withAromatic(m: Mol, aro: Set<string>): Mol {
+  if (!aro.size) return m
+  return { ...m, adj: m.adj.map((l, i) => l.map((e) => (aro.has(bondKey(i, e.to)) ? { to: e.to, o: 4 as unknown as BondOrder } : e))) }
+}
+
+/** Детерминированная расстановка Кекуле по каноническому порядку (меньший ранг — раньше). */
+function kekulizeByRank(m: Mol, aro: Set<string>, rank: number[]): Mol {
+  if (!aro.size) return m
+  const atoms = [...new Set([...aro].flatMap((k) => k.split('-').map(Number)))].sort((a, b) => rank[a] - rank[b])
+  const dbl = new Set<string>()
+  const matched = new Set<number>()
+  const solve = (k: number): boolean => {
+    while (k < atoms.length && matched.has(atoms[k])) k++
+    if (k >= atoms.length) return true
+    const v = atoms[k]
+    const nbs = m.adj[v].filter((e) => aro.has(bondKey(v, e.to)) && !matched.has(e.to)).map((e) => e.to).sort((a, b) => rank[a] - rank[b])
+    for (const u of nbs) {
+      matched.add(v); matched.add(u); dbl.add(bondKey(v, u))
+      if (solve(k + 1)) return true
+      matched.delete(v); matched.delete(u); dbl.delete(bondKey(v, u))
+    }
+    return false
+  }
+  if (!solve(0)) return m
+  return { ...m, adj: m.adj.map((l, i) => l.map((e) => { const key = bondKey(i, e.to); return aro.has(key) ? { to: e.to, o: (dbl.has(key) ? 2 : 1) as BondOrder } : e })) }
+}
+
 const LEAF_CAP = 5000
 
 /** Канонизация Mol (тяжёлые атомы + H). */
-export function canonicalizeMol(m0: Mol): CanonicalResult {
+export function canonicalizeMol(mk: Mol): CanonicalResult {
+  const aro = aromaticBonds(mk)
+  const m0 = withAromatic(mk, aro)
   const r0 = refine(m0, initialRanks(m0))
   // оставляем только настоящую цис/транс-стереохимию
   const keep = new Set(stereoBonds(m0, r0))
@@ -162,7 +223,7 @@ export function canonicalizeMol(m0: Mol): CanonicalResult {
     const best = (end: number, other: number) => m.adj[end].filter((e) => e.to !== other).map((e) => e.to).sort((p, q) => rank[p] - rank[q])[0]
     canonStereo.set(bondKey(a, b), { ref: [best(a, b), best(b, a)], v: stereoIn(m, k, rank) })
   }
-  const mc: Mol = { ...m, stereo: canonStereo }
+  const mc: Mol = { ...kekulizeByRank(mk, aro, rank), stereo: canonStereo }
   return { rank, smiles: writeSmiles(mc, rank), symmetryClass: r0, mol: mc }
 }
 

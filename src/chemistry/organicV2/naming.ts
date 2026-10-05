@@ -512,7 +512,7 @@ function renderParent(ctx: Ctx, p: Parent, o: Opt, asEsterAcid = false): string 
     else core = nSuf > 1
       ? stemPart + MULT[L][nSuf] + { ru: 'овая кислота', en: 'oic acid', uz: ' kislota' }[L]
       : L === 'uz' ? stemPart + ' kislota' : stemPart + { ru: 'овая кислота', en: 'oic acid', uz: '' }[L]
-    if (L === 'ru' && o.style === 'old' && /-\d/.test(base)) core = base + (asEsterAcid ? 'оат' : 'овая кислота') // «пентен-2-овая» — редкость
+    if (L === 'ru' && o.style === 'old' && /-\d/.test(base)) core = base + (asEsterAcid ? '-оат' : '-овая кислота') // «бутен-2-овая кислота»
     return ringPre + pre + core
   }
   if (!pr || nSuf === 0) return ringPre === '' ? pre + unsat(o.style) : pre + ringPre + unsat(o.style)
@@ -522,7 +522,7 @@ function renderParent(ctx: Ctx, p: Parent, o: Opt, asEsterAcid = false): string 
   if (o.style === 'old' && L !== 'en') {
     // «пропанол-2», «бутандиол-1,4», «пропен-2-ол-1»
     const base = unsat('old')
-    core = base + multS + sfx + (omitSufLoc ? '' : `-${sufLoc(suf)}`)
+    core = base + (/\d$/.test(base) ? '-' : '') + multS + sfx + (omitSufLoc ? '' : `-${sufLoc(suf)}`)
   } else {
     let base = unsat('new')
     if (L === 'en') base = base.replace(/e$/, '')
@@ -680,6 +680,7 @@ function cap(s: string): string {
 function variants(m: Mol, L: Lang): { names: string[]; systematic: boolean } {
   const ctx = analyze(m)
   const out: string[] = []
+  const later: string[] = []
   if (ctx) {
     const opts: Opt[] = []
     for (const style of ['old', 'new'] as const) for (const tr of [true, false]) for (const alpha of (L === 'ru' ? (['ru', 'en'] as Lang[]) : [L])) opts.push({ L, style, alpha, trivialRadicals: tr })
@@ -698,10 +699,17 @@ function variants(m: Mol, L: Lang): { names: string[]; systematic: boolean } {
         if (tol) names.push(tol)
       }
       const ct = cisTransPrefix(m, parent, L)
+      // «бутанон»: у C₄-кетона без заместителей положение C=O единственное — локант можно не писать
+      if (ctx.principal === 'ketone' && parent && !parent.ring && parent.atoms.length === 4 && !parent.d.subs.length) {
+        const plain = { ru: 'бутанон', en: 'butanone', uz: 'butanon' }[L]
+        if (!names.includes(plain)) later.push(plain)
+      }
       for (const n of names) out.push(ct + n)
+      if (ct) for (const n of names) later.push(n)
     }
   }
-  const uniq = [...new Set(out.map((s) => s.replace(/^-/, '')))]
+  // названия без цис/транс — в конце списка синонимов (структурная формула та же)
+  const uniq = [...new Set([...out, ...later].map((s) => s.replace(/^-/, '')))]
   return { names: uniq, systematic: uniq.length > 0 }
 }
 
@@ -716,6 +724,9 @@ export function nameMol(m: Mol): MoleculeName {
     const all = [...new Set([...first, ...v.names, ...later].map(cap))]
     return { all, systematic: v.systematic }
   })
+  // «н-бутан»: неразветвлённый алкан C₄+ — школьная приставка «нормальный»
+  const normal = m.n >= 4 && m.el.every((e) => e === 'C') && m.adj.every((l) => l.length <= 2 && l.every((e) => e.o === 1)) && m.adj.filter((l) => l.length === 1).length === 2
+  if (normal) res.forEach((r, k) => { const pre = ['н-', 'n-', 'n-'][k]; if (r.all[0]) r.all.push(pre + r.all[0].toLowerCase()) })
   const [ru, en, uz] = res
   return {
     ru: ru.all[0] ?? '', en: en.all[0] ?? '', uz: uz.all[0] ?? '',

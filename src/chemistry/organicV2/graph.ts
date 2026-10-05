@@ -112,7 +112,7 @@ export function checkValence(g: SkeletonGraph): ValenceIssue[] {
   const out: ValenceIssue[] = []
   g.atoms.forEach((a, i) => {
     const vals = allowedValences(a.el, a.charge ?? 0)
-    const max = vals[vals.length - 1]
+    const max = schoolNitro(g, i) ? s[i] : vals[vals.length - 1]
     const used = s[i] + (a.h ?? 0)
     if (used > max) {
       const extra = used - max
@@ -126,6 +126,27 @@ export function checkValence(g: SkeletonGraph): ValenceIssue[] {
     }
   })
   return out
+}
+
+/**
+ * Школьная запись нитрогруппы без зарядов: N(=O)=O (пятивалентный N) или N(=O)–O без H (граф с явными H).
+ * Движок сам переводит её в [N⁺](=O)[O⁻] (toMol), поэтому валентность такого N не считается ошибкой.
+ */
+export function schoolNitro(g: SkeletonGraph, i: number): boolean {
+  const a = g.atoms[i]
+  if (a.el !== 'N' || (a.charge ?? 0) !== 0) return false
+  const deg = new Map<number, number>()
+  for (const b of g.bonds) { deg.set(b.a, (deg.get(b.a) ?? 0) + 1); deg.set(b.b, (deg.get(b.b) ?? 0) + 1) }
+  let sum = 0, dO = 0, sO = 0
+  for (const b of g.bonds) {
+    if (b.a !== i && b.b !== i) continue
+    sum += b.o
+    const o = b.a === i ? b.b : b.a
+    if (g.atoms[o].el !== 'O' || deg.get(o) !== 1 || (g.atoms[o].charge ?? 0) !== 0) continue
+    if (b.o === 2) dO++
+    else if (b.o === 1 && g.atoms[o].h === 0) sO++
+  }
+  return (sum === 5 && dO >= 2) || (sum === 4 && dO >= 1 && sO >= 1)
 }
 
 /** Число неявных H по валентности (наименьшая допустимая валентность ≥ занятой). */
@@ -159,10 +180,26 @@ export function toMol(g: SkeletonGraph): Mol {
     if (A >= 0 && B >= 0) { adj[A].push({ to: B, o: b.o }); adj[B].push({ to: A, o: b.o }); used[A] += b.o; used[B] += b.o }
     else if (A >= 0) { folded[A]++; used[A] += b.o } else if (B >= 0) { folded[B]++; used[B] += b.o }
   }
+  // школьная нитрогруппа N(=O)=O / N(=O)–O → [N⁺](=O)[O⁻]
+  for (let k = 0; k < n; k++) {
+    if (!schoolNitro(g, src[k])) continue
+    const termO = adj[k].filter((e) => el[e.to] === 'O' && adj[e.to].length === 1 && folded[e.to] === 0)
+    const d2 = termO.filter((e) => e.o === 2)
+    if (used[k] === 5 && d2.length >= 2) {
+      const e = d2[d2.length - 1]
+      e.o = 1
+      adj[e.to][0].o = 1
+      used[k]--; used[e.to]--
+      ch[k] = 1; ch[e.to] = -1
+    } else {
+      const s1 = termO.find((e) => e.o === 1 && g.atoms[src[e.to]].h === 0)
+      if (s1) { ch[k] = 1; ch[s1.to] = -1 }
+    }
+  }
   const hc = src.map((i, k) => {
     const a = g.atoms[i]
     if (a.h !== undefined) return a.h + folded[k]
-    return folded[k] + implicitH(a.el, a.charge ?? 0, used[k])
+    return folded[k] + implicitH(a.el, ch[k], used[k])
   })
   const stereo = new Map<string, { ref: [number, number]; v: 'cis' | 'trans' }>()
   for (const b of g.bonds) {
@@ -238,4 +275,41 @@ function freeAngle(used: number[]): number {
     if (b - a > bestGap) { bestGap = b - a; best = a + (b - a) / 2 }
   }
   return best
+}
+
+/**
+ * Цис/транс по координатам рисунка: для каждой двойной связи вне малого цикла берётся двугранный угол
+ * «сосед–C=C–сосед» (по первым тяжёлым соседям); |угол| < 90° → цис. Координаты — `coords[i]` (3D или 2D)
+ * или x/y атомов. Уже заданные cisTrans не меняются.
+ */
+export function perceiveCisTrans(g: SkeletonGraph, coords?: readonly (readonly number[])[]): SkeletonGraph {
+  const P = (i: number): [number, number, number] => {
+    const c = coords?.[i]
+    if (c) return [c[0] ?? 0, c[1] ?? 0, c[2] ?? 0]
+    return [g.atoms[i].x ?? NaN, g.atoms[i].y ?? NaN, 0]
+  }
+  const heavyNb = (v: number, other: number) => g.bonds.filter((b) => (b.a === v || b.b === v)).map((b) => (b.a === v ? b.b : b.a)).filter((x) => x !== other && g.atoms[x].el !== 'H').sort((p, q) => p - q)
+  const bonds = g.bonds.map((b) => {
+    if (b.o !== 2 || b.cisTrans) return b
+    const na = heavyNb(b.a, b.b), nb = heavyNb(b.b, b.a)
+    if (!na.length || !nb.length) return b
+    const ra = na[0], rb = nb[0]
+    const d = dihedral(P(ra), P(b.a), P(b.b), P(rb))
+    if (!Number.isFinite(d)) return b
+    return { ...b, cisTrans: (Math.abs(d) < Math.PI / 2 ? 'cis' : 'trans') as 'cis' | 'trans', ref: [ra, rb] as const }
+  })
+  return { atoms: g.atoms, bonds }
+}
+
+/** Двугранный угол p0–p1–p2–p3, рад (NaN, если вырожден). */
+export function dihedral(p0: readonly number[], p1: readonly number[], p2: readonly number[], p3: readonly number[]): number {
+  const sub = (a: readonly number[], b: readonly number[]) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+  const cross = (a: number[], b: number[]) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+  const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+  const b1 = sub(p1, p0), b2 = sub(p2, p1), b3 = sub(p3, p2)
+  const n1 = cross(b1, b2), n2 = cross(b2, b3)
+  const l2 = Math.sqrt(dot(b2, b2))
+  if (dot(n1, n1) < 1e-8 || dot(n2, n2) < 1e-8 || l2 < 1e-8) return NaN
+  const m1 = cross(n1, b2.map((x) => x / l2))
+  return Math.atan2(dot(m1, n2), dot(n1, n2))
 }
