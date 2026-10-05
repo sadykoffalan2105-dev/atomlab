@@ -277,6 +277,34 @@ for (const v of Object.values(MOLS)) {
     }
 }
 
+// ── 3б. 2D скелетной формулы: нет пересечений связей и слипшихся атомов (кроме клеток, которые на плоскости без
+// пересечения не нарисовать) ──
+const CAGES = new Set(['adamantane', 'hexamine'])
+let n2d = 0
+for (const v of Object.values(MOLS)) {
+  const heavy = v.atoms.map((a, i) => (a.el === 'H' ? -1 : i)).filter((i) => i >= 0)
+  const hb = v.bonds.filter((b) => v.atoms[b.a]!.el !== 'H' && v.atoms[b.b]!.el !== 'H')
+  const bonded = new Set(hb.map((b) => `${Math.min(b.a, b.b)}|${Math.max(b.a, b.b)}`))
+  const o = (a: readonly number[], b: readonly number[], c: readonly number[]) => (b[0]! - a[0]!) * (c[1]! - a[1]!) - (b[1]! - a[1]!) * (c[0]! - a[0]!)
+  let issues = 0
+  for (let x = 0; x < heavy.length; x++)
+    for (let y = x + 1; y < heavy.length; y++) {
+      const i = heavy[x]!, j = heavy[y]!
+      if (bonded.has(`${i}|${j}`)) continue
+      const p = v.atoms[i]!.p2, q = v.atoms[j]!.p2
+      if (Math.hypot(p[0] - q[0], p[1] - q[1]) < 0.5) issues++
+    }
+  for (let x = 0; x < hb.length; x++)
+    for (let y = x + 1; y < hb.length; y++) {
+      const e = hb[x]!, f = hb[y]!
+      if (new Set([e.a, e.b, f.a, f.b]).size < 4) continue
+      const [p1, p2, p3, p4] = [v.atoms[e.a]!.p2, v.atoms[e.b]!.p2, v.atoms[f.a]!.p2, v.atoms[f.b]!.p2]
+      if (o(p3, p4, p1) * o(p3, p4, p2) < 0 && o(p1, p2, p3) * o(p1, p2, p4) < 0) issues++
+    }
+  if (issues && !CAGES.has(v.id)) fail(`${v.id}: 2D — ${issues} наложений/пересечений`)
+  n2d++
+}
+
 // ── 4. стереохимия ──
 const Z_IDS = ['palmitoleic-acid', 'oleic-acid', 'linoleic-acid', 'linolenic-acid', 'triolein', 'dioleoyl-stearoyl-glycerol', 'stearopalmitolein', 'cis-but-2-ene', 'cis-penta-1-3-diene']
 const E_IDS = ['trans-but-2-ene', 'trans-penta-1-3-diene', 'cinnamyl-alcohol', 'beta-carotene']
@@ -371,7 +399,7 @@ console.log(
 )
 console.log(`ближайшие несвязанные: ${minClash.toFixed(2)}× порога (${minClashAt})`)
 console.log(`одинаковые InChIKey (разрешены): ${dups.map((d) => d.join('=')).join('; ') || 'нет'}`)
-console.log(`двугранные углы цис/транс проверены: ${nDihedral}`)
+console.log(`двугранные углы цис/транс проверены: ${nDihedral}; 2D без наложений: ${n2d} (клетки адамантан/уротропин — 1 пересечение)`)
 if (errors.length) {
   console.log(`\nОШИБКИ (${errors.length}):\n` + errors.slice(0, 80).join('\n'))
   process.exit(1)

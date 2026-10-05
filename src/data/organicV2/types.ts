@@ -65,6 +65,8 @@ export interface OV2Molecule {
   readonly rings: readonly (readonly number[])[]
   /** классы школы по учебнику (compoundGradeMap), напр. [10] или [10, 11] */
   readonly grades: readonly number[]
+  /** энергия выбранного конформера, MMFF94, ккал/моль (для отладки конвейера; добавлено, необязательное) */
+  readonly energy?: number
 }
 
 /** Школьный тип органической реакции (по механизму, Kimyo 10). */
