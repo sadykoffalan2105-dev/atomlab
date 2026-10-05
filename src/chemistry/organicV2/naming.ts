@@ -55,9 +55,9 @@ function stem(n: number, L: Lang): string {
   return UNITS[L][u] + TENS[L][t]
 }
 const MULT: Record<Lang, string[]> = {
-  ru: ['', '', 'ди', 'три', 'тетра', 'пента', 'гекса', 'гепта', 'окта'],
-  en: ['', '', 'di', 'tri', 'tetra', 'penta', 'hexa', 'hepta', 'octa'],
-  uz: ['', '', 'di', 'tri', 'tetra', 'penta', 'geksa', 'gepta', 'okta'],
+  ru: ['', '', 'ди', 'три', 'тетра', 'пента', 'гекса', 'гепта', 'окта', 'нона', 'дека', 'ундека', 'додека'],
+  en: ['', '', 'di', 'tri', 'tetra', 'penta', 'hexa', 'hepta', 'octa', 'nona', 'deca', 'undeca', 'dodeca'],
+  uz: ['', '', 'di', 'tri', 'tetra', 'penta', 'geksa', 'gepta', 'okta', 'nona', 'deka', 'undeka', 'dodeka'],
 }
 const HETERO_PREFIX: Record<string, Record<Lang, string>> = {
   F: { ru: 'фтор', en: 'fluoro', uz: 'ftor' },
