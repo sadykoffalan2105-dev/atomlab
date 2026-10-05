@@ -428,6 +428,9 @@ def main():
     io.open(os.path.join(ROOT, 'src', 'data', 'organicV2', 'reactions.json'), 'w', encoding='utf-8', newline='\n').write(s)
     print('reactions.json', round(len(s.encode()) / 1e6, 2), 'MB; total reactions', len(reactions), 'generic routes', len(gen),
           'no route', len([g for g in GRAPHS if g not in routes]), round(time.time() - T0, 1), 's')
+    # школьные механизмы (ацил–O, Вюрц, полимеризация…) — правка соответствия и типов, правила в mechanisms.mts
+    import subprocess
+    subprocess.run('npx tsx scripts/organic-v2/fix-mechanisms.mts', cwd=ROOT, shell=True, check=True)
     write_report(reactions, skipped, routes, gen_fail, organic_book)
 
 

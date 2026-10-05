@@ -28,6 +28,7 @@ import { organicMoleculeById } from '../../data/organicLab/organicMoleculeRegist
 import type { OV2Reaction } from '../../data/organicV2/types'
 import type { SceneLabel, SynthClock } from './synthesis/SynthesisScene'
 import { SYNTH_UI, type SynthUiLang } from './synthesis/synthesisUi'
+import { regName } from './synthesis/uzNames'
 import styles from './synthesis/SynthesisPlayer.module.css'
 
 const SynthesisScene = lazy(() => import('./synthesis/SynthesisScene'))
@@ -100,12 +101,25 @@ type Lang = SynthUiLang
 function speciesName(r: OV2Reaction, si: number, lang: Lang): string {
   const s = r.species[si]
   const reg = organicMoleculeById[s.ref]
-  if (reg) return lang === 'en' ? reg.nameEn : lang === 'uz' ? reg.nameUz || reg.nameRu : reg.nameRu
+  if (reg) return regName(reg, lang)
   const inorg = inorganicName(s.ref, lang)
   if (inorg) return inorg
   if (s.nameRu && lang === 'ru') return s.nameRu
   if (s.ref.startsWith('polymer:')) return SYNTH_UI[lang].polymer
   return ''
+}
+
+/** пример общей схемы (ASCII) → уравнение: стрелки ⇌/→, коэффициент перед веществом — обычной цифрой, индексы — подстрочные */
+function exampleText(ex: string): string {
+  return ex
+    .replace(/<=>/g, '⇌')
+    .replace(/->/g, '→')
+    .split(/(\s+)/)
+    .map((w) => {
+      const m = /^(\d+)([A-Z(\[].*)$/.exec(w)
+      return m ? m[1] + subscript(m[2]) : subscript(w)
+    })
+    .join('')
 }
 
 function formulaOf(r: OV2Reaction, si: number): string {
@@ -278,7 +292,7 @@ function PlayerInner({ reaction, lang, focusMoleculeId, autoplay = true, onDone,
           {reaction.generic ? (
             <p className={styles.generic}>
               {ui.generic(src.page)}
-              {reaction.example ? <span className={styles.example}>{ui.example}: {subscript(reaction.example.replace(/->/g, '→'))}</span> : null}
+              {reaction.example ? <span className={styles.example}>{ui.example}: {exampleText(reaction.example)}</span> : null}
             </p>
           ) : null}
         </div>

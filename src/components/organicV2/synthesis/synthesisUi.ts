@@ -23,6 +23,10 @@ export interface SynthUi {
   routes: string
   routeFrom: (names: string) => string
   routeGeneric: string
+  /** маршрут по общей схеме учебника (не уравнение учебника): подпись под названием */
+  routeScheme: (page?: number) => string
+  /** кнопка «ещё N маршрутов» */
+  routeMore: (n: number) => string
   noRoutes: string
   loadingRoutes: string
   generic: (page?: number) => string
@@ -52,6 +56,8 @@ export const SYNTH_UI: Readonly<Record<SynthUiLang, SynthUi>> = {
     routes: 'Способ получения',
     routeFrom: (n) => n,
     routeGeneric: 'общая схема',
+    routeScheme: (p) => `по общей схеме учебника${p ? `, с. ${p}` : ''}`,
+    routeMore: (n) => `ещё ${n}`,
     noRoutes: 'Для этого вещества в учебнике нет способа получения.',
     loadingRoutes: 'Загружаем реакции учебника…',
     generic: (p) => `Общая схема (R — углеводородный радикал), показана на конкретном примере${p ? `; в учебнике — с. ${p}` : ''}.`,
@@ -79,6 +85,8 @@ export const SYNTH_UI: Readonly<Record<SynthUiLang, SynthUi>> = {
     routes: 'How to obtain',
     routeFrom: (n) => n,
     routeGeneric: 'general scheme',
+    routeScheme: (p) => `by the textbook general scheme${p ? `, p. ${p}` : ''}`,
+    routeMore: (n) => `${n} more`,
     noRoutes: 'The textbook gives no way to obtain this substance.',
     loadingRoutes: 'Loading textbook reactions…',
     generic: (p) => `General scheme (R — hydrocarbon radical) shown on a concrete example${p ? `; textbook p. ${p}` : ''}.`,
@@ -106,6 +114,8 @@ export const SYNTH_UI: Readonly<Record<SynthUiLang, SynthUi>> = {
     routes: 'Olinish usuli',
     routeFrom: (n) => n,
     routeGeneric: 'umumiy sxema',
+    routeScheme: (p) => `darslikdagi umumiy sxema bo‘yicha${p ? `, ${p}-bet` : ''}`,
+    routeMore: (n) => `yana ${n} ta`,
     noRoutes: 'Darslikda bu moddaning olinish usuli berilmagan.',
     loadingRoutes: 'Darslik reaksiyalari yuklanmoqda…',
     generic: (p) => `Umumiy sxema (R — uglevodorod radikali) aniq misolda ko‘rsatilgan${p ? `; darslikda — ${p}-bet` : ''}.`,
