@@ -72,6 +72,12 @@ import {
   type ReactorLinkResult,
 } from '../lab/reactorDeepLink'
 import { effectiveLabNeeds, reactorLinkLabNeeds, type ConditionsLabNeeds } from '../lab/reactionLabNeeds'
+import {
+  findOrganicV2ForReactor,
+  focusMoleculeForProduct,
+  organicV2IdFromBackHref,
+  type OrganicV2Match,
+} from '../lab/organicV2Bridge'
 import { getLabTeacherNarrator, hasLabTeacherScript, readLabTeacherVoiceEnabled } from '../lab/teacher'
 import type { Clo2TeacherLine } from '../lab/teacher/clo2TeacherScript'
 import { unlockAudioPlayback } from '../learn/learnSpeechPlayback'
@@ -108,6 +114,8 @@ import mechPanelStyles from '../components/lab/scientific/Clo2MechanismPanel.mod
 const LabCanvas = lazy(() =>
   import('../components/lab/LabScene').then((m) => ({ default: m.LabCanvas })),
 )
+/** Органика v2: синтез по атомному соответствию поверх сцены реактора (отдельный чанк). */
+const OrganicReactorSynthesis = lazy(() => import('../lab/organicV2/OrganicReactorSynthesis'))
 
 function LabCanvasFallback() {
   return <div className={styles.canvasFallback} aria-hidden />
@@ -185,6 +193,14 @@ export function LaboratoryPage() {
   const [linkedBankId, setLinkedBankId] = useState<string | null>(null)
   /** Условия шага из ссылки (eq= — над стрелкой, банк — его данные) для продукта ссылки; null — по данным вещества. */
   const [linkLab, setLinkLab] = useState<{ productId: string; needs: ConditionsLabNeeds | undefined } | null>(null)
+  /**
+   * Органика v2: реакция с атомным соответствием для органического уравнения из ссылки — вместо «только шарами»
+   * кнопка запуска открывает синтез (SynthesisPlayer) поверх сцены. Действует, пока в реакторе рецепт этой ссылки.
+   */
+  const [organicV2, setOrganicV2] = useState<{ match: OrganicV2Match; recipe: ScientificReactorRecipe } | null>(null)
+  const [organicV2Open, setOrganicV2Open] = useState(false)
+  const organicV2ReqRef = useRef(0)
+  const closeOrganicV2 = useCallback(() => setOrganicV2Open(false), [])
   /**
    * Одна из 200 основных реакций (ссылка mr=): вещества стоят, коэффициенты 1 — ученик только уравнивает;
    * условия реактора — этой реакции. Выбор реакции в реакторе — только из 200 (MainReactionPicker).
@@ -452,6 +468,8 @@ export function LaboratoryPage() {
         : getScientificReactorRecipe(productCompoundId),
     [equationRecipe, productCompoundId],
   )
+  /** Синтез органики v2 доступен: в реакторе всё ещё органическое уравнение ссылки (stageOnly) и реакция v2 найдена. */
+  const organicV2Run = organicV2 && activeRecipe?.stageOnly && activeRecipe === organicV2.recipe ? organicV2.match : null
 
   const equationBalanced = useMemo(() => {
     if (activeRecipe) {
@@ -704,6 +722,7 @@ export function LaboratoryPage() {
       const next = !o
       if (!next) {
         resetEquation()
+        setOrganicV2Open(false)
         setEquationRecipe(null)
         setLinkStageProductId(null)
         setDeepLinkBackHref(null)
@@ -748,6 +767,9 @@ export function LaboratoryPage() {
   const applyReactorLink = useCallback(
     (res: ReactorLinkResult, link: ReactorLinkParams) => {
       clearReactorSlots()
+      organicV2ReqRef.current++
+      setOrganicV2(null)
+      setOrganicV2Open(false)
       setReactorOpen(true)
       setStructureZ(null)
       setPanelOpen(false)
@@ -800,7 +822,26 @@ export function LaboratoryPage() {
       const conditions = res.conditions ? ` ${t('lab.deepLink.conditions', { conditions: res.conditions })}` : ''
       // Ссылка без заголовка: заголовок = само уравнение — не повторяем его дважды.
       const loadedOnce = loaded.replace(`${res.equationUnicode}: ${res.equationUnicode}`, res.equationUnicode)
-      setReactorMessage(`${loadedOnce}${conditions}`)
+      const stageMessage = `${loadedOnce}${conditions}`
+      setReactorMessage(stageMessage)
+      // Органика: ищем реакцию v2 (по ссылке учебника, иначе по составу) — найдена → синтез вместо «только шарами».
+      if (res.stageOnly === 'organic' && res.recipe) {
+        const req = organicV2ReqRef.current
+        const recipe = res.recipe
+        const synthLoaded = (link.balanceSelf
+          ? t('lab.deepLink.loadedBalance', { title })
+          : t('lab.deepLink.loaded', { title, equation: res.equationUnicode })
+        ).replace(`${res.equationUnicode}: ${res.equationUnicode}`, res.equationUnicode)
+        findOrganicV2ForReactor({ sourceId: organicV2IdFromBackHref(link.backHref), equation: res.equationUnicode })
+          .then((match) => {
+            if (!match || organicV2ReqRef.current !== req) return
+            setOrganicV2({ match, recipe })
+            setReactorMessage((prev) => (prev === stageMessage ? `${synthLoaded}${conditions}` : prev))
+          })
+          .catch(() => {
+            /* нет сети для чанка реакций — реакция остаётся «шарами» */
+          })
+      }
       const compound = res.stageOnly ? undefined : compoundById[res.productCompoundId]
       if (compound) {
         if (!res.recipe) warmupReactorPreviewTerms(res.leftTerms)
@@ -995,6 +1036,12 @@ export function LaboratoryPage() {
   }, [coeffEditBurst])
 
   const onRequestRun = useCallback(() => {
+    // Органика v2: синтез по атомному соответствию поверх сцены (кнопка активна только при верном уравнении).
+    if (activeRecipe?.stageOnly && organicV2Run) {
+      trackUsage('reaction_run', organicV2Run.reaction.id)
+      setOrganicV2Open(true)
+      return
+    }
     const prepared = prepareGuaranteedSynthesisRun({
       leftTerms,
       productId: productCompoundId,
@@ -1060,7 +1107,7 @@ export function LaboratoryPage() {
     }
 
     setRunId(nextRunId)
-  }, [leftTerms, coProducts, productCompoundId, productCoeff, activeRecipe, t, locale, runId, resetEditBurst, catalogList])
+  }, [leftTerms, coProducts, productCompoundId, productCoeff, activeRecipe, t, locale, runId, resetEditBurst, catalogList, organicV2Run])
 
   const onLabNarrationCue = useCallback((id: string) => {
     if (!readLabTeacherVoiceEnabled()) return
@@ -1164,6 +1211,15 @@ export function LaboratoryPage() {
   )
 
   const canRunSynthesis = useMemo(() => {
+    // Органика с реакцией v2: синтез по атомному соответствию — когда уравнено и включены условия шага.
+    if (activeRecipe?.stageOnly && organicV2Run) {
+      if (!equationBalanced) return false
+      const need = activeLinkLabNeeds
+      if (need?.needsHeat && !labHeatOn) return false
+      if (need?.needsPressure && !labPressureOn) return false
+      if (need?.needsCatalyst && !labCatalystOn) return false
+      return true
+    }
     // Реакция только «шарами»: анимации синтеза пока нет — кнопка неактивна, пояснение в панели.
     if (activeRecipe?.stageOnly) return false
     const product = productCompoundId ? compoundById[productCompoundId] : undefined
@@ -1205,6 +1261,8 @@ export function LaboratoryPage() {
     linkedBankId,
     mainReaction,
     activeLinkLabNeeds,
+    organicV2Run,
+    equationBalanced,
   ])
 
   useEffect(() => {
@@ -1578,7 +1636,7 @@ export function LaboratoryPage() {
         onLabPressureChange={setLabPressureOn}
         onLabCatalystChange={setLabCatalystOn}
         scientificMode={activeRecipe != null}
-        runUnavailableHint={activeRecipe?.stageOnly ? t('errors.reactor.STAGE_ONLY') : null}
+        runUnavailableHint={activeRecipe?.stageOnly && !organicV2Run ? t('errors.reactor.STAGE_ONLY') : null}
         teacherAvailable={hasLabTeacherScript(productCompoundId)}
         teacherVoiceOn={teacherVoiceOn}
         teacherSpeaking={teacherSpeaking}
@@ -1587,6 +1645,17 @@ export function LaboratoryPage() {
         onTeacherVoiceToggle={onTeacherVoiceToggle}
         onTeacherReplay={onTeacherReplay}
       />
+
+      {organicV2Open && organicV2Run && reactorOpen ? (
+        <Suspense fallback={null}>
+          <OrganicReactorSynthesis
+            reaction={organicV2Run.reaction}
+            lang={locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'}
+            focusMoleculeId={focusMoleculeForProduct(organicV2Run.reaction, productCompound?.composition)}
+            onBack={closeOrganicV2}
+          />
+        </Suspense>
+      ) : null}
 
       <MainReactionPicker
         open={mainPickerOpen}

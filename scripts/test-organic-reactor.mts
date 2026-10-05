@@ -17,6 +17,8 @@ import { labCompoundById, labSpeciesKind } from '../src/data/labSpecies.ts'
 import { labOrganicSpeciesFor, pickOrganic } from '../src/data/labOrganicSpecies.ts'
 import { parseReactorLinkParams, resolveReactorEquation, type ReactorLinkOk } from '../src/lab/reactorDeepLink.ts'
 import type { CompoundDef } from '../src/types/chemistry.ts'
+import { buildOrganicV2Index, matchOrganicV2Reaction, organicV2IdFromBackHref } from '../src/lab/organicV2Bridge.ts'
+import type { OV2ReactionsFile } from '../src/data/organicV2/types.ts'
 
 const problems: string[] = []
 let checks = 0
@@ -114,12 +116,15 @@ function geometryProblems(label: string, c: CompoundDef): string[] {
 }
 
 const organicIds = new Set<string>()
-const perGrade: Record<number, { cards: number; organic: number; withAlt: number }> = {}
+const perGrade: Record<number, { cards: number; organic: number; withAlt: number; synth: number }> = {}
+const ov2Index = buildOrganicV2Index(
+  (JSON.parse(fs.readFileSync('src/data/organicV2/reactions.json', 'utf8')) as OV2ReactionsFile).reactions,
+)
 for (const grade of [10, 11]) {
   const book = JSON.parse(fs.readFileSync(`src/data/textbook/equations-g${grade}.json`, 'utf8')) as {
     units: { unitId: string; reactions: { id: string; page: number | null; equationAscii: string; isGeneralScheme: boolean; lab: { ok: boolean; reason?: string; href?: string; altHref?: string } }[] }[]
   }
-  const st = (perGrade[grade] = { cards: 0, organic: 0, withAlt: 0 })
+  const st = (perGrade[grade] = { cards: 0, organic: 0, withAlt: 0, synth: 0 })
   for (const u of book.units) {
     for (const rx of u.reactions) {
       if (rx.isGeneralScheme) continue
@@ -145,6 +150,10 @@ for (const grade of [10, 11]) {
       ok(layout.tally.equal, `${label}: счёт атомов на экране не сходится ${JSON.stringify(layout.tally.rows)}`)
       ok(layout.units.every((u) => u.atomCount > 0), `${label}: член без частиц`)
       ok(res.recipe?.stageOnly === true, `${label}: рецепт не stageOnly`)
+      // органика v2: у экрана «шарами» есть синтез по атомному соответствию (кнопка запуска → SynthesisPlayer)
+      const v2 = matchOrganicV2Reaction(ov2Index, { sourceId: organicV2IdFromBackHref(link.backHref), equation: res.equationUnicode })
+      ok(v2, `${label}: нет синтеза v2 (реакции с атомным соответствием)`)
+      if (v2) st.synth++
       for (const id of [...res.leftTerms.map((t) => t.compoundId), ...res.coProducts.map((t) => t.compoundId), res.productCompoundId]) {
         if (id && labSpeciesKind(id) === 'organic') organicIds.add(id)
       }
@@ -191,7 +200,7 @@ for (const id of organicIds) {
 
 for (const g of [10, 11]) {
   const s = perGrade[g]!
-  console.log(`g${g}: карточек ${s.cards} (без общих схем), органических в реакторе ${s.organic}, со второй кнопкой ${s.withAlt}`)
+  console.log(`g${g}: карточек ${s.cards} (без общих схем), органических в реакторе ${s.organic} (с синтезом v2 ${s.synth}), со второй кнопкой ${s.withAlt}`)
 }
 console.log(`органических частиц на экранах реакций: ${organicIds.size}`)
 if (problems.length) {
