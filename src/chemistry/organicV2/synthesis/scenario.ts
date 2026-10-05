@@ -534,7 +534,6 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   const SAMPLES = [0.3, 0.5, 0.7]
   const posAt = (a: number, s: number, bul: V3): V3 => add(lerp3(pb[a], p2[a], easeInOut(s)), scale(bul, Math.sin(Math.PI * s)))
   const fragOrder = fragAtoms.map((_, f) => f).sort((a, b) => travel[b] - travel[a])
-  const fixed: number[] = []
   // соседи по пути: атомы других фрагментов, которые вообще могут оказаться рядом (иначе O(N²) на больших жирах)
   const fragMid = fragAtoms.map((ids) => lerp3(centroid(ids.map((a) => pb[a])), centroid(ids.map((a) => p2[a])), 0.5))
   const fragRad = fragAtoms.map((ids, f) => {
@@ -542,9 +541,13 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
     for (const a of ids) r = Math.max(r, dist(pb[a], fragMid[f]), dist(p2[a], fragMid[f]))
     return r
   })
+  // зазор пути фрагмента f (с дугой bul) до ВСЕХ остальных фрагментов (их текущие дуги), кроме будущих партнёров
   const clearance = (f: number, bul: V3, stopBelow: number): number => {
     let m = Infinity
-    const near = fixed.filter((g) => g !== f && dist(fragMid[f], fragMid[g]) < fragRad[f] + fragRad[g] + len(bul) + len(bulgeFrag[g]) + 1.5)
+    const near: number[] = []
+    for (let g = 0; g < nFrag; g++) {
+      if (g !== f && dist(fragMid[f], fragMid[g]) < fragRad[f] + fragRad[g] + len(bul) + len(bulgeFrag[g]) + 1.5) near.push(g)
+    }
     if (!near.length) return m
     for (const s of SAMPLES) {
       for (const a of fragAtoms[f]) {
@@ -563,24 +566,41 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
     }
     return m
   }
-  for (const f of fragOrder) {
-    if (travel[f] > 0.25 && fixed.length) {
+  // два прохода: дуга каждого движущегося фрагмента подбирается с учётом уже выбранных дуг всех остальных
+  // (в том числе стоящих на месте — их раньше не проверяли, отсюда пролёты «сквозь» атомы)
+  const moving = fragOrder.filter((f) => travel[f] > 0.25)
+  for (let pass = 0; pass < 2 && moving.length; pass++) {
+    let worst = Infinity
+    for (const f of moving) {
+      const now = clearance(f, bulgeFrag[f], -1)
+      worst = Math.min(worst, now)
+      if (pass > 0 && now >= 0.8) continue
       const ids = fragAtoms[f]
       const d = norm(sub(centroid(ids.map((a) => p2[a])), centroid(ids.map((a) => pb[a]))))
       const u = norm(cross(d, Math.abs(d[2]) < 0.9 ? [0, 0, 1] : [0, 1, 0]))
       const w = norm(cross(d, u))
       const cands: V3[] = [[0, 0, 0]]
-      for (const r of [1.1, 2.0, 3.0, 4.2]) cands.push(scale(w, r), scale(w, -r), scale(u, r), scale(u, -r))
-      let best: V3 = [0, 0, 0]
-      let bestClr = -Infinity
-      for (const c of cands) {
-        const clr = clearance(f, c, bestClr + 0.05)
-        if (clr >= 1.2) { best = c; bestClr = clr; break }
-        if (clr > bestClr + 0.05) { best = c; bestClr = clr }
+      for (const r of [1.1, 2.0, 3.0, 4.2, 5.6, 7.2]) {
+        cands.push(scale(w, r), scale(w, -r), scale(u, r), scale(u, -r))
+        const r2 = r * Math.SQRT1_2
+        cands.push(add(scale(w, r2), scale(u, r2)), add(scale(w, -r2), scale(u, r2)), add(scale(w, r2), scale(u, -r2)), add(scale(w, -r2), scale(u, -r2)))
+      }
+      let best: V3 = bulgeFrag[f]
+      let bestClr = now
+      if (bestClr < 1.2) {
+        for (const c of cands) {
+          // досрочный выход clearance возвращает лишь верхнюю оценку — такой кандидат просто «не лучше»
+          const stop = Math.min(bestClr + 0.05, 1.2)
+          const clr = clearance(f, c, stop)
+          if (clr <= stop) continue
+          best = c
+          bestClr = clr
+          if (clr >= 1.2) break
+        }
       }
       bulgeFrag[f] = best
     }
-    fixed.push(f)
+    if (worst >= 0.8) break
   }
 
   // 9) электроны разрыва

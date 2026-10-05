@@ -3,7 +3,7 @@
  *   npx tsx scripts/test-organic-v2-synthesis.mts
  * Проверяет: нет NaN; каждый атом с map есть слева и справа; изменения связей сценария = changes из данных;
  * продукт в конце — ровно RDKit-геометрия (жёсткое движение: длины связей не искажены);
- * траектории «Образования» не проходят ближе 0,6 Å от чужих атомов в середине пути (допуск — доля атомов);
+ * траектории «Образования» не проходят ближе 0,6 Å от чужих атомов в середине пути (ни в одной реакции);
  * длительность этапов разумная; фразы учителя есть на 3 языках для всех этапов.
  */
 import { readFileSync } from 'node:fs'
@@ -114,12 +114,12 @@ for (const r of file.reactions) {
 
 const closeShare = close.length / file.reactions.length
 for (const c of close.slice(0, 12)) console.log(`  близко: ${c.id} — ${c.n} пар < 0,6 Å (мин ${c.min.toFixed(2)} Å)`)
-if (closeShare > 0.05) {
+if (close.length) {
   fail++
-  problems.push(`траектории: ${close.length} реакций с пролётом ближе 0,6 Å (> 5 %)`)
-} else if (close.length) warn++
+  problems.push(`траектории: ${close.length} реакций с пролётом ближе 0,6 Å (нужно 0)`)
+}
 console.log(`реакций: ${file.reactions.length}; длительность ${minTotal.toFixed(1)}…${maxTotal.toFixed(1)} с; сборка сценария max ${maxMs.toFixed(1)} мс, всего ${(performance.now() - t0all).toFixed(0)} мс`)
-console.log(`пролёт ближе 0,6 Å: ${close.length} реакций (${(closeShare * 100).toFixed(1)} %, допуск 5 %)`)
+console.log(`пролёт ближе 0,6 Å: ${close.length} реакций (${(closeShare * 100).toFixed(1)} %, нужно 0)`)
 if (problems.length) console.log(problems.join('\n'))
 console.log(fail ? `ОШИБОК: ${fail}` : `OK (предупреждений: ${warn})`)
 process.exit(fail ? 1 : 0)

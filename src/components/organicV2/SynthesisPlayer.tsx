@@ -221,8 +221,8 @@ function PlayerInner({ reaction, lang, focusMoleculeId, autoplay = true, onDone,
             <span className={styles.badgeNum}>{stage + 1}/6</span>
             <span>{stageTitle(stageKey, lang)}</span>
           </div>
-          {sc.radical && stage === 2 ? <div className={styles.legend}>• {ui.radicalHint}</div> : null}
-          {!sc.radical && stage === 2 ? <div className={styles.legend}>: {ui.pairHint}</div> : null}
+          {sc.radical && stage === 2 ? <div className={styles.legend}><span className={styles.legendDots} aria-hidden="true">•</span>{ui.radicalHint}</div> : null}
+          {!sc.radical && stage === 2 ? <div className={styles.legend}><span className={styles.legendDots} aria-hidden="true">••</span>{ui.pairHint}</div> : null}
         </div>
         <div className={styles.controls}>
           <ol className={styles.timeline}>
