@@ -469,6 +469,9 @@ def build_reaction_from_smiles(lhs, rhs):
     return (out_species, ch), None
 
 
+METHOD_NOTES = ['\n## Метод и проверка\n', '- Соответствие атомов: FMCS тяжёлых атомов (4 варианта: с учётом кратности связей и без, с обменами тяжёлых атомов', '  одного элемента и без) → водороды по соседям → обмены по стоимости; берётся вариант с наименьшей «ценой» изменений', '  (разрыв C–C дороже, разрыв C–O у карбонильного C дешевле — этерификация/гидролиз идут по ацильной связи, как в учебнике).', '- Ароматическое кольцо справа получает ту же форму Кекуле, что слева (сдвиг двойных связей не показывается как изменение).', '- Проверка: `npx tsx scripts/validate-organic-v2-reactions.mts` — сохранение атомов по map (⇒ уравнено), заряды,', '  changes = разница связей, routes/uses, маршрут у каждой молекулы реестра, покрытие учебника ≥ 95 %.']
+
+
 def write_report(reactions, skipped, routes, gen_fail, organic_book):
     book = [r for r in reactions if not r['id'].startswith('gen-')]
     gen = [r for r in reactions if r['id'].startswith('gen-')]
@@ -514,6 +517,7 @@ def write_report(reactions, skipped, routes, gen_fail, organic_book):
     L.append('\n## Вещества вне реестра (ref `new:<SMILES>`)\n')
     for k, v in new_refs.most_common():
         L.append(f'- `{k}` — {v}')
+    L.extend(METHOD_NOTES)
     io.open(os.path.join(ROOT, 'docs', 'plans', 'organic-v2-reactions-coverage.md'), 'w', encoding='utf-8', newline='\n').write('\n'.join(L) + '\n')
 
 

@@ -80,6 +80,8 @@ def heuristic(res):
     refsL = {s['ref'] for s in oL}
     if 'O2' in inL and not oR and inR <= {'CO2', 'H2O', 'CO', 'C', 'N2', 'SO2'}:
         return 'combustion'
+    if 'CO2' in inL and 'O2' in inR:
+        return 'other'  # фотосинтез
     if res.get('polymer') and 'H2O' in inL:
         return 'hydrolysis'
     # цепная стадия радикального замещения (R-H + Cl• → R• + HCl, R• + Cl₂ → R-Cl + Cl•)
@@ -214,6 +216,8 @@ def type_ru(t, typeRu, res):
         return 'щелочное плавление сульфоната (SO₃Na → ONa)'
     if t == 'other' and 'NH3' in inL and 'H2O' in inR:
         return 'получение амида (кислота + NH₃, t)'
+    if t == 'other' and 'CO2' in inL and 'O2' in inR:
+        return 'фотосинтез'
     if t == 'other' and inL == {'CO2'} and inR >= {'CO', 'H2'}:
         return 'конверсия метана углекислым газом'
     if t == 'other' and 'Cu(OH)2' in inL:

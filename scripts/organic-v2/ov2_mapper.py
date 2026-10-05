@@ -147,12 +147,67 @@ def _local_pairs(L, R, inv, fwd, ls):
     return pairs
 
 
+def _heavy_swaps(L, R, inv, fwd, rounds=6):
+    def pairs_of(ls):
+        out = set()
+        for l in ls:
+            for m in L.adj[l]:
+                if m in inv:
+                    out.add((min(l, m), max(l, m)))
+            for t in R.adj[inv[l]]:
+                if t in fwd:
+                    m = fwd[t]
+                    out.add((min(l, m), max(l, m)))
+        return out
+
+    by_el = {}
+    for l in inv:
+        by_el.setdefault(L.el[l], []).append(l)
+    for _ in range(rounds):
+        improved = False
+        for l1 in sorted(inv):
+            for l2 in by_el[L.el[l1]]:
+                if l2 <= l1:
+                    continue
+                ps = pairs_of((l1, l2))
+                r1, r2 = inv[l1], inv[l2]
+                inv[l1], inv[l2] = r2, r1
+                fwd[r1], fwd[r2] = l2, l1
+                ps |= pairs_of((l1, l2))
+                after = sum(change_cost(L, R, inv, a, b) for a, b in ps)
+                inv[l1], inv[l2] = r1, r2
+                fwd[r1], fwd[r2] = l1, l2
+                before = sum(change_cost(L, R, inv, a, b) for a, b in ps)
+                if after < before - 1e-9:
+                    inv[l1], inv[l2] = r2, r1
+                    fwd[r1], fwd[r2] = l2, l1
+                    improved = True
+        if not improved:
+            break
+
+
 def map_reaction(lmols, rmols, timeout=2):
-    """Возвращает (L, R, inv) — inv[номер атома слева] = номер атома справа."""
+    """Возвращает (L, R, inv) — inv[номер атома слева] = номер атома справа.
+
+    Две попытки FMCS: с учётом кратности связей (школьный механизм: этерификация, гидролиз…) и без неё
+    (присоединение / отщепление: C=C → C–C не должно «переставлять» углеродный скелет). Берётся вариант
+    с меньшей стоимостью изменений связей; при равенстве — первый (с учётом кратности).
+    """
     L = Side(lmols)
     R = Side(rmols)
     if sorted(L.el) != sorted(R.el):
         raise ValueError('элементы слева и справа не совпадают')
+    best = None
+    for bc, swaps in ((rdFMCS.BondCompare.CompareOrder, False), (rdFMCS.BondCompare.CompareAny, False),
+                      (rdFMCS.BondCompare.CompareOrder, True), (rdFMCS.BondCompare.CompareAny, True)):
+        inv = _map_once(L, R, timeout, bc, swaps)
+        cost = total_cost(L, R, inv)
+        if best is None or cost < best[0] - 1e-9:
+            best = (cost, inv)
+    return L, R, best[1]
+
+
+def _map_once(L, R, timeout, bond_compare, heavy_swaps):
     inv = {}
     usedL, usedR = set(), set()
     heavyL = [i for i in range(L.n) if L.el[i] != 'H']
@@ -173,7 +228,7 @@ def map_reaction(lmols, rmols, timeout=2):
                     continue
                 rm, rback = _heavy_sub(R, ra)
                 res = rdFMCS.FindMCS([lm, rm], atomCompare=rdFMCS.AtomCompare.CompareElements,
-                                     bondCompare=rdFMCS.BondCompare.CompareOrder, ringMatchesRingOnly=False,
+                                     bondCompare=bond_compare, ringMatchesRingOnly=False,
                                      completeRingsOnly=False, matchValences=False, timeout=timeout)
                 if res.numAtoms < 2:
                     continue
@@ -208,6 +263,10 @@ def map_reaction(lmols, rmols, timeout=2):
         restL.remove(l)
         inv[l] = r
         fwd[r] = l
+    # 2б) обмены тяжёлых атомов одного элемента по стоимости только тяжёлых связей (водороды ещё не назначены,
+    # поэтому обмен не «тянет» за собой чужие H): чинит неудачный выбор ориентации первого общего фрагмента
+    if heavy_swaps:
+        _heavy_swaps(L, R, inv, fwd)
     # 3) водороды
     freeL = set(i for i in range(L.n) if L.el[i] == 'H')
     restRH = []
@@ -265,7 +324,7 @@ def map_reaction(lmols, rmols, timeout=2):
                     improved = True
         if not improved:
             break
-    return L, R, inv
+    return inv
 
 
 def bond_changes(L, R, inv):
