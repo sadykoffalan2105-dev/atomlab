@@ -165,6 +165,60 @@ export function principalAxes(ps: readonly V3[]): { axes: [V3, V3, V3]; c: V3 } 
   return { axes: [a0, a1, a2], c }
 }
 
+/** Кватернион [x, y, z, w]. */
+export type Q4 = [number, number, number, number]
+
+export function quatFromM3(m: M3): Q4 {
+  const [m00, m01, m02, m10, m11, m12, m20, m21, m22] = m
+  const tr = m00 + m11 + m22
+  let x: number, y: number, z: number, w: number
+  if (tr > 0) {
+    const s = Math.sqrt(tr + 1) * 2
+    w = 0.25 * s; x = (m21 - m12) / s; y = (m02 - m20) / s; z = (m10 - m01) / s
+  } else if (m00 > m11 && m00 > m22) {
+    const s = Math.sqrt(1 + m00 - m11 - m22) * 2
+    w = (m21 - m12) / s; x = 0.25 * s; y = (m01 + m10) / s; z = (m02 + m20) / s
+  } else if (m11 > m22) {
+    const s = Math.sqrt(1 + m11 - m00 - m22) * 2
+    w = (m02 - m20) / s; x = (m01 + m10) / s; y = 0.25 * s; z = (m12 + m21) / s
+  } else {
+    const s = Math.sqrt(1 + m22 - m00 - m11) * 2
+    w = (m10 - m01) / s; x = (m02 + m20) / s; y = (m12 + m21) / s; z = 0.25 * s
+  }
+  const l = Math.hypot(x, y, z, w) || 1
+  return [x / l, y / l, z / l, w / l]
+}
+
+export function m3FromQuat(q: Q4): M3 {
+  const [x, y, z, w] = q
+  return [
+    1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w),
+    2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w),
+    2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y),
+  ]
+}
+
+/** Сферическая интерполяция от единичного поворота к q. */
+export function slerpFromIdentity(q: Q4, s: number): Q4 {
+  let [x, y, z, w] = q
+  if (w < 0) { x = -x; y = -y; z = -z; w = -w }
+  const theta = Math.acos(Math.min(1, w))
+  if (theta < 1e-6) return [0, 0, 0, 1]
+  const k1 = Math.sin((1 - s) * theta) / Math.sin(theta)
+  const k2 = Math.sin(s * theta) / Math.sin(theta)
+  return [k2 * x, k2 * y, k2 * z, k1 + k2 * w]
+}
+
+/** Поворот, ставящий главные оси набора точек на x, y, z (знаки — ближе к исходному положению). */
+export function pcaRotation(ps: readonly V3[]): M3 {
+  if (ps.length < 3) return [...IDENT] as M3
+  const { axes } = principalAxes(ps)
+  const a0 = axes[0][0] < 0 ? scale(axes[0], -1) : axes[0]
+  const a1 = axes[1][1] < 0 ? scale(axes[1], -1) : axes[1]
+  const a2 = cross(a0, a1)
+  return [a0[0], a0[1], a0[2], a1[0], a1[1], a1[2], a2[0], a2[1], a2[2]]
+}
+
 export const clamp01 = (x: number): number => (x < 0 ? 0 : x > 1 ? 1 : x)
 export const easeInOut = (x: number): number => {
   const t = clamp01(x)

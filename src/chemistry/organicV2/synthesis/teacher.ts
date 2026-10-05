@@ -102,8 +102,9 @@ export interface ParsedEquation {
 }
 
 export function parseEquation(eq: string): ParsedEquation {
-  const m = /\s*(⇄|⇌|↔|→|⟶|->|=)\s*/.exec(eq)
-  const arrow = m ? (m[1] === '->' || m[1] === '=' || m[1] === '⟶' ? '→' : m[1]) : '→'
+  // «=» — двойная связь (CH₂=CH₂), не стрелка
+  const m = /\s*(⇄|⇌|↔|→|⟶|->)\s*/.exec(eq)
+  const arrow = m ? (m[1] === '->' || m[1] === '⟶' ? '→' : m[1]) : '→'
   const [l, r] = m ? [eq.slice(0, m.index), eq.slice(m.index + m[0].length)] : [eq, '']
   const terms = (side: string): EquationTerm[] =>
     side
@@ -225,12 +226,12 @@ const RU: Lines = {
   substitution: {
     center: (c) => `Реагент атакует связь ${c.brk.split(', ')[0] || c.pi}: атом или группа будут заменены.`,
     break: (c) => `Связи ${c.brk} рвутся гетеролитически: электронная пара (:) уходит к более электроотрицательному атому.`,
-    form: (c) => `Образуются связи ${c.frm} — на место ушедшего атома встаёт новый${c.by ? `; уходящие атомы собираются в ${c.by}` : ''}.`,
+    form: (c) => `Образуются связи ${c.frm} — на место ушедшего атома встаёт новый${c.by ? `; побочно образуется ${c.by}` : ''}.`,
   },
   elimination: {
     center: (c) => `От соседних атомов отщепляются атомы — рвутся связи ${c.brk}.`,
     break: (c) => `Связи ${c.brk} рвутся, атомы уходят из молекулы.`,
-    form: (c) => `${c.pi ? `Между атомами появляется новая π-связь: ${c.pi}. ` : ''}${c.by ? `Отщеплённые атомы образуют ${c.by}.` : `Образуются связи ${c.frm}.`}`,
+    form: (c) => `${c.pi ? `Между атомами появляется новая π-связь: ${c.pi}. ` : ''}${c.by ? `Отщеплённые атомы уходят в побочный продукт — ${c.by}.` : `Образуются связи ${c.frm}.`}`,
   },
   ester: {
     center: () => 'Реакционный центр — группа –COOH кислоты и группа –OH спирта.',
@@ -497,9 +498,11 @@ const STATIC: Readonly<Record<'reactants' | 'products' | 'summary', Readonly<Rec
 
 /** Фраза учителя для этапа (1–2 предложения, по типу реакции и реальным связям). */
 export function teacherLine(r: OV2Reaction, sc: SynthScenario, stage: SynthStageKey, lang: SynthLang): string {
-  const byNames = [
-    ...new Set(sc.species.filter((s) => s.byproduct).map((s) => inorganicName(s.ref, lang) ?? subscript(s.ref.replace(/^inorg:/, '')))),
-  ].join(', ')
+  // побочные — только если есть главный (органический) продукт; при горении CO₂ и H₂O — сами продукты
+  const hasMain = sc.species.some((s) => s.side === 'R' && !s.byproduct)
+  const byNames = hasMain
+    ? [...new Set(sc.species.filter((s) => s.byproduct).map((s) => inorganicName(s.ref, lang) ?? subscript(s.ref.replace(/^inorg:/, ''))))].join(', ')
+    : ''
   const cond = conditionsLabel(r)
   if (stage === 'reactants' || stage === 'products' || stage === 'summary') return STATIC[stage][lang](r, byNames, cond)
   const ctx: Ctx = {

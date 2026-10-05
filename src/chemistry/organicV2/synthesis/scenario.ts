@@ -29,9 +29,14 @@ import {
   kabsch,
   len,
   lerp3,
+  m3FromQuat,
   mulMV,
   norm,
+  pcaRotation,
   principalAxes,
+  type Q4,
+  quatFromM3,
+  slerpFromIdentity,
   rotateOnto,
   scale,
   sub,
@@ -107,6 +112,8 @@ export interface SynthSpecies {
   readonly byproduct: boolean
   /** концы цепи полимера: [атом, направление «…»] */
   readonly ends: readonly { readonly atom: number; readonly dir: V3 }[]
+  /** продукт: поворот к главным осям на этапе «Продукты» и центры до/после */
+  readonly turn?: { readonly q: Q4; readonly c2: V3; readonly c3: V3 }
 }
 
 export interface SynthScenario {
@@ -384,11 +391,11 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   for (const pl of placed) {
     const c = centroid(pl.pos)
     const dir = pl.idx === main ? ([0, 0, 0] as V3) : norm(sub(c, mainC), [1, 0, 0])
-    let shifted = pl.pos.map((p) => add(p, scale(dir, 2.6)))
+    let shifted = pl.pos.map((p) => add(p, scale(dir, 3.4)))
     if (pl.idx !== main) {
       const occ0 = placedPos0.flat()
       shifted = shifted.map((p) => [...p] as V3)
-      pushAway(shifted, occ0, dir, 3.0)
+      pushAway(shifted, occ0, dir, 3.4)
     }
     placedPos0.push(shifted)
     speciesAtoms[pl.idx].forEach((a, k) => {
@@ -397,6 +404,14 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
     })
   }
   void leftPos
+  // общий поворот: разнос участников — в плоскости экрана (камера смотрит вдоль z), главная ось — по x
+  {
+    const G = pcaRotation(p0)
+    for (let i = 0; i < N; i++) {
+      p0[i] = mulMV(G, p0[i])
+      p1[i] = mulMV(G, p1[i])
+    }
+  }
 
   // 5) этапы и времена
   const breaks = raw.filter((b) => b.kind === 'break' || b.kind === 'down')
@@ -479,18 +494,34 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
     const ids = sp[si].map.map((m) => mapIndex.get(m)!)
     prodPos.get(si)!.forEach((p, k) => (p2[ids[k]] = p))
   }
-  // p3 — разнесены: главный на месте, остальные отодвинуты (побочные — ещё дальше)
+  // p3 — разнесены и развёрнуты главными осями к зрителю (плавный поворот, без искажений); главный — на месте,
+  // остальные отодвинуты (побочные — ещё дальше)
   const p3: V3[] = p2.map((p) => [...p] as V3)
-  const mainProd = prodOrder[0]
-  const mainProdC = centroid(prodPos.get(mainProd)!)
-  const settled3: V3[] = [...prodPos.get(mainProd)!]
-  for (const si of prodOrder.slice(1)) {
+  const prodRot = new Map<number, { q: Q4; c2: V3; c3: V3 }>()
+  const turned = (si: number): { pos: V3[]; q: Q4; c2: V3 } => {
     const ids = sp[si].map.map((m) => mapIndex.get(m)!)
     const pos = ids.map((a) => p2[a])
-    const dir = norm(sub(centroid(pos), mainProdC), [1, 0, 0])
-    const moved = pos.map((p) => add(p, scale(dir, byproduct(si) ? 2.4 : 1.6)))
+    const c2 = centroid(pos)
+    const R = sp[si].atoms.length >= 3 ? pcaRotation(pos) : ([1, 0, 0, 0, 1, 0, 0, 0, 1] as M3)
+    return { pos: pos.map((p) => add(mulMV(R, sub(p, c2)), c2)), q: quatFromM3(R), c2 }
+  }
+  const mainProd = prodOrder[0]
+  const mainT = turned(mainProd)
+  const mainProdC = mainT.c2
+  const settled3: V3[] = [...mainT.pos]
+  const place3 = (si: number, pos: V3[], q: Q4, c2: V3) => {
+    const ids = sp[si].map.map((m) => mapIndex.get(m)!)
+    pos.forEach((p, k) => (p3[ids[k]] = p))
+    prodRot.set(si, { q, c2, c3: centroid(pos) })
+  }
+  place3(mainProd, mainT.pos, mainT.q, mainT.c2)
+  for (const si of prodOrder.slice(1)) {
+    const tr = turned(si)
+    let dir = sub(tr.c2, mainProdC)
+    dir = norm([dir[0], dir[1], dir[2] * 0.2], [1, 0, 0])
+    const moved = tr.pos.map((p) => add(p, scale(dir, byproduct(si) ? 2.4 : 1.6)))
     pushAway(moved, settled3, dir, byproduct(si) ? 3.6 : 3.0)
-    moved.forEach((p, k) => (p3[ids[k]] = p))
+    place3(si, moved, tr.q, tr.c2)
     settled3.push(...moved)
   }
 
@@ -604,6 +635,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
       nameRu: s.nameRu,
       atoms: ids,
       byproduct: s.side === 'R' && byproduct(si),
+      turn: prodRot.get(si),
       ends,
     }
   })
@@ -665,7 +697,22 @@ export function atomPositionsAt(sc: SynthScenario, t: number, out: Float32Array)
     return
   }
   const s = easeInOut((t - p.t0) / ((p.t1 - p.t0) * 0.7))
-  for (let i = 0; i < n; i++) put(out, i, lerp3(sc.atoms[i].p2, sc.atoms[i].p3, s))
+  if (s >= 1) {
+    for (let i = 0; i < n; i++) put(out, i, sc.atoms[i].p3)
+    return
+  }
+  // жёсткий поворот каждого продукта (slerp) + перенос центра
+  const mats = sc.species.map((sp) => (sp.turn ? m3FromQuat(slerpFromIdentity(sp.turn.q, s)) : null))
+  for (let i = 0; i < n; i++) {
+    const a = sc.atoms[i]
+    const sp = sc.species[a.rs]
+    const M = mats[a.rs]
+    if (!sp.turn || !M) {
+      put(out, i, lerp3(a.p2, a.p3, s))
+      continue
+    }
+    put(out, i, add(mulMV(M, sub(a.p2, sp.turn.c2)), lerp3(sp.turn.c2, sp.turn.c3, s)))
+  }
 }
 
 function put(out: Float32Array, i: number, v: V3) {
