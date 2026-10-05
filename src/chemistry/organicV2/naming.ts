@@ -720,7 +720,9 @@ export function nameMol(m: Mol): MoleculeName {
     const v = variants(m, L)
     const t = triv ? triv[L] : []
     // главное название: тривиальное учебника (если есть), иначе систематическое; «~» — тривиальное после систематического
-    const first = t.filter((x) => !x.startsWith('~')), later = t.filter((x) => x.startsWith('~')).map((x) => x.slice(1))
+    // для EN/UZ «вторичность» тривиального берём из RU-записи (метка «~» стоит только в RU)
+    const secondary = !!triv && triv.ru.length > 0 && triv.ru.every((x) => x.startsWith('~'))
+    const first = secondary ? [] : t.filter((x) => !x.startsWith('~')), later = (secondary ? t : t.filter((x) => x.startsWith('~'))).map((x) => x.replace(/^~/, ''))
     const all = [...new Set([...first, ...v.names, ...later].map(cap))]
     return { all, systematic: v.systematic }
   })
