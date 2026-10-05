@@ -38,12 +38,24 @@ interface Line {
   readonly thin?: boolean
 }
 
+/** клин стереоцентра: узкий конец (x1, y1) — у стереоцентра; hash — штриховой (связь от нас) */
+interface Wedge {
+  readonly x1: number
+  readonly y1: number
+  readonly x2: number
+  readonly y2: number
+  readonly hash: boolean
+}
+
 export interface Formula2DLayout {
   readonly lines: readonly Line[]
+  readonly wedges: readonly Wedge[]
   readonly labels: readonly Label[]
   readonly dots: readonly { readonly i: number; readonly x: number; readonly y: number }[]
   readonly viewBox: string
   readonly fontSize: number
+  /** положения атомов в px (у развёрнутой H отодвинуты на длину связи) */
+  readonly pos: readonly (readonly [number, number])[]
 }
 
 /** Раскладка 2D-формулы (чистая функция — используется и в тестах). */
@@ -57,14 +69,16 @@ export function layoutFormula2D(mol: Pick<OV2Molecule, 'atoms' | 'bonds' | 'ring
   const isH = (i: number) => mol.atoms[i].el === 'H'
   // атомы, которые рисуем: в скелетной — тяжёлые (и H, если молекула — H₂ или H не при тяжёлом атоме)
   const shown = mol.atoms.map((a, i) => kind === 'structural' || a.el !== 'H' || adj[i].every((j) => isH(j)))
-  const X = (i: number) => mol.atoms[i].p2[0] * S
-  const Y = (i: number) => -mol.atoms[i].p2[1] * S
+  const P = kind === 'structural' ? structuralPositions(mol, adj) : mol.atoms.map((a) => a.p2)
+  const X = (i: number) => P[i][0] * S
+  const Y = (i: number) => -P[i][1] * S
   const hCount = (i: number) => adj[i].filter((j) => isH(j) && !shown[j]).length
 
   const labels: Label[] = []
   const labelled = new Set<number>()
-  // этан, этилен, ацетилен: голая черта неоднозначна — подписываем все C (H₃C–CH₃, H₂C=CH₂, HC≡CH)
-  const fewC = mol.atoms.filter((a) => a.el === 'C').length <= 2
+  // этан, этилен, ацетилен: голая черта неоднозначна — подписываем все C (H₃C–CH₃, H₂C=CH₂, HC≡CH).
+  // С гетероатомами (этанол, уксусная кислота, дихлорэтан) черта уже понятна — обычная скелетная запись.
+  const fewC = mol.atoms.filter((a) => a.el === 'C').length <= 2 && mol.atoms.every((a) => a.el === 'C' || a.el === 'H')
   for (let i = 0; i < n; i++) {
     if (!shown[i]) continue
     const a = mol.atoms[i]
@@ -106,10 +120,55 @@ export function layoutFormula2D(mol: Pick<OV2Molecule, 'atoms' | 'bonds' | 'ring
   }
   const trimR = (i: number) => (labelled.has(i) ? (kind === 'structural' && isH(i) ? 0.27 : 0.33) * S : 0)
 
+  // клинья у стереоцентров (R/S) в скелетной: одна связь к заместителю — жирный клин (к нам) или штрих (от нас);
+  // что выбрать, решает знак объёма тройки соседей в 3D против той же тройки на рисунке (у клина z = +1)
+  const wedgeOf = new Map<string, { from: number; to: number; hash: boolean }>()
+  if (kind === 'skeletal') {
+    const isStereo = (i: number) => mol.atoms[i].cip != null
+    const det3 = (u: readonly number[], v: readonly number[], w: readonly number[]) =>
+      u[0] * (v[1] * w[2] - v[2] * w[1]) - u[1] * (v[0] * w[2] - v[2] * w[0]) + u[2] * (v[0] * w[1] - v[1] * w[0])
+    for (let c = 0; c < n; c++) {
+      if (!isStereo(c) || !shown[c]) continue
+      const nb = adj[c].filter((j) => shown[j])
+      if (nb.length < 3) continue
+      const inRing = (j: number) => mol.rings.some((r) => r.includes(c) && r.includes(j))
+      const used = (j: number) => wedgeOf.has(`${Math.min(c, j)}-${Math.max(c, j)}`)
+      const cand = nb
+        .filter((j) => !used(j) && mol.bonds.some((b) => ((b.a === c && b.b === j) || (b.b === c && b.a === j)) && b.o === 1))
+        .sort((x, y) => Number(inRing(x)) - Number(inRing(y)) || Number(isStereo(x)) - Number(isStereo(y)) || adj[x].filter((k) => !isH(k)).length - adj[y].filter((k) => !isH(k)).length)
+      const w = cand[0]
+      if (w === undefined) continue
+      const trio = [w, ...nb.filter((j) => j !== w).slice(0, 2)]
+      const pc = mol.atoms[c].p
+      const v3 = trio.map((j) => [mol.atoms[j].p[0] - pc[0], mol.atoms[j].p[1] - pc[1], mol.atoms[j].p[2] - pc[2]])
+      const q = mol.atoms[c].p2
+      const v2 = trio.map((j, k) => [mol.atoms[j].p2[0] - q[0], mol.atoms[j].p2[1] - q[1], k === 0 ? 1 : 0])
+      const s3 = det3(v3[0], v3[1], v3[2])
+      const s2 = det3(v2[0], v2[1], v2[2])
+      if (Math.abs(s2) < 1e-6 || Math.abs(s3) < 1e-6) continue
+      wedgeOf.set(`${Math.min(c, w)}-${Math.max(c, w)}`, { from: c, to: w, hash: Math.sign(s2) !== Math.sign(s3) })
+    }
+  }
+  const wedges: Wedge[] = []
+
   const lines: Line[] = []
   const D = 0.17 * S
   for (const b of mol.bonds) {
     if (!shown[b.a] || !shown[b.b]) continue
+    const wd = b.o === 1 ? wedgeOf.get(`${Math.min(b.a, b.b)}-${Math.max(b.a, b.b)}`) : undefined
+    if (wd) {
+      const fx = X(wd.from)
+      const fy = Y(wd.from)
+      const tx = X(wd.to)
+      const ty = Y(wd.to)
+      const L = Math.hypot(tx - fx, ty - fy) || 1
+      const ux = (tx - fx) / L
+      const uy = (ty - fy) / L
+      const t1 = trimR(wd.from)
+      const t2 = trimR(wd.to)
+      wedges.push({ x1: fx + ux * t1, y1: fy + uy * t1, x2: tx - ux * t2, y2: ty - uy * t2, hash: wd.hash })
+      continue
+    }
     const x1 = X(b.a)
     const y1 = Y(b.a)
     const x2 = X(b.b)
@@ -183,8 +242,68 @@ export function layoutFormula2D(mol: Pick<OV2Molecule, 'atoms' | 'bonds' | 'ring
     maxY = S
   }
   const pad = 0.35 * S
-  const vb = `${(minX - pad).toFixed(1)} ${(minY - pad).toFixed(1)} ${(maxX - minX + 2 * pad).toFixed(1)} ${(maxY - minY + 2 * pad).toFixed(1)}`
-  return { lines, labels, dots: [], viewBox: vb, fontSize: 0.5 * S }
+  // маленькие молекулы не раздуваем во весь блок (CH₄ высотой 60 px): рамка не меньше ~6×3,6 длины связи
+  let w = maxX - minX + 2 * pad
+  let h = maxY - minY + 2 * pad
+  const cx = (minX + maxX) / 2
+  const cy = (minY + maxY) / 2
+  w = Math.max(w, 6 * S)
+  h = Math.max(h, 3.6 * S)
+  const vb = `${(cx - w / 2).toFixed(1)} ${(cy - h / 2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`
+  return { lines, wedges, labels, dots: [], viewBox: vb, fontSize: 0.5 * S, pos: P.map((q) => [q[0] * S, -q[1] * S] as const) }
+}
+
+/**
+ * Развёрнутая формула: RDKit ставит H слишком близко к атому (≈ 0,55 длины связи) — связь C–H пропадает под подписями.
+ * Ставим каждый H на полную длину связи и, если он налезает на другой атом или H, поворачиваем вокруг своего атома
+ * (±15°, ±30°, … — первое свободное место).
+ */
+function structuralPositions(mol: Pick<OV2Molecule, 'atoms'>, adj: readonly (readonly number[])[]): (readonly [number, number])[] {
+  const n = mol.atoms.length
+  const P: [number, number][] = mol.atoms.map((a) => [a.p2[0], a.p2[1]])
+  const isH = (i: number) => mol.atoms[i].el === 'H'
+  const placed: number[] = []
+  for (let i = 0; i < n; i++) if (!isH(i)) placed.push(i)
+  const free = (x: number, y: number, self: number) => {
+    let m = Infinity
+    for (const k of placed) if (k !== self) m = Math.min(m, Math.hypot(P[k][0] - x, P[k][1] - y))
+    return m
+  }
+  for (let h = 0; h < n; h++) {
+    if (!isH(h)) continue
+    const c = adj[h].find((j) => !isH(j))
+    if (c === undefined) {
+      placed.push(h)
+      continue
+    }
+    const L = 1.0
+    const base = Math.atan2(mol.atoms[h].p2[1] - P[c][1], mol.atoms[h].p2[0] - P[c][0])
+    let best: [number, number] = [P[c][0] + Math.cos(base) * L, P[c][1] + Math.sin(base) * L]
+    let bestD = free(best[0], best[1], c)
+    for (let k = 1; bestD < 0.78 && k <= 8; k++) {
+      for (const sg of [1, -1]) {
+        const a = base + sg * k * (Math.PI / 12)
+        const q: [number, number] = [P[c][0] + Math.cos(a) * L, P[c][1] + Math.sin(a) * L]
+        const d = free(q[0], q[1], c)
+        // не ставим H поверх связи атома c с соседом
+        let onBond = false
+        for (const j of adj[c]) {
+          if (j === h || isH(j)) continue
+          const bj = Math.atan2(P[j][1] - P[c][1], P[j][0] - P[c][0])
+          let da = Math.abs(a - bj) % (2 * Math.PI)
+          if (da > Math.PI) da = 2 * Math.PI - da
+          if (da < 0.5) onBond = true
+        }
+        if (!onBond && d > bestD) {
+          bestD = d
+          best = q
+        }
+      }
+    }
+    P[h] = best
+    placed.push(h)
+  }
+  return P
 }
 
 const EL_CLASS: Record<string, string | undefined> = {
@@ -196,7 +315,7 @@ export function Formula2D(props: Formula2DProps) {
   const lay = useMemo(() => layoutFormula2D(mol, kind), [mol, kind])
   const fs = lay.fontSize
   const hl = highlightAtoms ?? []
-  const pos = (i: number) => [mol.atoms[i].p2[0] * S, -mol.atoms[i].p2[1] * S] as const
+  const pos = (i: number) => lay.pos[i] ?? ([0, 0] as const)
   return (
     <svg
       className={[styles.svg, props.className].filter(Boolean).join(' ')}
@@ -214,11 +333,32 @@ export function Formula2D(props: Formula2DProps) {
           })}
         </g>
       )}
-      <g className={styles.bonds} strokeWidth={kind === 'structural' ? 2.2 : 2.6}>
+      <g className={styles.bonds} strokeWidth={kind === 'structural' ? 1.7 : 2.3}>
         {lay.lines.map((l, k) => (
-          <line key={k} x1={l.x1.toFixed(1)} y1={l.y1.toFixed(1)} x2={l.x2.toFixed(1)} y2={l.y2.toFixed(1)} />
+          <line key={k} x1={l.x1.toFixed(1)} y1={l.y1.toFixed(1)} x2={l.x2.toFixed(1)} y2={l.y2.toFixed(1)} vectorEffect="non-scaling-stroke" />
         ))}
       </g>
+      {lay.wedges.length > 0 && (
+        <g className={styles.wedges} data-ov2-wedges={lay.wedges.length}>
+          {lay.wedges.map((w, k) => {
+            const L = Math.hypot(w.x2 - w.x1, w.y2 - w.y1) || 1
+            const nx = (-(w.y2 - w.y1) / L) * 0.15 * S
+            const ny = ((w.x2 - w.x1) / L) * 0.15 * S
+            if (!w.hash) {
+              const pts = `${w.x1.toFixed(1)},${w.y1.toFixed(1)} ${(w.x2 + nx).toFixed(1)},${(w.y2 + ny).toFixed(1)} ${(w.x2 - nx).toFixed(1)},${(w.y2 - ny).toFixed(1)}`
+              return <polygon key={k} points={pts} />
+            }
+            const bars = []
+            for (let m = 1; m <= 6; m++) {
+              const f = m / 6
+              const cx = w.x1 + (w.x2 - w.x1) * f
+              const cy = w.y1 + (w.y2 - w.y1) * f
+              bars.push(<line key={m} x1={(cx + nx * f).toFixed(1)} y1={(cy + ny * f).toFixed(1)} x2={(cx - nx * f).toFixed(1)} y2={(cy - ny * f).toFixed(1)} vectorEffect="non-scaling-stroke" />)
+            }
+            return <g key={k}>{bars}</g>
+          })}
+        </g>
+      )}
       <g className={styles.labels} fontSize={fs}>
         {lay.labels.map((l) => {
           const f = l.small ? fs * 0.82 : fs

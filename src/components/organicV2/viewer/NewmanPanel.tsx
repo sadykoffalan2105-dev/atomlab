@@ -18,6 +18,18 @@ interface Props {
 
 const labelColor = (el: string) => (el === 'C' || el === 'H' ? undefined : cpkColor(el))
 
+/** порог «заслонения», градусы: ближе — задняя связь сдвигается, подписи разносятся */
+const EC = 16
+/** угол до ближайшего заместителя другого атома (−180…180) */
+function nearestDelta(angle: number, other: readonly { readonly angle: number }[]): number {
+  let best = 999
+  for (const o of other) {
+    const d = ((((angle - o.angle) % 360) + 540) % 360) - 180
+    if (Math.abs(d) < Math.abs(best)) best = d
+  }
+  return best
+}
+
 export function NewmanPanel({ data, phi, onPhi, lang, caption }: Props) {
   const t = VIEWER_T[lang]
   const [playing, setPlaying] = useState(false)
@@ -83,9 +95,13 @@ export function NewmanPanel({ data, phi, onPhi, lang, caption }: Props) {
         <svg viewBox="-78 -78 156 156" className={styles.newmanSvg} aria-label={t.newman}>
           {/* задний атом: круг и связи от края круга */}
           {data.back.map((s) => {
-            const [x1, y1] = pt(s.angle, r0)
-            const [x2, y2] = pt(s.angle, R)
-            const [lx, ly] = pt(s.angle, R + 13)
+            // заслонённая конформация: задние связи рисуем со сдвигом (как в учебнике), подписи разносим
+            const d = nearestDelta(s.angle, data.front)
+            const shift = Math.abs(d) < EC ? (d >= 0 ? 1 : -1) * (EC - Math.abs(d)) : 0
+            const a = s.angle + shift
+            const [x1, y1] = pt(a, r0)
+            const [x2, y2] = pt(a, R)
+            const [lx, ly] = pt(a + (shift ? Math.sign(shift) * 7 : 0), R + 15)
             return (
               <g key={`b${s.atom}`} className={styles.nmBack}>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} />
@@ -98,7 +114,9 @@ export function NewmanPanel({ data, phi, onPhi, lang, caption }: Props) {
           <circle r={r0} className={styles.nmCircle} />
           {data.front.map((s) => {
             const [x2, y2] = pt(s.angle, R - 6)
-            const [lx, ly] = pt(s.angle, R + 7)
+            const d = nearestDelta(s.angle, data.back)
+            const la = Math.abs(d) < EC ? s.angle + (d > 0 ? 9 : -9) : s.angle
+            const [lx, ly] = pt(la, R + 6)
             return (
               <g key={`f${s.atom}`} className={styles.nmFront}>
                 <line x1={0} y1={0} x2={x2} y2={y2} />
