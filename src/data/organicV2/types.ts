@@ -79,8 +79,14 @@ export type OV2ReactionType =
 
 /** Участник реакции (одна копия; коэффициент 2 → две копии с разными атомами). */
 export interface OV2Species {
-  /** id молекулы реестра или 'inorg:<формула>' (H2O, HCl, Cl2, NaOH, …) */
+  /**
+   * id молекулы реестра или 'inorg:<формула>' (H2O, HCl, Cl2, NaOH, …).
+   * Дополнение (реакции v2): 'new:<SMILES>' — вещество вне реестра (соли органических кислот, промежуточные
+   * вещества общих схем), 'polymer:<запись учебника>' — фрагмент полимера из трёх звеньев (концы — открытые связи).
+   */
   readonly ref: string
+  /** название вещества вне реестра (ref 'new:…' / 'polymer:…'), как в учебнике — если распознаватель его знает */
+  readonly nameRu?: string
   readonly smiles: string
   readonly side: 'L' | 'R'
   readonly atoms: readonly OV2Atom[]
@@ -111,6 +117,10 @@ export interface OV2Reaction {
   readonly source: { readonly grade: 10 | 11; readonly page?: number; readonly section?: string; readonly bookId?: string }
   /** общая схема с R (показывается на конкретном примере) */
   readonly generic?: boolean
+  /** тип реакции словами учебника (ручные таблицы docs/textbook/g10-*.md или схема получения) */
+  readonly typeRu?: string
+  /** конкретный пример общей схемы (R → CH₃, R′ → C₂H₅, Hal → Cl, Me → Na), ASCII-запись */
+  readonly example?: string
   /** полимеризация показана тремя звеньями */
   readonly polymer?: boolean
   readonly species: readonly OV2Species[]
