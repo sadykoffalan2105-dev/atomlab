@@ -317,7 +317,7 @@ for (const [id, exp] of Object.entries(SPEC_MOLECULES)) {
 
 // IUPAC там, где учебник расходится
 const IUPAC_IN_TEXT: Record<string, RegExp> = {
-  '3-methyl-4-ethylhexane': /4-Этил-3-метилгексан/,
+  '3-methyl-4-ethylhexane': /3-Этил-4-метилгексан/,
   '1-methyl-3-ethylcyclopentane': /1-Этил-3-метилциклопентан/,
   isooctane: /2,2,4-триметилпентан/,
   'terephthalic-acid': /бензол-1,4-дикарбоновая/,

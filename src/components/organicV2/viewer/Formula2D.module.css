@@ -37,6 +37,14 @@
   stroke-linecap: round;
   fill: none;
 }
+/* клинья стереоцентров: жирный — к нам, штриховой — от нас */
+.wedges {
+  fill: var(--f2-ink);
+  stroke: var(--f2-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .labels {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
   font-weight: 600;

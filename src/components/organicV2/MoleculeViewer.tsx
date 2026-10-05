@@ -3,7 +3,7 @@
  * панель «Модель / Слой / Инструмент», карточка вещества (название RU/EN/UZ, класс, брутто- и полуструктурная
  * формулы, молярная масса, гибридизация C, функциональные группы, стереометки, где в учебнике).
  */
-import { useMemo, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { MoleculeOverlay, MoleculeStyle, MoleculeTool, MoleculeViewerProps } from './contracts'
 import type { OV2GroupKey } from '../../data/organicV2/types'
 import { Molecule3D } from './Molecule3D'
@@ -13,6 +13,12 @@ import { atomCaption, hybridCounts, molarMass, stereoMarks } from './viewer/molM
 import { GROUP_COLOR, GROUP_NAME, GROUP_SHORT, VIEWER_T } from './viewer/i18n'
 import { moleculeName } from './viewer/names'
 import styles from './viewer/MoleculeViewer.module.css'
+import BOOK_REFS from '../../data/organicV2/bookRefs.json'
+import { lessonForMoleculeV2 } from '../../data/organicLab/organicLessonsV2'
+
+type BookRef = { readonly p: readonly number[]; readonly s: readonly string[] }
+const REFS = BOOK_REFS as unknown as Readonly<Record<string, Partial<Record<'10' | '11', BookRef>>>>
+const ROMAN = ['', 'I', 'II', 'III', 'IV']
 
 const I = {
   ballStick: (
@@ -111,16 +117,49 @@ export function MoleculeViewer(props: MoleculeViewerProps) {
     return { cls, semi, mass: molarMass(mol), hyb: hybridCounts(mol), groups, stereo: stereoMarks(mol) }
   }, [mol, lang])
 
+  // ПК: просмотрщик по высоте окна (3D и 2D видны целиком без прокрутки страницы); телефон — вкладки
+  const rootRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    const fit = () => {
+      if (window.innerWidth <= 760) {
+        el.style.removeProperty('--mv-h')
+        el.removeAttribute('data-fit')
+        return
+      }
+      const top = el.getBoundingClientRect().top + window.scrollY
+      const h = Math.max(380, Math.round(window.innerHeight - top - 14))
+      el.style.setProperty('--mv-h', `${h}px`)
+      el.setAttribute('data-fit', '')
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    if (el.parentElement) ro.observe(el.parentElement)
+    window.addEventListener('resize', fit)
+    const t1 = window.setTimeout(fit, 400)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', fit)
+      window.clearTimeout(t1)
+    }
+  }, [])
+
   const highlight = focusGroup !== null ? info.groups[focusGroup]?.atoms : undefined
   const groupKeys = [...new Set(info.groups.map((g) => g.key))]
   const name = moleculeName(mol, lang)
+  const bookRefs = (['10', '11'] as const).flatMap((g) => {
+    const r = REFS[mol.id]?.[g]
+    return r && (r.p.length || r.s.length) ? [[g, r] as const] : []
+  })
+  const lesson = useMemo(() => lessonForMoleculeV2(mol.id), [mol.id])
 
   const seg = <T extends string>(list: readonly T[], value: T, set: (v: T) => void, label: (v: T) => string, title: string) => (
     <div className={styles.toolGroup} role="group" aria-label={title}>
       <span className={styles.toolTitle}>{title}</span>
       <div className={styles.seg}>
         {list.map((v) => (
-          <button key={v} type="button" className={v === value ? styles.on : undefined} aria-pressed={v === value} onClick={() => set(v)} data-ov2-ctl={v}>
+          <button key={v} type="button" className={v === value ? styles.on : undefined} aria-pressed={v === value} onClick={() => set(v)} data-ov2-ctl={v} title={label(v)}>
             {I[v as keyof typeof I]}
             <span>{label(v)}</span>
           </button>
@@ -130,7 +169,7 @@ export function MoleculeViewer(props: MoleculeViewerProps) {
   )
 
   return (
-    <div className={[styles.viewer, props.className].filter(Boolean).join(' ')} data-tab={tab} data-ov2-viewer={mol.id}>
+    <div ref={rootRef} className={[styles.viewer, props.className].filter(Boolean).join(' ')} data-tab={tab} data-ov2-viewer={mol.id}>
       <div className={styles.toolbar}>
         {seg(STYLES, style, setStyle, (v) => t[v], t.styleTitle)}
         {seg(OVERLAYS, overlay, setOverlay, (v) => t[v], t.overlayTitle)}
@@ -231,7 +270,20 @@ export function MoleculeViewer(props: MoleculeViewerProps) {
                 {info.stereo.length > 8 && <span className={styles.muted}> +{info.stereo.length - 8}</span>}
               </dd>
               <dt>{t.book}</dt>
-              <dd>{mol.grades.length ? t.bookText(mol.grades.join(', ')) : '—'}</dd>
+              <dd className={styles.bookRow}>
+                {bookRefs.map(([g, r]) => (
+                  <span key={g} className={styles.bookRef} data-ov2-book={g}>
+                    <b>{t.bookText(g)}</b>
+                    {[r.s.length ? `§ ${r.s.join(', ')}` : '', r.p.length ? t.pages(r.p.join(', ')) : ''].filter(Boolean).join('; ')}
+                  </span>
+                ))}
+                {lesson && (
+                  <span className={styles.bookLesson}>
+                    {t.lessonWord} «{lang === 'en' ? lesson.titleEn : lang === 'uz' ? lesson.titleUz : lesson.titleRu}» · {ROMAN[lesson.chapter]}
+                  </span>
+                )}
+                {bookRefs.length === 0 && !lesson && (mol.grades.length ? t.bookText(mol.grades.join(', ')) : '—')}
+              </dd>
             </dl>
           </div>
         </aside>

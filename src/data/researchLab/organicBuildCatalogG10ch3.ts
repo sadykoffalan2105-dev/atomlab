@@ -242,7 +242,7 @@ export const G10_CH3_BUILD_CHALLENGES: readonly OrganicBuildChallenge[] = [
     ['5,6-Dimethyloctane-3,5-diol', 'An 8-carbon chain, OH on C3 and C5, methyls on C5 and C6. Textbook p. 116: naming a diol — number from the end nearer the OH groups.', '5,6-Dimethyloctane-3,5-diol built.'],
     ['5,6-Dimetiloktan-3,5-diol', '8 C zanjir, C3 va C5 da OH, C5 va C6 da metil. Darslik, 116-bet: ikki atomli spirtni nomlash — OH ga yaqin uchidan raqamlanadi.', '5,6-Dimetiloktan-3,5-diol yigʻildi.'],
     'C₁₀H₂₀(OH)₂ — 5,6-диметилоктан-3,5-диол', { ir: ALC }),
-  m('2-chloroethanol', 'halo', 'C₂H₅ClO', 'OCCCl',
+  m('2-chloroethanol', 'alcohol', 'C₂H₅ClO', 'OCCCl',
     ['2-Хлорэтанол', 'HO–CH₂–CH₂–Cl. Учебник, с. 119: одна группа OH этиленгликоля замещается на галоген при действии HHal.', '2-Хлорэтанол собран.'],
     ['2-Chloroethanol', 'HO–CH₂–CH₂–Cl. Textbook p. 119: one OH of ethylene glycol is replaced by a halogen with HHal.', '2-Chloroethanol built.'],
     ['2-Xloretanol', 'HO–CH₂–CH₂–Cl. Darslik, 119-bet: HHal taʼsirida etilenglikolning bitta OH guruhi galogenga almashadi.', '2-Xloretanol yigʻildi.'],

@@ -254,12 +254,82 @@
   background: color-mix(in srgb, var(--gc) 32%, transparent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--gc) 60%, transparent);
 }
+.bookRow {
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 3px !important;
+}
+.bookRef {
+  display: block;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.bookRef b {
+  font-weight: 700;
+  margin-right: 6px;
+}
+.bookLesson {
+  font-size: 12.5px;
+  color: var(--lt-text-2, #b6c0e0);
+}
 .stereo {
   font-size: 13px;
   padding: 2px 8px;
   border-radius: 8px;
   background: var(--lt-surface-2, rgba(24, 32, 58, 0.78));
   border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
+}
+
+/* ПК: весь просмотрщик по высоте окна (--mv-h считает MoleculeViewer): панель в одну строку, 3D — на всю высоту,
+   справа 2D-формула и карточка делят высоту пополам, карточка прокручивается сама */
+@media (min-width: 761px) {
+  .viewer[data-fit] {
+    height: var(--mv-h);
+    min-height: 0 !important;
+    flex: none !important;
+    gap: 10px;
+  }
+  .viewer[data-fit] .toolbar {
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+  .viewer[data-fit] .toolTitle {
+    display: none;
+  }
+  .viewer[data-fit] .grid {
+    flex: 1 1 0;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .viewer[data-fit] .stage {
+    height: auto;
+    min-height: 0;
+  }
+  .viewer[data-fit] .side {
+    gap: 10px;
+    overflow: hidden;
+  }
+  .viewer[data-fit] .card2d {
+    flex: 1 1 58%;
+    min-height: 0;
+  }
+  .viewer[data-fit] .formulaBox {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+  }
+  .viewer[data-fit] .cardInfo {
+    flex: 1 1 42%;
+    min-height: 0;
+  }
+}
+@media (min-width: 761px) and (max-width: 1599px) {
+  .viewer[data-fit] .seg button span {
+    display: none;
+  }
+  .viewer[data-fit] .seg button.on span {
+    display: inline;
+  }
 }
 
 /* вкладки — только на телефоне */
