@@ -673,8 +673,11 @@ function cisTransPrefix(m: Mol, p: Parent | null, L: Lang): string {
 // ───────────────────────── публичный API ─────────────────────────
 
 function cap(s: string): string {
-  const i = s.search(/[A-Za-zА-Яа-яЁё]/)
-  return i < 0 ? s : s.slice(0, i) + s[i].toUpperCase() + s.slice(i + 1)
+  // Стереоприставки и приставки положения пишутся строчными: «цис-Бутен-2», «н-Бутан», «п-Ксилол», «trans-But-2-ene»
+  const pre = /^(?:(?:цис|транс|cis|trans|sis|н|n|о|м|п|o|m|p|втор|трет|sec|tert)-)+/.exec(s)
+  const from = pre ? pre[0].length : 0
+  const i = s.slice(from).search(/[A-Za-zА-Яа-яЁё]/)
+  return i < 0 ? s : s.slice(0, from + i) + s[from + i].toUpperCase() + s.slice(from + i + 1)
 }
 
 function variants(m: Mol, L: Lang): { names: string[]; systematic: boolean } {

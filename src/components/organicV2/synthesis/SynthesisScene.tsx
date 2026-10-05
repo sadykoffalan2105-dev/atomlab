@@ -19,6 +19,7 @@ import {
 } from '../../../chemistry/organicV2/synthesis/scenario'
 import { atomColor, atomRadius } from './cpk'
 import styles from './SynthesisPlayer.module.css'
+import { safeCanvasEvents } from '../safeCanvasEvents'
 
 export interface SynthClock {
   t: number
@@ -314,6 +315,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
 export default function SynthesisScene(props: Props) {
   return (
     <Canvas
+      events={safeCanvasEvents}
       className={styles.canvas}
       dpr={[1, 1.75]}
       camera={{ fov: 38, near: 0.1, far: 500, position: [0, 0, 30] }}

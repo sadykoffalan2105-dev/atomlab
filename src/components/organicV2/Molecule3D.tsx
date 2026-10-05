@@ -44,6 +44,7 @@ import {
 import { GROUP_COLOR, GROUP_SHORT, VIEWER_T } from './viewer/i18n'
 import { NewmanPanel } from './viewer/NewmanPanel'
 import styles from './viewer/Molecule3D.module.css'
+import { safeCanvasEvents } from './safeCanvasEvents'
 
 const FOV = 38
 const UP = new THREE.Vector3(0, 1, 0)
@@ -658,6 +659,7 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
     >
       <div className={styles.floor} aria-hidden />
       <Canvas
+        events={safeCanvasEvents}
         className={styles.canvas}
         frameloop={props.autoRotate ? 'always' : 'demand'}
         dpr={compact ? [1, 1.5] : [1, 2]}

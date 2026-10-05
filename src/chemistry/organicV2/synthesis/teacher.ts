@@ -122,7 +122,13 @@ export function parseEquation(eq: string): ParsedEquation {
 export function conditionsLabel(r: OV2Reaction): string {
   const c = r.conditions?.trim()
   if (!c) return ''
-  return subscript(c.replace(/\s*\(над стрелкой[^)]*\)/, '')).replace(/\bкат\b(?!\.)/g, 'кат.')
+  // Подстрочные — только индексы формул (H2SO4, Al2O3: цифры сразу после буквы или скобки); температура и давление
+  // («t° > 1000 °C», «170 °C», «p = 5 МПа») остаются обычными числами
+  return c
+    .replace(/\s*\(над стрелкой[^)]*\)/, '')
+    .replace(/([A-Za-z)\]])(\d+)/g, (_, a: string, d: string) => a + subscript(d))
+    // \b в JS не видит русские буквы — границу задаём явно
+    .replace(/(^|[\s,(])кат(?![.а-яё])/g, '$1кат.')
 }
 
 /**

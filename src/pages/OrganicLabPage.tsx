@@ -115,6 +115,24 @@ export function OrganicLabPage() {
   }, [lesson, isoSets, url.mode, url.rxId])
   const mode: OV2Mode = modes.includes(url.mode) ? url.mode : 'molecule'
   const rxQ = useAsyncData<OV2ReactionsFile>(mode === 'synthesis' || mode === 'reactions', loadOrganicV2Reactions)
+  // Когда страница загрузилась, в свободное время подгружаем реакции и код проигрывателя/Конструктора —
+  // первый переход в «Синтез» / «Конструктор» тогда мгновенный (загрузчик кеширует обещание).
+  useEffect(() => {
+    if (!mols) return
+    const run = () => {
+      void loadOrganicV2Reactions().catch(() => {})
+      void import('../components/organicV2/SynthesisPlayer').catch(() => {})
+      void import('../components/organicV2/OrganicConstructor').catch(() => {})
+      void import('../components/organicV2/Molecule3D').catch(() => {})
+    }
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void }
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(run, { timeout: 4000 })
+      return () => w.cancelIdleCallback?.(id)
+    }
+    const tm = window.setTimeout(run, 1500)
+    return () => window.clearTimeout(tm)
+  }, [mols])
 
   const molIds = useMemo(() => {
     const ids = lessonMoleculeIds(lesson)

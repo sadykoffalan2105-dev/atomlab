@@ -8,15 +8,19 @@ import type { Embedded } from './toOV2'
 export type { Embedded }
 
 type Kind = 'name' | 'embed'
-/** Два воркера (название и 3D), чтобы долгий намер большой молекулы не задерживал 3D. «Побеждает последний»:
- * новый запрос, пока старый ещё считается, перезапускает воркер — очередь устаревших расчётов не копится. */
+/** Два воркера (название и 3D), чтобы долгий намер большой молекулы не задерживал 3D. Воркер живёт всю сессию:
+ * устаревшие ответы отбрасывает вызывающий код (флаг live). Перезапуск — только если расчёт завис дольше
+ * HUNG_MS: запуск нового воркера (загрузка и разбор движка) на телефоне стоит сотни миллисекунд — дороже ожидания. */
 const workers: Record<Kind, Worker | null> = { name: null, embed: null }
 const busy: Record<Kind, number> = { name: 0, embed: 0 }
+/** когда начался текущий (самый старый незавершённый) расчёт */
+const startedAt: Record<Kind, number> = { name: 0, embed: 0 }
+const HUNG_MS = 1500
 let seq = 0
 const waiting = new Map<number, { kind: Kind; cb: (v: { ok: boolean; value?: unknown }) => void }>()
 
 function getWorker(kind: Kind): Worker | null {
-  if (busy[kind] && workers[kind]) {
+  if (busy[kind] && workers[kind] && performance.now() - startedAt[kind] > HUNG_MS) {
     workers[kind]!.terminate()
     workers[kind] = null
     for (const [id, w] of waiting) if (w.kind === kind) { waiting.delete(id); w.cb({ ok: false }) }
@@ -30,6 +34,7 @@ function getWorker(kind: Kind): Worker | null {
       const cb = waiting.get(e.data.id)
       waiting.delete(e.data.id)
       busy[kind] = Math.max(0, busy[kind] - 1)
+      startedAt[kind] = performance.now()
       cb?.cb(e.data)
     }
     w.onerror = () => { workers[kind] = null }
@@ -53,6 +58,7 @@ function run<T>(kind: Kind, graph: SkeletonGraph): Promise<T> {
   const w = getWorker(kind)
   if (!w) return new Promise((res, rej) => setTimeout(() => { try { res(local(kind, graph) as T) } catch (e) { rej(e) } }, 0))
   const id = ++seq
+  if (busy[kind] === 0) startedAt[kind] = performance.now()
   busy[kind]++
   return new Promise((res, rej) => {
     waiting.set(id, { kind, cb: (r) => (r.ok ? res(r.value as T) : rej(new Error('engine'))) })
@@ -63,3 +69,9 @@ function run<T>(kind: Kind, graph: SkeletonGraph): Promise<T> {
 
 export const nameInBackground = (g: SkeletonGraph): Promise<NameSet> => run<NameSet>('name', g)
 export const embedInBackground = (g: SkeletonGraph): Promise<Embedded> => run<Embedded>('embed', g)
+
+/** Прогрев: оба воркера запускаются заранее (при открытии Конструктора), чтобы первое касание не ждало загрузки движка. */
+export function warmEngine(): void {
+  getWorker('name')
+  getWorker('embed')
+}

@@ -11,7 +11,7 @@ import { analyze, entryName, isomerSet, judgeBuild, judgeIsomer, makeTarget, rem
 import { tidyLayout } from './constructor/layout'
 import { EditorCanvas, type Focus, type Tool } from './constructor/EditorCanvas'
 import { embeddedToOV2 } from './constructor/toOV2'
-import { embedInBackground, nameInBackground, type Embedded } from './constructor/engineClient'
+import { embedInBackground, nameInBackground, warmEngine, type Embedded } from './constructor/engineClient'
 import { CT, GROUP_LABEL, GROUP_TITLE, fmt, hintText } from './constructor/i18n'
 import styles from './constructor/OrganicConstructor.module.css'
 
@@ -83,6 +83,12 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
   const an = useMemo(() => analyze(sk.graph, index), [topo, index])
   const name = an.name ?? (bgName && bgName.code === an.code ? bgName.name : null)
 
+  // воркеры движка и код 3D — заранее, чтобы первое касание не ждало их загрузки
+  useEffect(() => {
+    warmEngine()
+    void import('./Molecule3D').catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (an.empty || an.name || an.issues.length) return
     let live = true
@@ -114,6 +120,19 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [regMol, embData],
   )
+  // 3D-окно не пересоздаём на каждое действие: держим последнюю правильную молекулу и обновляем её с паузой 150 мс
+  // (частое удаление/создание холста WebGL во время сборки давало в r3f «addEventListener of null»)
+  const [shown3d, setShown3d] = useState<typeof view3d>(null)
+  useEffect(() => {
+    if (an.empty) {
+      setShown3d(null)
+      return
+    }
+    if (!view3d) return
+    const tm = window.setTimeout(() => setShown3d(view3d), 150)
+    return () => window.clearTimeout(tm)
+  }, [view3d, an.empty])
+  const stale3d = !!shown3d && view3d !== shown3d
 
   const hById = useMemo(() => new Map(sk.ids.map((id, i) => [id, an.hCount[i] ?? 0])), [sk, an])
   const issueById = useMemo(() => new Map(an.issues.map((x) => [sk.ids[x.atom], lang === 'ru' ? x.messageRu : lang === 'en' ? x.messageEn : x.messageUz])), [an, sk, lang])
@@ -339,10 +358,16 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
               {view3d && <span className={styles.badge}>{regMol ? t.exact3d : t.approx3d}</span>}
             </div>
             <div className={styles.view3dBody}>
-              {view3d ? (
+              {shown3d ? (
                 <Suspense fallback={<div className={styles.view3dEmpty}>…</div>}>
-                  <div className={styles.view3dScene} role="img" aria-label={`${t.view3d}: ${nameText}`} data-ctor-3d={regMol ? 'exact' : 'approx'}>
-                    <Molecule3D mol={view3d} style="ballStick" lang={lang} autoRotate={autoSpin} />
+                  <div
+                    className={styles.view3dScene}
+                    role="img"
+                    aria-label={`${t.view3d}: ${nameText}`}
+                    data-ctor-3d={stale3d ? 'stale' : shown3d.id.startsWith('ctor:') ? 'approx' : 'exact'}
+                    style={stale3d && !view3d ? { opacity: 0.35 } : undefined}
+                  >
+                    <Molecule3D mol={shown3d} style="ballStick" lang={lang} autoRotate={autoSpin} />
                   </div>
                 </Suspense>
               ) : <div className={styles.view3dEmpty}>{an.empty ? t.emptyCanvas : an.issues.length ? t.valenceTitle : an.fragments > 1 ? t.fragments : '…'}</div>}
