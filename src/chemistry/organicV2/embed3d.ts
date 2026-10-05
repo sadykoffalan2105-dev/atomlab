@@ -69,7 +69,7 @@ function perp(u: Vec3): Vec3 { return norm(Math.abs(u[0]) < 0.9 ? cross(u, [1, 0
 /**
  * 3D-координаты для скелета (H добавляются автоматически).
  * @param g скелет (или Mol)
- * @param opts.iterations число проходов силового поля (по умолчанию 160, с циклами — 300)
+ * @param opts.iterations число проходов силового поля (по умолчанию 160, с циклами — 700)
  */
 export function embed3D(g: SkeletonGraph | Mol, opts: { iterations?: number } = {}): Embedded3D {
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now()
@@ -308,7 +308,7 @@ export function embed3D(g: SkeletonGraph | Mol, opts: { iterations?: number } = 
     rep.push({ a, b, d, k: t === 3 ? 0.15 : 0.3, min: true })
   }
   // ── релаксация (проекция ограничений, Гаусс — Зейдель)
-  const iters = opts.iterations ?? (ringy ? 300 : 160)
+  const iters = opts.iterations ?? (ringy ? 700 : 160)
   // лёгкое детерминированное возмущение, чтобы кольца вышли из плоскости, где нужно
   let seed = 12345
   const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff - 0.5 }
