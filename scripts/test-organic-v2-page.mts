@@ -9,7 +9,9 @@
  *  6) Конструктор в странице: мышью (ПК) и касанием (телефон) собрать 2,2-диметилбутан (задание урока «Изомерия»),
  *     этанол, уксусную кислоту, бензол (кольцо из палитры), цис-бут-2-ен; все изомеры C₅H₁₂; 3D — общий Molecule3D;
  *  7) прогресс: два урока проходятся целиком (Изомеры — все карточки, Синтез/Реакции — по onDone проигрывателя);
- *  8) EN и UZ: все режимы без русских строк и пустых подписей. Кадры 6–8 (--shots) → .smoke/organic-v2-qa-shell/.
+ *  8) EN и UZ: все режимы без русских строк и пустых подписей;
+ *  9) планшет 768×1024 и телефон 390×844 (светлая/тёмная): без горизонтальной прокрутки; переходы между режимами
+ *     на ПК ≤ 300 мс; телефон с CPU ×4 — кадры/с и отклик касания. Кадры 6–9 (--shots) → .smoke/organic-v2-qa-shell/.
  * --only-new — только 6–8 (быстро).
  * Сайт: npx vite build --outDir .tmp/dist-x && npx vite preview --outDir .tmp/dist-x --port 4734 --strictPort
  * Запуск: npx tsx scripts/test-organic-v2-page.mts [порт] [--shots] [--quick]
@@ -496,6 +498,91 @@ for (const lang of ['en', 'uz'] as const) {
   console.log(`${lang}: режимов проверено ${tabs.length}`)
 }
 
+
+// ── 9) планшет/телефон × светлая/тёмная: без горизонтальной прокрутки; скорость переходов; телефон с CPU ×4 ──
+for (const [tag, w, h, theme, touch] of [
+  ['tablet-light', 768, 1024, 'light', true],
+  ['tablet-dark', 768, 1024, 'dark', true],
+  ['phone-light', 390, 844, 'light', true],
+  ['pc', 1280, 720, 'dark', false],
+] as const) {
+  const s = await openPage(w, h, theme, touch)
+  const p = s.page
+  await p.goto(`${BASE}#/organic?lesson=nomenclature`, { waitUntil: 'load', timeout: 60000 })
+  await settled(p)
+  const tabs = await p.$$eval('[data-mode-tab]', (els) => els.map((e) => e.getAttribute('data-mode-tab')!))
+  const times: string[] = []
+  for (const m of tabs) {
+    // время до отрисовки нового режима (React + кадр), данные и чанки уже загружены во втором проходе
+    await p.click(`[data-mode-tab="${m}"]`)
+    await p.waitForSelector(`[data-stage="${m}"]`)
+    await settled(p)
+  }
+  for (const m of tabs) {
+    const ms = await p.evaluate(async (mm) => {
+      const t0 = performance.now()
+      ;(document.querySelector(`[data-mode-tab="${mm}"]`) as HTMLElement).click()
+      for (let k = 0; k < 200; k++) {
+        await new Promise((r) => requestAnimationFrame(() => r(null)))
+        if (document.querySelector(`[data-stage="${mm}"]`)) break
+      }
+      return Math.round(performance.now() - t0)
+    }, m)
+    times.push(`${m} ${ms}`)
+    if (tag === 'pc') ok(ms <= 300, `${tag}: переход в «${m}» ${ms} мс > 300`)
+    await settled(p)
+    await p.waitForTimeout(300)
+    const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    ok(over <= 1, `${tag}/${m}: горизонтальная прокрутка ${over}px`)
+    if (shots && tag !== 'pc') {
+      fs.mkdirSync(QA, { recursive: true })
+      await p.screenshot({ path: `${QA}/${tag}-${m}.png`, fullPage: true })
+    }
+  }
+  console.log(`${tag}: переходы, мс — ${times.join(', ')}`)
+  ok(s.errors.length === 0, `${tag}: ошибки консоли ${s.errors.slice(0, 4).join(' | ')}`)
+  await s.ctx.close()
+}
+{
+  // телефон, CPU ×4: сцена «Молекула» отвечает на касание, кадры идут
+  const s = await openPage(390, 844, 'dark', true)
+  const p = s.page
+  const cdp = await p.context().newCDPSession(p)
+  await p.goto(`${BASE}#/organic?lesson=alkanes`, { waitUntil: 'load', timeout: 60000 })
+  await settled(p)
+  await p.waitForSelector('[data-ov2-mol3d] canvas', { timeout: 30000 })
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  const fps = await p.evaluate(async () => {
+    let n = 0
+    const t0 = performance.now()
+    while (performance.now() - t0 < 1500) {
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
+      n++
+    }
+    return Math.round((n * 1000) / (performance.now() - t0))
+  })
+  const t0 = Date.now()
+  await p.click('[data-mode-tab="constructor"]')
+  await p.waitForSelector('[data-ov2-constructor] svg[data-tool]', { timeout: 30000 })
+  const sw = Date.now() - t0
+  for (let k = 0; k < 3; k++) {
+    const btn = await p.$('[data-ov2-constructor] [role="dialog"] button')
+    if (!btn) break
+    await btn.click()
+  }
+  const box = (await p.locator('[data-ov2-constructor] svg[data-tool]').boundingBox())!
+  const before = await p.$$eval('[data-ov2-constructor] [data-atom]', (e) => e.length)
+  const t1 = Date.now()
+  await p.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+  await p.waitForFunction((b) => document.querySelectorAll('[data-ov2-constructor] [data-atom]').length > b, before, { timeout: 5000 })
+  const tapMs = Date.now() - t1
+  console.log(`телефон CPU×4: ${fps} кадров/с в «Молекуле», переход в Конструктор ${sw} мс, отклик касания ${tapMs} мс`)
+  ok(fps >= 20, `телефон CPU×4: ${fps} кадров/с`)
+  ok(tapMs <= 500, `телефон CPU×4: отклик касания ${tapMs} мс`)
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+  ok(s.errors.length === 0, `телефон CPU×4: ошибки консоли ${s.errors.slice(0, 4).join(' | ')}`)
+  await s.ctx.close()
+}
 
 // ── 5) кадры ──
 if (shots && !onlyNew) {

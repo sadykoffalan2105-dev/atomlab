@@ -143,7 +143,9 @@ export function OrganicLabPage() {
   const tabsRef = useRef<HTMLDivElement>(null)
   useEffect(() => centerSelected(tabsRef.current), [mode, lesson.id])
   const lessonIndex = ORGANIC_CURRICULUM.indexOf(lesson)
-  const doneCount = ORGANIC_CURRICULUM.filter((l) => isLessonDoneV2(progress[l.id], modesOfLesson(l, formulaOf))).length
+  // режимы всех 26 уроков — один раз на загрузку данных (не на каждое переключение режима)
+  const allModes = useMemo(() => new Map(ORGANIC_CURRICULUM.map((l) => [l.id, modesOfLesson(l, formulaOf)])), [formulaOf])
+  const doneCount = ORGANIC_CURRICULUM.filter((l) => isLessonDoneV2(progress[l.id], allModes.get(l.id) ?? [])).length
   const lessonDone = isLessonDoneV2(progress[lesson.id], modes)
   const goal = lessonGoalV2(lesson, lang) ?? pickLessonGoal(lesson, lang)
   const showStrip = mode === 'molecule' || mode === 'synthesis' || mode === 'reactions'
@@ -194,7 +196,7 @@ export function OrganicLabPage() {
               <h3 className={shell.chapterTitle}>{ORGANIC_CHAPTER_LABELS[ch][lang]}</h3>
               <ol className={shell.lessons}>
                 {ORGANIC_CURRICULUM.filter((l) => l.chapter === ch).map((l) => {
-                  const lm = modesOfLesson(l, formulaOf)
+                  const lm = allModes.get(l.id) ?? []
                   const share = lessonShareV2(progress[l.id], lm)
                   const active = l.id === lesson.id
                   return (
