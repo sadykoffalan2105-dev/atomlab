@@ -28,6 +28,7 @@ import { organicMoleculeById } from '../../data/organicLab/organicMoleculeRegist
 import type { OV2Reaction } from '../../data/organicV2/types'
 import type { SceneLabel, SynthClock } from './synthesis/SynthesisScene'
 import { SYNTH_UI, type SynthUiLang } from './synthesis/synthesisUi'
+import { regName } from './synthesis/uzNames'
 import styles from './synthesis/SynthesisPlayer.module.css'
 
 const SynthesisScene = lazy(() => import('./synthesis/SynthesisScene'))
@@ -100,7 +101,7 @@ type Lang = SynthUiLang
 function speciesName(r: OV2Reaction, si: number, lang: Lang): string {
   const s = r.species[si]
   const reg = organicMoleculeById[s.ref]
-  if (reg) return lang === 'en' ? reg.nameEn : lang === 'uz' ? reg.nameUz || reg.nameRu : reg.nameRu
+  if (reg) return regName(reg, lang)
   const inorg = inorganicName(s.ref, lang)
   if (inorg) return inorg
   if (s.nameRu && lang === 'ru') return s.nameRu

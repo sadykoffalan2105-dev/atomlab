@@ -73,6 +73,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
   const fit = useRef({ c: new THREE.Vector3(), d: 0, init: false })
 
   // временные объекты кадра (без аллокаций в useFrame)
+  const [ax, ay, az] = useMemo(() => [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()], [])
   const tmp = useMemo(
     () => ({
       m: new THREE.Matrix4(),
@@ -221,7 +222,22 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
     const cam = camera as THREE.PerspectiveCamera
     const vfov = (cam.fov * Math.PI) / 180
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * (size.width / Math.max(1, size.height)))
-    const need = (bb.r + 1.2) / Math.sin(Math.min(vfov, hfov) / 2)
+    // плотная рамка: размах облака по осям экрана (а не шар вокруг него) — молекулы крупно;
+    // запас — радиус атома по бокам, снизу — подпись вещества
+    ax.set(1, 0, 0).applyQuaternion(cam.quaternion)
+    ay.set(0, 1, 0).applyQuaternion(cam.quaternion)
+    az.set(0, 0, 1).applyQuaternion(cam.quaternion)
+    let hx = 0, hy = 0, dz = 0
+    for (let i = 0; i < n; i++) {
+      p.set(pos[i * 3] - bb.c[0], pos[i * 3 + 1] - bb.c[1], pos[i * 3 + 2] - bb.c[2])
+      hx = Math.max(hx, Math.abs(p.dot(ax)))
+      hy = Math.max(hy, Math.abs(p.dot(ay)))
+      dz = Math.max(dz, p.dot(az))
+    }
+    const need = Math.min(
+      (bb.r + 1.2) / Math.sin(Math.min(vfov, hfov) / 2),
+      Math.max((hx + 0.9) / Math.tan(hfov / 2), (hy + 1.5) / Math.tan(vfov / 2)) + dz,
+    )
     const f = fit.current
     const target = controls.current?.target
     if (!f.init) {
