@@ -149,7 +149,13 @@ export const snapAngle = (a: number): number => Math.round(a / (30 * DEG)) * 30 
 export function growFrom(s: CState, atomId: number, el = 'C', angle?: number): { state: CState; id: number } {
   const at = atomById(s, atomId)
   if (!at) return { state: s, id: -1 }
-  const ang = angle ?? growAngle(s, atomId)
+  let ang = angle ?? growAngle(s, atomId)
+  if (angle === undefined) {
+    // не ставим новый атом поверх уже нарисованного: пробуем соседние «красивые» углы
+    const free = (t: number) => !atomNear(s, at.x + Math.cos(t), at.y + Math.sin(t), 0.6)
+    const tries = [0, 60, -60, 120, -120, 180, 30, -30, 90, -90, 150, -150].map((d) => ang + d * DEG)
+    ang = tries.find(free) ?? ang
+  }
   const r = addAtom(s, at.x + Math.cos(ang), at.y + Math.sin(ang), el)
   return { state: addBond(r.state, atomId, r.id), id: r.id }
 }
