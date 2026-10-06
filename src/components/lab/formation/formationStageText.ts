@@ -29,6 +29,8 @@ const pick = (t: Tri, loc: FormationLocale) => t[L3[loc]]
 const TITLES: Record<StageKey, Tri> = {
   reagents: ['Исходные вещества', 'Starting substances', 'Boshlangʻich moddalar'],
   route: ['Путь получения', 'How it is obtained', 'Olinish yoʻli'],
+  heat: ['Нагревание', 'Heating', 'Qizdirish'],
+  release: ['Выделение газа', 'Gas is released', 'Gaz ajraladi'],
   break: ['Связи рвутся', 'Bonds break', 'Bogʻlar uziladi'],
   approach: ['Атомы сближаются', 'Atoms approach', 'Atomlar yaqinlashadi'],
   valence: ['Валентные электроны', 'Valence electrons', 'Valent elektronlar'],
