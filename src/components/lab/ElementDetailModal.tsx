@@ -92,6 +92,7 @@ export function ElementDetailModal({ z, onClose, onNavigate }: Props) {
             tabIndex={-1}
             className={`${styles.card} ${styles.cardFallback}`}
             role="dialog"
+            data-app-night=""
             aria-modal="true"
             aria-labelledby="el-detail-title"
             onClick={(e) => e.stopPropagation()}
@@ -148,6 +149,7 @@ export function ElementDetailModal({ z, onClose, onNavigate }: Props) {
           tabIndex={-1}
           className={styles.card}
           role="dialog"
+          data-app-night=""
           aria-modal="true"
           aria-labelledby="el-detail-title"
           onClick={(e) => e.stopPropagation()}
