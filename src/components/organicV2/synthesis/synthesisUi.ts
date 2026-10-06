@@ -18,6 +18,8 @@ export interface SynthUi {
   example: string
   polymer: string
   chainGoesOn: string
+  /** «одна копия + ×N» */
+  copiesNote: string
   radicalHint: string
   pairHint: string
   routes: string
@@ -51,6 +53,7 @@ export const SYNTH_UI: Readonly<Record<SynthUiLang, SynthUi>> = {
     example: 'Пример',
     polymer: 'полимер (3 звена)',
     chainGoesOn: 'цепь продолжается',
+    copiesNote: 'В 3D — по одной молекуле каждого вещества; ×N — сколько их в уравнении.',
     radicalHint: 'неспаренный электрон — радикал',
     pairHint: 'электронная пара уходит к более электроотрицательному атому',
     routes: 'Способ получения',
@@ -80,6 +83,7 @@ export const SYNTH_UI: Readonly<Record<SynthUiLang, SynthUi>> = {
     example: 'Example',
     polymer: 'polymer (3 units)',
     chainGoesOn: 'the chain goes on',
+    copiesNote: 'The 3D view shows one molecule of each substance; ×N is how many there are in the equation.',
     radicalHint: 'unpaired electron — a radical',
     pairHint: 'the electron pair goes to the more electronegative atom',
     routes: 'How to obtain',
@@ -109,6 +113,7 @@ export const SYNTH_UI: Readonly<Record<SynthUiLang, SynthUi>> = {
     example: 'Misol',
     polymer: 'polimer (3 bo‘g‘in)',
     chainGoesOn: 'zanjir davom etadi',
+    copiesNote: '3D da har bir moddadan bitta molekula ko‘rsatilgan; ×N — tenglamada nechta ekanligi.',
     radicalHint: 'juftlashmagan elektron — radikal',
     pairHint: 'elektron jufti elektromanfiyroq atomga o‘tadi',
     routes: 'Olinish usuli',

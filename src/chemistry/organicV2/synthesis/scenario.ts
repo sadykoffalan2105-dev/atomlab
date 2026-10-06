@@ -73,6 +73,11 @@ export interface SynthAtom {
   readonly center: boolean
   /** номер фрагмента (связная часть после всех разрывов) */
   readonly frag: number
+  /**
+   * «Одна копия + ×N»: 1 — атом пришёл из НЕпоказанной копии реагента (появляется на месте в продукте),
+   * -1 — уходит в непоказанную копию продукта (гаснет на месте), 0 — обычный.
+   */
+  readonly ghost: -1 | 0 | 1
 }
 
 export type SynthBondKind = 'keep' | 'break' | 'down' | 'form' | 'up'
@@ -114,6 +119,8 @@ export interface SynthSpecies {
   readonly ends: readonly { readonly atom: number; readonly dir: V3 }[]
   /** продукт: поворот к главным осям на этапе «Продукты» и центры до/после */
   readonly turn?: { readonly q: Q4; readonly c2: V3; readonly c3: V3 }
+  /** сколько таких молекул в уравнении (показана одна копия — первая); у остальных копий 0 и нет атомов */
+  readonly copies: number
 }
 
 export interface SynthScenario {
@@ -128,6 +135,34 @@ export interface SynthScenario {
   readonly radical: boolean
   /** индекс главного исходного вещества */
   readonly main: number
+  /** показана одна копия каждого участника (остальные — бейдж «×N») */
+  readonly grouped: boolean
+}
+
+/**
+ * Много копий (KMnO₄, жиры, горение, ОВР — десятки молекул): показываем по одной копии каждого участника.
+ * Порог — 8 и больше молекул в уравнении или больше 90 атомов слева.
+ */
+export function copyGroups(r: OV2Reaction): { grouped: boolean; copies: number[]; shown: boolean[] } {
+  const first = new Map<string, number>()
+  const copies = r.species.map(() => 0)
+  const shown = r.species.map(() => true)
+  r.species.forEach((s, si) => {
+    const k = `${s.side}|${s.ref}|${s.smiles}`
+    const f = first.get(k)
+    if (f == null) {
+      first.set(k, si)
+      copies[si] = 1
+    } else {
+      copies[f]++
+      shown[si] = false
+    }
+  })
+  const leftAtoms = r.species.reduce((n, s) => n + (s.side === 'L' ? s.atoms.length : 0), 0)
+  const hasCopies = copies.some((c) => c > 1)
+  const grouped = hasCopies && !r.polymer && (r.species.length >= 8 || leftAtoms > 90)
+  if (!grouped) return { grouped, copies: r.species.map(() => 1), shown: r.species.map(() => true) }
+  return { grouped, copies, shown }
 }
 
 // ─── справочные данные ───────────────────────────────────────────────────────
@@ -197,6 +232,9 @@ export function isRadicalReaction(r: OV2Reaction): boolean {
 export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   const radical = isRadicalReaction(reaction)
   const sp = reaction.species
+  const groups = copyGroups(reaction)
+  const shown = groups.shown
+  const ghost: (-1 | 0 | 1)[] = []
 
   // 1) атомы сценария — по номеру соответствия
   const mapIndex = new Map<number, number>()
@@ -206,7 +244,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   const rs: number[] = []
   const leftPos: (V3 | null)[] = []
   sp.forEach((s, si) => {
-    if (s.side !== 'L') return
+    if (s.side !== 'L' || !shown[si]) return
     s.map.forEach((m, k) => {
       const id = atomsEl.length
       mapIndex.set(m, id)
@@ -214,26 +252,48 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
       atomMap.push(m)
       ls.push(si)
       rs.push(-1)
+      ghost.push(0)
+      leftPos.push(null)
+    })
+  })
+  // атомы показанных продуктов из непоказанных копий реагентов — «появляются» (ls = -1)
+  sp.forEach((s, si) => {
+    if (s.side !== 'R' || !shown[si]) return
+    s.map.forEach((m, k) => {
+      if (mapIndex.has(m)) return
+      const id = atomsEl.length
+      mapIndex.set(m, id)
+      atomsEl.push(s.atoms[k].el)
+      atomMap.push(m)
+      ls.push(-1)
+      rs.push(-1)
+      ghost.push(1)
       leftPos.push(null)
     })
   })
   const speciesAtoms: number[][] = sp.map(() => [])
   sp.forEach((s, si) => {
+    if (!shown[si]) return
     s.map.forEach((m) => {
       const id = mapIndex.get(m)
       if (id == null) return
+      if (s.side === 'L' && ghost[id] === 1) return
       speciesAtoms[si].push(id)
       if (s.side === 'R') rs[id] = si
     })
   })
   const N = atomsEl.length
+  // реагент показан, а его продукт — нет: атом гаснет на месте
+  for (let i = 0; i < N; i++) if (ghost[i] === 0 && rs[i] < 0) ghost[i] = -1
+  const isGhost = (i: number) => ghost[i] !== 0
 
   // 2) связи слева/справа → виды изменений
   const key = (a: number, b: number) => (a < b ? a * 65536 + b : b * 65536 + a)
   const lOrder = new Map<number, number>()
   const rOrder = new Map<number, number>()
   const adjL: number[][] = Array.from({ length: N }, () => [])
-  for (const s of sp) {
+  for (const [si, s] of sp.entries()) {
+    if (!shown[si]) continue
     for (const b of s.bonds) {
       const i = mapIndex.get(s.map[b.a])
       const j = mapIndex.get(s.map[b.b])
@@ -258,8 +318,14 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   for (const k of pairs) {
     const i = Math.floor(k / 65536)
     const j = k % 65536
-    const from = (lOrder.get(k) ?? 0) as 0 | 1 | 2 | 3
-    const to = (rOrder.get(k) ?? 0) as 0 | 1 | 2 | 3
+    let from = (lOrder.get(k) ?? 0) as 0 | 1 | 2 | 3
+    let to = (rOrder.get(k) ?? 0) as 0 | 1 | 2 | 3
+    // связь «призрачного» атома не меняется — она появляется/гаснет вместе с атомом
+    if (isGhost(Math.floor(k / 65536)) || isGhost(k % 65536)) {
+      const o = Math.max(from, to) as 0 | 1 | 2 | 3
+      from = o
+      to = o
+    }
     const kind: SynthBondKind = from === to ? 'keep' : to === 0 ? 'break' : from === 0 ? 'form' : to < from ? 'down' : 'up'
     raw.push({ i, j, from, to, kind, ord: changeOrder.get(k) ?? 1e6 + raw.length })
   }
@@ -292,7 +358,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   for (let i = 0; i < N; i++) fragSize[frag[i]]++
 
   // 4) раскладка исходных веществ: главный (больше всех атомов) — по главным осям; остальные — к своим партнёрам
-  const leftIdx = sp.map((s, i) => (s.side === 'L' ? i : -1)).filter((i) => i >= 0)
+  const leftIdx = sp.map((s, i) => (s.side === 'L' && shown[i] ? i : -1)).filter((i) => i >= 0)
   let main = leftIdx[0]
   for (const i of leftIdx) if (sp[i].atoms.length > sp[main].atoms.length) main = i
   const formedPartners = raw.filter((b) => b.kind === 'form')
@@ -406,8 +472,9 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   void leftPos
   // общий поворот: разнос участников — в плоскости экрана (камера смотрит вдоль z), главная ось — по x
   {
-    const G = pcaRotation(p0)
+    const G = pcaRotation(p0.filter((p, i) => p && ghost[i] !== 1))
     for (let i = 0; i < N; i++) {
+      if (ghost[i] === 1) continue
       p0[i] = mulMV(G, p0[i])
       p1[i] = mulMV(G, p1[i])
     }
@@ -444,7 +511,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   for (const b of raw) if (b.kind === 'keep') bonds.push({ i: b.i, j: b.j, from: b.from, to: b.to, kind: 'keep', t: 0, fade: 0 })
 
   // 6) разрыв: меньший фрагмент отъезжает от партнёра на 0,45 Å (связь «растягивается»)
-  const pb: V3[] = p1.map((p) => [...p] as V3)
+  const pb: V3[] = Array.from({ length: N }, (_, i) => (p1[i] ? ([...p1[i]] as V3) : ([0, 0, 0] as V3)))
   const fragShift: V3[] = Array.from({ length: nFrag }, () => [0, 0, 0] as V3)
   for (const b of breaks) {
     if (b.kind !== 'break') continue
@@ -458,19 +525,37 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
     const dir = norm(sub(p1[mover], p1[other]))
     fragShift[frag[mover]] = add(fragShift[frag[mover]], scale(dir, 0.45))
   }
-  for (let i = 0; i < N; i++) pb[i] = add(p1[i], fragShift[frag[i]])
+  for (let i = 0; i < N; i++) if (ghost[i] !== 1) pb[i] = add(p1[i], fragShift[frag[i]])
 
   // 7) продукты: Кабш каждого продукта к исходным позициям своих атомов, затем разведение наложений
-  const rightIdx = sp.map((s, i) => (s.side === 'R' ? i : -1)).filter((i) => i >= 0)
+  const rightIdx = sp.map((s, i) => (s.side === 'R' && shown[i] ? i : -1)).filter((i) => i >= 0)
   const p2: V3[] = new Array(N)
   const prodPos = new Map<number, V3[]>()
+  const realPb = pb.filter((_, i) => ghost[i] !== 1)
+  let realMaxX = -Infinity
+  for (const p of realPb) realMaxX = Math.max(realMaxX, p[0])
+  const realC = realPb.length ? centroid(realPb) : ([0, 0, 0] as V3)
   for (const si of rightIdx) {
     const s = sp[si]
     const q = s.atoms.map((a) => [a.p[0], a.p[1], a.p[2]] as V3)
     const ids = s.map.map((m) => mapIndex.get(m)!)
-    const target = ids.map((a) => pb[a])
-    const { R, cq, cp } = kabsch(q, target, speciesWeights(s.atoms.map((a) => a.el)))
-    prodPos.set(si, q.map((p) => add(mulMV(R, sub(p, cq)), cp)))
+    const kIdx = ids.map((a, k) => (ghost[a] === 1 ? -1 : k)).filter((k) => k >= 0)
+    if (kIdx.length >= 3 || (kIdx.length && kIdx.length === ids.length)) {
+      // «появляющиеся» атомы не тянут поворот (вес 0)
+      const w = speciesWeights(s.atoms.map((a) => a.el)).map((x, k) => (ghost[ids[k]] === 1 ? 0 : x))
+      const target = ids.map((a) => (ghost[a] === 1 ? ([0, 0, 0] as V3) : pb[a]))
+      const { R, cq, cp } = kabsch(q, target, w)
+      prodPos.set(si, q.map((p) => add(mulMV(R, sub(p, cq)), cp)))
+    } else if (kIdx.length) {
+      // 1–2 опорных атома — только сдвиг
+      const qc = centroid(kIdx.map((k) => q[k]))
+      const tc = centroid(kIdx.map((k) => pb[ids[k]]))
+      prodPos.set(si, q.map((p) => add(sub(p, qc), tc)))
+    } else {
+      // продукт целиком из непоказанных копий — справа от всех
+      const qc = centroid(q)
+      prodPos.set(si, q.map((p) => add(sub(p, qc), [realMaxX + 3, realC[1], realC[2]])))
+    }
   }
   // главный продукт: фокус — самый большой органический; побочные неорганические — потом
   const byproduct = (si: number) => INORGANIC_BYPRODUCT.test(sp[si].ref) && sp[si].atoms.length <= 6
@@ -493,6 +578,14 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   for (const si of rightIdx) {
     const ids = sp[si].map.map((m) => mapIndex.get(m)!)
     prodPos.get(si)!.forEach((p, k) => (p2[ids[k]] = p))
+  }
+  // «призраки»: появляющиеся стоят на месте в продукте с самого начала (невидимы), гаснущие — остаются на месте разрыва
+  for (let i = 0; i < N; i++) {
+    if (ghost[i] === 1) {
+      p0[i] = p2[i]
+      p1[i] = p2[i]
+      pb[i] = p2[i]
+    } else if (ghost[i] === -1) p2[i] = pb[i]
   }
   // p3 — разнесены и развёрнуты главными осями к зрителю (плавный поворот, без искажений); главный — на месте,
   // остальные отодвинуты (побочные — ещё дальше)
@@ -554,7 +647,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
         const pa = posAt(a, s, bul)
         for (const g of near) {
           for (const b of fragAtoms[g]) {
-            if (formedPairs.has(key(a, b))) continue
+            if (formedPairs.has(key(a, b)) || ghost[b] !== 0) continue
             const d = dist(pa, posAt(b, s, bulgeFrag[g]))
             if (d < m) {
               m = d
@@ -628,7 +721,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   const species: SynthSpecies[] = sp.map((s, si) => {
     const ids = speciesAtoms[si]
     const ends: { atom: number; dir: V3 }[] = []
-    if (s.ref.startsWith('polymer:') || reaction.polymer) {
+    if (shown[si] && (s.ref.startsWith('polymer:') || reaction.polymer)) {
       const deg = new Array<number>(s.atoms.length).fill(0)
       const nb: number[][] = s.atoms.map(() => [])
       for (const b of s.bonds) {
@@ -657,6 +750,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
       byproduct: s.side === 'R' && byproduct(si),
       turn: prodRot.get(si),
       ends,
+      copies: groups.copies[si],
     }
   })
 
@@ -675,9 +769,10 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
       bulge: bulgeFrag[frag[i]],
       center: center[i],
       frag: frag[i],
+      ghost: ghost[i],
     })
   }
-  return { reactionId: reaction.id, atoms, bonds, species, electrons, stages, total, radical, main }
+  return { reactionId: reaction.id, atoms, bonds, species, electrons, stages, total, radical, main, grouped: groups.grouped }
 }
 
 // ─── кадр ────────────────────────────────────────────────────────────────────
@@ -725,9 +820,9 @@ export function atomPositionsAt(sc: SynthScenario, t: number, out: Float32Array)
   const mats = sc.species.map((sp) => (sp.turn ? m3FromQuat(slerpFromIdentity(sp.turn.q, s)) : null))
   for (let i = 0; i < n; i++) {
     const a = sc.atoms[i]
-    const sp = sc.species[a.rs]
-    const M = mats[a.rs]
-    if (!sp.turn || !M) {
+    const sp = a.rs >= 0 ? sc.species[a.rs] : null
+    const M = a.rs >= 0 ? mats[a.rs] : null
+    if (!sp?.turn || !M) {
       put(out, i, lerp3(a.p2, a.p3, s))
       continue
     }
@@ -756,6 +851,15 @@ export function bondLineScale(b: SynthBond, line: number, t: number): number {
 /** Сколько линий у связи максимум (для instancing). */
 export const bondLines = (b: SynthBond): number => Math.max(1, b.from, b.to)
 
+/** Видимость атома (0…1): «призраки» копий появляются/гаснут в середине этапа «Образование связей». */
+export function atomVisibility(sc: SynthScenario, i: number, t: number): number {
+  const g = sc.atoms[i].ghost
+  if (!g) return 1
+  const f = sc.stages[3]
+  const s = clamp01((t - (f.t0 + (f.t1 - f.t0) * 0.25)) / ((f.t1 - f.t0) * 0.35))
+  return g === 1 ? s : 1 - s
+}
+
 /** Видимость электронов (0…1) в момент t. */
 export function electronAlpha(e: SynthElectron, t: number): number {
   if (t < e.t0 || t > e.t1 + 0.3) return 0
@@ -764,17 +868,21 @@ export function electronAlpha(e: SynthElectron, t: number): number {
   return Math.min(up, down)
 }
 
-/** Рамка кадра: центр и радиус облака атомов (для камеры). */
-export function boundsOf(pos: Float32Array, n: number): { c: V3; r: number } {
+/** Рамка кадра: центр и радиус облака атомов (для камеры); vis — видимость атомов (невидимые не считаются). */
+export function boundsOf(pos: Float32Array, n: number, vis?: Float32Array): { c: V3; r: number } {
   let x = 0, y = 0, z = 0
+  let k = 0
   for (let i = 0; i < n; i++) {
+    if (vis && vis[i] < 0.05) continue
     x += pos[i * 3]
     y += pos[i * 3 + 1]
     z += pos[i * 3 + 2]
+    k++
   }
-  const c: V3 = n ? [x / n, y / n, z / n] : [0, 0, 0]
+  const c: V3 = k ? [x / k, y / k, z / k] : [0, 0, 0]
   let r = 1
   for (let i = 0; i < n; i++) {
+    if (vis && vis[i] < 0.05) continue
     const d = Math.hypot(pos[i * 3] - c[0], pos[i * 3 + 1] - c[1], pos[i * 3 + 2] - c[2])
     if (d > r) r = d
   }

@@ -157,17 +157,25 @@ function PlayerInner({ reaction, lang, focusMoleculeId, autoplay = true, onDone,
     const out: SceneLabel[] = []
     const seen = new Set<string>()
     reaction.species.forEach((s, si) => {
+      // «одна копия + ×N»: подпись только у показанной копии
+      if (sc.species[si].copies === 0 || !sc.species[si].atoms.length) return
       const k = `${s.side}:${termIdx[si] >= 0 ? termIdx[si] : s.ref}`
       if (seen.has(k)) return
       seen.add(k)
       const term = termIdx[si] >= 0 ? (s.side === 'L' ? eq.left : eq.right)[termIdx[si]] : null
       const text = term && term.text.length <= 26 ? term.text : formulaOf(reaction, si)
-      out.push({ species: si, text, sub: speciesName(reaction, si, lang) || undefined, focus: si === focusSpecies })
+      out.push({
+        species: si,
+        text,
+        sub: speciesName(reaction, si, lang) || undefined,
+        focus: si === focusSpecies,
+        copies: sc.grouped ? sc.species[si].copies : undefined,
+      })
     })
     const left = out.filter((l) => reaction.species[l.species].side === 'L').slice(0, 8)
     const right = out.filter((l) => reaction.species[l.species].side === 'R').slice(0, 8)
     return [...left, ...right]
-  }, [reaction, termIdx, eq, lang, focusSpecies])
+  }, [reaction, sc, termIdx, eq, lang, focusSpecies])
 
   const line = teacherLine(reaction, sc, stageKey, lang)
   const st = sc.stages[stage]
@@ -289,6 +297,7 @@ function PlayerInner({ reaction, lang, focusMoleculeId, autoplay = true, onDone,
             </span>
             {terms('R')}
           </div>
+          {sc.grouped ? <p className={styles.copiesNote}>{ui.copiesNote}</p> : null}
           {reaction.generic ? (
             <p className={styles.generic}>
               {ui.generic(src.page)}
