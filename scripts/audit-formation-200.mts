@@ -15,7 +15,12 @@
  *    кристалл), у S/MP/N/PM ионной решётки нет; молекулярная укладка у 'molecular', цепь у PM, каркас у N;
  *  K темп (раздел 2): переход e⁻ — каждый электрон ≥ 1,1 с, перекрытие соседних ≤ 30 %, этап = clamp(1,5 + 1,25·n, 4,5, 16);
  *    общие пары — по одной (перекрытие ≤ 30 %); палочка растёт ≥ 0,6 с;
- *  L путь получения в 3D (этап 'route'): нейтрализация, перенос протона, гидратация, обмен (ионные продукты).
+ *  L путь получения в 3D (этап 'route'): нейтрализация, перенос протона, гидратация, обмен (ионные продукты);
+ *  M redox-decomposition — ОВР-разложение (4MnO₂ → 2Mn₂O₃ + O₂ …, formationRedoxDecomposition.ts): на каждом этапе атомов
+ *    каждого элемента — по уравнению; e⁻ отдано = принято (по 2 от каждого уходящего O); заряды до переноса — исходные, после —
+ *    продукта; сумма зарядов каждой формульной единицы исходного и продукта = 0; у O₂ — двойная связь и d = 1,21 Å;
+ *    нет Mn⁰ / Cu⁰ и сближения атомов из простых веществ; HUD с полуреакциями, балансом и проверкой. У этих веществ D / J / L
+ *    (сценарий «из простых веществ») не применяются — их заменяет M.
  * «До» — прежний показ (4 шага: Состав → Заряды → Сборка 6–10 с → Готово, без электронов, исходных веществ и уравнения).
  * Запуск: npx tsx scripts/audit-formation-200.mts [--list]
  */
@@ -26,8 +31,11 @@ import { formationEquation, isBalanced, equationSides, DIATOMIC, simpleFormula }
 import { buildSchoolHeroModel } from '../src/components/lab/hero/schoolHeroModel'
 import { atomPosAt, formationStoryFor } from '../src/components/lab/formation/formationStory'
 import { formationScript } from '../src/chemistry/formationScripts'
+import { pmToScene } from '../src/lab/cinema/scenes/kit/cpkAtoms'
+import { redoxDecomposition, productAtoms, reagentAtoms } from '../src/chemistry/formationRedoxDecomposition'
+import { routeKeyAt, type FormationStory } from '../src/components/lab/formation/formationStory'
 
-type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L'
+type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
 const CATS: Record<Cat, string> = {
   A: 'план / 3D-модель не строятся',
   B: 'итог анимации ≠ модель карточки',
@@ -41,6 +49,7 @@ const CATS: Record<Cat, string> = {
   J: 'решётка не по типу вещества',
   K: 'темп: e⁻ / пары / палочки',
   L: 'путь получения не показан в 3D',
+  M: 'redox-decomposition: ОВР-разложение',
 }
 const mk = () => Object.fromEntries((Object.keys(CATS) as Cat[]).map((k) => [k, new Set<string>()])) as Record<Cat, Set<string>>
 const before: Record<Cat, Set<string>> = mk()
@@ -108,7 +117,11 @@ for (const id of CATALOG_TOP200_IDS) {
     flag('B', id, `палочек модели карточки нет в конце показа: ${missing.length} (${missing.map((b) => `${model.atoms[b.a]!.el}-${model.atoms[b.b]!.el}`).slice(0, 4).join(', ')})`)
   }
   // ── D / E ──
-  if (plan.mode === 'ionic') {
+  const redoxDef = redoxDecomposition(id)
+  if (redoxDef) {
+    before.M.add(id) // раньше: «из простых веществ» (Mn⁰ отдаёт e⁻ атомам O) — противоречие с путём
+    for (const m of redoxAudit(story, redoxDef)) flag('M', id, m)
+  } else if (plan.mode === 'ionic') {
     const q = plan.species.reduce((s, x) => s + x.charge * x.count, 0)
     if (q !== 0) flag('D', id, `сумма зарядов ${q}`)
     if (!plan.crystal) {
@@ -138,7 +151,7 @@ for (const id of CATALOG_TOP200_IDS) {
   }
   const atomsMode = eq?.directKind === 'atoms' && eq.reagents[0] !== 'O₂'
   for (const el of els) {
-    if (!DIATOMIC.has(el) || atomsMode) continue
+    if (!DIATOMIC.has(el) || atomsMode || redoxDef) continue
     const nAt = model.atoms.filter((a) => a.el === el).length
     const sticks = story.reagentSticks.filter((s) => model.atoms[s.a]!.el === el)
     const order = el === 'N' ? 3 : el === 'O' ? 2 : 1
@@ -167,7 +180,9 @@ for (const id of CATALOG_TOP200_IDS) {
   // «До»: ионным — кольцо из 8 копий в плоскости экрана; молекулярной укладки, цепи и роста каркаса не было.
   if ((ionicType && model.kind !== 'crystal') || sc?.latticeKind === 'molecular' || type === 'PM' || type === 'N') before.J.add(id)
   if (!sc) flag('J', id, 'нет сценария formationScripts')
-  else if (ionicType) {
+  else if (ionicType && redoxDef) {
+    // ОВР-разложение: решётка продукта — частицы сцены (этап «Решётка продукта»), без «облака» фрагмента (проверка — M).
+  } else if (ionicType) {
     if (story.latticeKind !== 'ionic') flag('J', id, `ионное (${type}), а решётка ${story.latticeKind}`)
     if (model.kind !== 'crystal' && story.latticeAtoms.length === 0) flag('J', id, 'нет фрагмента ионной решётки')
     if (model.kind !== 'crystal') {
@@ -186,7 +201,9 @@ for (const id of CATALOG_TOP200_IDS) {
     if (story.latticeAtoms.some((a) => a.charge !== 0)) flag('J', id, 'у молекулярного вещества заряженные частицы во фрагменте')
   }
   // ── K: темп ──
-  const tr = story.electrons.filter((e) => e.kind === 'transfer' && e.move).map((e) => e.move!).sort((a, b) => a.t0 - b.t0)
+  const tr = redoxDef
+    ? (story.routeStage?.electrons ?? []).filter((e) => e.kind === 'transfer').map((e) => ({ t0: e.keys[1]![0], t1: e.keys[e.keys.length - 1]![0] })).sort((a, b) => a.t0 - b.t0)
+    : story.electrons.filter((e) => e.kind === 'transfer' && e.move).map((e) => e.move!).sort((a, b) => a.t0 - b.t0)
   // «До»: переход всех e⁻ — в 4,5 с; пары — с перекрытием (оценка по прежнему расписанию).
   const oldPer = Math.max(1.1, Math.min(1.8, 3.7 / Math.max(1, Math.min(story.transferred, 3))))
   const oldStep = story.transferred > 1 ? (4.5 - 0.6 - oldPer) / (story.transferred - 1) : 99
@@ -203,7 +220,7 @@ for (const id of CATALOG_TOP200_IDS) {
   if (shortStick) flag('K', id, `палочка растёт ${(shortStick.t1 - shortStick.t0).toFixed(2)} с < 0,6 с`)
   // ── L: путь получения в 3D ──
   // У всех, кроме 'elements' / 'atoms' (там путь — это сами этапы): сцена ≥ 4 с, есть атомы, подписи, уравнение и текст на 3 языках.
-  const wantRoute = !!sc && sc.routeKind !== 'elements' && sc.routeKind !== 'atoms'
+  const wantRoute = !!sc && sc.routeKind !== 'elements' && sc.routeKind !== 'atoms' && !redoxDef
   if (wantRoute) {
     before.L.add(id)
     const rs = story.routeStage
@@ -217,7 +234,99 @@ for (const id of CATALOG_TOP200_IDS) {
       const bad = rs.atoms.find((a) => a.keys.some(([tt]) => tt < rs.t0 - 1e-6 || tt > rs.t0 + rs.dur + 1e-6))
       if (bad) flag('L', id, 'ключи сцены пути выходят за этап')
     }
-  } else if (sc && story.routeStage) flag('L', id, `у «${sc.routeKind}» не должно быть отдельной сцены пути`)
+  } else if (sc && story.routeStage && !redoxDef) flag('L', id, `у «${sc.routeKind}» не должно быть отдельной сцены пути`)
+}
+
+/** M: ОВР-разложение — атомы по уравнению на каждом этапе, e⁻, заряды, электронейтральность, O=O, HUD. */
+function redoxAudit(story: FormationStory, def: NonNullable<ReturnType<typeof redoxDecomposition>>): string[] {
+  const out: string[] = []
+  const rs = story.routeStage
+  const info = story.redox
+  if (story.scenario !== 'redoxDecomposition' || !rs || !info) return ['сценарий не «ОВР-разложение»']
+  const keys = story.stages.map((s) => s.key).join(',')
+  if (keys !== 'reagents,heat,break,transfer,release,lattice,final') out.push(`этапы ${keys}`)
+  const st = (k: string) => story.stages.find((s) => s.key === k)!
+  const mid = (k: string) => st(k).t0 + 0.5 * st(k).dur
+  const visible = (t: number) => {
+    const c: Record<string, number> = {}
+    rs.atoms.forEach((a) => {
+      if (t >= a.tIn && t < a.tOut) c[a.el] = (c[a.el] ?? 0) + 1
+    })
+    return c
+  }
+  const same = (a: Record<string, number>, b: Record<string, number>) => JSON.stringify(Object.entries(a).sort()) === JSON.stringify(Object.entries(b).sort())
+  const R = reagentAtoms(def)
+  const P = productAtoms(def)
+  for (const k of ['reagents', 'heat', 'break', 'transfer', 'release']) if (!same(visible(mid(k)), R)) out.push(`${k}: атомы ${JSON.stringify(visible(mid(k)))} ≠ исходному ${JSON.stringify(R)}`)
+  // «Решётка продукта»: O₂ уже ушла — остальные атомы = продуктам без O₂ (O₂ — 2 атома O — учтена на «Выделении»).
+  const PnoO2 = { ...P, O: P.O! - 2 }
+  const tl = st('lattice').t0 + 0.4 * st('lattice').dur
+  if (!same(visible(tl), PnoO2)) out.push(`lattice: атомы ${JSON.stringify(visible(tl))} ≠ продуктам без O₂ ${JSON.stringify(PnoO2)}`)
+  if (!same(visible(mid('release')), P)) out.push(`release: атомы ${JSON.stringify(visible(mid('release')))} ≠ продуктам + O₂ ${JSON.stringify(P)}`)
+  // e⁻: отдано = принято, по 2 от каждого уходящего O, у центров — по def.gains.
+  const es = rs.electrons.filter((e) => e.kind === 'transfer')
+  const given = new Map<number, number>()
+  const taken = new Map<number, number>()
+  for (const e of es) {
+    given.set(e.from!, (given.get(e.from!) ?? 0) + 1)
+    taken.set(e.to!, (taken.get(e.to!) ?? 0) + 1)
+  }
+  const nGiven = [...given.values()].reduce((s, x) => s + x, 0)
+  const nTaken = [...taken.values()].reduce((s, x) => s + x, 0)
+  if (nGiven !== 4 || nTaken !== 4) out.push(`e⁻ отдано ${nGiven}, принято ${nTaken} (нужно 4 = 4)`)
+  for (const o of info.leaving) if (given.get(o) !== 2) out.push(`O${o} отдаёт ${given.get(o) ?? 0} e⁻ (нужно 2)`)
+  info.centers.forEach((c, k) => {
+    const g = def.gains[k]!
+    if ((taken.get(c) ?? 0) !== g.from - g.to) out.push(`${g.el}${c} принимает ${taken.get(c) ?? 0} e⁻ (нужно ${g.from - g.to})`)
+  })
+  // Заряды до / после переноса (по chargeSteps).
+  const qAt = (i: number, t: number) => {
+    let q = rs.atoms[i]!.q ?? 0
+    for (const s of story.chargeSteps ?? []) if (s.atom === i && s.t <= t) q = s.to
+    return q
+  }
+  const tBefore = st('transfer').t0
+  const tAfter = st('transfer').t0 + st('transfer').dur
+  info.centers.forEach((c, k) => {
+    const g = def.gains[k]!
+    if (qAt(c, tBefore) !== g.from) out.push(`${g.el}${c}: до переноса ${qAt(c, tBefore)} ≠ ${g.from}`)
+    if (qAt(c, tAfter) !== g.to) out.push(`${g.el}${c}: после переноса ${qAt(c, tAfter)} ≠ ${g.to}`)
+  })
+  for (const o of info.leaving) {
+    if (qAt(o, tBefore) !== -2) out.push(`уходящий O: до переноса ${qAt(o, tBefore)}`)
+    if (qAt(o, tAfter) !== 0) out.push(`уходящий O: после переноса ${qAt(o, tAfter)} ≠ 0`)
+  }
+  for (const s of story.chargeSteps ?? []) if (Math.abs(s.to - s.from) !== 1) out.push('смена заряда не на 1 e⁻')
+  // Электронейтральность: исходное (все частицы) и каждая формульная единица продукта.
+  const q0 = rs.atoms.reduce((s, a, i) => s + (a.tIn < 0 ? qAt(i, -1) : 0), 0)
+  if (q0 !== 0) out.push(`сумма зарядов исходного ${q0} ≠ 0`)
+  for (const u of info.units) {
+    const q = u.atoms.reduce((s, i) => s + qAt(i, story.total), 0)
+    if (q !== 0) out.push(`${u.formula}: сумма зарядов ${q} ≠ 0`)
+  }
+  if (info.units.filter((u) => u.main).length !== 1) out.push('нет одной главной формульной единицы')
+  // Нет Mn⁰ / Cu⁰ / N⁰: металл и центральный атом не бывают нейтральными.
+  rs.atoms.forEach((a, i) => {
+    if (a.el !== 'O' && [0, 10, 20, 30, 40].some((tt) => qAt(i, tt) === 0)) out.push(`${a.el}⁰ в сцене`)
+  })
+  // O₂: двойная связь (2 палочки), d = 1,21 Å.
+  const [a, b] = info.o2
+  const oo = rs.sticks.filter((s) => (s.a === a && s.b === b) || (s.a === b && s.b === a))
+  if (oo.length !== 2 || oo.some((s) => s.n !== 2)) out.push(`O₂: палочек ${oo.length} (нужна двойная O=O)`)
+  const tm = st('release').t0 + 0.52 * st('release').dur
+  const pa = routeKeyAt(rs.atoms[a]!.keys, tm, [0, 0, 0])
+  const pb = routeKeyAt(rs.atoms[b]!.keys, tm, [0, 0, 0])
+  const d = Math.hypot(pa[0] - pb[0], pa[1] - pb[1], pa[2] - pb[2])
+  if (Math.abs(d - pmToScene(121)) > 0.02 * pmToScene(121)) out.push(`d(O=O) ${d.toFixed(3)} ≠ 1,21 Å (${pmToScene(121).toFixed(3)})`)
+  // Ни одного «сближения из простых веществ».
+  if (story.stages.some((s) => s.key === 'approach' || s.key === 'valence') || story.electrons.length) out.push('остались этапы / e⁻ сценария «из простых веществ»')
+  // Итог: главная формульная единица сцены в конце «Решётки» стоит ровно на местах модели карточки.
+  // HUD: путь, полуреакции, баланс, проверка.
+  const lines = (story.hud ?? []).flatMap((h) => h.lines)
+  if (!lines.includes(def.equation)) out.push('HUD без уравнения пути')
+  if (!lines.includes(def.oxidation[0]) || def.reduction.some((r) => !lines.includes(r[0])) || !lines.some((l) => /Баланс: 4e⁻ = 4e⁻/.test(l))) out.push('HUD без полуреакций / баланса')
+  for (const p of def.products) if (!lines.includes(p.check)) out.push(`HUD без проверки ${p.check}`)
+  return out
 }
 
 const N = CATALOG_TOP200_IDS.length

@@ -10,6 +10,7 @@
 import { CATALOG_TOP200 } from '../src/data/catalog/catalogTop200.ts'
 import { formationPlan, isMetal } from '../src/chemistry/formationPlan.ts'
 import { formationScript } from '../src/chemistry/formationScripts.ts'
+import { redoxDecomposition } from '../src/chemistry/formationRedoxDecomposition.ts'
 import {
   FORMATION_TEACHER_STAGES,
   formationTeacherBoard,
@@ -81,7 +82,29 @@ for (const id of CATALOG_TOP200) {
     fail(`${id}: нет плана`)
     continue
   }
-  if (ionic) {
+  const redox = redoxDecomposition(id)
+  if (redox) {
+    // ОВР-разложение: электроны отдаёт кислород исходного (2O → O₂ + 4e⁻), принимают Mn / Cu / N; никаких «Mn⁰ − ne⁻».
+    for (const lang of LANGS) {
+      const all = ['reagents', 'heat', 'break', 'transfer', 'release', 'lattice', 'final'].map((k) => formationTeacherLines(id, k, lang)!)
+      const txt = all.map((x) => x.main + ' ' + x.sub).join(' ')
+      if (/(Mn|Cu|N|K|Na)⁰/.test(txt)) fail(`${id}/${lang}: в ОВР-разложении нейтральный атом металла / азота`)
+      const tr = formationTeacherLines(id, 'transfer', lang)!
+      const li = lang === 'ru' ? 0 : lang === 'en' ? 1 : 2
+      if (!tr.main.includes(redox.oxidation[li]!) || redox.reduction.some((r) => !tr.main.includes(r[li]!))) fail(`${id}/${lang}: в «Переносе e⁻» нет полуреакций`)
+      if (!/4e⁻ = .*4e⁻/.test(tr.sub)) fail(`${id}/${lang}: в «Переносе e⁻» нет баланса 4e⁻ = 4e⁻`)
+      if (!/O₂/.test(tr.sub) || !/2/.test(tr.sub)) fail(`${id}/${lang}: в «Переносе e⁻» нет «по 2 электрона → O₂»`)
+      if (!/O=O/.test(formationTeacherLines(id, 'release', lang)!.sub)) fail(`${id}/${lang}: «Выделение O₂» без O=O`)
+      if (!formationTeacherLines(id, 'reagents', lang)!.main.includes(redox.equation)) fail(`${id}/${lang}: «Исходное» без уравнения пути`)
+      const lat = formationTeacherLines(id, 'lattice', lang)!.main
+      for (const p of redox.products) if (!lat.includes(p.check)) fail(`${id}/${lang}: в «Решётке продукта» нет проверки ${p.check}`)
+      const sch = transferSchemes(id, lang)
+      if (!sch.includes(redox.oxidation[li]!) || !sch.some((x) => /4e⁻ = 4e⁻/.test(x))) fail(`${id}/${lang}: схемы доски не полуреакции ОВР`)
+    }
+    const given = 4
+    const taken = redox.gains.reduce((n, g) => n + g.from - g.to, 0)
+    if (given !== taken) fail(`${id}: отдано ${given} ≠ принято ${taken}`)
+  } else if (ionic) {
     const schemes = transferSchemes(id, 'ru')
     const cats = plan.species.filter((x) => x.charge > 0 && x.kind === 'ion' && isMetal(Object.keys(x.comp)[0]!))
     const ans = plan.species.filter((x) => x.charge < 0)

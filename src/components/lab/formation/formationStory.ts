@@ -6,9 +6,12 @@ import { compoundById } from '../../../data/compounds'
 import { formationScript, type FormationType } from '../../../chemistry/formationScripts'
 import { latticeFor, type LatticeAtom, type StoryLatticeKind } from './story/lattice'
 import { buildRouteStage, ROUTE_DUR, type RouteStage } from './story/route'
+import { buildStoryHud } from './story/hud'
+import { buildRedoxDecomposition, type RedoxSceneInfo } from './story/redoxDecomposition'
 
 export type { LatticeAtom, StoryLatticeKind } from './story/lattice'
 export type { RouteStage, RouteAtom, RouteStick, RouteElectron, RouteBadge, RouteShow } from './story/route'
+export type { RedoxSceneInfo, RedoxUnit } from './story/redoxDecomposition'
 export { routeKeyAt } from './story/route'
 
 /**
@@ -62,11 +65,32 @@ export type StoryHud = {
   lines: string[]
   /** акцент: 'redox' — полуреакции (окисление/восстановление), 'route' — путь, 'check' — проверка (баланс, электронейтральность) */
   tone?: 'redox' | 'route' | 'check'
+  /** (добавлено) заголовок RU / EN / UZ — если есть, интерфейс берёт строку своего языка вместо title */
+  titleT?: [string, string, string]
+  /** (добавлено) строки RU / EN / UZ — если есть, вместо lines (по одной тройке на строку) */
+  linesT?: [string, string, string][]
 }
+
+/**
+ * (добавлено) Смена заряда частицы в момент прихода/ухода электрона (сценарий «ОВР-разложение»):
+ * src 'route' — индекс в routeStage.atoms; kind 'ion' — заряд иона (Mn⁴⁺ → Mn³⁺, O²⁻ → O⁰), 'ox' — степень окисления
+ * атома внутри многоатомного иона (Mn⁺⁷ в MnO₄⁻, N⁺⁵ в NO₃⁻). Подпись до первой смены — RouteAtom.q / qKind.
+ */
+export type StoryChargeStep = { atom: number; src: 'route'; t: number; from: number; to: number; kind: 'ion' | 'ox' }
 
 export type FormationStory = {
   /** HUD-карточки (стекло, справа сверху у 3D-окна); если заданы — формулы НЕ рисуются 3D-плашками поверх атомов */
   hud?: StoryHud[]
+  /** (добавлено) смены зарядов по времени (перенос e⁻ в ОВР-разложении) — для подписей ионов сцены */
+  chargeSteps?: StoryChargeStep[]
+  /**
+   * (добавлено) вид сценария: 'redoxDecomposition' — окислительно-восстановительное разложение при нагревании
+   * (4MnO₂ → 2Mn₂O₃ + O₂ …): вся сцена до «Итога» — частицы routeStage (фрагмент решётки исходного по уравнению),
+   * атомы модели карточки появляются в «Итоге». Нет — обычный сценарий.
+   */
+  scenario?: 'redoxDecomposition'
+  /** (добавлено) данные ОВР-разложения: формульные единицы продукта (индексы routeStage.atoms), уходящие O, молекула O₂, центры */
+  redox?: RedoxSceneInfo
   stages: Stage[]
   total: number
   /** ключевые положения атомов: P0 исходные, P1 после разрыва, P2 сближение, P3 перед сборкой, PF — модель */
@@ -133,13 +157,15 @@ const rotY = (p: V3, a: number): V3 => [p[0] * Math.cos(a) + p[2] * Math.sin(a),
 export function screenToModel(model: SchoolHeroModel, s: V3): V3 {
   return model.motion === 'orbit' ? rotY(rotX(s, -model.pitch), -model.yaw) : rotX(rotY(s, -model.yaw), -model.pitch)
 }
-function modelToScreen(model: SchoolHeroModel, p: V3): V3 {
+export function modelToScreen(model: SchoolHeroModel, p: V3): V3 {
   return model.motion === 'orbit' ? rotX(rotY(p, model.yaw), model.pitch) : rotY(rotX(p, model.pitch), model.yaw)
 }
 const add = (a: V3, b: V3, k = 1): V3 => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k]
 const len = (a: V3) => Math.hypot(a[0], a[1], a[2])
 
 export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel, eq: FormationEquation | null): FormationStory {
+  const redox = buildRedoxDecomposition(plan.compoundId, plan, model, (sv) => screenToModel(model, sv), (p) => modelToScreen(model, p))
+  if (redox) return redoxStory(plan, model, redox)
   const n = model.atoms.length
   const crystal = model.kind === 'crystal'
   const ionic = plan.mode === 'ionic'
@@ -594,7 +620,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   const latticeWin: [number, number] = lat.kind === 'ionic' ? [latticeStage.t0 + 0.3, latticeStage.t0 + 0.75 * latticeStage.dur] : [fin.t0 + 0.2, fin.t0 + 2.2]
 
   const tr = st('transfer')
-  return {
+  return withHud(plan.formula, {
     stages,
     total: t,
     P: [P0, P1, P2, P3, PF],
@@ -617,7 +643,58 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     atomEl: model.atoms.map((a) => a.el),
     rNeutral: model.atoms.map((_, i) => rNeutralOf(i)),
     ionWin: tr ? [tr.t0 + 0.45 * tr.dur, tr.t0 + tr.dur] : [Infinity, Infinity],
+  })
+}
+
+/**
+ * ОВР-разложение (story/redoxDecomposition.ts): до «Итога» — только частицы routeStage (фрагмент исходного по уравнению),
+ * атомы модели карточки стоят на своих местах (PF) и проявляются в «Итоге»; e⁻ Льюиса и фрагмент «облака» решётки не рисуются.
+ */
+function redoxStory(plan: FormationPlan, model: SchoolHeroModel, r: NonNullable<ReturnType<typeof buildRedoxDecomposition>>): FormationStory {
+  const PF = model.atoms.map((a) => [...a.pos] as V3)
+  const fin = r.stages.find((s) => s.key === 'final')!
+  const avgR = model.atoms.reduce((s, a) => s + a.r, 0) / Math.max(1, model.atoms.length)
+  const sticks: StoryStick[] = []
+  model.bonds.forEach((b, k) => {
+    const nn = Math.max(1, Math.min(3, Math.round(b.order)))
+    for (let s = 0; s < nn; s++) sticks.push({ a: b.a, b: b.b, n: nn, s, t0: fin.t0, t1: fin.t0 + 0.6, bond: k })
+  })
+  const lat = latticeFor(formationScript(plan.compoundId), plan, model, (sv) => screenToModel(model, sv))
+  const win = PF.map(() => [fin.t0, fin.t0] as [number, number])
+  return {
+    hud: r.hud,
+    chargeSteps: r.chargeSteps,
+    scenario: 'redoxDecomposition',
+    redox: r.info,
+    stages: r.stages,
+    total: r.total,
+    P: [PF, PF, PF, PF, PF],
+    assembleWin: win,
+    innerWin: win.map((w) => [...w] as [number, number]),
+    sticks,
+    reagentSticks: [],
+    ghosts: [],
+    electrons: [],
+    latticeAtoms: [],
+    latticeKind: lat.kind,
+    latticeWin: [fin.t0, fin.t0],
+    type: formationScript(plan.compoundId)?.type ?? null,
+    routeStage: r.route,
+    ionLabelsFrom: fin.t0 + 0.3,
+    eR: clamp(0.2 * avgR, 0.012, 0.05),
+    transferred: r.route.electrons.length,
+    sharedPairs: 0,
+    valenceE: model.atoms.map(() => 0),
+    atomEl: model.atoms.map((a) => a.el),
+    rNeutral: model.atoms.map((a) => a.r),
+    ionWin: [Infinity, Infinity],
   }
+}
+
+/** HUD для всех сценариев: текст бывших 3D-плашек пути и подпись решётки (story/hud.ts). */
+function withHud(formula: string, s: FormationStory): FormationStory {
+  if (!s.hud) s.hud = buildStoryHud(s, formula)
+  return s
 }
 
 /** Радиус шара атома i в момент t: нейтральный атом → ион во время перехода e⁻. */
@@ -651,7 +728,14 @@ const winU = (t: number, w: readonly [number, number]) => easeInOut((t - w[0]) /
 export function atomPosAt(story: FormationStory, i: number, t: number, out: V3): V3 {
   const [P0, P1, P2, P3, PF] = story.P
   const sb = story.stages.find((s) => s.key === 'break')
-  const sa = story.stages.find((s) => s.key === 'approach')!
+  const sa = story.stages.find((s) => s.key === 'approach')
+  if (!sa) {
+    // ОВР-разложение: атомы модели — сразу на своих местах (появляются в «Итоге»).
+    out[0] = PF[i]![0]
+    out[1] = PF[i]![1]
+    out[2] = PF[i]![2]
+    return out
+  }
   if (t < (sb ? sb.t0 : sa.t0)) {
     out[0] = P0[i]![0]
     out[1] = P0[i]![1]
