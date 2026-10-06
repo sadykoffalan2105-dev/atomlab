@@ -1,0 +1,1 @@
+import{Mi as e}from"./rapier-vendor-gzP6eUli.js";var t=null;function n(){return t??=e(()=>import(`./reactions-DDuQ-fpq.js`).then(e=>e.default),[]).catch(e=>{throw t=null,e}),t}export{n as loadOrganicV2Reactions};
