@@ -21,6 +21,15 @@ import { PRIMARY_TONE, gradeTone } from './hubTone'
 import { bentoText, type BentoKey } from './bentoHubI18n'
 import s from './LearnBentoIndex.module.css'
 
+type GradeStatus = 'new' | 'progress' | 'done' | 'here'
+
+const STATUS_KEY: Record<GradeStatus, BentoKey> = {
+  new: 'stNotStarted',
+  progress: 'stInProgress',
+  done: 'stDone',
+  here: 'stHere',
+}
+
 /** Порядковый номер плитки для каскадного появления (--i). */
 function order(i: number, tone?: CSSProperties): CSSProperties {
   return { ...(tone ?? {}), ['--i' as string]: i } as CSSProperties
@@ -54,10 +63,17 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
     : { title: resume?.sectionId ?? '', practicalLabel: null }
   const resumeNum = resumeSection ? /^§\s*\d+[a-zа-я]?/i.exec(t(resumeSection.titleKey))?.[0] : undefined
 
+  const resumeHref = resume?.sectionId
+    ? `/learn/g/${resume.gradeId}/c/${resume.chapterId}/s/${resume.sectionId}`
+    : undefined
+
   const grades = LEARN_GRADES.map((grade) => {
     const ids = grade.chapters.flatMap((c) => c.sections.map((sec) => learnSectionPathId(sec)))
     const { done: gDone, total: gTotal } = sectionProgress(ids, progress)
-    return { grade, gDone, gTotal, gPct: percent(gDone, gTotal) }
+    const here = resume?.gradeId === grade.id
+    const status: GradeStatus =
+      gTotal > 0 && gDone >= gTotal ? 'done' : here ? 'here' : gDone > 0 ? 'progress' : 'new'
+    return { grade, gDone, gTotal, gPct: percent(gDone, gTotal), here, status }
   })
 
   /* Подсветка под курсором: одна делегированная запись CSS-переменных на плитку. */
@@ -74,14 +90,21 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
     <div className={s.root}>
       <header className={s.head}>
         <div className={s.headMain}>
-          <p className={s.eyebrow}>
-            <IconSparkles />
-            {t('learn.title')}
-          </p>
           <h1 className={s.title} id="learn-main-title">
             {t('learn.grades.title')}
           </h1>
           <p className={s.lead}>{t('learn.grades.lead')}</p>
+          {/* Телефон: главное действие сразу на первом экране. */}
+          <div className={s.heroCtas}>
+            <Link className={s.heroPrimary} to={resumeHref ?? '/learn/g/g7'}>
+              {resumeHref ? b('heroResume') : b('heroStart')}
+              <IconArrowRight />
+            </Link>
+            <Link className={s.heroSecondary} to="/learn/talk">
+              <IconAiChat />
+              {b('heroAsk')}
+            </Link>
+          </div>
         </div>
         <dl className={s.facts}>
           <div className={s.fact}>
@@ -130,7 +153,7 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
           </span>
         </Link>
 
-        {/* Общий прогресс */}
+        {/* Общий прогресс: кольцо + сегментная полоса (ширина отрезка ∝ числу параграфов класса) */}
         <section
           className={`${s.tile} ${s.stat}`}
           data-tile
@@ -138,7 +161,7 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
           aria-labelledby="learn-overall-title"
         >
           <div className={s.statRow}>
-            <ProgressRing value={done / Math.max(1, total)} size={96} stroke={9} label={`${pct}%`} className={s.ring} />
+            <ProgressRing value={done / Math.max(1, total)} size={88} stroke={9} label={`${pct}%`} className={s.ring} />
             <div className={s.statText}>
               <h2 className={s.kicker} id="learn-overall-title">
                 {t('learn.hubUi.overall')}
@@ -146,34 +169,33 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
               <p className={s.statValue} aria-live="polite">
                 {t('learn.progressSection', { done, total })}
               </p>
-              <span className={s.bar} aria-hidden>
-                <span className={s.barFill} style={{ width: `${pct}%` }} />
-              </span>
+              {done === 0 ? <p className={s.hint}>{b('startHint')}</p> : null}
             </div>
           </div>
-          <div className={s.mini}>
-            <span className={s.miniLabel}>{b('byGrade')}</span>
-            <ul className={s.miniList}>
-              {grades.map(({ grade, gDone, gTotal, gPct }) => (
-                <li
-                  key={grade.id}
-                  className={s.miniItem}
-                  style={gradeTone(grade.id)}
-                  title={`${t(grade.titleKey)} · ${gDone}/${gTotal}`}
-                >
-                  <span className={s.miniTrack} aria-hidden>
-                    <span className={s.miniFill} style={{ width: `${Math.max(gPct, gDone > 0 ? 4 : 0)}%` }} />
+          <ul className={s.seg} aria-label={b('byGrade')}>
+            {grades.map(({ grade, gDone, gTotal, gPct }) => (
+              <li
+                key={grade.id}
+                className={s.segItem}
+                style={{ ...gradeTone(grade.id), flexGrow: gTotal }}
+                title={`${t(grade.titleKey)} · ${gDone}/${gTotal}`}
+              >
+                <span className={s.segTrack} aria-hidden>
+                  <span className={s.segFill} style={{ width: `${Math.max(gPct, gDone > 0 ? 4 : 0)}%` }} />
+                </span>
+                <span className={s.segCap} aria-hidden>
+                  <span className={s.segNum}>{gradeNumber(grade.id)}</span>
+                  <span className={s.segCount}>
+                    {gDone}
+                    <span className={s.segOf}>/{gTotal}</span>
                   </span>
-                  <span className={s.miniNum}>
-                    <span aria-hidden>{gradeNumber(grade.id)}</span>
-                    <span className={s.srOnly}>
-                      {b('gradeAria', { title: t(grade.titleKey), done: gDone, total: gTotal, pct: gPct })}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+                </span>
+                <span className={s.srOnly}>
+                  {b('gradeAria', { title: t(grade.titleKey), done: gDone, total: gTotal, pct: gPct })}
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
 
         {/* Продолжить с параграфа / начать с 7 класса */}
@@ -181,7 +203,7 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
           <Link
             className={`${s.tile} ${s.resume}`}
             data-tile
-            to={`/learn/g/${resume.gradeId}/c/${resume.chapterId}/s/${resume.sectionId}`}
+            to={resumeHref ?? '/learn'}
             style={order(2, gradeTone(resume.gradeId))}
           >
             <span className={s.play} aria-hidden>
@@ -215,9 +237,9 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
             <span className={s.resumeText}>
               <span className={s.kicker}>{b('startEyebrow')}</span>
               <span className={s.resumeTitle}>{b('startTitle')}</span>
-              <span className={s.resumeMeta}>{t('learn.g7.textbook')}</span>
+              <span className={s.resumeMeta}>{b('startMeta')}</span>
             </span>
-            <span className={s.pill} aria-hidden>
+            <span className={`${s.pill} ${s.pillSolid}`} aria-hidden>
               {b('startCta')}
               <IconArrowRight />
             </span>
@@ -227,10 +249,26 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
 
       <section className={s.gradesBlock} aria-labelledby="learn-grades-title">
         <h2 className={s.blockTitle} id="learn-grades-title">
+          <span className={s.blockNum} aria-hidden>
+            01
+          </span>
           {t('learn.hubUi.gradesTitle')}
         </h2>
+        {/* Маршрут 7 → 11 (ПК): узлы по центрам плиток, отрезки — прогресс класса. */}
+        <div className={s.route} aria-hidden>
+          {grades.map(({ grade, gDone, gPct, here }, i) => (
+            <span key={grade.id} className={s.routeCell} style={order(i, gradeTone(grade.id))}>
+              {i < grades.length - 1 ? (
+                <span className={s.routeSeg}>
+                  <span className={s.routeFill} style={{ width: `${gPct}%` }} />
+                </span>
+              ) : null}
+              <span className={s.routeNode} data-on={gDone > 0 || here ? '' : undefined} />
+            </span>
+          ))}
+        </div>
         <ul className={s.grades} onPointerMove={onPointerMove}>
-          {grades.map(({ grade, gDone, gTotal, gPct }, i) => (
+          {grades.map(({ grade, gDone, gTotal, gPct, here, status }, i) => (
             <li key={grade.id} className={s.gradeItem}>
               <Link
                 to={`/learn/g/${grade.id}`}
@@ -238,32 +276,41 @@ export function LearnBentoIndex({ progress }: { progress: LearnProgressV3 }) {
                 data-tile
                 data-grade={grade.id}
                 style={order(3 + i, gradeTone(grade.id))}
-                onMouseEnter={() => prefetchWasmCore()}
+                onMouseEnter={prefetchWasmCore}
+                onFocus={prefetchWasmCore}
               >
-                <span className={s.gradeNum} aria-hidden>
-                  {gradeNumber(grade.id)}
+                <span className={s.accent} aria-hidden />
+                <span className={s.numWrap} data-here={here ? '' : undefined} aria-hidden>
+                  <span className={s.gradeNum}>{gradeNumber(grade.id)}</span>
                 </span>
                 <GradeGlyph gradeId={grade.id} className={s.glyph} />
                 <span className={s.gradeBody}>
                   <span className={s.gradeTitleRow}>
                     <span className={s.gradeTitle}>{t(grade.titleKey)}</span>
                     <span className={s.chip}>{b('chaptersShort', { n: grade.chapters.length })}</span>
+                    <span className={s.ctaDot} aria-hidden>
+                      <IconArrowRight />
+                    </span>
                   </span>
                   <span className={s.gradeRef}>{t(grade.textbookRefKey)}</span>
                 </span>
                 <span className={s.gradeFoot}>
                   <span className={s.countRow}>
-                    <span>{t('learn.progressSection', { done: gDone, total: gTotal })}</span>
-                    <span className={s.countPct}>{gPct}%</span>
+                    <span className={s.status} data-status={status}>
+                      {b(STATUS_KEY[status])}
+                    </span>
+                    <span className={s.countNums} aria-hidden>
+                      <span className={s.countOf}>
+                        {gDone}/{gTotal} {b('sectionsShort')}
+                      </span>
+                      <span className={s.countPct}>{gPct}%</span>
+                    </span>
+                    <span className={s.srOnly}>
+                      {t('learn.progressSection', { done: gDone, total: gTotal })}, {gPct}%
+                    </span>
                   </span>
                   <span className={s.bar} aria-hidden>
                     <span className={s.barFill} style={{ width: `${gPct}%` }} />
-                  </span>
-                </span>
-                <span className={s.gradeCta} aria-hidden>
-                  {t('learn.hubUi.open')}
-                  <span className={s.ctaDot}>
-                    <IconArrowRight />
                   </span>
                 </span>
               </Link>

@@ -18,8 +18,13 @@
   --bn-edge-hi: rgba(200, 216, 255, 0.34);
   --bn-blur: saturate(150%) blur(18px);
   --bn-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.7);
-  --bn-track: rgba(148, 170, 230, 0.16);
+  --bn-track: rgba(148, 170, 230, 0.18);
+  /* Дорожки сегментной полосы и маршрута: ≥3:1 к фону плитки. */
+  --bn-track-strong: #5f6b86;
+  --bn-node-bg: #0c1326;
   --bn-num-ink: rgba(255, 255, 255, 0.92);
+  /* Белый текст на градиенте: тёмная пара проходит AA в обеих темах. */
+  --bn-cta-grad: linear-gradient(120deg, #3b5fe0, #a42cc4);
 
   display: flex;
   flex-direction: column;
@@ -33,7 +38,9 @@
   --bn-edge-hi: rgba(23, 32, 51, 0.22);
   --bn-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 1px 2px rgba(23, 32, 51, 0.06),
     0 18px 40px -26px rgba(23, 32, 51, 0.28);
-  --bn-track: rgba(23, 32, 51, 0.09);
+  --bn-track: rgba(23, 32, 51, 0.13);
+  --bn-track-strong: #7d889c;
+  --bn-node-bg: #ffffff;
 }
 
 /* ——— Шапка ——— */
@@ -41,7 +48,7 @@
 .head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 18px 40px;
 }
@@ -49,35 +56,9 @@
 .headMain {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
   flex: 1 1 520px;
-}
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  margin: 0;
-  padding: 6px 14px 6px 10px;
-  border-radius: var(--lt-radius-pill);
-  border: 1px solid var(--bn-edge);
-  background: var(--bn-tile);
-  -webkit-backdrop-filter: var(--bn-blur);
-  backdrop-filter: var(--bn-blur);
-  font-size: var(--lt-fs-xs);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--lt-eyebrow, var(--lt-text-2));
-}
-
-.eyebrow svg {
-  width: 16px;
-  height: 16px;
-  color: var(--lt-accent-cyan);
 }
 
 .title {
@@ -95,10 +76,11 @@
 }
 
 .lead {
-  max-width: 980px;
+  max-width: 1040px;
   margin: 0;
   font-size: var(--lt-fs-body);
-  line-height: 1.55;
+  line-height: 1.5;
+  text-wrap: pretty;
   color: var(--lt-text-2);
 }
 
@@ -112,8 +94,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 96px;
-  padding: 10px 16px 11px;
+  min-width: 86px;
+  padding: 9px 14px 10px;
   border-radius: 18px;
   border: 1px solid var(--bn-edge);
   background: var(--bn-tile);
@@ -138,6 +120,56 @@
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--lt-text);
+}
+
+.heroCtas {
+  display: none;
+}
+
+.heroPrimary,
+.heroSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  font-weight: 750;
+  font-size: var(--lt-fs-body);
+  text-decoration: none;
+  transition:
+    transform var(--lt-dur) var(--lt-ease),
+    box-shadow var(--lt-dur) var(--lt-ease);
+}
+
+.heroPrimary {
+  background: var(--bn-cta-grad);
+  color: #fff;
+  box-shadow: 0 14px 30px -14px rgba(124, 58, 237, 0.85);
+}
+
+.heroSecondary {
+  border: 1px solid var(--bn-edge-hi);
+  background: var(--bn-tile);
+  color: var(--lt-text);
+}
+
+.heroPrimary svg,
+.heroSecondary svg {
+  width: 18px;
+  height: 18px;
+}
+
+.heroPrimary:active,
+.heroSecondary:active {
+  transform: scale(0.985);
+}
+
+.heroPrimary:focus-visible,
+.heroSecondary:focus-visible {
+  outline: 2px solid var(--lt-primary);
+  outline-offset: 3px;
 }
 
 /* ——— Плитка: стекло + тонкая градиентная рамка + подсветка под курсором ——— */
@@ -323,6 +355,12 @@ a.tile:active {
   transform: translateY(-4px) scale(1.025);
 }
 
+/* Столбики голосовой волны (rect с inline-задержкой) «говорят» быстрее под курсором. */
+.ai:hover .aiArt rect[style],
+.ai:focus-visible .aiArt rect[style] {
+  animation-duration: 0.62s;
+}
+
 .aiBody {
   display: flex;
   flex-direction: column;
@@ -477,7 +515,7 @@ a.tile:active {
 .stat {
   flex-direction: column;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   padding: clamp(18px, 1.6vw, 24px);
 }
 
@@ -495,7 +533,7 @@ a.tile:active {
 .statText {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
   flex: 1;
 }
@@ -538,55 +576,93 @@ a.tile:active {
   transition: width var(--lt-dur-slow) var(--lt-ease);
 }
 
-.mini {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.miniLabel {
+.hint {
+  margin: 0;
   font-size: var(--lt-fs-xs);
-  font-weight: 600;
+  line-height: 1.4;
   color: var(--lt-text-3);
 }
 
-.miniList {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+/* Сегментная полоса: ширина отрезка ∝ числу параграфов класса (flex-grow inline). */
+.seg {
+  display: flex;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.miniItem {
+.segItem {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  min-width: 0;
 }
 
-.miniTrack {
+.segTrack {
   position: relative;
   display: block;
   height: 8px;
   overflow: hidden;
-  border-radius: var(--lt-radius-pill);
-  background: color-mix(in srgb, var(--hub-ga) 14%, var(--bn-track));
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--hub-ga) 28%, var(--bn-track-strong));
 }
 
-.miniFill {
+.segItem:first-child .segTrack {
+  border-top-left-radius: var(--lt-radius-pill);
+  border-bottom-left-radius: var(--lt-radius-pill);
+}
+
+.segItem:last-child .segTrack {
+  border-top-right-radius: var(--lt-radius-pill);
+  border-bottom-right-radius: var(--lt-radius-pill);
+}
+
+.segFill {
   position: absolute;
   inset: 0 auto 0 0;
-  border-radius: inherit;
   background: linear-gradient(90deg, var(--hub-ga), var(--hub-gb));
+  transition: width var(--lt-dur-slow) var(--lt-ease);
 }
 
-.miniNum {
+.segCap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.segNum {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--hub-ga) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--hub-ga) 45%, transparent);
   font-family: var(--lt-font-display);
-  font-size: var(--lt-fs-small);
-  font-weight: 750;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--lt-text);
+}
+
+.segCount {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--lt-font-mono, ui-monospace, monospace);
+  font-size: 11.5px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
   color: var(--lt-text-2);
+}
+
+.segOf {
+  color: var(--lt-text-3);
 }
 
 .srOnly {
@@ -661,10 +737,12 @@ a.tile:active {
 }
 
 .resumeMeta {
+  display: -webkit-box;
   overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   font-size: var(--lt-fs-small);
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.35;
   color: var(--lt-text-3);
 }
 
@@ -695,6 +773,19 @@ a.tile:active {
   background: color-mix(in srgb, var(--hub-ga) 18%, transparent);
 }
 
+/* «Начать» — главное действие нового ученика: заливка в градиенте 7 класса (белый текст ≥4.5:1). */
+.pillSolid,
+.resume:hover .pillSolid {
+  border-color: transparent;
+  background: linear-gradient(120deg, #0e7490, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 10px 22px -12px rgba(14, 116, 144, 0.9);
+}
+
+.resume:hover .pillSolid {
+  box-shadow: 0 12px 26px -10px rgba(29, 78, 216, 0.9);
+}
+
 /* ——— Классы ——— */
 
 .gradesBlock {
@@ -704,12 +795,109 @@ a.tile:active {
 }
 
 .blockTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 0;
   font-family: var(--lt-font-display);
   font-size: var(--lt-fs-h2);
   font-weight: 800;
   letter-spacing: -0.015em;
   color: var(--lt-text);
+}
+
+.blockTitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  margin-left: 6px;
+  background: linear-gradient(90deg, var(--bn-edge-hi), transparent);
+}
+
+.blockNum {
+  padding: 3px 9px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--bn-edge-hi);
+  font-family: var(--lt-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--lt-text-2);
+}
+
+/* ——— Маршрут 7 → 11 (только широкий ПК) ——— */
+
+.route {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .route {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--bn-gap);
+    height: 14px;
+    margin: -4px 0 -6px;
+  }
+}
+
+.routeCell {
+  position: relative;
+}
+
+.routeSeg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% + var(--bn-gap));
+  height: 2px;
+  margin-top: -1px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--hub-ga) 25%, var(--bn-track-strong));
+  transform-origin: 0 50%;
+  animation: bnGrow 900ms var(--lt-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 140ms + 260ms);
+}
+
+.routeFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--hub-ga), var(--hub-gb));
+}
+
+.routeNode {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  border: 2px solid var(--hub-ga);
+  background: var(--bn-node-bg);
+  animation: bnPop 420ms var(--lt-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 140ms + 200ms);
+}
+
+.routeNode[data-on] {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--hub-ga), var(--hub-gb));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hub-ga) 22%, transparent);
+}
+
+@keyframes bnGrow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes bnPop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
 }
 
 .grades {
@@ -729,17 +917,68 @@ a.tile:active {
 .grade {
   flex: 1;
   flex-direction: column;
-  gap: 12px;
-  min-height: 268px;
-  padding: 18px 20px 18px;
+  gap: 10px;
+  min-height: 0;
+  padding: 18px 18px 16px;
   background:
     radial-gradient(130% 90% at 100% 0%, color-mix(in srgb, var(--hub-ga) 14%, transparent), transparent 58%),
     linear-gradient(160deg, var(--bn-tile), var(--bn-tile-2));
 }
 
+/* Цветная черта сверху: на hover/focus растягивается на всю ширину. */
+.accent {
+  position: absolute;
+  top: 0;
+  left: 20px;
+  z-index: 3;
+  width: 36px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, var(--hub-ga), var(--hub-gb));
+  transition:
+    left var(--lt-dur-slow) var(--lt-ease),
+    width var(--lt-dur-slow) var(--lt-ease),
+    border-radius var(--lt-dur-slow) var(--lt-ease);
+}
+
+.grade:hover .accent,
+.grade:focus-visible .accent {
+  left: 0;
+  width: 100%;
+  border-radius: 0;
+}
+
+.numWrap {
+  position: relative;
+  display: inline-grid;
+  align-self: flex-start;
+  place-items: center;
+}
+
+/* Текущий класс (из progress.last): пульсирующее кольцо вокруг цифры. */
+.numWrap[data-here]::before {
+  content: '';
+  position: absolute;
+  inset: -8px -12px -6px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--hub-ga) 70%, transparent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--hub-ga) 45%, transparent);
+  animation: bnRing 2.4s ease-out infinite;
+}
+
+@keyframes bnRing {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--hub-ga) 45%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--hub-ga) 0%, transparent);
+  }
+}
+
 .gradeNum {
   font-family: var(--lt-font-display);
-  font-size: clamp(64px, 5.4vw, 88px);
+  font-size: clamp(58px, 5vw, 72px);
   font-weight: 850;
   line-height: 0.86;
   letter-spacing: -0.06em;
@@ -784,7 +1023,6 @@ a.tile:active {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .gradeTitle {
@@ -807,6 +1045,59 @@ a.tile:active {
   color: var(--lt-text-2);
 }
 
+/* Пилюля статуса класса. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 8px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--bn-edge-hi);
+  font-size: var(--lt-fs-xs);
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--lt-text-2);
+}
+
+.status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lt-text-3);
+}
+
+.status[data-status='progress'] {
+  border-color: color-mix(in srgb, var(--hub-ga) 45%, var(--bn-edge));
+  background: color-mix(in srgb, var(--hub-ga) 10%, transparent);
+}
+
+.status[data-status='progress']::before {
+  background: var(--hub-ga);
+}
+
+.status[data-status='here'] {
+  border-color: color-mix(in srgb, var(--hub-ga) 70%, transparent);
+  background: color-mix(in srgb, var(--hub-ga) 18%, transparent);
+  color: var(--lt-text);
+}
+
+.status[data-status='here']::before {
+  background: linear-gradient(135deg, var(--hub-ga), var(--hub-gb));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hub-ga) 25%, transparent);
+}
+
+.status[data-status='done'] {
+  border-color: color-mix(in srgb, #10b981 50%, transparent);
+  background: color-mix(in srgb, #10b981 12%, transparent);
+  color: var(--lt-text);
+}
+
+.status[data-status='done']::before {
+  background: #10b981;
+}
+
 .gradeRef {
   display: -webkit-box;
   overflow: hidden;
@@ -826,11 +1117,24 @@ a.tile:active {
 
 .countRow {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   font-size: var(--lt-fs-xs);
   font-weight: 600;
   color: var(--lt-text-3);
+}
+
+.countNums {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.countOf {
+  font-family: var(--lt-font-mono, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums;
 }
 
 .countPct {
@@ -839,23 +1143,13 @@ a.tile:active {
   color: var(--lt-text-2);
 }
 
-.gradeCta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--bn-edge);
-  font-size: var(--lt-fs-small);
-  font-weight: 700;
-  color: var(--lt-text);
-}
-
 .ctaDot {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
   border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--hub-ga) 40%, var(--bn-edge));
   background: color-mix(in srgb, var(--hub-ga) 10%, transparent);
@@ -871,12 +1165,12 @@ a.tile:active {
   height: 15px;
 }
 
+/* Направление стрелки не меняется — только заливка. */
 .grade:hover .ctaDot,
 .grade:focus-visible .ctaDot {
   background: linear-gradient(135deg, var(--hub-ga), var(--hub-gb));
   border-color: transparent;
   color: #fff;
-  transform: translateX(2px) rotate(-45deg);
 }
 
 /* ——— Светлая тема: точечные поправки контраста ——— */
@@ -907,13 +1201,52 @@ a.tile:active {
   }
 }
 
-/* Невысокие экраны ПК (1280×720): плитка ИИ компактнее — классы ближе к первому экрану. */
+/* Невысокие экраны ПК (1280×720): плитка ИИ и шапка компактнее — классы с названием и прогрессом на первом экране. */
 @media (min-width: 901px) and (max-height: 780px) {
+  .root {
+    gap: 14px;
+  }
+  .title {
+    font-size: clamp(30px, 2.8vw, 40px);
+  }
+  .fact {
+    padding: 7px 12px 8px;
+  }
+  .fact dd {
+    font-size: 22px;
+  }
   .ai {
-    min-height: 300px;
+    min-height: 236px;
+    padding: 20px 24px;
+  }
+  .aiBody {
+    gap: 9px;
+  }
+  .aiArt {
+    width: min(46%, 300px);
   }
   .chat {
     display: none;
+  }
+  .stat {
+    gap: 12px;
+    padding: 16px 20px;
+  }
+  .gradesBlock {
+    gap: 10px;
+  }
+  .grade {
+    gap: 8px;
+    padding: 14px 16px 14px;
+  }
+  .gradeNum {
+    font-size: 56px;
+  }
+  .glyph {
+    width: 76px;
+  }
+  .gradeRef {
+    -webkit-line-clamp: 1;
   }
 }
 
@@ -948,7 +1281,7 @@ a.tile:active {
   .resume {
     display: grid;
     grid-template-columns: 52px minmax(0, 1fr);
-    align-content: space-between;
+    align-content: center;
     align-items: start;
     row-gap: 18px;
   }
@@ -958,6 +1291,9 @@ a.tile:active {
   }
   .chat {
     display: flex;
+  }
+  .segOf {
+    display: none;
   }
   .facts {
     width: 100%;
@@ -978,7 +1314,9 @@ a.tile:active {
   .resume {
     grid-column: 1 / -1;
   }
+  /* Телефон: «Продолжить / С чего начать» — перед плиткой ИИ. */
   .resume {
+    order: -1;
     display: flex;
     align-items: center;
   }
@@ -987,13 +1325,21 @@ a.tile:active {
   }
   .ai {
     min-height: 0;
-    padding-top: 150px;
+    padding-top: 92px;
   }
   .aiArt {
-    top: -18px;
-    right: -14px;
-    width: 300px;
-    max-width: 82%;
+    top: -14px;
+    right: -6px;
+    width: 190px;
+    max-width: 56%;
+  }
+  .heroCtas {
+    display: grid;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .facts {
+    display: none;
   }
   .aiBody {
     max-width: 100%;
@@ -1032,11 +1378,22 @@ a.tile:active {
     min-height: 0;
     padding: 16px 16px 16px 14px;
   }
-  .gradeNum {
+  .numWrap {
     grid-area: num;
     align-self: center;
     justify-self: center;
-    font-size: 58px;
+  }
+  .gradeNum {
+    font-size: 54px;
+  }
+  /* Признак нажатия: круглая стрелка справа внизу. */
+  .ctaDot {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+  }
+  .gradeFoot {
+    padding-right: 42px;
   }
   .gradeBody {
     grid-area: body;
@@ -1051,15 +1408,19 @@ a.tile:active {
     width: 58px;
     opacity: 0.85;
   }
-  .gradeCta {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tile,
-  .aiDot {
+  .aiDot,
+  .routeSeg,
+  .routeNode,
+  .numWrap[data-here]::before {
     animation: none;
+  }
+  .ai:hover .aiArt rect[style],
+  .ai:focus-visible .aiArt rect[style] {
+    animation-duration: 1.35s;
   }
   .tile,
   .aiArt,
@@ -1067,6 +1428,10 @@ a.tile:active {
   .gradeNum,
   .play,
   .ctaDot,
+  .accent,
+  .segFill,
+  .heroPrimary,
+  .heroSecondary,
   .pill,
   .aiCta,
   .barFill {
