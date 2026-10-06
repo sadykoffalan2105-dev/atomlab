@@ -1171,4 +1171,11 @@ export const messagesEn: Record<MessageKey, string> = {
   'compound.obtLab.balance': 'balance it and run',
   'learn.teacherUi.holdToTalk': 'Hold to talk',
   'learn.teacherUi.holdToTalkHint': 'For a noisy classroom: hold the button, say your phrase, release — the teacher answers right away',
+  'catalog.filtersBtn': 'Filters',
+  'catalog.filtersCollapse': 'Collapse',
+  'catalog.activeFiltersAria': 'Active filters',
+  'catalog.filterRemove': 'Remove filter: {name}',
+  'catalog.filtersNone': 'No filters',
+  'catalog.filtersClose': 'Close filters',
+  'catalog.filtersShow': 'Show: {count}',
 }

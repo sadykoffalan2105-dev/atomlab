@@ -231,11 +231,16 @@
   hyphens: auto;
 }
 
-/* ═══ Панель фильтров (липкая) ═══ */
+/* ═══ Панель фильтров («шторка»): липкая; при прокрутке вниз сворачивается в одну строку ═══
+ * Высота панели в потоке постоянна — развёрнутая часть прячется opacity/transform, а поверх
+ * встаёт компактная строка. Поэтому карточки под курсором не прыгают. */
 .toolbar {
   position: sticky;
   top: 0;
   z-index: 20;
+}
+
+.toolbarFull {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -246,6 +251,365 @@
   -webkit-backdrop-filter: var(--lt-blur);
   backdrop-filter: var(--lt-blur);
   box-shadow: var(--lt-shadow);
+  transform-origin: 50% 0;
+  transition:
+    opacity 200ms var(--lt-ease),
+    transform 260ms var(--lt-ease),
+    visibility 0s;
+}
+
+/* свёрнута: невидимая развёрнутая часть не ловит клики — карточки под ней кликабельны */
+.toolbarCollapsed {
+  pointer-events: none;
+}
+
+.toolbarCollapsed .toolbarFull {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-14px) scale(0.985);
+  transition:
+    opacity 160ms var(--lt-ease),
+    transform 220ms var(--lt-ease),
+    visibility 0s linear 220ms;
+}
+
+.compact {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 10px;
+  border-radius: var(--lt-radius-lg);
+  border: 1px solid var(--lt-border-strong);
+  background: rgba(var(--lt-ink-rgb, 12, 17, 34), 0.93);
+  -webkit-backdrop-filter: var(--lt-blur);
+  backdrop-filter: var(--lt-blur);
+  box-shadow: var(--lt-shadow);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition:
+    opacity 160ms var(--lt-ease),
+    transform 220ms var(--lt-ease),
+    visibility 0s linear 220ms;
+}
+
+.toolbarCollapsed .compact {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition:
+    opacity 200ms var(--lt-ease) 40ms,
+    transform 260ms var(--lt-ease),
+    visibility 0s;
+}
+
+.compactTabs {
+  flex: none;
+}
+
+.compactSearch {
+  flex: 0 1 260px;
+  min-width: 140px;
+  display: flex;
+}
+
+.compactChips {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+}
+
+.compactCount {
+  flex: none;
+  margin-left: auto;
+  padding-right: 4px;
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  color: var(--lt-text-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.segmentCompact {
+  padding: 3px;
+}
+
+.segmentCompact .segBtn {
+  min-height: 34px;
+  padding: 0 13px;
+  font-size: 13px;
+}
+
+.searchCompact {
+  flex: 1 1 auto;
+  max-width: none;
+  margin-left: 0;
+}
+
+.searchCompact .searchInput {
+  height: 38px;
+  font-size: var(--lt-fs-small);
+}
+
+.searchCompact .searchClear {
+  width: 28px;
+  height: 28px;
+}
+
+/* «Фильтры ▾» и «Свернуть ▴» */
+.filtersBtn,
+.collapseBtn {
+  appearance: none;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border-strong);
+  background: rgba(var(--lt-ink-rgb, 6, 9, 19), 0.6);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--lt-dur) var(--lt-ease),
+    border-color var(--lt-dur) var(--lt-ease);
+}
+
+.collapseBtn {
+  height: 32px;
+  padding: 0 12px;
+  color: var(--lt-text-2);
+}
+
+.filtersBtn:hover,
+.collapseBtn:hover {
+  border-color: var(--lt-primary);
+  background: var(--lt-surface-hover);
+  color: var(--lt-text);
+}
+
+.filtersBtn:focus-visible,
+.collapseBtn:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.filtersBtnOn {
+  border-color: color-mix(in srgb, var(--lt-primary) 70%, transparent);
+}
+
+.filtersIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.filtersCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--lt-radius-pill);
+  background: var(--lt-grad-primary);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.caret {
+  font-size: 10px;
+  color: var(--lt-text-3);
+}
+
+/* Активные фильтры — чипы с крестиком сброса */
+.activeChips {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 2px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.activeChips::-webkit-scrollbar {
+  display: none;
+}
+
+.activeChips > li {
+  flex: none;
+}
+
+.activeChip {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 5px 0 11px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--lt-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--lt-primary) 16%, transparent);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--lt-dur) var(--lt-ease);
+}
+
+.activeChip:hover {
+  background: color-mix(in srgb, var(--lt-primary) 28%, transparent);
+}
+
+.activeChip:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.activeChipText {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activeChipX {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(148, 170, 230, 0.2);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.activeNone {
+  font-size: var(--lt-fs-xs);
+  color: var(--lt-text-3);
+  white-space: nowrap;
+}
+
+/* Телефон: «Фильтры» + «Найдено» в строку, под ними — чипы выбранных фильтров */
+.toolbarRow.phoneFilterRow {
+  gap: 8px;
+}
+
+.phoneFilterRow .results {
+  order: 1;
+  flex: none;
+  margin-left: auto;
+}
+
+.phoneFilterRow .activeChips {
+  order: 2;
+  flex: 1 1 100%;
+}
+
+.phoneFilterRow .activeNone {
+  display: none;
+}
+
+/* прилипшая развёрнутая шторка — плотнее, чтобы карточки под ней не просвечивали */
+.toolbarStuck .toolbarFull {
+  background: rgba(var(--lt-ink-rgb, 12, 17, 34), 0.95);
+}
+
+/* Ряды фильтров внутри нижней панели (телефон): всё переносится, без горизонтальной прокрутки */
+.sheetRows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sheetRows .toolbarRow {
+  gap: 10px;
+}
+
+.sheetRows .segment {
+  flex: 1 1 100%;
+}
+
+.sheetRows .segBtn {
+  flex: 1 1 0;
+  padding: 0 8px;
+}
+
+/* классы в панели — сетка 3×2, а не «рваная» пилюля */
+.sheetRows .gradeSeg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: 18px;
+}
+
+.sheetRows .gradeSeg .segBtn {
+  border-radius: 14px;
+}
+
+.sheetRows .filterGroup {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.sheetRows .scrollRow {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sheetRows .scrollRow [role='group'] {
+  flex-wrap: wrap;
+  overflow: visible;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.sheetReset,
+.sheetApply {
+  appearance: none;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: var(--lt-radius-pill);
+  font-family: var(--lt-font);
+  font-size: var(--lt-fs-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sheetReset {
+  flex: none;
+  border: 1px solid var(--lt-border-strong);
+  background: transparent;
+  color: var(--lt-text-2);
+}
+
+.sheetApply {
+  flex: 1 1 auto;
+  border: none;
+  background: var(--lt-grad-primary);
+  color: #fff;
+  box-shadow: var(--lt-glow-primary);
+}
+
+.sheetReset:focus-visible,
+.sheetApply:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
 }
 
 .toolbarRow {
@@ -526,18 +890,6 @@
   min-width: 0;
   padding-top: 10px;
   border-top: 1px solid var(--lt-border);
-}
-
-.scrollChips {
-  display: flex;
-  gap: 6px;
-  min-width: 0;
-  overflow-x: auto;
-  padding: 2px 24px 4px 2px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 170, 230, 0.25) transparent;
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
-  mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
 }
 
 /* ═══ Секции ═══ */
@@ -1142,6 +1494,9 @@
 @media (max-height: 600px) {
   .toolbar {
     position: static;
+  }
+
+  .toolbarFull {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1203,11 +1558,20 @@
     line-height: 1.25;
   }
 
-  .toolbar {
-    position: static;
+  .toolbarFull {
     padding: 10px;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+  }
+
+  /* на телефоне компактная строка — только «Фильтры», чипы и счёт */
+  .compact {
+    height: 52px;
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .compactTabs,
+  .compactSearch {
+    display: none;
   }
 
   .toolbarRow {
@@ -1275,6 +1639,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .toolbarFull,
+  .toolbarCollapsed .toolbarFull,
+  .compact,
+  .toolbarCollapsed .compact {
+    transform: none;
+    transition: none;
+  }
+
   .card,
   .card:hover,
   .card:active,

@@ -1171,4 +1171,11 @@ export const messagesUz: Record<MessageKey, string> = {
   'compound.obtLab.balance': 'tenglang va ishga tushiring',
   'learn.teacherUi.holdToTalk': 'Bosib turib gapiring',
   'learn.teacherUi.holdToTalkHint': 'Shovqinli sinf uchun: tugmani bosib turing, gapiring, qo‘yib yuboring — ustoz darhol javob beradi',
+  'catalog.filtersBtn': 'Filtrlar',
+  'catalog.filtersCollapse': 'Yig‘ish',
+  'catalog.activeFiltersAria': 'Tanlangan filtrlar',
+  'catalog.filterRemove': 'Filtrni olib tashlash: {name}',
+  'catalog.filtersNone': 'Filtrsiz',
+  'catalog.filtersClose': 'Filtrlarni yopish',
+  'catalog.filtersShow': 'Ko‘rsatish: {count}',
 }

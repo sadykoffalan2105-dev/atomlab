@@ -1169,6 +1169,13 @@ export const messagesRu = {
   'compound.obtLab.balance': 'уравняйте и запустите',
   'learn.teacherUi.holdToTalk': 'Нажми и говори',
   'learn.teacherUi.holdToTalkHint': 'Для шумного класса: зажми кнопку, скажи фразу, отпусти — учитель ответит сразу',
+  'catalog.filtersBtn': 'Фильтры',
+  'catalog.filtersCollapse': 'Свернуть',
+  'catalog.activeFiltersAria': 'Выбранные фильтры',
+  'catalog.filterRemove': 'Убрать фильтр: {name}',
+  'catalog.filtersNone': 'Без фильтров',
+  'catalog.filtersClose': 'Закрыть фильтры',
+  'catalog.filtersShow': 'Показать: {count}',
 } as const
 
 export type MessageKey = keyof typeof messagesRu
