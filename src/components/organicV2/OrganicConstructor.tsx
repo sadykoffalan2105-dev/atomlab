@@ -14,6 +14,7 @@ import { embeddedToOV2 } from './constructor/toOV2'
 import { embedInBackground, nameInBackground, warmEngine, type Embedded } from './constructor/engineClient'
 import { CT, GROUP_LABEL, GROUP_TITLE, fmt, hintText } from './constructor/i18n'
 import styles from './constructor/OrganicConstructor.module.css'
+import { moleculeName } from './viewer/names'
 
 /** Общая 3D-сцена органики (тот же вид, что в «Молекуле»); чанк three грузится только при первом показе. */
 const Molecule3D = lazy(() => import('./Molecule3D').then((m) => ({ default: m.Molecule3D })))
@@ -168,6 +169,8 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
   const taskKey = JSON.stringify(task)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const target = useMemo(() => (task.kind === 'build' && molecules[task.targetId] ? makeTarget(molecules[task.targetId]) : null), [taskKey, molecules])
+  // заголовок задания — то же название, что на карточке молекулы урока («Бутадиен-1,3», «н-Бутан»), а не тривиальное из движка
+  const targetTitle = target ? (molecules[target.id] ? moleculeName(molecules[target.id]!, lang) : target.name[lang]) : ''
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const iso = useMemo(() => (task.kind === 'isomers' ? isomerSet(task.formula, task.expected, molecules) : null), [taskKey, molecules])
   const isoNames = useMemo(() => new Map([...(iso?.main ?? []), ...(iso?.inter ?? [])].map((e) => [e.constitution, entryName(e, lang)])), [iso, lang])
@@ -260,10 +263,10 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
         <section className={`${styles.task} ${styles.taskInline} ${verdict?.kind === 'solved' ? styles.taskSolved : ''}`} aria-live="polite" data-solved={verdict?.kind === 'solved' ? '1' : '0'}>
           <div className={styles.taskHead}>
             <span className={styles.taskKicker}>{t.taskBuild}</span>
-            <strong className={styles.taskTitle}>{target.name[lang]}</strong>
+            <strong className={styles.taskTitle}>{targetTitle}</strong>
           </div>
           {verdict?.kind === 'solved' ? (
-            <p className={styles.okLine}>✓ {t.solved} {target.name[lang]} ({target.formula})</p>
+            <p className={styles.okLine}>✓ {t.solved} {targetTitle} ({target.formula})</p>
           ) : (
             <div className={styles.taskRow}>
               <button type="button" className={styles.ghostBtn} onClick={() => setShowFormula((v) => !v)} aria-expanded={showFormula}>{t.hintFormula}</button>

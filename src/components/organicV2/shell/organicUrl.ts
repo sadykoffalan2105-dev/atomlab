@@ -7,6 +7,7 @@ import {
   lessonForMoleculeV2,
   lessonForReaction,
   lessonMoleculeIds,
+  LESSON_MOLECULE_ORDER,
   ORGANIC_CURRICULUM,
   ORGANIC_CURRICULUM_BY_ID,
   OV2_MODES,
@@ -89,6 +90,11 @@ export function resolveOrganicUrl(params: URLSearchParams): OrganicUrlState {
 }
 
 export function defaultMolForLessonV2(lesson: OrganicLesson): string {
+  // у урока задан порядок «от простого к сложному» — первым открывается первая молекула полосы
+  if (LESSON_MOLECULE_ORDER[lesson.id]) {
+    const first = lessonMoleculeIds(lesson)[0]
+    if (first) return first
+  }
   const d = defaultMolForLesson(lesson)
   if (organicMoleculeById[d]) return d
   return lessonMoleculeIds(lesson)[0] ?? 'methane'
