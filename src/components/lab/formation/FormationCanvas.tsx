@@ -53,8 +53,9 @@ function CameraRig({ story, layout, clock, crystal }: { story: FormationStory; l
     // Свободная часть: слева от HUD или под ним — где больше места для модели.
     const left = Math.min(W - hud.dx, H)
     const below = Math.min(W, H - hud.dy)
-    const tdx = hud.dx > 0 && left >= below ? Math.min(hud.dx, 0.5 * W) : 0
-    const tdy = hud.dy > 0 && left < below ? Math.min(hud.dy, 0.45 * H) : 0
+    // Без «урезания» места под HUD: атомы никогда не заходят под фактический прямоугольник карточек.
+    const tdx = hud.dx > 0 && left >= below ? Math.min(hud.dx, W - 60) : 0
+    const tdy = hud.dy > 0 && left < below ? Math.min(hud.dy, H - 60) : 0
     const tz = zoomAt(story, clock.current.t, crystal)
     const c = cur.current ?? (cur.current = { dx: tdx, dy: tdy, z: tz })
     const k = 1 - Math.exp(-Math.min(0.1, Math.max(0.001, dt)) * 4)

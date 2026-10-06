@@ -94,8 +94,21 @@ export function hudCards(story: FormationStory, plan: FormationPlan, L: L3): Hud
   return out
 }
 
-/** Строка — полуреакция / уравнение (моноширинно-ровно)? */
+/** Строка — полуреакция / уравнение (цифры одной ширины)? */
 const isFormulaLine = (s: string) => /[→⇄=]|e⁻/.test(s)
+
+/** Карточка «Путь» (уравнение пути): всегда первой и компактно — одной строкой. */
+const isPathCard = (c: HudCard) => c.key === 'route' || c.titleT?.[0] === 'Путь' || c.title === 'Путь' || /^Путь:/.test(c.lines[0] ?? '')
+
+/**
+ * Перенос строк по смыслу: после «→ / ⇄ / = / + / −» не рвать (знак держится со следующим членом — «→ 4Mn³⁺» вместе),
+ * переносить можно только перед знаком; «Восстановление:» держится с первым членом.
+ */
+const keepTogether = (s: string) => s.replace(/([→⇄=+−]) /g, '$1\u00a0').replace(/: (?=\S)/g, ':\u00a0')
+
+/** Строки / заголовок на языке интерфейса (titleT / linesT сценария), иначе — как есть. */
+const titleOf = (c: HudCard, L: L3) => c.titleT?.[L] ?? c.title
+const linesOf = (c: HudCard, L: L3) => (c.linesT && c.linesT.length === c.lines.length ? c.linesT.map((t) => t[L] ?? t[0]) : c.lines)
 
 export function FormationHud({
   story,
@@ -136,14 +149,22 @@ export function FormationHud({
     return () => cancelAnimationFrame(raf)
   }, [cards, clock])
 
-  // Место под HUD у 3D-окна: справа сверху (dx — ширина, dy — высота); полоса под окном (телефон) — 0.
+  // Место под HUD у 3D-окна — по ФАКТИЧЕСКОМУ прямоугольнику (ResizeObserver): dx — от левого края HUD до правого края окна,
+  // dy — от верха окна до низа HUD (+ зазор); полоса под окном (телефон) — 0.
   useEffect(() => {
     const el = box.current
     if (!el) return
     const measure = () => {
       const side = getComputedStyle(el).position === 'absolute'
       const has = el.dataset.empty !== 'true'
-      layout.current = side && has ? { dx: el.offsetWidth + 20, dy: el.offsetHeight + 20 } : { dx: 0, dy: 0 }
+      const host = el.parentElement
+      if (!side || !has || !host) {
+        layout.current = { dx: 0, dy: 0 }
+        return
+      }
+      const hr = host.getBoundingClientRect()
+      const r = el.getBoundingClientRect()
+      layout.current = { dx: Math.max(0, hr.right - r.left) + 12, dy: Math.max(0, r.bottom - hr.top) + 12 }
     }
     measure()
     const ro = new ResizeObserver(measure)
@@ -154,23 +175,38 @@ export function FormationHud({
 
   const onSet = new Set(state.on ? state.on.split(',') : [])
   const lineSet = new Set(state.lines ? state.lines.split(',') : [])
-  const shown = cards.filter((c) => onSet.has(c.key))
+  const active = cards.filter((c) => onSet.has(c.key))
+  // Не больше двух карточек: «Путь» (одной строкой) + карточка ТЕКУЩЕГО этапа (начавшаяся последней).
+  const path = active.find(isPathCard) ?? null
+  let cur: HudCard | null = null
+  for (const c of active) if (c !== path && (!cur || c.t0 >= cur.t0)) cur = c
+  const shown = [path, cur].filter((c): c is HudCard => c != null)
   return (
     <div ref={box} className={styles.hud} data-formation-hud="" data-empty={shown.length === 0 ? 'true' : 'false'} aria-live="polite">
-      {shown.map((c) => (
-        <div key={c.key} className={styles.card} data-tone={c.tone ?? 'route'} data-hud-card={c.key}>
-          <p className={styles.title}>{c.title}</p>
-          {c.lines.map((ln, i) => {
-            const w = c.lineWin?.[i]
-            const dim = w ? !lineSet.has(`${c.key}:${i}`) : false
-            return (
-              <p key={i} className={isFormulaLine(ln) ? styles.formula : styles.line} data-dim={dim ? 'true' : 'false'}>
-                {ln}
-              </p>
-            )
-          })}
-        </div>
-      ))}
+      {shown.map((c) => {
+        const lines = linesOf(c, L)
+        if (c === path)
+          return (
+            <div key={c.key} className={`${styles.card} ${styles.path}`} data-tone={c.tone ?? 'route'} data-hud-card={c.key}>
+              <span className={styles.pathTitle}>{titleOf(c, L).replace(/:$/, '')}</span>
+              <span className={styles.pathEq}>{keepTogether(lines.map((ln) => ln.replace(/^(Путь|Route|Yoʻl):\s*/, '')).join('  '))}</span>
+            </div>
+          )
+        return (
+          <div key={c.key} className={styles.card} data-tone={c.tone ?? 'route'} data-hud-card={c.key}>
+            <p className={styles.title}>{titleOf(c, L).replace(/ (=)/g, '\u00a0$1').replace(/(=) /g, '$1\u00a0')}</p>
+            {lines.map((ln, i) => {
+              const w = c.lineWin?.[i]
+              const dim = w ? !lineSet.has(`${c.key}:${i}`) : false
+              return (
+                <p key={i} className={isFormulaLine(ln) ? styles.formula : styles.line} data-dim={dim ? 'true' : 'false'}>
+                  {keepTogether(ln)}
+                </p>
+              )
+            })}
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -39,6 +39,7 @@ const _ax = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
 const _c = new THREE.Color()
 const _rp: V3 = [0, 0, 0]
+const _cT = new THREE.Vector3()
 
 const E_LONE = new THREE.Color('#facc15')
 const E_PAIR = new THREE.Color('#22d3ee')
@@ -60,8 +61,19 @@ function chargeLabel(el: string, q: number | string): string {
   return `${el}${q > 0 ? '⁺' : '⁻'}${String(Math.abs(q)).split('').map((d) => SUP[d] ?? d).join('')}`
 }
 function chargeStepsOf(story: FormationStory): ChargeStep[] {
-  const cs = (story as FormationStory & { chargeSteps?: ChargeStep[] }).chargeSteps
-  return Array.isArray(cs) ? cs.filter((x) => x && Number.isFinite(x.atom) && Number.isFinite(x.t)) : []
+  // Шаги с src 'route' — индексы routeStage.atoms (подписи сцены пути), к атомам модели не относятся.
+  const cs = (story as FormationStory & { chargeSteps?: (ChargeStep & { src?: string })[] }).chargeSteps
+  return Array.isArray(cs) ? cs.filter((x) => x && x.src !== 'route' && Number.isFinite(x.atom) && Number.isFinite(x.t)) : []
+}
+/** Подпись иона: заряд после символа (Mn³⁺, O²⁻, Na⁺); 0 — O⁰. */
+function ionLabel(el: string, q: number): string {
+  if (q === 0) return `${el}⁰`
+  const n = Math.abs(q)
+  return `${el}${n === 1 ? '' : String(n).split('').map((d) => SUP[d] ?? d).join('')}${q > 0 ? '⁺' : '⁻'}`
+}
+/** Подпись частицы сцены пути: 'ion' — заряд иона (Mn⁴⁺), 'ox' — степень окисления в многоатомном ионе (Mn⁺⁷). */
+function routeQLabel(el: string, q: number, kind: 'ion' | 'ox' | undefined): string {
+  return kind === 'ox' ? chargeLabel(el, q) : ionLabel(el, q)
 }
 
 /** Частицы тепла (этап 'heat'): не больше 120, на слабых устройствах — 48. */
@@ -305,6 +317,72 @@ export function FormationMoleculeView({
     }
     return base
   }, [steps, stepN, anim, model])
+  // Заряды частиц сцены пути (RouteAtom.q / qKind + story.chargeSteps src 'route'): маленькие подписи сбоку от шара.
+  const routeQ = useMemo(() => {
+    const rs0 = story.routeStage
+    if (!rs0) return null
+    const all = ((story as FormationStory & { chargeSteps?: { atom: number; src?: string; t: number; from: number; to: number; kind?: 'ion' | 'ox' }[] }).chargeSteps ?? []).filter((x) => x.src === 'route')
+    const per = rs0.atoms.map((a, i) => {
+      const st = all.filter((x) => x.atom === i).sort((x, y) => x.t - y.t)
+      const q0 = a.q ?? st[0]?.from
+      if (q0 == null) return null
+      const kind = a.qKind ?? st[0]?.kind
+      return { q0, kind, steps: st.map((x) => ({ t: x.t, q: x.to, kind: x.kind ?? kind })) }
+    })
+    return per.some(Boolean) ? per : null
+  }, [story])
+  // «Итог» ОВР-разложения: у ВСЕХ ионов модели — заряд (Mn³⁺, O²⁻), по конечным зарядам ионов главной формульной единицы.
+  const finalLabels = useMemo(() => {
+    const info = story.redox
+    const rs0 = story.routeStage
+    if (story.scenario !== 'redoxDecomposition' || !info || !rs0 || !routeQ) return null
+    const main = info.units.find((u) => u.main) ?? info.units[0]
+    if (!main) return null
+    const byEl = new Map<string, number | null>()
+    for (const i of main.atoms) {
+      const r = routeQ[i]
+      const a = rs0.atoms[i]
+      if (!a) continue
+      const last = r ? (r.steps.length ? r.steps[r.steps.length - 1]! : null) : null
+      const kind = last ? last.kind : r?.kind
+      const q = r ? (last ? last.q : r.q0) : null
+      const prev = byEl.get(a.el)
+      byEl.set(a.el, q == null || kind === 'ox' || (prev !== undefined && prev !== q) ? null : q)
+    }
+    return anim.ionic.map((a, i) => {
+      const el = model.atoms[i]!.el
+      const q = byEl.get(el)
+      return { ...a, label: q == null ? a.label : ionLabel(el, q) }
+    })
+  }, [story, routeQ, anim, model])
+  const qEls = useRef<({ el: HTMLDivElement; text: string; shown: boolean; flash: number } | null)[]>([])
+  useEffect(() => {
+    const host = gl.domElement.parentElement
+    if (!host || !routeQ) return
+    const layer = document.createElement('div')
+    layer.setAttribute('aria-hidden', 'true')
+    layer.dataset.formationCharges = ''
+    layer.style.cssText = 'position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:3; contain:strict;'
+    qEls.current = routeQ.map((r) => {
+      if (!r) return null
+      const el = document.createElement('div')
+      el.dataset.formationCharge = ''
+      el.style.cssText =
+        'position:absolute; left:0; top:0; white-space:nowrap; display:none; will-change:transform; font-family:var(--lt-font, "Inter", system-ui, sans-serif);' +
+        'font-size:12px; font-weight:700; line-height:1; padding:2px 5px; border-radius:7px; color:#f8fafc; background:rgba(10,14,28,0.72);' +
+        'border:1px solid rgba(148,163,184,0.45); font-variant-numeric:tabular-nums; transition:color 250ms cubic-bezier(0.22,1,0.36,1), border-color 250ms cubic-bezier(0.22,1,0.36,1), box-shadow 250ms cubic-bezier(0.22,1,0.36,1);'
+      layer.appendChild(el)
+      return { el, text: '', shown: false, flash: 0 }
+    })
+    host.appendChild(layer)
+    return () => {
+      qEls.current = []
+      layer.remove()
+    }
+  }, [gl, routeQ])
+  const isRedox = story.scenario === 'redoxDecomposition'
+  const centerRef = useRef<THREE.Group>(null)
+  const center = useRef(new THREE.Vector3())
   const heatSt = story.stages.find((s) => s.key === 'heat') ?? null
   const breakSt = story.stages.find((s) => s.key === 'break') ?? null
   const routeLive = useRef<V3[]>([])
@@ -370,6 +448,13 @@ export function FormationMoleculeView({
     if (route) {
       route.atoms.forEach((a, i) => {
         const P = routeKeyAt(a.keys, t, rl[i]!)
+        if (heatA > 0.001) {
+          // Нагревание: колеблются частицы сцены пути (они и есть исходное вещество до «Итога»).
+          const amp = HEAT_AMP * K * heatA
+          P[0] += amp * Math.sin(heatF * t * 1.13 + i * 2.1)
+          P[1] += amp * Math.sin(heatF * t * 0.97 + i * 3.7 + 1)
+          P[2] += amp * Math.sin(heatF * t * 1.07 + i * 5.3 + 2)
+        }
         const sc = clamp01((t - a.tIn) / 0.5) * (1 - clamp01((t - a.tOut) / 0.4))
         _m.compose(_p.set(P[0], P[1], P[2]), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * sc)))
         res.routeAtoms.setMatrixAt(i, _m)
@@ -420,7 +505,16 @@ export function FormationMoleculeView({
         if (g <= 0.001) continue
         _a.set(...rl[s.a]!)
         _b.set(...rl[s.b]!)
-        drawStick(_a.clone(), _b.clone(), null, 0, 1, g)
+        const nn = s.n ?? 1
+        let side: THREE.Vector3 | null = null
+        if (nn > 1) {
+          // Кратная связь (O=O): палочки параллельно, сдвиг поперёк связи в плоскости экрана.
+          const ax = _b.clone().sub(_a).normalize()
+          side = new THREE.Vector3(0, 0, 1).cross(ax)
+          if (side.lengthSq() < 1e-6) side.set(0, 1, 0).cross(ax)
+          side.normalize()
+        }
+        drawStick(_a.clone(), _b.clone(), side, s.s ?? 0, nn, g)
       }
     }
     res.sticks.count = k
@@ -528,6 +622,7 @@ export function FormationMoleculeView({
     }
     res.lattice.visible = latO > 0.04
     if (res.edges) (res.edges.material as THREE.LineBasicMaterial).opacity = 0.55 * clamp01((t - finalT0) / 1.2)
+    const cTarget = _cT.set(0, 0, 0)
     // Кадр: описанная сфера текущих положений (+ призраки и копии решётки, пока видны).
     let R = model.radius
     for (let i = 0; i < live.length; i++) {
@@ -538,8 +633,33 @@ export function FormationMoleculeView({
     if (rs && hide > 0.5) {
       // Кадр — по сцене пути (крупно), исходные вещества спрятаны.
       R = 0
-      for (let i = 0; i < rl.length; i++) R = Math.max(R, Math.hypot(...rl[i]!) + rs.atoms[i]!.r)
+      if (isRedox) {
+        // ОВР-разложение: кадр — по ВИДИМЫМ частицам (на «Решётке» — формульные единицы продукта крупно, по центру).
+        let n = 0
+        _p.set(0, 0, 0)
+        for (let i = 0; i < rl.length; i++) {
+          const a = rs.atoms[i]!
+          if (t < a.tIn + 0.2 || t > a.tOut) continue
+          _p.x += rl[i]![0]
+          _p.y += rl[i]![1]
+          _p.z += rl[i]![2]
+          n++
+        }
+        if (n) _p.divideScalar(n)
+        cTarget.copy(_p)
+        for (let i = 0; i < rl.length; i++) {
+          const a = rs.atoms[i]!
+          if (n && (t < a.tIn + 0.2 || t > a.tOut)) continue
+          R = Math.max(R, Math.hypot(rl[i]![0] - center.current.x, rl[i]![1] - center.current.y, rl[i]![2] - center.current.z) + a.r)
+        }
+      } else for (let i = 0; i < rl.length; i++) R = Math.max(R, Math.hypot(...rl[i]!) + rs.atoms[i]!.r)
       R = Math.max(R * 1.08, 0.35 * model.radius)
+    }
+    // Плавный наезд центра кадра (cubic ease-out по шагу кадра): без рывков между этапами.
+    {
+      const kc = 1 - Math.pow(1 - Math.min(1, 3.2 * Math.max(0.016, Math.min(0.1, dt))), 3)
+      center.current.lerp(cTarget, kc)
+      if (centerRef.current) centerRef.current.position.set(-center.current.x, -center.current.y, -center.current.z)
     }
     // Кадр держит весь фрагмент, пока он виден (без наезда камеры на уходящие ионы), затем плавно возвращается.
     if (latO > 0.04) {
@@ -564,6 +684,64 @@ export function FormationMoleculeView({
         a.rotation.set(0, model.yaw + SWAY_AMP * Math.sin((2 * Math.PI * stt) / SWAY_PERIOD), 0)
         bb.rotation.set(model.pitch, 0, 0)
       }
+    }
+    // Заряды частиц сцены пути: сбоку-сверху от шара (не на центре — соседи не перекрываются), смена со вспышкой.
+    const qList = qEls.current
+    if (routeQ && route && qList.length && bb) {
+      const vis = t > route.t0 && t < route.t0 + route.dur
+      bb.updateWorldMatrix(true, true)
+      const cam = camera as THREE.PerspectiveCamera
+      const pxK = size.height / 2 / Math.tan(((cam.fov || 46) * Math.PI) / 360)
+      _s.setFromMatrixScale(bb.matrixWorld)
+      const sc = _s.x
+      const mw = (centerRef.current ?? bb).matrixWorld
+      routeQ.forEach((r, i) => {
+        const node = qList[i]
+        if (!r || !node) return
+        const a = route.atoms[i]!
+        const on = vis && t > a.tIn + 0.35 && t < a.tOut - 0.05
+        if (!on) {
+          if (node.shown) {
+            node.el.style.display = 'none'
+            node.shown = false
+          }
+          return
+        }
+        let q = r.q0
+        let kind = r.kind
+        let flashAt = -1
+        for (const st of r.steps) {
+          if (t < st.t) break
+          q = st.q
+          kind = st.kind
+          flashAt = st.t
+        }
+        const text = routeQLabel(a.el, q, kind)
+        if (text !== node.text) {
+          node.el.textContent = text
+          node.text = text
+        }
+        const fl = flashAt >= 0 && t - flashAt < 0.7
+        if (fl !== node.flash > 0) {
+          node.flash = fl ? 1 : 0
+          node.el.style.color = fl ? '#fde047' : '#f8fafc'
+          node.el.style.borderColor = fl ? 'rgba(250,204,21,0.95)' : 'rgba(148,163,184,0.45)'
+          node.el.style.boxShadow = fl ? '0 0 10px rgba(250,204,21,0.75)' : 'none'
+        }
+        _p.set(rl[i]![0], rl[i]![1], rl[i]![2]).applyMatrix4(mw)
+        const dist = cam.position.distanceTo(_p)
+        const pxR = dist > 1e-6 ? ((a.r * sc) / dist) * pxK : 0
+        _p.project(cam)
+        const x = Math.round(((_p.x * 0.5 + 0.5) * size.width + pxR * 0.62) * 2) / 2
+        const y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR * 0.62) * 2) / 2
+        if (!node.shown) {
+          node.el.style.display = 'block'
+          node.shown = true
+        }
+        const fs = pxR < 12 ? '10px' : '12px'
+        if (node.el.style.fontSize !== fs) node.el.style.fontSize = fs
+        node.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-10%, -90%)`
+      })
     }
     // Значки.
     const list = badgeEls.current
@@ -627,6 +805,7 @@ export function FormationMoleculeView({
       <primitive object={res.heat} />
       <group ref={turnA}>
         <group ref={turnB}>
+         <group ref={centerRef}>
           <primitive object={res.atoms} />
           <primitive object={res.sticks} />
           <primitive object={res.ghosts} />
@@ -634,7 +813,8 @@ export function FormationMoleculeView({
           <primitive object={res.lattice} />
           <primitive object={res.routeAtoms} />
           {res.edges ? <primitive object={res.edges} /> : null}
-          <SchoolBallLabels atoms={stepLabels ?? (ionLabels ? anim.ionic : anim.neutral)} crystal={crystal} opacity={labelOpacity} />
+          <SchoolBallLabels atoms={stepLabels ?? finalLabels ?? (ionLabels ? anim.ionic : anim.neutral)} crystal={crystal} opacity={labelOpacity} />
+         </group>
         </group>
       </group>
     </group>
