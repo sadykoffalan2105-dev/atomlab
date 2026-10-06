@@ -9,8 +9,9 @@ import {
   formatDensity,
   formatElectronegativity,
   formatMeltingPoint,
-  parseElectronConfigTokens,
   parseOxidationStates,
+  splitNobleGasCore,
+  type ElectronOrbitalToken,
 } from '../../data/elementConfigDisplay'
 import {
   groupBlockLabelEn,
@@ -61,24 +62,93 @@ const variantClass = {
   lab: styles.rootLab,
 } as const
 
-function ElectronConfigRich({ fullConfig }: { fullConfig: string }) {
-  const tokens = parseElectronConfigTokens(fullConfig)
-  if (tokens.length === 0) {
-    return <span className={styles.configRich}>{fullConfig}</span>
-  }
+type ConfigT = (key: MessageKey, params?: Readonly<Record<string, string | number>>) => string
+
+/** Подуровни одной строкой с переносом: каждый «nl^k» неразрывен, между ними — промежуток. */
+function ConfigFlow({
+  tokens,
+  inCore,
+  large,
+  lead,
+}: {
+  tokens: ElectronOrbitalToken[]
+  inCore?: boolean[]
+  large?: boolean
+  lead?: ReactNode
+}) {
   return (
-    <span className={styles.configRich}>
-      {tokens.map((t, i) => (
-        <span key={`${t.label}-${i}`} className={styles.shellToken}>
+    <span className={large ? `${styles.configFlow} ${styles.configFlowLarge}` : styles.configFlow}>
+      {lead}
+      {tokens.map((tk, i) => (
+        <span
+          key={`${tk.label}-${i}`}
+          className={inCore?.[i] ? `${styles.shellToken} ${styles.shellTokenCore}` : styles.shellToken}
+          data-n={tk.n}
+        >
           <span className={styles.shellOrbit}>
-            {t.n}
-            {t.subshell}
+            {tk.n}
+            {tk.subshell}
           </span>
-          <sup className={styles.shellSup}>{t.count}</sup>
-          {i < tokens.length - 1 ? ' ' : null}
+          <sup className={styles.shellSup}>{tk.count}</sup>
         </span>
       ))}
     </span>
+  )
+}
+
+/**
+ * Электронная конфигурация: крупно — краткая запись с остовом благородного газа ([Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵),
+ * ниже — полная (подуровни остова приглушены, внешние — ярко). В узкой панели лаборатории полная — по кнопке.
+ */
+function ElectronConfigRich({
+  fullConfig,
+  t,
+  fullMode = 'inline',
+}: {
+  fullConfig: string
+  t: ConfigT
+  fullMode?: 'inline' | 'toggle'
+}) {
+  const split = useMemo(() => splitNobleGasCore(fullConfig), [fullConfig])
+  const [fullOpen, setFullOpen] = useState(false)
+  if (split.tokens.length === 0) {
+    return <span className={styles.configRich}>{fullConfig}</span>
+  }
+  const core = split.core
+  if (!core) {
+    return (
+      <div className={styles.configBox}>
+        <ConfigFlow tokens={split.tokens} large />
+      </div>
+    )
+  }
+  const coreHint = t('elementDetail.configCoreHint', { core: core.symbol, n: core.electrons })
+  const showFull = fullMode === 'inline' || fullOpen
+  return (
+    <div className={styles.configBox}>
+      <ConfigFlow
+        tokens={split.outer}
+        large
+        lead={
+          <span className={styles.coreChip} title={coreHint} aria-label={coreHint}>
+            [{core.symbol}]
+          </span>
+        }
+      />
+      {fullMode === 'toggle' ? (
+        <button
+          type="button"
+          className={styles.configToggle}
+          aria-expanded={fullOpen}
+          onClick={() => setFullOpen((v) => !v)}
+        >
+          {fullOpen ? t('elementDetail.configHideFull') : t('elementDetail.configShowFull')}
+        </button>
+      ) : (
+        <p className={styles.configSubLabel}>{t('elementDetail.configFull')}</p>
+      )}
+      {showFull ? <ConfigFlow tokens={split.tokens} inCore={split.inCore} /> : null}
+    </div>
   )
 }
 
@@ -245,9 +315,9 @@ function RichElementDetail({
 
               <div className={styles.structureRow}>
                 <div className={styles.structureConfig}>
-                  <p className={styles.detailLabel}>{t('elementDetail.electronConfig')}</p>
+                  <p className={styles.detailLabel}>{t('elementDetail.electronConfigTitle')}</p>
                   <div className={styles.detailValue}>
-                    <ElectronConfigRich fullConfig={fullConfig} />
+                    <ElectronConfigRich fullConfig={fullConfig} t={t} />
                   </div>
 
                   {oxStates.length > 0 ? (
@@ -470,8 +540,8 @@ function LabElementDetail({
   const structure = (
     <>
       <div className={styles.labSection}>
-        <p className={styles.labLabel}>{shortLabel(t('elementDetail.electronConfig'))}</p>
-        <ElectronConfigRich fullConfig={fullConfig} />
+        <p className={styles.labLabel}>{shortLabel(t('elementDetail.electronConfigTitle'))}</p>
+        <ElectronConfigRich fullConfig={fullConfig} t={t} fullMode="toggle" />
       </div>
 
       {oxStates.length > 0 ? (

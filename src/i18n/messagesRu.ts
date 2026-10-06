@@ -1169,6 +1169,11 @@ export const messagesRu = {
   'compound.obtLab.balance': 'уравняйте и запустите',
   'learn.teacherUi.holdToTalk': 'Нажми и говори',
   'learn.teacherUi.holdToTalkHint': 'Для шумного класса: зажми кнопку, скажи фразу, отпусти — учитель ответит сразу',
+  'elementDetail.electronConfigTitle': 'Электронная конфигурация',
+  'elementDetail.configFull': 'Полная запись',
+  'elementDetail.configShowFull': 'Показать полную запись',
+  'elementDetail.configHideFull': 'Скрыть полную запись',
+  'elementDetail.configCoreHint': '[{core}] — остов благородного газа: {n} электронов на внутренних оболочках',
 } as const
 
 export type MessageKey = keyof typeof messagesRu
