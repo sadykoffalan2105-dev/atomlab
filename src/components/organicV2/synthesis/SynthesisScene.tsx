@@ -10,6 +10,7 @@ import * as THREE from 'three'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import {
   atomPositionsAt,
+  atomVisibility,
   bondLines,
   bondLineScale,
   boundsOf,
@@ -18,6 +19,7 @@ import {
   type SynthScenario,
 } from '../../../chemistry/organicV2/synthesis/scenario'
 import { atomColor, atomRadius } from './cpk'
+import { spreadLabels, type LabelBox } from './labelLayout'
 import styles from './SynthesisPlayer.module.css'
 import { safeCanvasEvents } from '../safeCanvasEvents'
 
@@ -32,6 +34,8 @@ export interface SceneLabel {
   readonly text: string
   readonly sub?: string
   readonly focus?: boolean
+  /** «×N» — сколько таких молекул в уравнении (показана одна) */
+  readonly copies?: number
 }
 
 interface Props {
@@ -59,10 +63,13 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
   const eMesh = useRef<THREE.InstancedMesh>(null)
   const controls = useRef<OrbitControlsImpl>(null)
   const labelRefs = useRef<(THREE.Group | null)[]>([])
+  const labelDivs = useRef<(HTMLDivElement | null)[]>([])
   const endRefs = useRef<(THREE.Group | null)[]>([])
   const { camera, size } = useThree()
 
   const pos = useMemo(() => new Float32Array(n * 3), [n])
+  const vis = useMemo(() => new Float32Array(n), [n])
+  const hasGhosts = useMemo(() => sc.atoms.some((a) => a.ghost !== 0), [sc])
   const lineCount = useMemo(() => sc.bonds.reduce((s, b) => s + bondLines(b), 0), [sc])
   const eCount = useMemo(() => sc.electrons.reduce((s, e) => s + e.count, 0), [sc])
   const baseColors = useMemo(() => sc.atoms.map((a) => new THREE.Color(atomColor(a.el))), [sc])
@@ -98,6 +105,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
   useFrame((state, dt) => {
     const t = clock.current.t
     atomPositionsAt(sc, t, pos)
+    for (let i = 0; i < n; i++) vis[i] = hasGhosts ? atomVisibility(sc, i, t) : 1
     const st = stageIndexAt(sc, t)
     const { m, q, p, a, b, d, perp, view, s, col } = tmp
     const pulse = 0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 5)
@@ -115,7 +123,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
         }
         if (focusAtoms && focusAtoms.size && st >= 4 && !focusAtoms.has(i)) col.lerp(DIM, 0.35)
         p.set(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2])
-        s.setScalar(r)
+        s.setScalar(r * vis[i])
         m.compose(p, q.identity(), s)
         am.setMatrixAt(i, m)
         am.setColorAt(i, col)
@@ -161,7 +169,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
           }
         }
         for (let l = 0; l < lines; l++) {
-          const w = sc3[l]
+          const w = sc3[l] * Math.min(vis[bond.i], vis[bond.j])
           const off = multi ? (l - (eff - 1) / 2) * spacing : 0
           const radius = (multi ? 0.062 : 0.085) * w
           s.set(radius < 1e-4 ? 0 : radius, radius < 1e-4 ? 0 : length, radius < 1e-4 ? 0 : radius)
@@ -212,6 +220,30 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
       }
       g.position.set(x / ids.length, y - 0.9, z / ids.length)
     })
+    // подписи без наложений: экранные рамки раздвигаются (общий алгоритм ./labelLayout.ts)
+    {
+      const live: number[] = []
+      const boxes: LabelBox[] = []
+      labels.forEach((_, li) => {
+        const g = labelRefs.current[li]
+        const div = labelDivs.current[li]
+        if (!g || !div || !div.isConnected) return
+        view.copy(g.position).project(camera)
+        boxes.push({
+          x: ((view.x + 1) / 2) * size.width,
+          y: ((1 - view.y) / 2) * size.height,
+          w: div.offsetWidth,
+          h: div.offsetHeight,
+        })
+        live.push(li)
+      })
+      const off = boxes.length > 1 ? spreadLabels(boxes) : boxes.map(() => ({ dx: 0, dy: 0 }))
+      live.forEach((li, k) => {
+        const div = labelDivs.current[li]!
+        const tr = `translate(${off[k].dx.toFixed(1)}px, ${off[k].dy.toFixed(1)}px)`
+        if (div.style.transform !== tr) div.style.transform = tr
+      })
+    }
     ends.forEach((e, ei) => {
       const g = endRefs.current[ei]
       if (!g) return
@@ -219,7 +251,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
     })
 
     // камера: держим в кадре всё облако атомов
-    const bb = boundsOf(pos, n)
+    const bb = boundsOf(pos, n, hasGhosts ? vis : undefined)
     const cam = camera as THREE.PerspectiveCamera
     const vfov = (cam.fov * Math.PI) / 180
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * (size.width / Math.max(1, size.height)))
@@ -230,6 +262,7 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
     az.set(0, 0, 1).applyQuaternion(cam.quaternion)
     let hx = 0, hy = 0, dz = 0
     for (let i = 0; i < n; i++) {
+      if (vis[i] < 0.05) continue
       p.set(pos[i * 3] - bb.c[0], pos[i * 3 + 1] - bb.c[1], pos[i * 3 + 2] - bb.c[2])
       hx = Math.max(hx, Math.abs(p.dot(ax)))
       hy = Math.max(hy, Math.abs(p.dot(ay)))
@@ -290,8 +323,15 @@ function SceneContent({ sc, clock, stage, labels, focusAtoms, endLabel }: Props)
         <group key={`l${lb.species}`} ref={(g) => { labelRefs.current[li] = g }}>
           {showLabel(lb) ? (
             <Html center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-              <div className={lb.focus ? styles.label3dFocus : styles.label3d}>
-                <span className={styles.label3dMain}>{lb.text}</span>
+              <div
+                className={lb.focus ? styles.label3dFocus : styles.label3d}
+                ref={(d) => { labelDivs.current[li] = d }}
+                data-ov2-label={lb.species}
+              >
+                <span className={styles.label3dMain}>
+                  {lb.text}
+                  {lb.copies && lb.copies > 1 ? <span className={styles.copiesBadge}>×{lb.copies}</span> : null}
+                </span>
                 {lb.sub ? <span className={styles.label3dSub}>{lb.sub}</span> : null}
               </div>
             </Html>
