@@ -2,7 +2,7 @@
 export const learnGradesOutlineUz = {
   'learn.grades.title': 'Sinflar bo\'yicha kimyo',
   'learn.grades.lead':
-    '7–11 sinf kimyo kursi (FGOS, asosiy daraja): dastur bo\'yicha paragraflar, 3D modellar, masalalar, o\'qituvchi kabineti va SI maslahatchi.',
+    '7–11 sinf kimyo kursi (FGOS, asosiy daraja): dastur bo\'yicha paragraflar, 3D modellar, masalalar va SI o\'qituvchi.',
   'learn.grades.tasks': 'Masalalar va mashq',
   'learn.vrLab.title': 'VR 3D laboratoriya',
   'learn.vrLab.lead': '10 reaksiya: nazariya → test → amaliyot interaktiv 3D sahnada.',
