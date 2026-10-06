@@ -738,6 +738,8 @@ export function FormationMoleculeView({
           node.el.style.display = 'block'
           node.shown = true
         }
+        const fs = pxR < 12 ? '10px' : '12px'
+        if (node.el.style.fontSize !== fs) node.el.style.fontSize = fs
         node.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-10%, -90%)`
       })
     }

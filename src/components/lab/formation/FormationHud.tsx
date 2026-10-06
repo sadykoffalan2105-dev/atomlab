@@ -189,12 +189,12 @@ export function FormationHud({
           return (
             <div key={c.key} className={`${styles.card} ${styles.path}`} data-tone={c.tone ?? 'route'} data-hud-card={c.key}>
               <span className={styles.pathTitle}>{titleOf(c, L).replace(/:$/, '')}</span>
-              <span className={styles.pathEq}>{lines.map((ln) => ln.replace(/^(Путь|Route|Yoʻl):\s*/, '')).join('  ')}</span>
+              <span className={styles.pathEq}>{keepTogether(lines.map((ln) => ln.replace(/^(Путь|Route|Yoʻl):\s*/, '')).join('  '))}</span>
             </div>
           )
         return (
           <div key={c.key} className={styles.card} data-tone={c.tone ?? 'route'} data-hud-card={c.key}>
-            <p className={styles.title}>{titleOf(c, L)}</p>
+            <p className={styles.title}>{titleOf(c, L).replace(/ (=)/g, '\u00a0$1').replace(/(=) /g, '$1\u00a0')}</p>
             {lines.map((ln, i) => {
               const w = c.lineWin?.[i]
               const dim = w ? !lineSet.has(`${c.key}:${i}`) : false
