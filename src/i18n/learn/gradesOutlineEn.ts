@@ -2,7 +2,7 @@
 export const learnGradesOutlineEn = {
   'learn.grades.title': 'Chemistry by grade',
   'learn.grades.lead':
-    'Grades 7–11 chemistry (FGOS-aligned outline): sections, 3D models, problem trainer, teacher hub, and AI tutor.',
+    'Grades 7–11 chemistry (FGOS-aligned outline): sections, 3D models, problem trainer and an AI teacher.',
   'learn.grades.tasks': 'Problems & drills',
   'learn.vrLab.title': 'VR 3D laboratory',
   'learn.vrLab.lead': '10 reactions with Theory → Quiz → Practice in an interactive 3D scene.',
