@@ -6,6 +6,7 @@ import { compoundById } from '../../../data/compounds'
 import { formationScript, type FormationType } from '../../../chemistry/formationScripts'
 import { latticeFor, type LatticeAtom, type StoryLatticeKind } from './story/lattice'
 import { buildRouteStage, ROUTE_DUR, type RouteStage } from './story/route'
+import { buildStoryHud } from './story/hud'
 
 export type { LatticeAtom, StoryLatticeKind } from './story/lattice'
 export type { RouteStage, RouteAtom, RouteStick, RouteElectron, RouteBadge, RouteShow } from './story/route'
@@ -21,7 +22,11 @@ export { routeKeyAt } from './story/route'
  */
 
 /** 'route' — путь получения на уровне частиц (H⁺ + OH⁻ → H₂O, NH₃ + H⁺ → NH₄⁺, гидратация, обмен …), см. routeStage. */
-export type StageKey = 'reagents' | 'route' | 'break' | 'approach' | 'valence' | 'inner' | 'transfer' | 'pairs' | 'bonds' | 'assemble' | 'lattice' | 'final'
+/**
+ * 'heat' — нагревание (тепловые колебания решётки), 'release' — выделение газа (O₂ ↑): этапы сценария
+ * «окислительно-восстановительное разложение» (4MnO₂ → 2Mn₂O₃ + O₂, 4CuO → 2Cu₂O + O₂, 2KMnO₄ → …, 2NaNO₃ → …).
+ */
+export type StageKey = 'reagents' | 'route' | 'heat' | 'break' | 'approach' | 'valence' | 'inner' | 'transfer' | 'release' | 'pairs' | 'bonds' | 'assemble' | 'lattice' | 'final'
 export type Stage = { key: StageKey; t0: number; dur: number }
 
 /** Палочка связи (кратная — несколько палочек, каждая со своим временем). */
@@ -46,7 +51,42 @@ export type StoryElectron = {
   kind: 'lone' | 'transfer' | 'pair'
 }
 
+/**
+ * Строки стеклянной HUD-карточки у 3D-окна (DOM, НЕ поверх атомов): уравнение пути, полуреакции, баланс e⁻.
+ * Показывается в окне [t0, t1) времени истории. Текст — готовые строки с Unicode-индексами/зарядами (RU);
+ * titleKey/lineKeys — необязательные ключи перевода (EN/UZ), если строки зависят от языка.
+ */
+export type StoryHud = {
+  t0: number
+  t1: number
+  title: string
+  lines: string[]
+  /** акцент: 'redox' — полуреакции (окисление/восстановление), 'route' — путь, 'check' — проверка (баланс, электронейтральность) */
+  tone?: 'redox' | 'route' | 'check'
+  /** (добавлено) заголовок RU / EN / UZ — если есть, интерфейс берёт строку своего языка вместо title */
+  titleT?: [string, string, string]
+  /** (добавлено) строки RU / EN / UZ — если есть, вместо lines (по одной тройке на строку) */
+  linesT?: [string, string, string][]
+}
+
+/**
+ * (добавлено) Смена заряда частицы в момент прихода/ухода электрона (сценарий «ОВР-разложение»):
+ * src 'route' — индекс в routeStage.atoms; kind 'ion' — заряд иона (Mn⁴⁺ → Mn³⁺, O²⁻ → O⁰), 'ox' — степень окисления
+ * атома внутри многоатомного иона (Mn⁺⁷ в MnO₄⁻, N⁺⁵ в NO₃⁻). Подпись до первой смены — RouteAtom.q / qKind.
+ */
+export type StoryChargeStep = { atom: number; src: 'route'; t: number; from: number; to: number; kind: 'ion' | 'ox' }
+
 export type FormationStory = {
+  /** HUD-карточки (стекло, справа сверху у 3D-окна); если заданы — формулы НЕ рисуются 3D-плашками поверх атомов */
+  hud?: StoryHud[]
+  /** (добавлено) смены зарядов по времени (перенос e⁻ в ОВР-разложении) — для подписей ионов сцены */
+  chargeSteps?: StoryChargeStep[]
+  /**
+   * (добавлено) вид сценария: 'redoxDecomposition' — окислительно-восстановительное разложение при нагревании
+   * (4MnO₂ → 2Mn₂O₃ + O₂ …): вся сцена до «Итога» — частицы routeStage (фрагмент решётки исходного по уравнению),
+   * атомы модели карточки появляются в «Итоге». Нет — обычный сценарий.
+   */
+  scenario?: 'redoxDecomposition'
   stages: Stage[]
   total: number
   /** ключевые положения атомов: P0 исходные, P1 после разрыва, P2 сближение, P3 перед сборкой, PF — модель */
@@ -574,7 +614,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   const latticeWin: [number, number] = lat.kind === 'ionic' ? [latticeStage.t0 + 0.3, latticeStage.t0 + 0.75 * latticeStage.dur] : [fin.t0 + 0.2, fin.t0 + 2.2]
 
   const tr = st('transfer')
-  return {
+  return withHud(plan.formula, {
     stages,
     total: t,
     P: [P0, P1, P2, P3, PF],
@@ -597,7 +637,13 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     atomEl: model.atoms.map((a) => a.el),
     rNeutral: model.atoms.map((_, i) => rNeutralOf(i)),
     ionWin: tr ? [tr.t0 + 0.45 * tr.dur, tr.t0 + tr.dur] : [Infinity, Infinity],
-  }
+  })
+}
+
+/** HUD для всех сценариев: текст бывших 3D-плашек пути и подпись решётки (story/hud.ts). */
+function withHud(formula: string, s: FormationStory): FormationStory {
+  if (!s.hud) s.hud = buildStoryHud(s, formula)
+  return s
 }
 
 /** Радиус шара атома i в момент t: нейтральный атом → ион во время перехода e⁻. */
