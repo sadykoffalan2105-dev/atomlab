@@ -723,7 +723,7 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
       >
         <CameraLights />
         <FitCamera radius={radius} ext={ext} pts={basePos} radii={radii} spinning={!!props.autoRotate} fitKey={fitKey} controls={controls} />
-        <AutoSpin on={!!props.autoRotate && compact} intro={intro} introKey={mol.id} stopRef={stopIntro}>
+        <AutoSpin on={!!props.autoRotate && compact} intro={intro} introKey="mount" stopRef={stopIntro}>
           <AtomsMesh
             key={`a${mol.id}`}
             pos={pos}

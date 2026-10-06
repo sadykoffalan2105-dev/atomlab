@@ -110,12 +110,46 @@ export function heavyAtomCount(formula: string): number {
   return n
 }
 
+/**
+ * Порядок молекул «от простого к сложному, как в учебнике» там, где задания и добавленные молекулы шли вперемешку:
+ * перечисленные id — первыми и в этом порядке, остальные молекулы урока — следом в прежнем порядке.
+ */
+export const LESSON_MOLECULE_ORDER: Readonly<Record<string, readonly string[]>> = {
+  // бутен-2 → его цис- и транс-формы — после структурных изомеров алканов
+  isomers: [
+    'n-butane', 'isobutane', 'n-pentane', 'isopentane', 'neopentane', 'n-hexane', '2-methylpentane', '3-methylpentane',
+    '2-2-dimethylbutane', '2-3-dimethylbutane', 'n-heptane', '2-methylhexane', '3-methylhexane', '2-2-dimethylpentane',
+    '2-3-dimethylpentane', '2-4-dimethylpentane', '3-3-dimethylpentane', '3-ethylpentane', '2-2-3-trimethylbutane',
+    'dimethyldibutylmethane', 'tetraethylmethane', 'but-2-ene', 'cis-but-2-ene', 'trans-but-2-ene',
+  ],
+  // гомологический ряд до декана, затем разветвлённые, галогенпроизводные метана, алкен из задачи
+  alkanes: [
+    'methane', 'ethane', 'propane', 'n-butane', 'isobutane', 'n-pentane', 'isopentane', 'n-octane', 'n-nonane', 'n-decane',
+    '2-methylhexane', 'isooctane', '3-methyl-4-ethylhexane', '2-3-5-trimethylhexane',
+    'chloromethane', 'dichloromethane', 'chloroform', 'tetrachloromethane', '2-3-dimethylbut-2-ene',
+  ],
+  // § 3.16: глицерин и жирные кислоты → простейший жир → тристеарин и другие триглицериды
+  fats: [
+    'glycerol', 'butanoic-acid', 'hexanoic-acid', 'palmitic-acid', 'margaric-acid', 'stearic-acid', 'palmitoleic-acid',
+    'oleic-acid', 'linoleic-acid', 'linolenic-acid', 'triacetin', 'tripalmitin', 'tristearin', 'triolein',
+    'distearopalmitin', 'stearopalmitolein', 'dioleoyl-stearoyl-glycerol',
+  ],
+  // моносахариды-звенья → дисахариды → фрагменты полисахаридов → продукты реакций
+  disaccharides: [
+    'alpha-glucopyranose', 'fructofuranose', 'sucrose', 'sucrose-structure', 'maltose', 'lactose',
+    'amylose-fragment', 'amylopectin-fragment', 'cellulose-fragment', 'glucose-open', 'gluconic-acid',
+  ],
+}
+
 export function lessonMoleculeIds(lesson: OrganicLesson): string[] {
-  const out: string[] = []
+  const all: string[] = []
   for (const id of [...lesson.challengeIds, ...(LESSON_EXTRA_MOLECULES[lesson.id] ?? [])]) {
-    if (organicMoleculeById[id] && !out.includes(id)) out.push(id)
+    if (organicMoleculeById[id] && !all.includes(id)) all.push(id)
   }
-  return out
+  const order = LESSON_MOLECULE_ORDER[lesson.id]
+  if (!order) return all
+  const first = order.filter((id) => all.includes(id))
+  return [...first, ...all.filter((id) => !first.includes(id))]
 }
 
 export function lessonGoalV2(lesson: OrganicLesson, locale: string): string | undefined {

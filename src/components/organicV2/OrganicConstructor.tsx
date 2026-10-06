@@ -3,7 +3,7 @@
  * название ИЮПАК (RU/EN/UZ) и живое 3D считает движок src/chemistry/organicV2.
  * Задания: build (собери по названию), isomers (найди все изомеры формулы), free. Контракт props — ./contracts.ts.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { OrganicConstructorProps } from './contracts'
 import { buildRegistryIndex, type RegistryIndex } from '../../chemistry/organicV2'
 import { EMPTY, GROUP_KEYS, PALETTE_ELEMENTS, bondById, removeAtom, removeBond, setBondOrder, setElement, toSkeleton, topologyKey, type CState, type GroupKey } from './constructor/model'
@@ -65,6 +65,31 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   // автоповорот 3D — на ПК; на телефоне сцена рисуется только при вращении пальцем (батарея, плавность холста)
   const autoSpin = useMemo(() => typeof window !== 'undefined' && !window.matchMedia?.('(max-width: 760px), (prefers-reduced-motion: reduce)').matches, [])
+
+  // ПК (≥ 1100 px): инструменты колонкой слева от холста, холст и панель — по высоте окна (без прокрутки страницы)
+  useLayoutEffect(() => {
+    const el = rootRef.current
+    if (!el) return
+    const fit = () => {
+      const box = el.querySelector<HTMLElement>('[data-ctor-fit]')
+      if (!box || window.innerWidth < 1100) {
+        el.style.removeProperty('--ctor-h')
+        return
+      }
+      const top = box.getBoundingClientRect().top + window.scrollY
+      el.style.setProperty('--ctor-h', `${Math.round(Math.min(680, Math.max(330, window.innerHeight - top - 18)))}px`)
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    window.addEventListener('resize', fit)
+    const t1 = window.setTimeout(fit, 350)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', fit)
+      window.clearTimeout(t1)
+    }
+  }, [])
 
   const state = preview ?? hist.now
   const index = useMemo(() => registryIndex(molecules), [molecules])
@@ -284,7 +309,7 @@ export function OrganicConstructor(props: OrganicConstructorProps) {
       )}
       {task.kind === 'free' && <p className={styles.freeHint}>{t.freeHint}</p>}
 
-      <div className={styles.layout}>
+      <div className={styles.layout} data-ctor-fit="">
         <div className={styles.editor}>
           {/* ── инструменты ── */}
           <div className={styles.toolbar} role="toolbar" aria-label={t.title}>

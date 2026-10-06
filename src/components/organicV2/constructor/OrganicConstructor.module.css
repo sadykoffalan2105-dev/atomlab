@@ -218,6 +218,28 @@
   .btnTextOpt { display: none; }
   .btnWide { padding: 0 10px; }
 }
+/* ── ПК ≥ 1100 px: инструменты колонкой слева от холста; холст и панель по высоте окна (--ctor-h — из JS) ── */
+@media (min-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(270px, 310px); align-items: stretch; }
+  .editor { flex-direction: row; align-items: stretch; gap: 10px; height: var(--ctor-h, auto); }
+  .toolbar { flex: 0 0 auto; width: 154px; gap: 10px; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; padding-right: 2px; }
+  .toolRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; overflow: visible; }
+  .toolRow .sep { display: none; }
+  .toolRow .btn { min-width: 0; width: 100%; height: 40px; padding: 0 2px; border-radius: 10px; }
+  .toolRow .btnTextOpt { display: none; }
+  .toolRow .groupChip { font-size: 13px; letter-spacing: -0.02em; }
+  .toolRow .btnText { font-size: 13px; }
+  .canvasWrap { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+  .canvasBox { height: var(--ctor-h, clamp(320px, 52vh, 520px)); }
+  .panel { height: var(--ctor-h, auto); min-height: 0; gap: 8px; }
+  .nameCard { padding: 9px 12px; }
+  .nameText { font-size: 20px; }
+  .facts { gap: 6px; }
+  .facts > div { padding: 6px 10px; }
+  .facts dd { font-size: 16px; }
+  .view3d { flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; }
+  .view3dBody { flex: 1 1 auto; height: auto; min-height: 120px; }
+}
 @media (prefers-reduced-motion: reduce) {
   .errRing { animation: none; }
   .btn { transition: none; }

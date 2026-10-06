@@ -158,6 +158,8 @@ export function OrganicLabPage() {
   )
 
   const [pathOpen, setPathOpen] = useState(false)
+  // цель урока: на телефоне и в Конструкторе на ПК — свёрнута (холст на первом экране), раскрывается кнопкой
+  const [goalOpen, setGoalOpen] = useState(false)
   const tabsRef = useRef<HTMLDivElement>(null)
   useEffect(() => centerSelected(tabsRef.current), [mode, lesson.id])
   const lessonIndex = ORGANIC_CURRICULUM.indexOf(lesson)
@@ -240,7 +242,7 @@ export function OrganicLabPage() {
       </aside>
 
       <main className={shell.main}>
-        <header className={shell.head}>
+        <header className={shell.head} data-compact={mode === 'constructor' ? '' : undefined}>
           <div className={shell.headTop}>
             <button
               type="button"
@@ -265,9 +267,14 @@ export function OrganicLabPage() {
             <h1 className={shell.title}>{pickLessonTitle(lesson, lang)}</h1>
             {lessonDone ? <span className={shell.doneBadge}>✓ {T.done}</span> : null}
           </div>
-          <p className={shell.goal}>
-            <b>{T.goal}:</b> {goal}
-          </p>
+          <div className={shell.goalWrap} data-open={goalOpen ? '' : undefined}>
+            <p className={shell.goal} id="ov2-goal">
+              <b>{T.goal}:</b> {goal}
+            </p>
+            <button type="button" className={shell.goalMore} aria-expanded={goalOpen} aria-controls="ov2-goal" onClick={() => setGoalOpen((v) => !v)}>
+              {goalOpen ? T.goalLess : T.goalMore}
+            </button>
+          </div>
           <div className={shell.tabs} role="tablist" aria-label={T.stepsOfLesson} ref={tabsRef}>
             {modes.map((m) => (
               <button
