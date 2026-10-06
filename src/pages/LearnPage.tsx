@@ -4,12 +4,10 @@ import { Link, Navigate, useMatch, useParams } from 'react-router-dom'
 import { LearnSectionRunner } from '../components/learn/LearnSectionRunner'
 import { legacyTopicRedirect } from '../data/learnLegacyRedirects'
 import {
-  LEARN_GRADES,
   learnChapterById,
   learnGradeById,
   learnSectionById,
   learnSectionPathId,
-  learnTotalSectionCount,
 } from '../data/learnCurriculumUz'
 import { getLearnFgosMeta } from '../data/learnFgosMatrix'
 import {
@@ -25,9 +23,8 @@ import { LearnTextbookReader } from '../components/learn/LearnTextbookReader'
 import { gradeHasTextbook } from '../data/learnTextbookG7'
 import { prefetchLearnSectionHub, prefetchWasmCore } from '../learn/learnHubPrefetch'
 import { GradeGlyph } from '../components/learn/hub/GradeGlyph'
-import { AiTeacherArt, EmptyStateArt } from '../components/learn/hub/HubArt'
+import { EmptyStateArt } from '../components/learn/hub/HubArt'
 import {
-  IconAiChat,
   IconArrowLeft,
   IconArrowRight,
   IconBook,
@@ -36,11 +33,10 @@ import {
   IconClock,
   IconFlask,
   IconLayers,
-  IconPlay,
   IconResearch,
-  IconSparkles,
 } from '../components/learn/hub/HubIcons'
 import { ProgressRing } from '../components/learn/hub/ProgressRing'
+import { LearnBentoIndex } from '../components/learn/hub/LearnBentoIndex'
 import {
   gradeNumber,
   percent,
@@ -49,145 +45,15 @@ import {
   toRoman,
 } from '../components/learn/hub/hubText'
 import {
-  PRIMARY_TONE,
   gradeTone,
   stripLeadingArrow,
 } from '../components/learn/hub/hubTone'
 import styles from './LearnHubs.module.css'
 
 function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
-  const { t } = useT()
-  const total = learnTotalSectionCount()
-  const done = progress.completedSectionIds.length
-  const resume = progress.last
-  const resumeSection = resume?.sectionId
-    ? learnSectionById(resume.gradeId, resume.chapterId, resume.sectionId)
-    : undefined
-  const resumeGrade = resume ? learnGradeById(resume.gradeId) : undefined
-  const resumeChapter = resume ? learnChapterById(resume.gradeId, resume.chapterId) : undefined
-  const pct = percent(done, total)
-
   return (
     <PageShell>
-      <section className={styles.hero} aria-labelledby="learn-main-title">
-        <div className={styles.heroMain}>
-          <p className={styles.eyebrow}>
-            <IconSparkles />
-            {t('learn.title')}
-          </p>
-          <h1 className={styles.display} id="learn-main-title">
-            {t('learn.grades.title')}
-          </h1>
-          <p className={styles.lead}>{t('learn.grades.lead')}</p>
-          <div className={styles.heroCards}>
-            <div className={`${styles.glass} ${styles.progressCard}`} style={PRIMARY_TONE}>
-              <ProgressRing value={done / Math.max(1, total)} size={76} stroke={8} label={`${pct}%`} className={styles.ring} />
-              <div className={styles.statStack}>
-                <span className={styles.kicker}>{t('learn.hubUi.overall')}</span>
-                <span className={styles.statValue} aria-live="polite">
-                  {t('learn.progressSection', { done, total })}
-                </span>
-                <ProgressBar value={pct} />
-              </div>
-            </div>
-            {resume?.sectionId ? (
-              <Link
-                className={styles.resumeCard}
-                to={`/learn/g/${resume.gradeId}/c/${resume.chapterId}/s/${resume.sectionId}`}
-                style={gradeTone(resume.gradeId)}
-              >
-                <span className={styles.resumePlay}>
-                  <IconPlay />
-                </span>
-                <span className={styles.statStack}>
-                  <span className={styles.kicker}>{t('learn.hubUi.resumeEyebrow')}</span>
-                  <span className={styles.resumeTitle}>
-                    {t('learn.resume', {
-                      title: resumeSection ? t(resumeSection.titleKey) : resume.sectionId,
-                    })}
-                  </span>
-                  {resumeGrade ? (
-                    <span className={styles.resumeMeta}>
-                      {t(resumeGrade.titleKey)}
-                      {resumeChapter
-                        ? ` · ${splitChapterTitle(t(resumeChapter.titleKey)).prefix ?? toRoman(resumeChapter.order)}`
-                        : null}
-                    </span>
-                  ) : null}
-                </span>
-                <IconArrowRight className={styles.resumeArrow} />
-              </Link>
-            ) : null}
-          </div>
-        </div>
-
-        <Link to="/learn/talk" className={`${styles.vrBanner} ${styles.aiBanner}`}>
-          <AiTeacherArt className={`${styles.vrArt} ${styles.aiArt}`} />
-          <span className={styles.vrBody}>
-            <span className={styles.aiBadgeRow}>
-              <span className={`${styles.vrBadge} ${styles.aiBadge}`}>
-                <IconAiChat />
-              </span>
-              <span className={styles.aiStatus}>
-                <span className={styles.aiStatusDot} aria-hidden />
-                {t('learn.talk.status')}
-              </span>
-            </span>
-            <span className={styles.vrTitle}>{t('learn.talk.title')}</span>
-            <span className={styles.vrLead}>{t('learn.talk.lead')}</span>
-            <span className={`${styles.btn} ${styles.btnLight}`}>
-              {t('learn.talk.open')}
-              <IconArrowRight />
-            </span>
-          </span>
-        </Link>
-      </section>
-
-      <section aria-labelledby="learn-grades-title">
-        <div className={styles.blockHead}>
-          <h2 className={styles.blockTitle} id="learn-grades-title">
-            {t('learn.hubUi.gradesTitle')}
-          </h2>
-        </div>
-        <div className={styles.gradeGrid}>
-          {LEARN_GRADES.map((grade) => {
-            const sectionIds = grade.chapters.flatMap((c) =>
-              c.sections.map((s) => learnSectionPathId(s)),
-            )
-            const { done: gDone, total: gTotal } = sectionProgress(sectionIds, progress)
-            const gPct = percent(gDone, gTotal)
-            return (
-              <Link
-                key={grade.id}
-                to={`/learn/g/${grade.id}`}
-                className={`${styles.glass} ${styles.cardLink} ${styles.gradeCard}`}
-                style={gradeTone(grade.id)}
-                onMouseEnter={() => prefetchWasmCore()}
-              >
-                <GradeGlyph gradeId={grade.id} className={styles.gradeGlyph} />
-                <span className={styles.gradeNum} aria-hidden>
-                  {gradeNumber(grade.id)}
-                </span>
-                <span className={styles.gradeTitle}>{t(grade.titleKey)}</span>
-                <span className={styles.gradeRef}>{t(grade.textbookRefKey)}</span>
-                <span className={styles.gradeFoot}>
-                  <span className={styles.countRow}>
-                    <span>{t('learn.progressSection', { done: gDone, total: gTotal })}</span>
-                    <span className={styles.countPct}>{gPct}%</span>
-                  </span>
-                  <ProgressBar value={gPct} />
-                  <span className={styles.gradeCta}>
-                    {t('learn.hubUi.open')}
-                    <span className={styles.ctaDot}>
-                      <IconArrowRight />
-                    </span>
-                  </span>
-                </span>
-              </Link>
-            )
-          })}
-        </div>
-      </section>
+      <LearnBentoIndex progress={progress} />
     </PageShell>
   )
 }
