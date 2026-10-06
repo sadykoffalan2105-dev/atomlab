@@ -526,7 +526,19 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
   const radial = compact ? 7 : phone ? 10 : 16
 
   const adj = useMemo(() => neighbors(mol), [mol])
-  const basePos = useMemo(() => orientForScreen(mol.atoms.map((a) => a.p)), [mol])
+  // окно выше, чем шире (телефон в портрете) — вытянутые молекулы ставим длинной осью по вертикали
+  const rootRef = useRef<HTMLDivElement>(null)
+  const [tall, setTall] = useState(false)
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el || compact) return
+    const check = () => setTall(el.clientHeight > el.clientWidth * 1.2)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [compact])
+  const basePos = useMemo(() => orientForScreen(mol.atoms.map((a) => a.p), tall), [mol, tall])
 
   // ── вращение вокруг одинарной связи ──
   const [rotBond, setRotBond] = useState<number | null>(null)
@@ -704,6 +716,7 @@ export function Molecule3DCore(props: Molecule3DCoreProps) {
 
   return (
     <div
+      ref={rootRef}
       className={[styles.root, compact ? styles.compact : '', props.className].filter(Boolean).join(' ')}
       data-app-night=""
       data-ov2-mol3d={mol.id}

@@ -19,15 +19,57 @@ const T = {
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
 
+/** Поворот 2D-координат (p2) на угол a — жёсткий, в плоскости: подписи и клинья пересчитываются из новых координат. */
+function rotate2D(mol: Formula2DProps['mol'], a: number): Formula2DProps['mol'] {
+  const c = Math.cos(a)
+  const s = Math.sin(a)
+  return { ...mol, atoms: mol.atoms.map((at) => ({ ...at, p2: [at.p2[0] * c - at.p2[1] * s, at.p2[0] * s + at.p2[1] * c] })) }
+}
+
+/** Угол главной оси 2D-рисунка (по тяжёлым атомам). */
+function mainAxisAngle(mol: Formula2DProps['mol']): number {
+  const pts = mol.atoms.filter((a) => a.el !== 'H').map((a) => a.p2)
+  if (pts.length < 3) return 0
+  let mx = 0
+  let my = 0
+  for (const p of pts) {
+    mx += p[0] / pts.length
+    my += p[1] / pts.length
+  }
+  let sxx = 0
+  let syy = 0
+  let sxy = 0
+  for (const p of pts) {
+    sxx += (p[0] - mx) ** 2
+    syy += (p[1] - my) ** 2
+    sxy += (p[0] - mx) * (p[1] - my)
+  }
+  return 0.5 * Math.atan2(2 * sxy, sxx - syy)
+}
+
+const viewOf = (mol: Formula2DProps['mol'], kind: Formula2DProps['kind']) => {
+  const [, , w, h] = layoutFormula2D(mol, kind).viewBox.split(/\s+/).map(Number)
+  return { w: w || 1, h: h || 1 }
+}
+
 export function ZoomFormula(props: Formula2DProps) {
-  const { mol, kind, lang } = props
+  const { kind, lang } = props
   const t = T[lang]
   const box = useRef<HTMLDivElement>(null)
-  const view = useMemo(() => {
-    const [, , w, h] = layoutFormula2D(mol, kind).viewBox.split(/\s+/).map(Number)
-    return { w: w || 1, h: h || 1 }
-  }, [mol, kind])
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  // рисунок поворачивается главной осью вдоль длинной стороны рамки, если так он крупнее (жиры, целлюлоза «по диагонали»)
+  const landscape = size.w === 0 ? null : size.w >= size.h
+  const { mol, view } = useMemo(() => {
+    const base = { mol: props.mol, view: viewOf(props.mol, kind) }
+    if (landscape === null) return base
+    const a = mainAxisAngle(props.mol)
+    const rot = rotate2D(props.mol, (landscape ? 0 : Math.PI / 2) - a)
+    const rv = viewOf(rot, kind)
+    const k = (v: { w: number; h: number }) => Math.min(size.w / v.w, size.h / v.h)
+    return k(rv) > k(base.view) * 1.12 ? { mol: rot, view: rv } : base
+    // size — только через landscape и пропорцию; пересчёт при смене ориентации рамки
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.mol, kind, landscape, Math.round((size.w / Math.max(1, size.h)) * 4)])
   const fit = size.w > 0 ? Math.min((size.w - 8) / view.w, (size.h - 8) / view.h) : 0.3
   const readable = kind === 'structural' ? Math.max(fit, 0.78) : fit
   const [z, setZ] = useState<number | null>(null)

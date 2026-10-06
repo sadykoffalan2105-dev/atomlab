@@ -251,8 +251,10 @@ export function fitDistanceBox(h: readonly number[], fovDeg: number, aspect: num
 /**
  * Ракурс «для экрана»: длинная ось — по горизонтали, у вытянутых молекул (жиры, β-каротин, длинные алканы,
  * полисахариды) наклон меньше, чтобы цепь не уходила в глубину; рамка атомов — в центре кадра (не центр масс).
+ * tall — окно выше, чем шире (телефон в портрете): вытянутая молекула ставится длинной осью по вертикали
+ * (жёсткий поворот на 90° вокруг оси взгляда — хиральность не меняется), чтобы занять высоту кадра.
  */
-export function orientForScreen(points: readonly (readonly number[])[]): V3[] {
+export function orientForScreen(points: readonly (readonly number[])[], tall = false): V3[] {
   const flat = orientForView(points, 0, 0)
   const h: V3 = [0, 0, 0]
   for (const p of flat) for (let d = 0; d < 3; d++) h[d] = Math.max(h[d], Math.abs(p[d]))
@@ -268,6 +270,7 @@ export function orientForScreen(points: readonly (readonly number[])[]): V3[] {
       hi[d] = Math.max(hi[d], p[d])
     }
   const c: V3 = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2]
+  if (tall && elong > 1.6) return pos.map((p) => [-(p[1] - c[1]), p[0] - c[0], p[2] - c[2]])
   return pos.map((p) => [p[0] - c[0], p[1] - c[1], p[2] - c[2]])
 }
 
