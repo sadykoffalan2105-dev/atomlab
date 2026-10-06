@@ -227,7 +227,7 @@
   .toolRow .sep { display: none; }
   .toolRow .btn { min-width: 0; width: 100%; height: 40px; padding: 0 2px; border-radius: 10px; }
   .toolRow .btnTextOpt { display: none; }
-  .toolRow .groupChip { font-size: 13px; letter-spacing: -0.02em; }
+  .toolRow .groupChip { font-size: 12px; letter-spacing: -0.03em; }
   .toolRow .btnText { font-size: 13px; }
   .canvasWrap { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
   .canvasBox { height: var(--ctor-h, clamp(320px, 52vh, 520px)); }
