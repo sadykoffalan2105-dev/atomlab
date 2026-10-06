@@ -110,7 +110,7 @@
 
 .fact {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   gap: 2px;
   min-width: 96px;
   padding: 10px 16px 11px;
@@ -129,6 +129,7 @@
 }
 
 .fact dd {
+  order: -1;
   margin: 0;
   font-family: var(--lt-font-display);
   font-size: 26px;
