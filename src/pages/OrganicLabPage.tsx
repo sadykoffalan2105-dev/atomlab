@@ -158,6 +158,11 @@ export function OrganicLabPage() {
   )
 
   const [pathOpen, setPathOpen] = useState(false)
+  // цель урока: на телефоне и в Конструкторе на ПК — свёрнута (холст на первом экране), раскрывается кнопкой
+  const [goalOpen, setGoalOpen] = useState(false)
+  // кнопка «цель целиком» — только когда текст цели правда обрезан (на широком экране цель может влезть целиком)
+  const goalRef = useRef<HTMLParagraphElement>(null)
+  const [goalClipped, setGoalClipped] = useState(false)
   const tabsRef = useRef<HTMLDivElement>(null)
   useEffect(() => centerSelected(tabsRef.current), [mode, lesson.id])
   const lessonIndex = ORGANIC_CURRICULUM.indexOf(lesson)
@@ -167,6 +172,15 @@ export function OrganicLabPage() {
   const lessonDone = isLessonDoneV2(progress[lesson.id], modes)
   const goal = lessonGoalV2(lesson, lang) ?? pickLessonGoal(lesson, lang)
   const showStrip = mode === 'molecule' || mode === 'synthesis' || mode === 'reactions'
+  useEffect(() => {
+    const el = goalRef.current
+    if (!el || goalOpen) return
+    const check = () => setGoalClipped(el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [goal, mode, goalOpen])
 
   const selectLesson = (l: OrganicLesson) => {
     setPathOpen(false)
@@ -240,7 +254,7 @@ export function OrganicLabPage() {
       </aside>
 
       <main className={shell.main}>
-        <header className={shell.head}>
+        <header className={shell.head} data-compact={mode === 'constructor' ? '' : undefined}>
           <div className={shell.headTop}>
             <button
               type="button"
@@ -265,9 +279,16 @@ export function OrganicLabPage() {
             <h1 className={shell.title}>{pickLessonTitle(lesson, lang)}</h1>
             {lessonDone ? <span className={shell.doneBadge}>✓ {T.done}</span> : null}
           </div>
-          <p className={shell.goal}>
-            <b>{T.goal}:</b> {goal}
-          </p>
+          <div className={shell.goalWrap} data-open={goalOpen ? '' : undefined}>
+            <p className={shell.goal} id="ov2-goal" ref={goalRef}>
+              <b>{T.goal}:</b> {goal}
+            </p>
+            {goalOpen || goalClipped ? (
+              <button type="button" className={shell.goalMore} aria-expanded={goalOpen} aria-controls="ov2-goal" onClick={() => setGoalOpen((v) => !v)}>
+                {goalOpen ? T.goalLess : T.goalMore}
+              </button>
+            ) : null}
+          </div>
           <div className={shell.tabs} role="tablist" aria-label={T.stepsOfLesson} ref={tabsRef}>
             {modes.map((m) => (
               <button

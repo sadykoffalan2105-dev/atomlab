@@ -1,0 +1,74 @@
+/* Органика v2 — 2D-формула крупной молекулы с лупой (прокрутка + масштаб). */
+.wrap {
+  position: absolute;
+  inset: 4px;
+}
+.box {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+  border-radius: 10px;
+  scrollbar-width: thin;
+}
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+.ctl {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--lt-surface-2, rgba(24, 32, 58, 0.86));
+  border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.18));
+  box-shadow: 0 4px 14px -6px rgba(2, 6, 23, 0.5);
+  z-index: 2;
+}
+.ctl button {
+  min-width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lt-text, #e8edff);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.ctl button:hover {
+  background: var(--lt-surface-hover, rgba(40, 52, 90, 0.85));
+}
+.fitBtn {
+  font-size: 15px !important;
+}
+.hint {
+  position: absolute;
+  left: 6px;
+  bottom: 8px;
+  max-width: calc(100% - 120px);
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--lt-text-2, #b6c0e0);
+  background: var(--lt-surface-2, rgba(24, 32, 58, 0.86));
+  padding: 3px 7px;
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 2;
+}
+@media (max-width: 760px) {
+  .ctl button {
+    min-width: 36px;
+    height: 36px;
+  }
+}

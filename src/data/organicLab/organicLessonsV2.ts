@@ -110,12 +110,87 @@ export function heavyAtomCount(formula: string): number {
   return n
 }
 
+/**
+ * Порядок молекул «от простого к сложному, как в учебнике» там, где задания и добавленные молекулы шли вперемешку:
+ * перечисленные id — первыми и в этом порядке, остальные молекулы урока — следом в прежнем порядке.
+ */
+export const LESSON_MOLECULE_ORDER: Readonly<Record<string, readonly string[]>> = {
+  // § 1.6: замещение (метан → хлорметан, этан → хлорэтан), присоединение, элиминирование, изомеризация, конденсация
+  'reaction-types': [
+    'methane', 'chloromethane', 'ethane', 'chloroethane', 'ethylene', 'ethanol', '1-2-dichloroethane', 'propane', 'propene',
+    'n-pentane', 'isopentane', 'acetaldehyde', '3-hydroxybutanal', 'ethylene-glycol', 'terephthalic-acid',
+  ],
+  // сначала простые названия (метан … ацетон), потом разветвлённые алканы, кратные связи, группы; цистеин — последним
+  nomenclature: [
+    'methane', 'ethylene', 'ethanol', 'acetaldehyde', 'acetone', 'isobutane', '2-methylpentane', '2-2-dimethylbutane',
+    '2-3-dimethylbutane', 'isobutylene', 'butadiene', 'butan-2-ol', 'butanone', 'propanoic-acid', '3-chloro-3-methylpentane',
+    '4-bromomethylheptane', '3-5-dimethylhexa-1-3-diene', '4-ethyl-5-5-6-trimethylhept-2-yne', 'cysteine',
+  ],
+  // бутадиен-1,3 — главный; пентадиен-1,3 рядом со своими цис/транс-формами; β-каротин — последним
+  alkadienes: [
+    'butadiene', 'propadiene', 'buta-1-2-diene', 'penta-1-2-diene', 'penta-1-3-diene', 'cis-penta-1-3-diene',
+    'trans-penta-1-3-diene', 'penta-1-4-diene', 'hexa-1-5-diene', 'isoprene', '3-methylbuta-1-2-diene',
+    '3-methylhexa-1-5-diene', '3-5-dimethylhexa-1-3-diene', 'but-2-yne', 'chloroprene', '1-4-dibromobut-2-ene',
+    '3-4-dibromobut-1-ene', 'n-butane', 'ethanol', 'styrene', 'beta-carotene',
+  ],
+  // газ (C1–C4) → модели практического занятия (разветвлённые, циклы, алкены, алкины) → длинные алканы нефти по длине цепи
+  'sources-oil': [
+    'methane', 'ethane', 'propane', 'n-butane', 'isobutane', 'neopentane', '2-3-dimethylhexane', 'cyclobutane',
+    'cyclopentane', 'but-2-ene', '2-methylbut-1-ene', '2-methylbut-2-ene', '2-methylpent-2-ene', '3-3-dimethylbut-1-ene',
+    '3-3-dimethylpent-1-ene', '3-4-dimethylpent-1-ene', 'acetylene', 'propyne', '3-3-dimethylbut-1-yne',
+    '1-2-dichloroethane',
+  ],
+  // все формы глюкозы подряд, затем фруктоза, рибоза, триозы; продукты реакций — в конце
+  carbohydrates: [
+    'glucose-open', 'alpha-glucopyranose', 'glucose-pyranose', 'fructose-open', 'fructofuranose', 'fructose', 'ribose',
+    'glyceraldehyde', 'dihydroxyacetone',
+  ],
+  // по цели урока: метиламин, нитробензол → анилин (Зинин), мочевина, глицин, пиррол и пиридин; крупные — в конце
+  nitrogen: [
+    'methylamine', 'nitrobenzene', 'aniline', 'urea', 'glycine', 'pyrrole', 'pyridine', 'acrylonitrile', 'pentanamide',
+    '2-4-6-trinitrotoluene', 'hexamine', 'adrenaline',
+  ],
+  // мономеры пластмасс и каучуков → крекинг → сырьё ПЭТ и капрона → прочие продукты
+  'industry-env': [
+    'ethylene', 'propene', 'vinyl-chloride', 'butadiene', 'isoprene', 'chloroprene', 'styrene', 'acrylonitrile',
+    'n-octane', 'isobutane', 'terephthalic-acid', 'ethylene-glycol', 'adipic-acid', 'urea', 'methanol', 'ethanol',
+    'acetic-acid', 'benzene',
+  ],
+  // бутен-2 → его цис- и транс-формы — после структурных изомеров алканов
+  isomers: [
+    'n-butane', 'isobutane', 'n-pentane', 'isopentane', 'neopentane', 'n-hexane', '2-methylpentane', '3-methylpentane',
+    '2-2-dimethylbutane', '2-3-dimethylbutane', 'n-heptane', '2-methylhexane', '3-methylhexane', '2-2-dimethylpentane',
+    '2-3-dimethylpentane', '2-4-dimethylpentane', '3-3-dimethylpentane', '3-ethylpentane', '2-2-3-trimethylbutane',
+    'dimethyldibutylmethane', 'tetraethylmethane', 'but-2-ene', 'cis-but-2-ene', 'trans-but-2-ene',
+  ],
+  // гомологический ряд до декана, затем разветвлённые, галогенпроизводные метана, алкен из задачи
+  alkanes: [
+    'methane', 'ethane', 'propane', 'n-butane', 'isobutane', 'n-pentane', 'isopentane', 'n-octane', 'n-nonane', 'n-decane',
+    '2-methylhexane', 'isooctane', '3-methyl-4-ethylhexane', '2-3-5-trimethylhexane',
+    'chloromethane', 'dichloromethane', 'chloroform', 'tetrachloromethane', '2-3-dimethylbut-2-ene',
+  ],
+  // § 3.16: глицерин и жирные кислоты → простейший жир → тристеарин и другие триглицериды
+  fats: [
+    'glycerol', 'butanoic-acid', 'hexanoic-acid', 'palmitic-acid', 'margaric-acid', 'stearic-acid', 'palmitoleic-acid',
+    'oleic-acid', 'linoleic-acid', 'linolenic-acid', 'triacetin', 'tripalmitin', 'tristearin', 'triolein',
+    'distearopalmitin', 'stearopalmitolein', 'dioleoyl-stearoyl-glycerol',
+  ],
+  // моносахариды-звенья → дисахариды → фрагменты полисахаридов → продукты реакций
+  disaccharides: [
+    'alpha-glucopyranose', 'fructofuranose', 'sucrose', 'sucrose-structure', 'maltose', 'lactose',
+    'amylose-fragment', 'amylopectin-fragment', 'cellulose-fragment', 'glucose-open', 'gluconic-acid',
+  ],
+}
+
 export function lessonMoleculeIds(lesson: OrganicLesson): string[] {
-  const out: string[] = []
+  const all: string[] = []
   for (const id of [...lesson.challengeIds, ...(LESSON_EXTRA_MOLECULES[lesson.id] ?? [])]) {
-    if (organicMoleculeById[id] && !out.includes(id)) out.push(id)
+    if (organicMoleculeById[id] && !all.includes(id)) all.push(id)
   }
-  return out
+  const order = LESSON_MOLECULE_ORDER[lesson.id]
+  if (!order) return all
+  const first = order.filter((id) => all.includes(id))
+  return [...first, ...all.filter((id) => !first.includes(id))]
 }
 
 export function lessonGoalV2(lesson: OrganicLesson, locale: string): string | undefined {

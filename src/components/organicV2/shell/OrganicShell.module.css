@@ -347,6 +347,63 @@
   color: var(--lt-text);
 }
 
+/* кнопка «цель целиком» — только там, где цель свёрнута (телефон; Конструктор на ПК) */
+.goalWrap {
+  position: relative;
+}
+
+.goalMore {
+  display: none;
+  margin: -8px 0 10px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--lt-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.goalMore:hover {
+  text-decoration: underline;
+}
+
+/* Конструктор на ПК: шапка урока компактнее — цель в одну строку, заголовок мельче, холст на первом экране */
+@media (min-width: 761px) {
+  .head[data-compact] {
+    padding-top: 10px;
+  }
+
+  .head[data-compact] .title {
+    font-size: clamp(20px, 1.9vw, 24px);
+  }
+
+  .head[data-compact] .goal {
+    margin: 4px 0 8px;
+  }
+
+  .head[data-compact] .goalWrap:not([data-open]) {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .head[data-compact] .goalWrap:not([data-open]) .goal {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .head[data-compact] .goalMore {
+    display: inline-block;
+    flex: 0 0 auto;
+    margin: 0 0 8px;
+  }
+}
+
 .tabs {
   display: flex;
   gap: 4px;
@@ -797,6 +854,16 @@
     -webkit-line-clamp: 3;
     overflow: hidden;
     font-size: 13px;
+  }
+
+  .goalWrap[data-open] .goal {
+    display: block;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+
+  .goalMore {
+    display: inline-block;
   }
 
   .tab {
