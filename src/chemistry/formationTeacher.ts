@@ -10,6 +10,7 @@
 import { formationPlan, isMetal, type FormationPlan, type FormationSpecies, type FormationShapeKey } from './formationPlan'
 import { formationScript, type FormationRouteKind, type FormationScript } from './formationScripts'
 import { formationSpecialRu, formationSpecialText } from './formationTeacherSpecial'
+import { redoxSchemes, redoxTeacherLines } from './formationTeacherRedox'
 
 export type TeacherLang = 'ru' | 'en' | 'uz'
 export type TeacherLines = { main: string; sub: string; ref: string }
@@ -207,6 +208,8 @@ function ions(c: Ctx) {
 export function transferSchemes(id: string, lang: TeacherLang): string[] {
   const c = ctx(id)
   if (!c || !c.ionic || !c.p) return []
+  const rs = redoxSchemes(id, lang)
+  if (rs) return rs
   const { metalCations, nh4, anions } = ions(c)
   const out: string[] = []
   for (const m of metalCations) out.push(`${elOf(m)}⁰ − ${m.charge}e⁻ → ${m.formula}`)
@@ -375,7 +378,7 @@ export function formationTeacherBoard(id: string, lang: TeacherLang): TeacherBoa
 
 // ─── Фразы этапов ──────────────────────────────────────────────────────────
 
-const STAGE_KEYS = ['reagents', 'break', 'approach', 'valence', 'inner', 'transfer', 'pairs', 'bonds', 'assemble', 'lattice', 'final'] as const
+const STAGE_KEYS = ['reagents', 'heat', 'break', 'approach', 'valence', 'inner', 'transfer', 'release', 'pairs', 'bonds', 'assemble', 'lattice', 'final'] as const
 
 function reagentsLines(c: Ctx, l: TeacherLang): TeacherLines {
   const k = routeKindKey(c.id)!
@@ -654,7 +657,14 @@ function routeLines(c: Ctx, l: TeacherLang): TeacherLines {
 export function formationTeacherLines(id: string, stageKey: string, lang: TeacherLang): TeacherLines | null {
   const c = ctx(id)
   if (!c) return null
+  // ОВР-разложение (4MnO₂ → 2Mn₂O₃ + O₂ …): свои фразы — электроны отдаёт кислород исходного, принимает катион.
+  const redox = redoxTeacherLines(id, stageKey, lang, c.ionic ? REF.ion : REF.cov)
+  if (redox) return redox
   switch (stageKey) {
+    case 'heat':
+      return { main: c.s.route, sub: pick(['При нагревании частицы движутся и колеблются быстрее — связи легче рвутся.', 'On heating the particles move and vibrate faster — bonds break more easily.', 'Qizdirilganda zarrachalar tezroq harakatlanadi va tebranadi — bogʻlar osonroq uziladi.'], lang), ref: pick(c.ionic ? REF.ion : REF.cov, lang) }
+    case 'release':
+      return { main: c.s.route, sub: pick(['Газ (↑) уходит из зоны реакции — его молекулы отрываются от остальных частиц.', 'The gas (↑) leaves the reaction zone — its molecules break away from the other particles.', 'Gaz (↑) reaksiya zonasidan chiqib ketadi — uning molekulalari boshqa zarrachalardan ajraladi.'], lang), ref: pick(c.ionic ? REF.ion : REF.cov, lang) }
     case 'reagents':
       return reagentsLines(c, lang)
     case 'break':
