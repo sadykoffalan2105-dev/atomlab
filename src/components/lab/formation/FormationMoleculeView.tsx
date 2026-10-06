@@ -695,6 +695,10 @@ export function FormationMoleculeView({
       _s.setFromMatrixScale(bb.matrixWorld)
       const sc = _s.x
       const mw = (centerRef.current ?? bb).matrixWorld
+      // Подписи без наложений: сначала важные (вспышка, меняющийся заряд), остальные — если не налезают на уже
+      // поставленные; на тесном экране (телефон) остаются только нужные, а не «каша».
+      type QCand = { node: NonNullable<(typeof qList)[number]>; x: number; y: number; w: number; h: number; prio: number; fs: string }
+      const cands: QCand[] = []
       routeQ.forEach((r, i) => {
         const node = qList[i]
         if (!r || !node) return
@@ -734,14 +738,40 @@ export function FormationMoleculeView({
         _p.project(cam)
         const x = Math.round(((_p.x * 0.5 + 0.5) * size.width + pxR * 0.62) * 2) / 2
         const y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR * 0.62) * 2) / 2
-        if (!node.shown) {
-          node.el.style.display = 'block'
-          node.shown = true
-        }
         const fs = pxR < 12 ? '10px' : '12px'
-        if (node.el.style.fontSize !== fs) node.el.style.fontSize = fs
-        node.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-10%, -90%)`
+        const fpx = pxR < 12 ? 10 : 12
+        const prio = fl ? 3 : r.steps.length > 0 ? 2 : 1
+        // крошечный шар без смены заряда — без подписи
+        if (prio === 1 && pxR < 5) {
+          if (node.shown) {
+            node.el.style.display = 'none'
+            node.shown = false
+          }
+          return
+        }
+        cands.push({ node, x, y, w: text.length * fpx * 0.62 + 10, h: fpx + 6, prio, fs })
       })
+      cands.sort((p, q2) => q2.prio - p.prio)
+      const placed: { l: number; t: number; r: number; b: number }[] = []
+      for (const c of cands) {
+        // translate(-10%, -90%): прямоугольник подписи на экране
+        const box = { l: c.x - c.w * 0.1, t: c.y - c.h * 0.9, r: c.x + c.w * 0.9, b: c.y + c.h * 0.1 }
+        const hit = placed.some((p) => box.l < p.r - 1 && box.r > p.l + 1 && box.t < p.b - 1 && box.b > p.t + 1)
+        if (hit && c.prio < 3) {
+          if (c.node.shown) {
+            c.node.el.style.display = 'none'
+            c.node.shown = false
+          }
+          continue
+        }
+        placed.push(box)
+        if (!c.node.shown) {
+          c.node.el.style.display = 'block'
+          c.node.shown = true
+        }
+        if (c.node.el.style.fontSize !== c.fs) c.node.el.style.fontSize = c.fs
+        c.node.el.style.transform = `translate3d(${c.x}px, ${c.y}px, 0) translate(-10%, -90%)`
+      }
     }
     // Значки.
     const list = badgeEls.current
