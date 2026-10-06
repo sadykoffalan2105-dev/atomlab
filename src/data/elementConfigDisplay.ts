@@ -24,6 +24,65 @@ export function parseElectronConfigTokens(fullConfig: string): ElectronOrbitalTo
   return tokens
 }
 
+/** Остовы благородных газов — от тяжёлого к лёгкому (для краткой записи «[Rn] 5f¹⁴ …»). */
+const NOBLE_CORES: readonly { symbol: string; electrons: number; labels: readonly string[] }[] = [
+  { symbol: 'Rn', electrons: 86, labels: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6'.split(' ') },
+  { symbol: 'Xe', electrons: 54, labels: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6'.split(' ') },
+  { symbol: 'Kr', electrons: 36, labels: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6'.split(' ') },
+  { symbol: 'Ar', electrons: 18, labels: '1s2 2s2 2p6 3s2 3p6'.split(' ') },
+  { symbol: 'Ne', electrons: 10, labels: '1s2 2s2 2p6'.split(' ') },
+  { symbol: 'He', electrons: 2, labels: ['1s2'] },
+]
+
+export type ElectronConfigSplit = {
+  /** Все подуровни полной записи по порядку. */
+  tokens: ElectronOrbitalToken[]
+  /** Остов благородного газа (если есть хотя бы один подуровень сверх него). */
+  core: { symbol: string; electrons: number } | null
+  /** Для каждого подуровня полной записи: входит ли он в остов. */
+  inCore: boolean[]
+  /** Подуровни сверх остова (краткая запись), в исходном порядке. */
+  outer: ElectronOrbitalToken[]
+}
+
+/**
+ * Делит полную конфигурацию на остов благородного газа и внешние подуровни:
+ * Ts → [Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵. Сам благородный газ записывается через предыдущий (Ne → [He] 2s² 2p⁶).
+ */
+export function splitNobleGasCore(fullConfig: string): ElectronConfigSplit {
+  const tokens = parseElectronConfigTokens(fullConfig)
+  for (const core of NOBLE_CORES) {
+    if (core.labels.length >= tokens.length) continue
+    const need = new Map<string, number>()
+    for (const l of core.labels) need.set(l, (need.get(l) ?? 0) + 1)
+    const inCore = tokens.map((t) => {
+      const left = need.get(t.label) ?? 0
+      if (left <= 0) return false
+      need.set(t.label, left - 1)
+      return true
+    })
+    if ([...need.values()].some((v) => v > 0)) continue
+    const coreTokens = tokens.filter((_, i) => inCore[i])
+    const outer = sortByShell(tokens.filter((_, i) => !inCore[i]))
+    return {
+      tokens: [...coreTokens, ...outer],
+      core: { symbol: core.symbol, electrons: core.electrons },
+      inCore: [...coreTokens.map(() => true), ...outer.map(() => false)],
+      outer,
+    }
+  }
+  return { tokens, core: null, inCore: tokens.map(() => false), outer: tokens }
+}
+
+const SUBSHELL_ORDER: Record<string, number> = { s: 0, p: 1, d: 2, f: 3 }
+
+/** Внешние подуровни — как в справочниках (NIST/IUPAC): по n, затем s→p→d→f: [Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵. */
+function sortByShell(list: ElectronOrbitalToken[]): ElectronOrbitalToken[] {
+  return [...list].sort(
+    (a, b) => a.n - b.n || (SUBSHELL_ORDER[a.subshell] ?? 9) - (SUBSHELL_ORDER[b.subshell] ?? 9),
+  )
+}
+
 /** Число электронов на главной квантовой оболочке n (модель Бора). */
 export function bohrShellCountsFromConfig(fullConfig: string): number[] {
   const byN = new Map<number, number>()

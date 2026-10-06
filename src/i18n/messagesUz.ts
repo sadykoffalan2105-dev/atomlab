@@ -1171,4 +1171,9 @@ export const messagesUz: Record<MessageKey, string> = {
   'compound.obtLab.balance': 'tenglang va ishga tushiring',
   'learn.teacherUi.holdToTalk': 'Bosib turib gapiring',
   'learn.teacherUi.holdToTalkHint': 'Shovqinli sinf uchun: tugmani bosib turing, gapiring, qo‘yib yuboring — ustoz darhol javob beradi',
+  'elementDetail.electronConfigTitle': 'Elektron konfiguratsiyasi',
+  'elementDetail.configFull': 'To\'liq yozuv',
+  'elementDetail.configShowFull': 'To\'liq yozuvni ko\'rsatish',
+  'elementDetail.configHideFull': 'To\'liq yozuvni yashirish',
+  'elementDetail.configCoreHint': '[{core}] — inert gaz o\'zagi: ichki qobiqlarda {n} ta elektron',
 }

@@ -1171,4 +1171,9 @@ export const messagesEn: Record<MessageKey, string> = {
   'compound.obtLab.balance': 'balance it and run',
   'learn.teacherUi.holdToTalk': 'Hold to talk',
   'learn.teacherUi.holdToTalkHint': 'For a noisy classroom: hold the button, say your phrase, release — the teacher answers right away',
+  'elementDetail.electronConfigTitle': 'Electron configuration',
+  'elementDetail.configFull': 'Full notation',
+  'elementDetail.configShowFull': 'Show full notation',
+  'elementDetail.configHideFull': 'Hide full notation',
+  'elementDetail.configCoreHint': '[{core}] — noble-gas core: {n} electrons in the inner shells',
 }
