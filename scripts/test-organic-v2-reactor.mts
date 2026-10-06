@@ -144,6 +144,8 @@ if (disagree.length) {
   console.log(`общие схемы: пример v2 ≠ пример реактора — ${disagree.length}:`)
   for (const r of disagree) console.log(`  ${r.key} → ${r.ov2}: ${r.eq}`)
 }
+// примеры общих схем добавлены ровно с веществами реактора (scripts/organic-v2/add_reactor_examples.py) — 3D = уравнение реактора
+ok(disagree.length === 0, `общие схемы: пример v2 ≠ пример реактора у ${disagree.length} карточек — добавить пример в add_reactor_examples.py`)
 fs.mkdirSync('.tmp', { recursive: true })
 fs.writeFileSync('.tmp/organic-v2-reactor-map.json', JSON.stringify(rows, null, 1))
 
