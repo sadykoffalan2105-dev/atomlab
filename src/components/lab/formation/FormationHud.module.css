@@ -24,7 +24,7 @@
   flex-direction: column;
   gap: 8px;
   width: max-content;
-  max-width: min(44%, 300px);
+  max-width: min(64%, 360px);
   pointer-events: none;
 }
 
@@ -81,7 +81,8 @@
   font-size: 15px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  white-space: pre-wrap;
+  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: #fde68a;
 }
 
@@ -125,6 +126,7 @@
 
   .formula {
     font-size: 14px;
+    white-space: normal;
   }
 }
 

@@ -57,6 +57,27 @@ export function hudCards(story: FormationStory, plan: FormationPlan, L: L3): Hud
       lineWin: [null, ...[...seen.values()]],
     })
   }
+  // Многоатомные частицы ионного вещества (SO₄²⁻, NH₄⁺, H₂O гидрата) — строками HUD, не плашками над атомами.
+  if (plan.mode === 'ionic' && !plan.crystal && own.length === 0) {
+    const ins = stage('inner')
+    const asm = stage('assemble')
+    const lat = stage('lattice')
+    const lines: string[] = []
+    const wins: ([number, number] | null)[] = []
+    for (const u of plan.units) {
+      const sp = plan.species[u.species]
+      if (!sp || u.atoms.length < 2 || lines.includes(sp.formula)) continue
+      const w: [number, number] = sp.kind === 'molecule' ? [ins?.t0 ?? story.ionLabelsFrom, (asm?.t0 ?? fin.t0) + 1] : [story.ionLabelsFrom, lat ? lat.t0 : fin.t0 + fin.dur]
+      if (!Number.isFinite(w[0])) continue
+      lines.push(sp.formula)
+      wins.push(w)
+    }
+    if (lines.length) {
+      const t0 = Math.min(...wins.map((w) => w![0]))
+      const t1 = Math.max(...wins.map((w) => w![1]))
+      out.push({ key: 'parts', t0, t1, title: ['Частицы', 'Particles', 'Zarrachalar'][L]!, lines, tone: 'route', lineWin: wins })
+    }
+  }
   const latS = stage('lattice')
   const covered = (t0: number, t1: number) => own.some((h) => h.t0 < t1 && h.t1 > t0 && h.tone === 'check')
   if (story.latticeKind === 'ionic' && latS) {

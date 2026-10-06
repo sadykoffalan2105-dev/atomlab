@@ -138,14 +138,8 @@ export function FormationMoleculeView({
     })
     const badges: Badge[] = []
     const stage = (k: string) => story.stages.find((s) => s.key === k)
-    if (plan.mode === 'ionic' && !crystal) {
-      for (const u of plan.units) {
-        const s = plan.species[u.species]
-        if (!s || u.atoms.length < 2) continue
-        if (s.kind === 'molecule') badges.push({ text: s.formula, atoms: u.atoms, from: stage('inner')?.t0 ?? story.ionLabelsFrom, to: stage('assemble')!.t0 + 1, kind: 'water' })
-        else badges.push({ text: s.formula, atoms: u.atoms, from: story.ionLabelsFrom, to: Infinity, kind: 'group' })
-      }
-    } else if (plan.mode === 'molecular' && model.atoms.length <= 24) {
+    // Многоатомные ионы и молекулы воды гидрата (SO₄²⁻, H₂O) — строками HUD (FormationHud), не плашками над атомами.
+    if (plan.mode === 'molecular' && model.atoms.length <= 24) {
       const sums = model.atoms.map(() => 0)
       for (const b of model.bonds) {
         sums[b.a]! += b.order
