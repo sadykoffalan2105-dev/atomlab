@@ -12,6 +12,7 @@ import {
   atomPositionsAt,
   bondLineScale,
   buildSynthesisScenario,
+  speciesPositions,
   SYNTH_STAGE_KEYS,
 } from '../src/chemistry/organicV2/synthesis/scenario.ts'
 import { teacherLine, stageTitle } from '../src/chemistry/organicV2/synthesis/teacher.ts'
@@ -169,6 +170,29 @@ if (close.length) {
 console.log(`реакций: ${file.reactions.length}; длительность ${minTotal.toFixed(1)}…${maxTotal.toFixed(1)} с; сборка сценария max ${maxMs.toFixed(1)} мс, всего ${(performance.now() - t0all).toFixed(0)} мс`)
 console.log(`одна копия + ×N: ${grouped} реакций`)
 console.log(`пролёт ближе 0,6 Å: ${close.length} реакций (${(closeShare * 100).toFixed(1)} %, нужно 0)`)
+// ионы солей (NaBr, K₂SO₄, Ca(OH)₂…) не стоят друг в друге: несвязанные части участника — не ближе 2,3 Å
+let ionPairs = 0
+const ionBad = new Set<string>()
+for (const r of file.reactions) {
+  for (const s of r.species) {
+    const n = s.atoms.length
+    const par = Array.from({ length: n }, (_, i) => i)
+    const find = (x: number): number => (par[x] === x ? x : (par[x] = find(par[x])))
+    for (const b of s.bonds) par[find(b.a)] = find(b.b)
+    const roots = s.atoms.map((_, i) => find(i))
+    if (new Set(roots).size < 2) continue
+    ionPairs++
+    const p = speciesPositions(s)
+    for (let i = 0; i < n; i++)
+      for (let j = i + 1; j < n; j++)
+        if (roots[i] !== roots[j] && Math.hypot(p[i][0] - p[j][0], p[i][1] - p[j][1], p[i][2] - p[j][2]) < 2.3) ionBad.add(s.ref)
+  }
+}
+console.log(`ионные участники: ${ionPairs}, частей ближе 2,3 Å: ${ionBad.size}`)
+if (ionBad.size) {
+  fail++
+  problems.push(`ионы в одной точке: ${[...ionBad].slice(0, 8).join(', ')}`)
+}
 if (problems.length) console.log(problems.join('\n'))
 console.log(fail ? `ОШИБОК: ${fail}` : `OK (предупреждений: ${warn})`)
 process.exit(fail ? 1 : 0)

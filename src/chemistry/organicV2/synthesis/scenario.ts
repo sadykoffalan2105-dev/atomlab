@@ -15,7 +15,7 @@
  *   5 «Итог»              — та же картинка, на доске уравнение, тип, условия, страница учебника.
  * Геометрия молекул НЕ пересчитывается — только жёсткие повороты/сдвиги RDKit-координат.
  */
-import type { OV2Reaction } from '../../../data/organicV2/types'
+import type { OV2Reaction, OV2Species } from '../../../data/organicV2/types'
 import {
   type M3,
   type V3,
@@ -223,6 +223,49 @@ function pushAway(pos: V3[], occupied: readonly V3[], dir: V3, minGap: number): 
   }
 }
 
+/**
+ * Координаты участника; у ионных солей (NaCl, K₂SO₄, Ca(OH)₂…) ионы в данных стоят в одной точке —
+ * раздвигаем несвязанные части до ионного контакта (≥ 2,4 Å), иначе Br «прячется» внутри Na.
+ */
+const ION_GAP = 2.4
+const spreadCache = new WeakMap<OV2Species, V3[]>()
+export function speciesPositions(s: OV2Species): V3[] {
+  const hit = spreadCache.get(s)
+  if (hit) return hit
+  const pos = s.atoms.map((a) => [a.p[0], a.p[1], a.p[2]] as V3)
+  const n = pos.length
+  const par = Array.from({ length: n }, (_, i) => i)
+  const find = (x: number): number => (par[x] === x ? x : (par[x] = find(par[x])))
+  for (const b of s.bonds) par[find(b.a)] = find(b.b)
+  const groups = new Map<number, number[]>()
+  for (let i = 0; i < n; i++) {
+    const r = find(i)
+    const g = groups.get(r)
+    if (g) g.push(i)
+    else groups.set(r, [i])
+  }
+  if (groups.size > 1) {
+    const frs = [...groups.values()].sort((a, b) => b.length - a.length)
+    const settled: number[] = [...frs[0]]
+    const c0 = centroid(frs[0].map((i) => pos[i]))
+    const DIRS: V3[] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1], [0.7, 0.7, 0], [-0.7, -0.7, 0]]
+    frs.slice(1).forEach((fr, k) => {
+      const c = centroid(fr.map((i) => pos[i]))
+      const away = sub(c, c0)
+      const dir = len(away) > 0.3 ? norm(away, [1, 0, 0]) : DIRS[k % DIRS.length]
+      for (let it = 0; it < 60; it++) {
+        let m = Infinity
+        for (const i of fr) for (const j of settled) m = Math.min(m, dist(pos[i], pos[j]))
+        if (m >= ION_GAP) break
+        for (const i of fr) pos[i] = add(pos[i], scale(dir, Math.max(0.15, ION_GAP - m)))
+      }
+      settled.push(...fr)
+    })
+  }
+  spreadCache.set(s, pos)
+  return pos
+}
+
 export function isRadicalReaction(r: OV2Reaction): boolean {
   const c = r.conditions ?? ''
   return /hν|hv|свет|УФ/i.test(c) || r.type === 'substitutionRadical' || r.type === 'combustion' || r.type === 'cracking'
@@ -365,7 +408,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   const placed: Placed[] = []
   const placedSet = new Set<number>()
   const occupied = (): V3[] => placed.flatMap((p) => p.pos)
-  const localPos = (si: number): V3[] => sp[si].atoms.map((a) => [a.p[0], a.p[1], a.p[2]] as V3)
+  const localPos = (si: number): V3[] => speciesPositions(sp[si]).map((p) => [...p] as V3)
 
   {
     const pts = localPos(main)
@@ -537,7 +580,7 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
   const realC = realPb.length ? centroid(realPb) : ([0, 0, 0] as V3)
   for (const si of rightIdx) {
     const s = sp[si]
-    const q = s.atoms.map((a) => [a.p[0], a.p[1], a.p[2]] as V3)
+    const q = speciesPositions(s).map((p) => [...p] as V3)
     const ids = s.map.map((m) => mapIndex.get(m)!)
     const kIdx = ids.map((a, k) => (ghost[a] === 1 ? -1 : k)).filter((k) => k >= 0)
     if (kIdx.length >= 3 || (kIdx.length && kIdx.length === ids.length)) {
@@ -612,6 +655,15 @@ export function buildSynthesisScenario(reaction: OV2Reaction): SynthScenario {
     const tr = turned(si)
     let dir = sub(tr.c2, mainProdC)
     dir = norm([dir[0], dir[1], dir[2] * 0.2], [1, 0, 0])
+    if (groups.grouped) {
+      // «одна копия + ×N»: продукты собраны плотной группой вокруг главного (веером по своим направлениям) —
+      // иначе ряд из далёких копий мельчит кадр (KMnO₄, горение, ОВР)
+      const moved = tr.pos.map((p) => add(sub(p, tr.c2), add(mainProdC, scale(dir, 0.5))))
+      pushAway(moved, settled3, dir, 2.4)
+      place3(si, moved, tr.q, tr.c2)
+      settled3.push(...moved)
+      continue
+    }
     const moved = tr.pos.map((p) => add(p, scale(dir, byproduct(si) ? 2.4 : 1.6)))
     pushAway(moved, settled3, dir, byproduct(si) ? 3.6 : 3.0)
     place3(si, moved, tr.q, tr.c2)
