@@ -21,7 +21,11 @@ export { routeKeyAt } from './story/route'
  */
 
 /** 'route' — путь получения на уровне частиц (H⁺ + OH⁻ → H₂O, NH₃ + H⁺ → NH₄⁺, гидратация, обмен …), см. routeStage. */
-export type StageKey = 'reagents' | 'route' | 'break' | 'approach' | 'valence' | 'inner' | 'transfer' | 'pairs' | 'bonds' | 'assemble' | 'lattice' | 'final'
+/**
+ * 'heat' — нагревание (тепловые колебания решётки), 'release' — выделение газа (O₂ ↑): этапы сценария
+ * «окислительно-восстановительное разложение» (4MnO₂ → 2Mn₂O₃ + O₂, 4CuO → 2Cu₂O + O₂, 2KMnO₄ → …, 2NaNO₃ → …).
+ */
+export type StageKey = 'reagents' | 'route' | 'heat' | 'break' | 'approach' | 'valence' | 'inner' | 'transfer' | 'release' | 'pairs' | 'bonds' | 'assemble' | 'lattice' | 'final'
 export type Stage = { key: StageKey; t0: number; dur: number }
 
 /** Палочка связи (кратная — несколько палочек, каждая со своим временем). */
@@ -46,7 +50,23 @@ export type StoryElectron = {
   kind: 'lone' | 'transfer' | 'pair'
 }
 
+/**
+ * Строки стеклянной HUD-карточки у 3D-окна (DOM, НЕ поверх атомов): уравнение пути, полуреакции, баланс e⁻.
+ * Показывается в окне [t0, t1) времени истории. Текст — готовые строки с Unicode-индексами/зарядами (RU);
+ * titleKey/lineKeys — необязательные ключи перевода (EN/UZ), если строки зависят от языка.
+ */
+export type StoryHud = {
+  t0: number
+  t1: number
+  title: string
+  lines: string[]
+  /** акцент: 'redox' — полуреакции (окисление/восстановление), 'route' — путь, 'check' — проверка (баланс, электронейтральность) */
+  tone?: 'redox' | 'route' | 'check'
+}
+
 export type FormationStory = {
+  /** HUD-карточки (стекло, справа сверху у 3D-окна); если заданы — формулы НЕ рисуются 3D-плашками поверх атомов */
+  hud?: StoryHud[]
   stages: Stage[]
   total: number
   /** ключевые положения атомов: P0 исходные, P1 после разрыва, P2 сближение, P3 перед сборкой, PF — модель */
