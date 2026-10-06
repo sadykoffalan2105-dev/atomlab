@@ -4,9 +4,9 @@ export const learnResearchI18nRu = {
   'learn.research.lead':
     'Одна 3D-лаборатория: атомы → молекула → уравнение / вектор атаки / Ле Шателье — без переключения вкладок.',
   'learn.research.back': '← К обучению',
-  'learn.research.open': 'Кабинет исследователя',
+  'learn.research.open': 'Органика: 3D, Конструктор и синтез',
   'learn.research.openLead':
-    'Сборка органики в 3D, уравнения, SN2 и равновесие — в одном экране (Kimyo 10–11).',
+    'Молекулы учебника в точном 3D, Конструктор (рисуешь скелет — название и формулу даёт сайт) и синтез каждой реакции по атомам (Kimyo 10–11).',
   'learn.research.modesAria': 'Режимы кабинета',
   'learn.research.mode.builder': 'Сборка 3D',
   'learn.research.mode.isomers': 'Изомеры',
@@ -164,9 +164,9 @@ export const learnResearchI18nEn: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.lead':
     'One 3D lab: atoms → molecule → equation / attack vector / Le Chatelier — no tab switching.',
   'learn.research.back': '← Back to learn',
-  'learn.research.open': 'Researcher lab',
+  'learn.research.open': 'Organic chemistry: 3D, builder and synthesis',
   'learn.research.openLead':
-    'Organic 3D build, equations, SN2 and equilibrium on one screen (Kimyo 10–11).',
+    'Textbook molecules in accurate 3D, a builder (draw the skeleton — the site gives the name and formula) and atom-by-atom synthesis of every reaction (Kimyo 10–11).',
   'learn.research.modesAria': 'Lab modes',
   'learn.research.mode.builder': '3D build',
   'learn.research.mode.isomers': 'Isomers',
@@ -324,9 +324,9 @@ export const learnResearchI18nUz: Record<keyof typeof learnResearchI18nRu, strin
   'learn.research.lead':
     'Bitta 3D laboratoriya: atomlar → molekula → tenglama / hujum / Le Shatelye — tablar yoʻq.',
   'learn.research.back': '← Oʻqishga',
-  'learn.research.open': 'Tadqiqotchi kabineti',
+  'learn.research.open': 'Organik kimyo: 3D, konstruktor va sintez',
   'learn.research.openLead':
-    'Organika 3D, tenglamalar, SN2 va muvozanat — bir ekranda (Kimyo 10–11).',
+    'Darslik molekulalari aniq 3D da, konstruktor (skeletni chizasiz — nom va formulani sayt beradi) va har bir reaksiyaning atomlar bo‘yicha sintezi (Kimyo 10–11).',
   'learn.research.modesAria': 'Kabinet rejimlari',
   'learn.research.mode.builder': '3D yigʻish',
   'learn.research.mode.isomers': 'Izomerlar',

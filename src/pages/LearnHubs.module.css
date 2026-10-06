@@ -648,52 +648,7 @@
   }
 }
 
-/* Быстрый старт */
-
-.quickGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
-  gap: 14px;
-}
-
-.quickTile {
-  position: relative;
-  isolation: isolate;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 170px;
-  overflow: hidden;
-  padding: 18px;
-  border-radius: var(--lt-radius);
-}
-
-.quickTile::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--hub-ga), var(--hub-gb));
-}
-
-.quickTile::after {
-  content: '';
-  position: absolute;
-  top: -40%;
-  right: -30%;
-  z-index: -1;
-  width: 80%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--hub-ga) 22%, transparent), transparent);
-  opacity: 0.7;
-  transition: opacity var(--lt-dur) var(--lt-ease);
-}
-
-.quickTile:hover::after {
-  opacity: 1;
-}
-
+/* Плашка-ссылка (страница класса): иконка, заголовок, описание */
 .quickIcon {
   display: grid;
   flex: none;
@@ -729,22 +684,6 @@
   color: var(--lt-text-3);
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-}
-
-.quickArrow {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 20px;
-  height: 20px;
-  color: var(--lt-text-3);
-  transition: transform var(--lt-dur) var(--lt-ease), color var(--lt-dur) var(--lt-ease);
-}
-
-.quickTile:hover .quickArrow,
-.quickTile:focus-visible .quickArrow {
-  transform: translateX(3px);
-  color: var(--lt-text);
 }
 
 /* Карточки классов */
@@ -1675,10 +1614,6 @@
 /* ═══════════════════ Адаптив ═══════════════════ */
 
 @media (min-width: 1280px) {
-  .quickGrid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
   .gradeGrid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -1784,32 +1719,6 @@
 
   .vrBody .btn {
     align-self: stretch;
-  }
-
-  .quickGrid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-  }
-
-  .quickTile {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    column-gap: 14px;
-    row-gap: 2px;
-    align-items: center;
-    min-height: 0;
-    padding: 14px 44px 14px 14px;
-  }
-
-  .quickTile .quickIcon {
-    grid-row: 1 / span 2;
-    margin: 0;
-  }
-
-  .quickArrow {
-    top: 50%;
-    margin-top: -10px;
   }
 
   .gradeGrid {

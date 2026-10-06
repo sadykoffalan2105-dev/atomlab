@@ -18,7 +18,6 @@ import {
   type LearnProgressV3,
 } from '../learn/learnProgressStorage'
 import { useT } from '../i18n/useT'
-import type { MessageKey } from '../i18n/messagesRu'
 import { LearnTaskRunner } from './LearnTaskRunner'
 import { LEARN_TASK_CATEGORY_IDS } from '../data/learnTaskCategories'
 import { LearnTasksHub } from './LearnTasksHub'
@@ -37,13 +36,9 @@ import {
   IconClock,
   IconFlask,
   IconLayers,
-  IconPathways,
   IconPlay,
   IconResearch,
   IconSparkles,
-  IconTasks,
-  IconTeacher,
-  IconVr,
 } from '../components/learn/hub/HubIcons'
 import { ProgressRing } from '../components/learn/hub/ProgressRing'
 import {
@@ -57,55 +52,8 @@ import {
   PRIMARY_TONE,
   gradeTone,
   stripLeadingArrow,
-  toneStyle,
 } from '../components/learn/hub/hubTone'
 import styles from './LearnHubs.module.css'
-
-type QuickAction = {
-  to: string
-  titleKey: MessageKey
-  descKey: MessageKey
-  icon: (p: { className?: string }) => ReactNode
-  tone: CSSProperties
-}
-
-const QUICK_ACTIONS: readonly QuickAction[] = [
-  {
-    to: '/learn/pathways',
-    titleKey: 'learn.pathways.open',
-    descKey: 'learn.pathways.lead',
-    icon: IconPathways,
-    tone: toneStyle('var(--lt-accent-teal)', 'var(--lt-accent-cyan)'),
-  },
-  {
-    to: '/learn/tasks',
-    titleKey: 'learn.grades.tasks',
-    descKey: 'learn.tasksLead',
-    icon: IconTasks,
-    tone: toneStyle('var(--lt-g9-a)', 'var(--lt-g9-b)'),
-  },
-  {
-    to: '/learn/teacher',
-    titleKey: 'learn.teacher.linkGrades',
-    descKey: 'learn.teacher.lead',
-    icon: IconTeacher,
-    tone: toneStyle('var(--lt-g8-a)', 'var(--lt-g8-b)'),
-  },
-  {
-    to: '/organic',
-    titleKey: 'learn.research.open',
-    descKey: 'learn.research.openLead',
-    icon: IconResearch,
-    tone: toneStyle('var(--lt-g10-a)', 'var(--lt-g10-b)'),
-  },
-  {
-    to: '/vr-lab?from=learn',
-    titleKey: 'learn.vrLab.title',
-    descKey: 'learn.vrLab.lead',
-    icon: IconVr,
-    tone: toneStyle('var(--lt-g11-a)', 'var(--lt-primary-2)'),
-  },
-]
 
 function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
   const { t } = useT()
@@ -193,34 +141,6 @@ function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
             </span>
           </span>
         </Link>
-      </section>
-
-      <section aria-labelledby="learn-quick-title">
-        <div className={styles.blockHead}>
-          <h2 className={styles.blockTitle} id="learn-quick-title">
-            {t('learn.hubUi.quickTitle')}
-          </h2>
-        </div>
-        <div className={styles.quickGrid}>
-          {QUICK_ACTIONS.map((q) => {
-            const Icon = q.icon
-            return (
-              <Link
-                key={q.to}
-                to={q.to}
-                className={`${styles.glass} ${styles.cardLink} ${styles.quickTile}`}
-                style={q.tone}
-              >
-                <span className={styles.quickIcon}>
-                  <Icon />
-                </span>
-                <span className={styles.quickTitle}>{t(q.titleKey)}</span>
-                <span className={styles.quickDesc}>{t(q.descKey)}</span>
-                <IconArrowRight className={styles.quickArrow} />
-              </Link>
-            )
-          })}
-        </div>
       </section>
 
       <section aria-labelledby="learn-grades-title">
