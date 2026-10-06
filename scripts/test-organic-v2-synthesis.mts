@@ -94,9 +94,10 @@ for (const r of file.reactions) {
   const idOf = new Map(sc.atoms.map((a, i) => [a.map, i]))
   for (const [si, s] of r.species.entries()) {
     if (s.side !== 'R' || sc.species[si].copies === 0) continue
+    const sp0 = speciesPositions(s) // RDKit, ионы раздвинуты, сбой 3D у металла исправлен
     for (const b of s.bonds) {
-      const pa = s.atoms[b.a].p
-      const pb = s.atoms[b.b].p
+      const pa = sp0[b.a]
+      const pb = sp0[b.b]
       const d0 = Math.hypot(pa[0] - pb[0], pa[1] - pb[1], pa[2] - pb[2])
       const i = idOf.get(s.map[b.a])!
       const j = idOf.get(s.map[b.b])!
@@ -173,6 +174,7 @@ console.log(`пролёт ближе 0,6 Å: ${close.length} реакций (${(
 // ионы солей (NaBr, K₂SO₄, Ca(OH)₂…) не стоят друг в друге: несвязанные части участника — не ближе 2,3 Å
 let ionPairs = 0
 const ionBad = new Set<string>()
+const longBond = new Set<string>()
 for (const r of file.reactions) {
   for (const s of r.species) {
     const n = s.atoms.length
@@ -180,6 +182,12 @@ for (const r of file.reactions) {
     const find = (x: number): number => (par[x] === x ? x : (par[x] = find(par[x])))
     for (const b of s.bonds) par[find(b.a)] = find(b.b)
     const roots = s.atoms.map((_, i) => find(i))
+    // сбой 3D (атом за десятки Å от соседей по связи) исправлен в speciesPositions
+    const pp = speciesPositions(s)
+    for (const b of s.bonds) {
+      const d = Math.hypot(pp[b.a][0] - pp[b.b][0], pp[b.a][1] - pp[b.b][1], pp[b.a][2] - pp[b.b][2])
+      if (d > 6) longBond.add(`${s.ref} (${d.toFixed(1)} Å)`)
+    }
     if (new Set(roots).size < 2) continue
     ionPairs++
     const p = speciesPositions(s)
@@ -189,6 +197,11 @@ for (const r of file.reactions) {
   }
 }
 console.log(`ионные участники: ${ionPairs}, частей ближе 2,3 Å: ${ionBad.size}`)
+console.log(`связей длиннее 6 Å (сбой 3D): ${longBond.size}`)
+if (longBond.size) {
+  fail++
+  problems.push(`сбой 3D: ${[...longBond].slice(0, 8).join(', ')}`)
+}
 if (ionBad.size) {
   fail++
   problems.push(`ионы в одной точке: ${[...ionBad].slice(0, 8).join(', ')}`)

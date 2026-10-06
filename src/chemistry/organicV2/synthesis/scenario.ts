@@ -234,6 +234,23 @@ export function speciesPositions(s: OV2Species): V3[] {
   if (hit) return hit
   const pos = s.atoms.map((a) => [a.p[0], a.p[1], a.p[2]] as V3)
   const n = pos.length
+  // сбой 3D у металла в соли ((CH₃COO)₂Ca: Ca за 170 Å от своих O) — ставим атом между соседями по связям
+  const nb: number[][] = Array.from({ length: n }, () => [])
+  for (const b of s.bonds) {
+    nb[b.a].push(b.b)
+    nb[b.b].push(b.a)
+  }
+  for (let i = 0; i < n; i++) {
+    if (!nb[i].length || !nb[i].every((j) => dist(pos[i], pos[j]) > 3.2)) continue
+    const c = centroid(nb[i].map((j) => pos[j]))
+    if (nb[i].length >= 2) pos[i] = c
+    else {
+      const j = nb[i][0]
+      const others = nb[j].filter((k) => k !== i)
+      const away = others.length ? sub(pos[j], centroid(others.map((k) => pos[k]))) : ([1, 0, 0] as V3)
+      pos[i] = add(pos[j], scale(norm(away, [1, 0, 0]), 2))
+    }
+  }
   const par = Array.from({ length: n }, (_, i) => i)
   const find = (x: number): number => (par[x] === x ? x : (par[x] = find(par[x])))
   for (const b of s.bonds) par[find(b.a)] = find(b.b)
