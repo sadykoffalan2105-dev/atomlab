@@ -22,9 +22,12 @@ import { buildMoreScene, type MoreShow, type SceneKit } from './routeMore'
 
 export type Tri = [string, string, string]
 export type RouteKey = [number, V3]
-export type RouteAtom = { el: string; r: number; keys: RouteKey[]; tIn: number; tOut: number }
-export type RouteStick = { a: number; b: number; t0: number; t1: number; tOut: number }
-export type RouteElectron = { keys: RouteKey[]; tIn: number; tOut: number }
+/** q / qKind (добавлено): начальный заряд иона ('ion') или степень окисления ('ox') — подпись; смены — story.chargeSteps */
+export type RouteAtom = { el: string; r: number; keys: RouteKey[]; tIn: number; tOut: number; q?: number; qKind?: 'ion' | 'ox' }
+/** n / s (добавлено): кратность связи и номер палочки (O=O — две палочки: s = 0, 1; n = 2); нет — одинарная */
+export type RouteStick = { a: number; b: number; t0: number; t1: number; tOut: number; n?: number; s?: number }
+/** kind / from / to (добавлено): 'transfer' — перенос e⁻ от атома from к атому to (индексы routeStage.atoms) */
+export type RouteElectron = { keys: RouteKey[]; tIn: number; tOut: number; kind?: 'transfer'; from?: number; to?: number }
 export type RouteBadge = { text: string; atoms: number[]; from: number; to: number }
 export type RouteShow = 'neutralization' | 'protonTransfer' | 'hydration' | 'exchange' | 'oxideWater' | 'baseAcidOxide' | MoreShow
 

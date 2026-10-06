@@ -29,6 +29,8 @@ const pick = (t: Tri, loc: FormationLocale) => t[L3[loc]]
 const TITLES: Record<StageKey, Tri> = {
   reagents: ['Исходные вещества', 'Starting substances', 'Boshlangʻich moddalar'],
   route: ['Путь получения', 'How it is obtained', 'Olinish yoʻli'],
+  heat: ['Нагревание', 'Heating', 'Qizdirish'],
+  release: ['Выделение газа', 'Gas is released', 'Gaz ajraladi'],
   break: ['Связи рвутся', 'Bonds break', 'Bogʻlar uziladi'],
   approach: ['Атомы сближаются', 'Atoms approach', 'Atomlar yaqinlashadi'],
   valence: ['Валентные электроны', 'Valence electrons', 'Valent elektronlar'],
@@ -233,6 +235,31 @@ export function formationStageTexts(
         main = s4.main
         sub = s4.sub
         break
+      case 'heat': {
+        // Окислительно-восстановительное разложение: нагревание исходного кристалла (4MnO₂ —t°→ …).
+        main = `${story.routeStage?.equation ?? eq?.lab ?? plan.formula} (t°)`
+        sub = pick(
+          [
+            'Исходное вещество нагревают: ионы в кристалле колеблются всё сильнее (оранжевые искры — тепло). Когда энергии хватает, связи металл–кислород рвутся.',
+            'The starting substance is heated: the ions in the crystal vibrate more and more (orange sparks are heat). Once there is enough energy, the metal–oxygen bonds break.',
+            'Boshlangʻich modda qizdiriladi: kristalldagi ionlar tobora kuchliroq tebranadi (toʻq sariq uchqunlar — issiqlik). Energiya yetarli boʻlganda metall–kislorod bogʻlari uziladi.',
+          ],
+          loc,
+        )
+        break
+      }
+      case 'release': {
+        main = pick(['O⁻² − 2e⁻ → O⁰ · 2O⁰ → O₂↑', 'O⁻² − 2e⁻ → O⁰ · 2O⁰ → O₂↑', 'O⁻² − 2e⁻ → O⁰ · 2O⁰ → O₂↑'], loc)
+        sub = pick(
+          [
+            'Часть ионов O²⁻ отдаёт электроны (окисляется) — атомы O соединяются в молекулы O₂, газ уходит. Эти электроны принимает другой элемент вещества (ион металла Mn, Cu или азот в NO₃⁻) — он восстанавливается, его степень окисления понижается. Баланс: сколько e⁻ отдано, столько и принято.',
+            'Some O²⁻ ions give up electrons (are oxidised) — O atoms join into O₂ molecules and the gas escapes. Another element of the substance accepts these electrons (a metal ion such as Mn, Cu, or nitrogen in NO₃⁻) — it is reduced and its oxidation state goes down. Balance: electrons given = electrons accepted.',
+            'O²⁻ ionlarining bir qismi elektron beradi (oksidlanadi) — O atomlari O₂ molekulalariga birikadi, gaz chiqib ketadi. Bu elektronlarni moddaning boshqa elementi qabul qiladi (Mn, Cu metall ioni yoki NO₃⁻ dagi azot) — u qaytariladi, oksidlanish darajasi pasayadi. Balans: berilgan e⁻ = qabul qilingan e⁻.',
+          ],
+          loc,
+        )
+        break
+      }
       case 'route': {
         // Путь на уровне частиц (formationStory.routeStage): уравнение пути и фраза учителя.
         const r = story.routeStage

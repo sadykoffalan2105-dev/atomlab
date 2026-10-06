@@ -39,20 +39,51 @@ const _ax = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
 const _c = new THREE.Color()
 const _rp: V3 = [0, 0, 0]
+const _cT = new THREE.Vector3()
 
 const E_LONE = new THREE.Color('#facc15')
 const E_PAIR = new THREE.Color('#22d3ee')
 const E_MOVE = new THREE.Color('#fb923c')
+const LAT_BG = new THREE.Color('#0b1020')
 
 /** src: 'route' — индексы атомов сцены пути (routeStage.atoms), иначе — атомы модели. */
 type Badge = { text: string; atoms: number[]; from: number; to: number; kind: 'group' | 'water' | 'valence' | 'caption' | 'route'; src?: 'route' }
 
-/** Язык подписей в 3D: тот же, что у страницы (LocaleProvider ставит document.documentElement.lang). */
-function viewLocale(): 0 | 1 | 2 {
-  const l = typeof document !== 'undefined' ? document.documentElement.lang : 'ru'
-  return l === 'en' ? 1 : l === 'uz' ? 2 : 0
-}
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII']
+
+/** Смена заряда иона в момент t (данные сценария, если есть): подпись меняется со вспышкой. */
+type ChargeStep = { atom: number; t: number; from: number | string; to: number | string }
+const SUP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' }
+/** Подпись шара: число — степень окисления (Mn⁺³, O⁰), строка — как есть. */
+function chargeLabel(el: string, q: number | string): string {
+  if (typeof q === 'string') return q
+  if (q === 0) return `${el}⁰`
+  return `${el}${q > 0 ? '⁺' : '⁻'}${String(Math.abs(q)).split('').map((d) => SUP[d] ?? d).join('')}`
+}
+function chargeStepsOf(story: FormationStory): ChargeStep[] {
+  // Шаги с src 'route' — индексы routeStage.atoms (подписи сцены пути), к атомам модели не относятся.
+  const cs = (story as FormationStory & { chargeSteps?: (ChargeStep & { src?: string })[] }).chargeSteps
+  return Array.isArray(cs) ? cs.filter((x) => x && x.src !== 'route' && Number.isFinite(x.atom) && Number.isFinite(x.t)) : []
+}
+/** Подпись иона: заряд после символа (Mn³⁺, O²⁻, Na⁺); 0 — O⁰. */
+function ionLabel(el: string, q: number): string {
+  if (q === 0) return `${el}⁰`
+  const n = Math.abs(q)
+  return `${el}${n === 1 ? '' : String(n).split('').map((d) => SUP[d] ?? d).join('')}${q > 0 ? '⁺' : '⁻'}`
+}
+/** Подпись частицы сцены пути: 'ion' — заряд иона (Mn⁴⁺), 'ox' — степень окисления в многоатомном ионе (Mn⁺⁷). */
+function routeQLabel(el: string, q: number, kind: 'ion' | 'ox' | undefined): string {
+  return kind === 'ox' ? chargeLabel(el, q) : ionLabel(el, q)
+}
+
+/** Частицы тепла (этап 'heat'): не больше 120, на слабых устройствах — 48. */
+const HEAT_N = 120
+const HEAT_N_LOW = 48
+const HEAT_AMP = 8 // pm: 0,08 Å — амплитуда тепловых колебаний к концу нагревания
+const hash = (i: number, k: number) => {
+  const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
+  return x - Math.floor(x)
+}
 
 /** Смещение кратных палочек (в плоскости σ-соседей, иначе ⟂ оси и Z) — по итоговой геометрии. */
 function sideFor(model: SchoolHeroModel, a: number, b: number, nbrs: number[][]): THREE.Vector3 {
@@ -119,14 +150,8 @@ export function FormationMoleculeView({
     })
     const badges: Badge[] = []
     const stage = (k: string) => story.stages.find((s) => s.key === k)
-    if (plan.mode === 'ionic' && !crystal) {
-      for (const u of plan.units) {
-        const s = plan.species[u.species]
-        if (!s || u.atoms.length < 2) continue
-        if (s.kind === 'molecule') badges.push({ text: s.formula, atoms: u.atoms, from: stage('inner')?.t0 ?? story.ionLabelsFrom, to: stage('assemble')!.t0 + 1, kind: 'water' })
-        else badges.push({ text: s.formula, atoms: u.atoms, from: story.ionLabelsFrom, to: Infinity, kind: 'group' })
-      }
-    } else if (plan.mode === 'molecular' && model.atoms.length <= 24) {
+    // Многоатомные ионы и молекулы воды гидрата (SO₄²⁻, H₂O) — строками HUD (FormationHud), не плашками над атомами.
+    if (plan.mode === 'molecular' && model.atoms.length <= 24) {
       const sums = model.atoms.map(() => 0)
       for (const b of model.bonds) {
         sums[b.a]! += b.order
@@ -141,24 +166,9 @@ export function FormationMoleculeView({
         if (v) badges.push({ text: ROMAN[v] ?? String(v), atoms: [i], from, to, kind: 'valence' })
       })
     }
-    // Путь получения (этап 'route'): подписи частиц сцены пути.
-    if (story.routeStage) for (const rb of story.routeStage.badges) badges.push({ text: rb.text, atoms: rb.atoms, from: rb.from, to: rb.to, kind: 'route', src: 'route' })
-    // Подпись итоговой «решётки» по типу (правила, раздел 1).
-    const L = viewLocale()
-    const all = model.atoms.map((_, i) => i)
-    const fin = story.stages[story.stages.length - 1]!
-    const latS = stage('lattice')
-    const f = plan.formula
-    if (story.latticeKind === 'ionic' && latS)
-      badges.push({ text: ['Ионная кристаллическая решётка', 'Ionic crystal lattice', 'Ion kristall panjara'][L]!, atoms: all, from: latS.t0 + 0.4, to: fin.t0 + 2.6, kind: 'caption' })
-    else if (story.latticeKind === 'molecular')
-      badges.push({ text: ['Молекулярная решётка: молекулы в узлах', 'Molecular lattice: molecules at the sites', 'Molekulyar panjara: tugunlarda molekulalar'][L]!, atoms: all, from: fin.t0 + 0.4, to: fin.t0 + fin.dur - 1.4, kind: 'caption' })
-    else if (story.latticeKind === 'chain')
-      badges.push({ text: [`(${f})ₙ — цепь звеньев`, `(${f})ₙ — a chain of units`, `(${f})ₙ — boʻgʻinlar zanjiri`][L]!, atoms: all, from: fin.t0 + 0.4, to: fin.t0 + fin.dur - 1.4, kind: 'caption' })
-    else if (story.latticeKind === 'network') {
-      const sa = stage('assemble')!
-      badges.push({ text: ['Каркас тетраэдров SiO₄ (молекул нет)', 'Framework of SiO₄ tetrahedra (no molecules)', 'SiO₄ tetraedrlari karkasi (molekula yoʻq)'][L]!, atoms: all, from: sa.t0 + 0.3, to: Infinity, kind: 'caption' })
-    }
+    // Путь получения и подпись решётки — в HUD-карточке у 3D-окна (FormationHud), не плашками поверх атомов.
+    // Сценарий задал свой HUD — формулы только там.
+    if (story.hud && story.hud.length > 0) badges.length = 0
     // Направление «вверх» экрана в координатах модели — дуга перелёта электронов.
     const up = new THREE.Vector3(...screenToModel(model, [0, 1, 0]))
     // К зрителю — для палочек исходных молекул (O=O: две палочки рядом в плоскости экрана).
@@ -194,17 +204,15 @@ export function FormationMoleculeView({
     for (let i = 0; i < story.electrons.length + nRE; i++) electrons.setColorAt(i, E_LONE)
     // Фрагмент решётки: ионы / молекулы / звенья цепи (полупрозрачно, растут слоями по k).
     const nL = story.latticeAtoms.length
+    // Чёткие непрозрачные ионы (без «каши» полупрозрачных сфер): цвет приглушён к фону — фокус на центральной единице.
     const latMat = createSchoolMatteMaterial()
-    latMat.transparent = true
-    latMat.opacity = 0
-    latMat.depthWrite = false
-    const lattice = new THREE.InstancedMesh(schoolSphereGeometry(true), latMat, Math.max(1, nL))
+    const lattice = new THREE.InstancedMesh(schoolSphereGeometry(lowPower), latMat, Math.max(1, nL))
     lattice.frustumCulled = false
     lattice.count = nL
     story.latticeAtoms.forEach((a, i) => {
       _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(1e-5))
       lattice.setMatrixAt(i, _m)
-      lattice.setColorAt(i, schoolAtomColor(a.el as never, _c))
+      lattice.setColorAt(i, schoolAtomColor(a.el as never, _c).lerp(LAT_BG, 0.42))
     })
     // Сцена пути получения (H⁺ + OH⁻ → H₂O …): свои шары.
     const nR = route?.atoms.length ?? 0
@@ -222,12 +230,29 @@ export function FormationMoleculeView({
       edges = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: SCHOOL_EDGE_HEX.dark, transparent: true, opacity: 0, depthWrite: false, fog: false }))
       edges.frustumCulled = false
     }
-    return { atoms, atomMat, sticks, stickMat, ghosts, ghostMat, electrons, eMat, lattice, latMat, edges, routeAtoms, routeMat }
+    // Частицы тепла (этап 'heat'): точки, поднимаются вверх экрана; без новых источников света.
+    const hasHeat = story.stages.some((s) => s.key === 'heat')
+    const nH = hasHeat ? (lowPower ? HEAT_N_LOW : HEAT_N) : 0
+    const heatGeo = new THREE.BufferGeometry()
+    heatGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(Math.max(1, nH) * 3), 3))
+    const heatCol = new Float32Array(Math.max(1, nH) * 3)
+    for (let i = 0; i < nH; i++) {
+      _c.set(hash(i, 3) < 0.5 ? '#fb923c' : '#fde047')
+      heatCol.set([_c.r, _c.g, _c.b], i * 3)
+    }
+    heatGeo.setAttribute('color', new THREE.BufferAttribute(heatCol, 3))
+    heatGeo.setDrawRange(0, nH)
+    const heatMat = new THREE.PointsMaterial({ size: 0.045, vertexColors: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })
+    const heat = new THREE.Points(heatGeo, heatMat)
+    heat.frustumCulled = false
+    heat.visible = false
+    return { atoms, atomMat, sticks, stickMat, ghosts, ghostMat, electrons, eMat, lattice, latMat, edges, routeAtoms, routeMat, heat, heatMat, nH }
   }, [model, story, lowPower])
 
   useEffect(
     () => () => {
-      for (const m of [res.atomMat, res.stickMat, res.ghostMat, res.eMat, res.latMat, res.routeMat]) m.dispose()
+      for (const m of [res.atomMat, res.stickMat, res.ghostMat, res.eMat, res.latMat, res.routeMat, res.heatMat]) m.dispose()
+      res.heat.geometry.dispose()
       for (const x of [res.atoms, res.sticks, res.ghosts, res.lattice, res.routeAtoms]) x.dispose()
       res.electrons.geometry.dispose()
       res.electrons.dispose()
@@ -275,6 +300,91 @@ export function FormationMoleculeView({
   }, [gl, anim])
 
   const lastStage = useRef(-1)
+  // Смена зарядов по сценарию (story.chargeSteps, если есть): набор подписей — по числу прошедших шагов.
+  const steps = useMemo(() => [...chargeStepsOf(story)].sort((x, y) => x.t - y.t), [story])
+  const [stepN, setStepN] = useState(0)
+  const stepLabels = useMemo(() => {
+    if (!steps.length) return null
+    const base: SchoolHeroAtom[] = anim.ionic.map((a, i) => ({ ...a, label: model.atoms[i]!.el }))
+    for (const st of steps) {
+      const a = base[st.atom]
+      if (a) a.label = chargeLabel(a.el, st.from)
+    }
+    for (let k = 0; k < stepN; k++) {
+      const st = steps[k]!
+      const a = base[st.atom]
+      if (a) a.label = chargeLabel(a.el, st.to)
+    }
+    return base
+  }, [steps, stepN, anim, model])
+  // Заряды частиц сцены пути (RouteAtom.q / qKind + story.chargeSteps src 'route'): маленькие подписи сбоку от шара.
+  const routeQ = useMemo(() => {
+    const rs0 = story.routeStage
+    if (!rs0) return null
+    const all = ((story as FormationStory & { chargeSteps?: { atom: number; src?: string; t: number; from: number; to: number; kind?: 'ion' | 'ox' }[] }).chargeSteps ?? []).filter((x) => x.src === 'route')
+    const per = rs0.atoms.map((a, i) => {
+      const st = all.filter((x) => x.atom === i).sort((x, y) => x.t - y.t)
+      const q0 = a.q ?? st[0]?.from
+      if (q0 == null) return null
+      const kind = a.qKind ?? st[0]?.kind
+      return { q0, kind, steps: st.map((x) => ({ t: x.t, q: x.to, kind: x.kind ?? kind })) }
+    })
+    return per.some(Boolean) ? per : null
+  }, [story])
+  // «Итог» ОВР-разложения: у ВСЕХ ионов модели — заряд (Mn³⁺, O²⁻), по конечным зарядам ионов главной формульной единицы.
+  const finalLabels = useMemo(() => {
+    const info = story.redox
+    const rs0 = story.routeStage
+    if (story.scenario !== 'redoxDecomposition' || !info || !rs0 || !routeQ) return null
+    const main = info.units.find((u) => u.main) ?? info.units[0]
+    if (!main) return null
+    const byEl = new Map<string, number | null>()
+    for (const i of main.atoms) {
+      const r = routeQ[i]
+      const a = rs0.atoms[i]
+      if (!a) continue
+      const last = r ? (r.steps.length ? r.steps[r.steps.length - 1]! : null) : null
+      const kind = last ? last.kind : r?.kind
+      const q = r ? (last ? last.q : r.q0) : null
+      const prev = byEl.get(a.el)
+      byEl.set(a.el, q == null || kind === 'ox' || (prev !== undefined && prev !== q) ? null : q)
+    }
+    return anim.ionic.map((a, i) => {
+      const el = model.atoms[i]!.el
+      const q = byEl.get(el)
+      return { ...a, label: q == null ? a.label : ionLabel(el, q) }
+    })
+  }, [story, routeQ, anim, model])
+  const qEls = useRef<({ el: HTMLDivElement; text: string; shown: boolean; flash: number } | null)[]>([])
+  useEffect(() => {
+    const host = gl.domElement.parentElement
+    if (!host || !routeQ) return
+    const layer = document.createElement('div')
+    layer.setAttribute('aria-hidden', 'true')
+    layer.dataset.formationCharges = ''
+    layer.style.cssText = 'position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:3; contain:strict;'
+    qEls.current = routeQ.map((r) => {
+      if (!r) return null
+      const el = document.createElement('div')
+      el.dataset.formationCharge = ''
+      el.style.cssText =
+        'position:absolute; left:0; top:0; white-space:nowrap; display:none; will-change:transform; font-family:var(--lt-font, "Inter", system-ui, sans-serif);' +
+        'font-size:12px; font-weight:700; line-height:1; padding:2px 5px; border-radius:7px; color:#f8fafc; background:rgba(10,14,28,0.72);' +
+        'border:1px solid rgba(148,163,184,0.45); font-variant-numeric:tabular-nums; transition:color 250ms cubic-bezier(0.22,1,0.36,1), border-color 250ms cubic-bezier(0.22,1,0.36,1), box-shadow 250ms cubic-bezier(0.22,1,0.36,1);'
+      layer.appendChild(el)
+      return { el, text: '', shown: false, flash: 0 }
+    })
+    host.appendChild(layer)
+    return () => {
+      qEls.current = []
+      layer.remove()
+    }
+  }, [gl, routeQ])
+  const isRedox = story.scenario === 'redoxDecomposition'
+  const centerRef = useRef<THREE.Group>(null)
+  const center = useRef(new THREE.Vector3())
+  const heatSt = story.stages.find((s) => s.key === 'heat') ?? null
+  const breakSt = story.stages.find((s) => s.key === 'break') ?? null
   const routeLive = useRef<V3[]>([])
   if (routeLive.current.length !== (story.routeStage?.atoms.length ?? 0)) routeLive.current = (story.routeStage?.atoms ?? []).map(() => [0, 0, 0] as V3)
 
@@ -284,6 +394,21 @@ export function FormationMoleculeView({
     lastStage.current = stageIndexAt(story, t)
     const wantIons = t >= story.ionLabelsFrom
     if (wantIons !== ionLabels) setIonLabels(wantIons)
+    if (steps.length) {
+      let n = 0
+      while (n < steps.length && t >= steps[n]!.t) n++
+      if (n !== stepN) setStepN(n)
+    }
+    // Нагревание: амплитуда растёт к концу этапа, на разрыве затухает (0,08 Å максимум).
+    let heatA = 0
+    let heatF = 0
+    if (heatSt && t >= heatSt.t0) {
+      const u = clamp01((t - heatSt.t0) / Math.max(1e-6, heatSt.dur))
+      heatA = t < heatSt.t0 + heatSt.dur ? 0.25 + 0.75 * u : 1
+      heatF = 7 + 11 * u
+      const endHeat = heatSt.t0 + heatSt.dur
+      if (t >= endHeat) heatA *= breakSt && breakSt.t0 >= endHeat - 0.01 ? 1 - easeInOut((t - breakSt.t0) / Math.max(0.3, 0.7 * breakSt.dur)) : 1 - clamp01((t - endHeat) / 1.2)
+    }
     if (c.playing && t >= finalT0) swayT.current += Math.min(0.1, Math.max(0, dt))
     if (t < finalT0) swayT.current = 0
     const { live } = anim
@@ -295,7 +420,15 @@ export function FormationMoleculeView({
     // Атомы.
     for (let i = 0; i < live.length; i++) {
       const L = atomPosAt(story, i, t, live[i]!)
-      _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(atomRadiusAt(story, i, t, model.atoms[i]!.r) * keep))
+      if (heatA > 0.001) {
+        const amp = HEAT_AMP * K * heatA
+        L[0] += amp * Math.sin(heatF * t * 1.13 + i * 2.1)
+        L[1] += amp * Math.sin(heatF * t * 0.97 + i * 3.7 + 1)
+        L[2] += amp * Math.sin(heatF * t * 1.07 + i * 5.3 + 2)
+      }
+      let pulse = 1
+      for (const st of steps) if (st.atom === i && t >= st.t && t < st.t + 0.6) pulse = 1 + 0.18 * Math.sin((Math.PI * (t - st.t)) / 0.6)
+      _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(atomRadiusAt(story, i, t, model.atoms[i]!.r) * keep * pulse))
       res.atoms.setMatrixAt(i, _m)
     }
     res.atoms.instanceMatrix.needsUpdate = true
@@ -315,6 +448,13 @@ export function FormationMoleculeView({
     if (route) {
       route.atoms.forEach((a, i) => {
         const P = routeKeyAt(a.keys, t, rl[i]!)
+        if (heatA > 0.001) {
+          // Нагревание: колеблются частицы сцены пути (они и есть исходное вещество до «Итога»).
+          const amp = HEAT_AMP * K * heatA
+          P[0] += amp * Math.sin(heatF * t * 1.13 + i * 2.1)
+          P[1] += amp * Math.sin(heatF * t * 0.97 + i * 3.7 + 1)
+          P[2] += amp * Math.sin(heatF * t * 1.07 + i * 5.3 + 2)
+        }
         const sc = clamp01((t - a.tIn) / 0.5) * (1 - clamp01((t - a.tOut) / 0.4))
         _m.compose(_p.set(P[0], P[1], P[2]), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * sc)))
         res.routeAtoms.setMatrixAt(i, _m)
@@ -365,7 +505,16 @@ export function FormationMoleculeView({
         if (g <= 0.001) continue
         _a.set(...rl[s.a]!)
         _b.set(...rl[s.b]!)
-        drawStick(_a.clone(), _b.clone(), null, 0, 1, g)
+        const nn = s.n ?? 1
+        let side: THREE.Vector3 | null = null
+        if (nn > 1) {
+          // Кратная связь (O=O): палочки параллельно, сдвиг поперёк связи в плоскости экрана.
+          const ax = _b.clone().sub(_a).normalize()
+          side = new THREE.Vector3(0, 0, 1).cross(ax)
+          if (side.lengthSq() < 1e-6) side.set(0, 1, 0).cross(ax)
+          side.normalize()
+        }
+        drawStick(_a.clone(), _b.clone(), side, s.s ?? 0, nn, g)
       }
     }
     res.sticks.count = k
@@ -433,6 +582,24 @@ export function FormationMoleculeView({
     }
     res.electrons.instanceMatrix.needsUpdate = true
     if (res.electrons.instanceColor) res.electrons.instanceColor.needsUpdate = true
+    // Частицы тепла: поднимаются (экранные координаты внешней группы), видны вместе с колебаниями.
+    if (res.nH > 0) {
+      const vis = heatA
+      res.heat.visible = vis > 0.01
+      if (res.heat.visible) {
+        const arr = (res.heat.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array
+        const Rr = model.radius
+        for (let i = 0; i < res.nH; i++) {
+          const ph = (t * (0.18 + 0.22 * hash(i, 1)) * (0.6 + heatF / 18) + hash(i, 2)) % 1
+          arr[i * 3] = (hash(i, 4) * 2 - 1) * 1.15 * Rr + 0.05 * Rr * Math.sin(3 * t + i)
+          arr[i * 3 + 1] = (-1.1 + 2.3 * ph) * Rr
+          arr[i * 3 + 2] = (hash(i, 5) * 2 - 1) * 0.6 * Rr
+        }
+        res.heat.geometry.getAttribute('position').needsUpdate = true
+        res.heatMat.opacity = 0.85 * vis
+        res.heatMat.size = 0.035 * Rr
+      }
+    }
     // Фрагмент решётки и рёбра ячеек.
     let latO = 0
     const nL = story.latticeAtoms.length
@@ -442,20 +609,20 @@ export function FormationMoleculeView({
       // Ионная — растёт в «Решётке» и уходит в начале «Готово» (итог — модель карточки);
       // молекулярная укладка / цепь — показывается в «Готово» и уходит в конце.
       const fadeAt = story.latticeKind === 'ionic' ? finalT0 + 2.6 : fin.t0 + fin.dur - 1.6
-      latO = clamp01((t - w0 + 0.2) / 0.8) * (1 - clamp01((t - fadeAt) / 1.4))
+      latO = clamp01((t - w0 + 0.2) / 0.8) * (1 - easeInOut((t - fadeAt) / 0.8))
       if (latO > 0.01) {
         story.latticeAtoms.forEach((a, i) => {
-          const g = easeInOut((t - (w0 + a.k * (w1 - w0))) / 0.7)
-          // Ионы фрагмента чуть меньше (0,8 r): в плотной решётке видно расположение соседей, а не сплошная стена шаров.
-          _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g * (story.latticeKind === 'ionic' ? 0.8 : 1))))
+          const g = easeInOut((t - (w0 + a.k * (w1 - w0))) / 0.7) * latO
+          // Ионы фрагмента меньше (0,62 r): видно расположение соседей, а не сплошная стена шаров; уходят — сжимаясь.
+          _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g * (story.latticeKind === 'ionic' ? 0.62 : 0.85))))
           res.lattice.setMatrixAt(i, _m)
         })
         res.lattice.instanceMatrix.needsUpdate = true
       }
     }
-    res.latMat.opacity = (story.latticeKind === 'ionic' ? 0.5 : 0.38) * latO
-    res.lattice.visible = latO > 0.01
+    res.lattice.visible = latO > 0.04
     if (res.edges) (res.edges.material as THREE.LineBasicMaterial).opacity = 0.55 * clamp01((t - finalT0) / 1.2)
+    const cTarget = _cT.set(0, 0, 0)
     // Кадр: описанная сфера текущих положений (+ призраки и копии решётки, пока видны).
     let R = model.radius
     for (let i = 0; i < live.length; i++) {
@@ -466,10 +633,39 @@ export function FormationMoleculeView({
     if (rs && hide > 0.5) {
       // Кадр — по сцене пути (крупно), исходные вещества спрятаны.
       R = 0
-      for (let i = 0; i < rl.length; i++) R = Math.max(R, Math.hypot(...rl[i]!) + rs.atoms[i]!.r)
+      if (isRedox) {
+        // ОВР-разложение: кадр — по ВИДИМЫМ частицам (на «Решётке» — формульные единицы продукта крупно, по центру).
+        let n = 0
+        _p.set(0, 0, 0)
+        for (let i = 0; i < rl.length; i++) {
+          const a = rs.atoms[i]!
+          if (t < a.tIn + 0.2 || t > a.tOut) continue
+          _p.x += rl[i]![0]
+          _p.y += rl[i]![1]
+          _p.z += rl[i]![2]
+          n++
+        }
+        if (n) _p.divideScalar(n)
+        cTarget.copy(_p)
+        for (let i = 0; i < rl.length; i++) {
+          const a = rs.atoms[i]!
+          if (n && (t < a.tIn + 0.2 || t > a.tOut)) continue
+          R = Math.max(R, Math.hypot(rl[i]![0] - center.current.x, rl[i]![1] - center.current.y, rl[i]![2] - center.current.z) + a.r)
+        }
+      } else for (let i = 0; i < rl.length; i++) R = Math.max(R, Math.hypot(...rl[i]!) + rs.atoms[i]!.r)
       R = Math.max(R * 1.08, 0.35 * model.radius)
     }
-    if (latO > 0) for (const a of story.latticeAtoms) R = Math.max(R, model.radius + (Math.hypot(...a.pos) + a.r - model.radius) * latO)
+    // Плавный наезд центра кадра (cubic ease-out по шагу кадра): без рывков между этапами.
+    {
+      const kc = 1 - Math.pow(1 - Math.min(1, 3.2 * Math.max(0.016, Math.min(0.1, dt))), 3)
+      center.current.lerp(cTarget, kc)
+      if (centerRef.current) centerRef.current.position.set(-center.current.x, -center.current.y, -center.current.z)
+    }
+    // Кадр держит весь фрагмент, пока он виден (без наезда камеры на уходящие ионы), затем плавно возвращается.
+    if (latO > 0.04) {
+      const kk = 1
+      for (const a of story.latticeAtoms) R = Math.max(R, model.radius + (Math.hypot(...a.pos) + a.r - model.radius) * kk)
+    }
     const o = outer.current
     if (o) {
       const target = fitRadius / Math.max(1e-6, R)
@@ -488,6 +684,62 @@ export function FormationMoleculeView({
         a.rotation.set(0, model.yaw + SWAY_AMP * Math.sin((2 * Math.PI * stt) / SWAY_PERIOD), 0)
         bb.rotation.set(model.pitch, 0, 0)
       }
+    }
+    // Заряды частиц сцены пути: сбоку-сверху от шара (не на центре — соседи не перекрываются), смена со вспышкой.
+    const qList = qEls.current
+    if (routeQ && route && qList.length && bb) {
+      const vis = t > route.t0 && t < route.t0 + route.dur
+      bb.updateWorldMatrix(true, true)
+      const cam = camera as THREE.PerspectiveCamera
+      const pxK = size.height / 2 / Math.tan(((cam.fov || 46) * Math.PI) / 360)
+      _s.setFromMatrixScale(bb.matrixWorld)
+      const sc = _s.x
+      const mw = (centerRef.current ?? bb).matrixWorld
+      routeQ.forEach((r, i) => {
+        const node = qList[i]
+        if (!r || !node) return
+        const a = route.atoms[i]!
+        const on = vis && t > a.tIn + 0.35 && t < a.tOut - 0.05
+        if (!on) {
+          if (node.shown) {
+            node.el.style.display = 'none'
+            node.shown = false
+          }
+          return
+        }
+        let q = r.q0
+        let kind = r.kind
+        let flashAt = -1
+        for (const st of r.steps) {
+          if (t < st.t) break
+          q = st.q
+          kind = st.kind
+          flashAt = st.t
+        }
+        const text = routeQLabel(a.el, q, kind)
+        if (text !== node.text) {
+          node.el.textContent = text
+          node.text = text
+        }
+        const fl = flashAt >= 0 && t - flashAt < 0.7
+        if (fl !== node.flash > 0) {
+          node.flash = fl ? 1 : 0
+          node.el.style.color = fl ? '#fde047' : '#f8fafc'
+          node.el.style.borderColor = fl ? 'rgba(250,204,21,0.95)' : 'rgba(148,163,184,0.45)'
+          node.el.style.boxShadow = fl ? '0 0 10px rgba(250,204,21,0.75)' : 'none'
+        }
+        _p.set(rl[i]![0], rl[i]![1], rl[i]![2]).applyMatrix4(mw)
+        const dist = cam.position.distanceTo(_p)
+        const pxR = dist > 1e-6 ? ((a.r * sc) / dist) * pxK : 0
+        _p.project(cam)
+        const x = Math.round(((_p.x * 0.5 + 0.5) * size.width + pxR * 0.62) * 2) / 2
+        const y = Math.round(((-_p.y * 0.5 + 0.5) * size.height - pxR * 0.62) * 2) / 2
+        if (!node.shown) {
+          node.el.style.display = 'block'
+          node.shown = true
+        }
+        node.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-10%, -90%)`
+      })
     }
     // Значки.
     const list = badgeEls.current
@@ -548,8 +800,10 @@ export function FormationMoleculeView({
 
   return (
     <group ref={outer} name="formation-view">
+      <primitive object={res.heat} />
       <group ref={turnA}>
         <group ref={turnB}>
+         <group ref={centerRef}>
           <primitive object={res.atoms} />
           <primitive object={res.sticks} />
           <primitive object={res.ghosts} />
@@ -557,7 +811,8 @@ export function FormationMoleculeView({
           <primitive object={res.lattice} />
           <primitive object={res.routeAtoms} />
           {res.edges ? <primitive object={res.edges} /> : null}
-          <SchoolBallLabels atoms={ionLabels ? anim.ionic : anim.neutral} crystal={crystal} opacity={labelOpacity} />
+          <SchoolBallLabels atoms={stepLabels ?? finalLabels ?? (ionLabels ? anim.ionic : anim.neutral)} crystal={crystal} opacity={labelOpacity} />
+         </group>
         </group>
       </group>
     </group>
