@@ -521,7 +521,7 @@ export function FormationMoleculeView({
       // Ионная — растёт в «Решётке» и уходит в начале «Готово» (итог — модель карточки);
       // молекулярная укладка / цепь — показывается в «Готово» и уходит в конце.
       const fadeAt = story.latticeKind === 'ionic' ? finalT0 + 2.6 : fin.t0 + fin.dur - 1.6
-      latO = clamp01((t - w0 + 0.2) / 0.8) * (1 - easeInOut((t - fadeAt) / 1.2))
+      latO = clamp01((t - w0 + 0.2) / 0.8) * (1 - easeInOut((t - fadeAt) / 0.8))
       if (latO > 0.01) {
         story.latticeAtoms.forEach((a, i) => {
           const g = easeInOut((t - (w0 + a.k * (w1 - w0))) / 0.7) * latO
@@ -532,7 +532,7 @@ export function FormationMoleculeView({
         res.lattice.instanceMatrix.needsUpdate = true
       }
     }
-    res.lattice.visible = latO > 0.01
+    res.lattice.visible = latO > 0.04
     if (res.edges) (res.edges.material as THREE.LineBasicMaterial).opacity = 0.55 * clamp01((t - finalT0) / 1.2)
     // Кадр: описанная сфера текущих положений (+ призраки и копии решётки, пока видны).
     let R = model.radius
@@ -547,8 +547,9 @@ export function FormationMoleculeView({
       for (let i = 0; i < rl.length; i++) R = Math.max(R, Math.hypot(...rl[i]!) + rs.atoms[i]!.r)
       R = Math.max(R * 1.08, 0.35 * model.radius)
     }
-    if (latO > 0.01) {
-      const kk = Math.min(1, 1.6 * latO)
+    // Кадр держит весь фрагмент, пока он виден (без наезда камеры на уходящие ионы), затем плавно возвращается.
+    if (latO > 0.04) {
+      const kk = 1
       for (const a of story.latticeAtoms) R = Math.max(R, model.radius + (Math.hypot(...a.pos) + a.r - model.radius) * kk)
     }
     const o = outer.current

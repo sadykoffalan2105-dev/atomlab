@@ -71,10 +71,14 @@ export function FormationCaptions({
         {story.stages.map((st, k) => {
           const fill = k < i ? 1 : k > i ? 0 : Math.max(0, Math.min(1, (control.time - st.t0) / st.dur))
           return (
-            <li key={st.key} className={styles.seg} style={{ flexGrow: st.dur }} title={texts.stages[k]!.title} aria-current={k === i ? 'step' : undefined}>
+            <li key={st.key} className={styles.seg} data-stage-key={st.key} style={{ flexGrow: st.dur }} title={texts.stages[k]!.title} aria-current={k === i ? 'step' : undefined}>
               <button type="button" className={styles.segBtn} onClick={() => control.seek(st.t0)} aria-label={`${texts.ui.stage} ${k + 1}: ${texts.stages[k]!.title}`}>
                 <span className={styles.segFill} style={{ transform: `scaleX(${fill})` }} />
               </button>
+              {/* Подпись этапа под шкалой: текущий — целиком и ярко, остальные — коротко (полностью в title). */}
+              <span className={k === i ? styles.segLabelOn : styles.segLabel} aria-hidden="true">
+                {texts.stages[k]!.title}
+              </span>
             </li>
           )
         })}
