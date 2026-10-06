@@ -1176,4 +1176,11 @@ export const messagesEn: Record<MessageKey, string> = {
   'elementDetail.configShowFull': 'Show full notation',
   'elementDetail.configHideFull': 'Hide full notation',
   'elementDetail.configCoreHint': '[{core}] — noble-gas core: {n} electrons in the inner shells',
+  'catalog.filtersBtn': 'Filters',
+  'catalog.filtersCollapse': 'Collapse',
+  'catalog.activeFiltersAria': 'Active filters',
+  'catalog.filterRemove': 'Remove filter: {name}',
+  'catalog.filtersNone': 'No filters',
+  'catalog.filtersClose': 'Close filters',
+  'catalog.filtersShow': 'Show: {count}',
 }

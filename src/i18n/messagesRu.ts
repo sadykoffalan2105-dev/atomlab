@@ -1174,6 +1174,13 @@ export const messagesRu = {
   'elementDetail.configShowFull': 'Показать полную запись',
   'elementDetail.configHideFull': 'Скрыть полную запись',
   'elementDetail.configCoreHint': '[{core}] — остов благородного газа: {n} электронов на внутренних оболочках',
+  'catalog.filtersBtn': 'Фильтры',
+  'catalog.filtersCollapse': 'Свернуть',
+  'catalog.activeFiltersAria': 'Выбранные фильтры',
+  'catalog.filterRemove': 'Убрать фильтр: {name}',
+  'catalog.filtersNone': 'Без фильтров',
+  'catalog.filtersClose': 'Закрыть фильтры',
+  'catalog.filtersShow': 'Показать: {count}',
 } as const
 
 export type MessageKey = keyof typeof messagesRu

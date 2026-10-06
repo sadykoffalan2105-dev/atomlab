@@ -64,6 +64,9 @@ import {
   type MainReactionType,
 } from '../data/catalog/mainReactions'
 import { useMainReactionSearch } from '../components/catalog/mainReactionSearch'
+import { FilterSheet } from '../components/catalog/FilterSheet'
+import { ScrollChips } from '../components/catalog/ScrollChips'
+import { useCollapsingToolbar, useMediaQuery } from '../components/catalog/useCollapsingToolbar'
 import { compoundSearchBlob, getCompoundLocaleStrings } from '../i18n/compoundLocale'
 import type { MessageKey } from '../i18n/useT'
 import { useT } from '../i18n/useT'
@@ -183,6 +186,16 @@ function IconSearch({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden>
       <circle cx="8.6" cy="8.6" r="5.6" stroke="currentColor" strokeWidth="1.7" />
       <path d="m12.8 12.8 4.2 4.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconSliders({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path d="M3 5.5h8M15 5.5h2M3 14.5h2M9 14.5h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="13" cy="5.5" r="2" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="7" cy="14.5" r="2" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   )
 }
@@ -1106,12 +1119,427 @@ export function CatalogPage() {
 
   const rxLoadFailed = readerErrors[rxGradeId] === true
 
+  /* ── «Шторка» фильтров: сворачивается при прокрутке вниз, на телефоне фильтры — в нижней панели ── */
+  const isPhone = useMediaQuery('(max-width: 720px)')
+  const pageRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLElement>(null)
+  const toolbarRef = useRef<HTMLDivElement>(null)
+  const fullRef = useRef<HTMLDivElement>(null)
+  const filtersBtnRef = useRef<HTMLButtonElement>(null)
+  const collapseBtnRef = useRef<HTMLButtonElement>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const { collapsed, stuck, expand, collapse } = useCollapsingToolbar(pageRef, anchorRef, toolbarRef, fullRef)
+  const sheetVisible = sheetOpen && isPhone
+  const closeSheet = useCallback(() => setSheetOpen(false), [])
+  const onFiltersBtn = useCallback(() => {
+    if (isPhone) {
+      setSheetOpen(true)
+      return
+    }
+    expand()
+    // фокус — в развёрнутую панель (кнопка «Свернуть»), а не на спрятанную кнопку
+    requestAnimationFrame(() => collapseBtnRef.current?.focus({ preventScroll: true }))
+  }, [isPhone, expand])
+  const collapseNow = useCallback(() => {
+    collapse()
+    requestAnimationFrame(() => filtersBtnRef.current?.focus({ preventScroll: true }))
+  }, [collapse])
+
+  const activeFilters = useMemo(() => {
+    const out: { key: string; label: string; clear: () => void }[] = []
+    const gradeShort = t('catalog.gradeShort')
+    if (q.trim() && isPhone) out.push({ key: 'q', label: `«${q.trim()}»`, clear: () => setQ('') })
+    if (isBookRx) {
+      // учебник всегда по одному классу: «фильтром» считаем всё, кроме класса по умолчанию (7)
+      if (rxGrade !== 7) out.push({ key: 'grade', label: `${rxGrade} ${gradeShort}`, clear: () => setGrade(7) })
+    } else if (grade !== 'all') {
+      out.push({ key: 'grade', label: `${grade} ${gradeShort}`, clear: () => setGrade('all') })
+    }
+    if (tab === 'inorganic') {
+      if (category !== 'all') out.push({ key: 'cat', label: t(sectionTitleKey(category)), clear: () => setCategory('all') })
+      if (family !== 'all') {
+        const f = FAMILIES.find((x) => x.id === family)
+        out.push({ key: 'fam', label: f ? familyName(f, locale) : String(family), clear: () => setFamily('all') })
+      }
+      if (inorganicChapter !== 'all')
+        out.push({ key: 'ch', label: capitalize(inorganicChapter), clear: () => setInorganicChapter('all') })
+    } else if (isMainRx) {
+      if (mainType !== 'all')
+        out.push({
+          key: 'mt',
+          label: mainType === 'qualitative' ? t('catalog.rx.qualitativeChip') : t(reactionTypeKey(mainType)),
+          clear: () => setMainType('all'),
+        })
+    } else if (isReactions) {
+      if (reactionType !== 'all')
+        out.push({ key: 'rt', label: t(reactionTypeKey(reactionType)), clear: () => setReactionType('all') })
+    }
+    return out
+  }, [t, q, isPhone, isBookRx, rxGrade, grade, tab, category, family, locale, inorganicChapter, isMainRx, mainType, isReactions, reactionType])
+
+  const resultsEl = (
+    <span className={styles.results} role="status">
+      {t('catalog.results', { count: shownCount })}
+      <span className={styles.resultsTotal}> / {totalCount}</span>
+    </span>
+  )
+
+  // ряды фильтров: на ПК — в развёрнутой «шторке», на телефоне — в нижней выезжающей панели
+  const filterRows = (
+    <>
+    {isReactions ? (
+      <div className={styles.toolbarRow}>
+        <div className={styles.segment} role="tablist" aria-label={t('catalog.rx.modeAria')}>
+          {(
+            [
+              ['book', 'catalog.rx.modeBook'],
+              ['main', 'catalog.rx.modeMain'],
+            ] as const
+          ).map(([id, key]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={rxMode === id}
+              className={rxMode === id ? `${styles.segBtn} ${styles.segBtnOn}` : styles.segBtn}
+              onClick={() => {
+                setRxMode(id)
+                // учебник — по одному классу, основные реакции — все классы сразу
+                setGrade(id === 'book' ? (grade === 'all' ? 7 : grade) : 'all')
+              }}
+              data-rx-mode={id}
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
+      </div>
+    ) : null}
+
+    <div className={styles.toolbarRow}>
+      <GradeSegment
+        value={isBookRx ? rxGrade : grade}
+        onChange={setGrade}
+        counts={
+          isOrganic
+            ? organicGradeCounts
+            : isMainRx
+              ? mainGradeCounts
+              : isReactions
+                ? reactionGradeCounts
+                : inorganicGradeCounts
+        }
+        allowAll={!isBookRx}
+        ariaLabel={
+          isOrganic
+            ? t('catalog.organicGradeAria')
+            : isReactions
+              ? t('catalog.rx.gradeAria')
+              : t('catalog.inorganicGradeAria')
+        }
+      />
+
+      {isPhone ? null : (
+        <>
+          {resultsEl}
+          {stuck ? (
+            <button
+              ref={collapseBtnRef}
+              type="button"
+              className={styles.collapseBtn}
+              onClick={collapseNow}
+              aria-expanded
+              aria-controls="catalog-filters"
+            >
+              {t('catalog.filtersCollapse')}
+              <span className={styles.caret} aria-hidden>
+                ▴
+              </span>
+            </button>
+          ) : null}
+        </>
+      )}
+    </div>
+
+    {tab === 'inorganic' ? (
+      <div className={styles.toolbarRow}>
+        <div className={styles.filterGroup} role="group" aria-label={t('catalog.categoryLabel')}>
+          <span className={styles.filterLabel}>{t('catalog.categoryLabel')}</span>
+          <button
+            type="button"
+            aria-pressed={category === 'all'}
+            className={category === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+            onClick={() => setCategory('all')}
+          >
+            {t('catalog.gradeAll')}
+            <span className={styles.chipCount}>{searched.length}</span>
+          </button>
+          {COMPOUND_CATEGORY_ORDER.map((cat) => {
+            const n = categoryCounts.get(cat) ?? 0
+            const tone = CATEGORY_TONE[cat]
+            return (
+              <button
+                key={cat}
+                type="button"
+                aria-pressed={category === cat}
+                disabled={n === 0 && category !== cat}
+                className={
+                  category === cat
+                    ? `${styles.chip} ${styles.chipTone} ${styles.chipOn}`
+                    : `${styles.chip} ${styles.chipTone}`
+                }
+                style={toneStyle(tone.a, tone.b)}
+                onClick={() => setCategory(category === cat ? 'all' : cat)}
+              >
+                <span className={styles.chipDot} aria-hidden />
+                {t(sectionTitleKey(cat))}
+                <span className={styles.chipCount}>{n}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    ) : null}
+
+    {tab === 'inorganic' ? (
+      <div className={styles.scrollRow}>
+        <span className={styles.filterLabel}>{t('catalog.familyLabel')}</span>
+        <ScrollChips ariaLabel={t('catalog.familyAria')}>
+          <button
+            type="button"
+            aria-pressed={family === 'all'}
+            className={family === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+            onClick={() => setFamily('all')}
+          >
+            {t('catalog.gradeAll')}
+          </button>
+          {FAMILIES.map((f) => {
+            const n = familyCounts.get(f.id) ?? 0
+            if (n === 0 && family !== f.id) return null
+            return (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={family === f.id}
+                className={family === f.id ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                title={f.root ? f.root.formula : undefined}
+                onClick={() => setFamily(family === f.id ? 'all' : f.id)}
+              >
+                {familyName(f, locale)}
+                {f.root ? <span className={styles.chipRoot}>{f.root.formula}</span> : null}
+                <span className={styles.chipCount}>{n}</span>
+              </button>
+            )
+          })}
+        </ScrollChips>
+      </div>
+    ) : null}
+
+    {!isOrganic ? (
+      <div className={styles.scrollRow}>
+        <span className={styles.filterLabel}>
+          {isReactions ? t('catalog.reactionClassAria') : t('catalog.chapterLabel')}
+        </span>
+        <ScrollChips ariaLabel={isReactions ? t('catalog.reactionClassAria') : t('catalog.chapterAria')}>
+          {isMainRx ? (
+            <>
+              <button
+                type="button"
+                aria-pressed={mainType === 'all'}
+                className={mainType === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                onClick={() => setMainType('all')}
+              >
+                {t('catalog.gradeAll')}
+                <span className={styles.chipCount}>{mainInGrade.length}</span>
+              </button>
+              {([...MAIN_REACTION_TYPE_ORDER, 'qualitative'] as const).map((type) => {
+                const n = mainTypeCounts.get(type) ?? 0
+                const tone = REACTION_TYPE_TONE[type] ?? '#e879f9'
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    aria-pressed={mainType === type}
+                    disabled={n === 0 && mainType !== type}
+                    className={
+                      mainType === type
+                        ? `${styles.chip} ${styles.chipTone} ${styles.chipOn}`
+                        : `${styles.chip} ${styles.chipTone}`
+                    }
+                    style={toneStyle(tone, tone)}
+                    onClick={() => setMainType(mainType === type ? 'all' : type)}
+                    data-main-type={type}
+                  >
+                    <span className={styles.chipDot} aria-hidden />
+                    {type === 'qualitative' ? t('catalog.rx.qualitativeChip') : t(reactionTypeKey(type))}
+                    <span className={styles.chipCount}>{n}</span>
+                  </button>
+                )
+              })}
+            </>
+          ) : isReactions ? (
+            <>
+              <button
+                type="button"
+                aria-pressed={reactionType === 'all'}
+                className={reactionType === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                onClick={() => setReactionType('all')}
+              >
+                {t('catalog.gradeAll')}
+              </button>
+              {REACTION_TYPE_ORDER.map((type) => {
+                const n = reactionTypeCounts.get(type) ?? 0
+                // органические типы § 1.6 — только там, где такие реакции есть (иначе 6 пустых чипов в 7–9 классах)
+                if (n === 0 && reactionType !== type && ORGANIC_REACTION_TYPES.has(type)) return null
+                const tone = REACTION_TYPE_TONE[type] ?? REACTION_TYPE_TONE.other!
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    aria-pressed={reactionType === type}
+                    disabled={n === 0 && reactionType !== type}
+                    className={
+                      reactionType === type
+                        ? `${styles.chip} ${styles.chipTone} ${styles.chipOn}`
+                        : `${styles.chip} ${styles.chipTone}`
+                    }
+                    style={toneStyle(tone, tone)}
+                    onClick={() => setReactionType(reactionType === type ? 'all' : type)}
+                  >
+                    <span className={styles.chipDot} aria-hidden />
+                    {t(reactionTypeKey(type))}
+                    <span className={styles.chipCount}>{n}</span>
+                  </button>
+                )
+              })}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                aria-pressed={inorganicChapter === 'all'}
+                className={inorganicChapter === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                onClick={() => setInorganicChapter('all')}
+              >
+                {t('catalog.gradeAll')}
+              </button>
+              {INORGANIC_CHAPTERS.map((ch) => (
+                <button
+                  key={ch}
+                  type="button"
+                  aria-pressed={inorganicChapter === ch}
+                  className={inorganicChapter === ch ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                  onClick={() => setInorganicChapter(inorganicChapter === ch ? 'all' : ch)}
+                >
+                  {capitalize(ch)}
+                </button>
+              ))}
+            </>
+          )}
+        </ScrollChips>
+      </div>
+    ) : null}
+    </>
+  )
+
+  const renderFiltersBtn = (withRef: boolean) => (
+    <button
+      ref={withRef ? filtersBtnRef : undefined}
+      type="button"
+      className={activeFilters.length > 0 ? `${styles.filtersBtn} ${styles.filtersBtnOn}` : styles.filtersBtn}
+      onClick={onFiltersBtn}
+      aria-expanded={isPhone ? sheetOpen : !collapsed}
+      aria-controls={isPhone ? 'catalog-filter-sheet' : 'catalog-filters'}
+      aria-haspopup={isPhone ? 'dialog' : undefined}
+      data-filters-btn=""
+    >
+      <IconSliders className={styles.filtersIcon} />
+      {t('catalog.filtersBtn')}
+      {activeFilters.length > 0 ? <span className={styles.filtersCount}>{activeFilters.length}</span> : null}
+      <span className={styles.caret} aria-hidden>
+        ▾
+      </span>
+    </button>
+  )
+
+  const activeChips =
+    activeFilters.length > 0 ? (
+      <ul className={styles.activeChips} aria-label={t('catalog.activeFiltersAria')}>
+        {activeFilters.map((f) => (
+          <li key={f.key}>
+            <button
+              type="button"
+              className={styles.activeChip}
+              onClick={f.clear}
+              aria-label={t('catalog.filterRemove', { name: f.label })}
+              title={t('catalog.filterRemove', { name: f.label })}
+            >
+              <span className={styles.activeChipText}>{f.label}</span>
+              <span className={styles.activeChipX} aria-hidden>
+                ×
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <span className={styles.activeNone}>{t('catalog.filtersNone')}</span>
+    )
+
+  const renderTabs = (compact: boolean) => (
+    <div
+      className={compact ? `${styles.segment} ${styles.segmentCompact}` : styles.segment}
+      role="tablist"
+      aria-label={t('catalog.domainAria')}
+    >
+      {(
+        [
+          ['inorganic', 'catalog.domainInorganic'],
+          ['organic', 'catalog.domainOrganic'],
+          ['reactions', 'catalog.viewReactions'],
+        ] as const
+      ).map(([id, key]) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={tab === id}
+          className={tab === id ? `${styles.segBtn} ${styles.segBtnOn}` : styles.segBtn}
+          onClick={() => setTab(id)}
+        >
+          {t(key)}
+        </button>
+      ))}
+    </div>
+  )
+
+  const renderSearch = (compact: boolean) => (
+    <label className={compact ? `${styles.search} ${styles.searchCompact}` : styles.search}>
+      <IconSearch className={styles.searchIcon} />
+      <input
+        className={styles.searchInput}
+        type="search"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder={isReactions ? t('catalog.rx.searchPlaceholder') : t('catalog.placeholder')}
+        aria-label={t('catalog.searchAria')}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      {q ? (
+        <button type="button" className={styles.searchClear} onClick={() => setQ('')} aria-label={t('catalog.searchClear')}>
+          ×
+        </button>
+      ) : null}
+    </label>
+  )
+
   return (
-    <div className={styles.page}>
+    <div ref={pageRef} className={styles.page}>
       <div className={styles.backdrop} aria-hidden />
       <MoleculeThumbDefs />
       <div className={styles.inner}>
-        <header className={styles.hero}>
+        <header ref={anchorRef} className={styles.hero}>
           <div className={styles.heroMain}>
             <span className={styles.heroBadge} aria-hidden>
               <IconFlask />
@@ -1139,295 +1567,59 @@ export function CatalogPage() {
           </div>
         </header>
 
-        <div className={styles.toolbar}>
-          <div className={styles.toolbarRow}>
-            <div className={styles.segment} role="tablist" aria-label={t('catalog.domainAria')}>
-              {(
-                [
-                  ['inorganic', 'catalog.domainInorganic'],
-                  ['organic', 'catalog.domainOrganic'],
-                  ['reactions', 'catalog.viewReactions'],
-                ] as const
-              ).map(([id, key]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === id}
-                  className={tab === id ? `${styles.segBtn} ${styles.segBtnOn}` : styles.segBtn}
-                  onClick={() => setTab(id)}
-                >
-                  {t(key)}
-                </button>
-              ))}
+        <div
+          ref={toolbarRef}
+          className={[styles.toolbar, collapsed ? styles.toolbarCollapsed : '', stuck ? styles.toolbarStuck : ''].filter(Boolean).join(' ')}
+          data-collapsed={collapsed ? '' : undefined}
+          data-catalog-toolbar=""
+        >
+          <div ref={fullRef} id="catalog-filters" className={styles.toolbarFull} inert={collapsed}>
+            <div className={styles.toolbarRow}>
+              {renderTabs(false)}
+              {renderSearch(false)}
             </div>
-
-            <label className={styles.search}>
-              <IconSearch className={styles.searchIcon} />
-              <input
-                className={styles.searchInput}
-                type="search"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={isReactions ? t('catalog.rx.searchPlaceholder') : t('catalog.placeholder')}
-                aria-label={t('catalog.searchAria')}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              {q ? (
-                <button
-                  type="button"
-                  className={styles.searchClear}
-                  onClick={() => setQ('')}
-                  aria-label={t('catalog.searchClear')}
-                >
-                  ×
-                </button>
-              ) : null}
-            </label>
+            {isPhone ? (
+              <div className={`${styles.toolbarRow} ${styles.phoneFilterRow}`}>
+                {renderFiltersBtn(!collapsed)}
+                {activeChips}
+                {resultsEl}
+              </div>
+            ) : (
+              filterRows
+            )}
           </div>
 
-          {isReactions ? (
-            <div className={styles.toolbarRow}>
-              <div className={styles.segment} role="tablist" aria-label={t('catalog.rx.modeAria')}>
-                {(
-                  [
-                    ['book', 'catalog.rx.modeBook'],
-                    ['main', 'catalog.rx.modeMain'],
-                  ] as const
-                ).map(([id, key]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={rxMode === id}
-                    className={rxMode === id ? `${styles.segBtn} ${styles.segBtnOn}` : styles.segBtn}
-                    onClick={() => {
-                      setRxMode(id)
-                      // учебник — по одному классу, основные реакции — все классы сразу
-                      setGrade(id === 'book' ? (grade === 'all' ? 7 : grade) : 'all')
-                    }}
-                    data-rx-mode={id}
-                  >
-                    {t(key)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          <div className={styles.toolbarRow}>
-            <GradeSegment
-              value={isBookRx ? rxGrade : grade}
-              onChange={setGrade}
-              counts={
-                isOrganic
-                  ? organicGradeCounts
-                  : isMainRx
-                    ? mainGradeCounts
-                    : isReactions
-                      ? reactionGradeCounts
-                      : inorganicGradeCounts
-              }
-              allowAll={!isBookRx}
-              ariaLabel={
-                isOrganic
-                  ? t('catalog.organicGradeAria')
-                  : isReactions
-                    ? t('catalog.rx.gradeAria')
-                    : t('catalog.inorganicGradeAria')
-              }
-            />
-
-            <span className={styles.results} role="status">
+          <div className={styles.compact} inert={!collapsed} data-catalog-compact="">
+            <div className={styles.compactTabs}>{renderTabs(true)}</div>
+            <div className={styles.compactSearch}>{renderSearch(true)}</div>
+            {collapsed ? renderFiltersBtn(true) : null}
+            <div className={styles.compactChips}>{activeChips}</div>
+            <span className={styles.compactCount} aria-hidden>
               {t('catalog.results', { count: shownCount })}
-              <span className={styles.resultsTotal}> / {totalCount}</span>
             </span>
           </div>
-
-          {tab === 'inorganic' ? (
-            <div className={styles.toolbarRow}>
-              <div className={styles.filterGroup} role="group" aria-label={t('catalog.categoryLabel')}>
-                <span className={styles.filterLabel}>{t('catalog.categoryLabel')}</span>
-                <button
-                  type="button"
-                  aria-pressed={category === 'all'}
-                  className={category === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                  onClick={() => setCategory('all')}
-                >
-                  {t('catalog.gradeAll')}
-                  <span className={styles.chipCount}>{searched.length}</span>
-                </button>
-                {COMPOUND_CATEGORY_ORDER.map((cat) => {
-                  const n = categoryCounts.get(cat) ?? 0
-                  const tone = CATEGORY_TONE[cat]
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      aria-pressed={category === cat}
-                      disabled={n === 0 && category !== cat}
-                      className={
-                        category === cat
-                          ? `${styles.chip} ${styles.chipTone} ${styles.chipOn}`
-                          : `${styles.chip} ${styles.chipTone}`
-                      }
-                      style={toneStyle(tone.a, tone.b)}
-                      onClick={() => setCategory(category === cat ? 'all' : cat)}
-                    >
-                      <span className={styles.chipDot} aria-hidden />
-                      {t(sectionTitleKey(cat))}
-                      <span className={styles.chipCount}>{n}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {tab === 'inorganic' ? (
-            <div className={styles.scrollRow}>
-              <span className={styles.filterLabel}>{t('catalog.familyLabel')}</span>
-              <div className={styles.scrollChips} role="group" aria-label={t('catalog.familyAria')}>
-                <button
-                  type="button"
-                  aria-pressed={family === 'all'}
-                  className={family === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                  onClick={() => setFamily('all')}
-                >
-                  {t('catalog.gradeAll')}
-                </button>
-                {FAMILIES.map((f) => {
-                  const n = familyCounts.get(f.id) ?? 0
-                  if (n === 0 && family !== f.id) return null
-                  return (
-                    <button
-                      key={f.id}
-                      type="button"
-                      aria-pressed={family === f.id}
-                      className={family === f.id ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                      title={f.root ? f.root.formula : undefined}
-                      onClick={() => setFamily(family === f.id ? 'all' : f.id)}
-                    >
-                      {familyName(f, locale)}
-                      {f.root ? <span className={styles.chipRoot}>{f.root.formula}</span> : null}
-                      <span className={styles.chipCount}>{n}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {!isOrganic ? (
-            <div className={styles.scrollRow}>
-              <span className={styles.filterLabel}>
-                {isReactions ? t('catalog.reactionClassAria') : t('catalog.chapterLabel')}
-              </span>
-              <div
-                className={styles.scrollChips}
-                role="group"
-                aria-label={isReactions ? t('catalog.reactionClassAria') : t('catalog.chapterAria')}
-              >
-                {isMainRx ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-pressed={mainType === 'all'}
-                      className={mainType === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                      onClick={() => setMainType('all')}
-                    >
-                      {t('catalog.gradeAll')}
-                      <span className={styles.chipCount}>{mainInGrade.length}</span>
-                    </button>
-                    {([...MAIN_REACTION_TYPE_ORDER, 'qualitative'] as const).map((type) => {
-                      const n = mainTypeCounts.get(type) ?? 0
-                      const tone = REACTION_TYPE_TONE[type] ?? '#e879f9'
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          aria-pressed={mainType === type}
-                          disabled={n === 0 && mainType !== type}
-                          className={
-                            mainType === type
-                              ? `${styles.chip} ${styles.chipTone} ${styles.chipOn}`
-                              : `${styles.chip} ${styles.chipTone}`
-                          }
-                          style={toneStyle(tone, tone)}
-                          onClick={() => setMainType(mainType === type ? 'all' : type)}
-                          data-main-type={type}
-                        >
-                          <span className={styles.chipDot} aria-hidden />
-                          {type === 'qualitative' ? t('catalog.rx.qualitativeChip') : t(reactionTypeKey(type))}
-                          <span className={styles.chipCount}>{n}</span>
-                        </button>
-                      )
-                    })}
-                  </>
-                ) : isReactions ? (
-                  <>
-                    <button
-                      type="button"
-                      aria-pressed={reactionType === 'all'}
-                      className={reactionType === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                      onClick={() => setReactionType('all')}
-                    >
-                      {t('catalog.gradeAll')}
-                    </button>
-                    {REACTION_TYPE_ORDER.map((type) => {
-                      const n = reactionTypeCounts.get(type) ?? 0
-                      // органические типы § 1.6 — только там, где такие реакции есть (иначе 6 пустых чипов в 7–9 классах)
-                      if (n === 0 && reactionType !== type && ORGANIC_REACTION_TYPES.has(type)) return null
-                      const tone = REACTION_TYPE_TONE[type] ?? REACTION_TYPE_TONE.other!
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          aria-pressed={reactionType === type}
-                          disabled={n === 0 && reactionType !== type}
-                          className={
-                            reactionType === type
-                              ? `${styles.chip} ${styles.chipTone} ${styles.chipOn}`
-                              : `${styles.chip} ${styles.chipTone}`
-                          }
-                          style={toneStyle(tone, tone)}
-                          onClick={() => setReactionType(reactionType === type ? 'all' : type)}
-                        >
-                          <span className={styles.chipDot} aria-hidden />
-                          {t(reactionTypeKey(type))}
-                          <span className={styles.chipCount}>{n}</span>
-                        </button>
-                      )
-                    })}
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      aria-pressed={inorganicChapter === 'all'}
-                      className={inorganicChapter === 'all' ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                      onClick={() => setInorganicChapter('all')}
-                    >
-                      {t('catalog.gradeAll')}
-                    </button>
-                    {INORGANIC_CHAPTERS.map((ch) => (
-                      <button
-                        key={ch}
-                        type="button"
-                        aria-pressed={inorganicChapter === ch}
-                        className={inorganicChapter === ch ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-                        onClick={() => setInorganicChapter(inorganicChapter === ch ? 'all' : ch)}
-                      >
-                        {capitalize(ch)}
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-          ) : null}
         </div>
+
+        <FilterSheet
+          id="catalog-filter-sheet"
+          open={sheetVisible}
+          onClose={closeSheet}
+          title={t('catalog.filtersBtn')}
+          closeLabel={t('catalog.filtersClose')}
+          returnFocusRef={filtersBtnRef}
+          footer={
+            <>
+              <button type="button" className={styles.sheetReset} onClick={resetFilters}>
+                {t('catalog.resetFilters')}
+              </button>
+              <button type="button" className={styles.sheetApply} onClick={closeSheet}>
+                {t('catalog.filtersShow', { count: shownCount })}
+              </button>
+            </>
+          }
+        >
+          <div className={styles.sheetRows}>{filterRows}</div>
+        </FilterSheet>
 
         {isOrganic ? (
           organicByClass.length > 0 ? (

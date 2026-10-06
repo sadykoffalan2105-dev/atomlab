@@ -1176,4 +1176,11 @@ export const messagesUz: Record<MessageKey, string> = {
   'elementDetail.configShowFull': 'To\'liq yozuvni ko\'rsatish',
   'elementDetail.configHideFull': 'To\'liq yozuvni yashirish',
   'elementDetail.configCoreHint': '[{core}] — inert gaz o\'zagi: ichki qobiqlarda {n} ta elektron',
+  'catalog.filtersBtn': 'Filtrlar',
+  'catalog.filtersCollapse': 'Yig‘ish',
+  'catalog.activeFiltersAria': 'Tanlangan filtrlar',
+  'catalog.filterRemove': 'Filtrni olib tashlash: {name}',
+  'catalog.filtersNone': 'Filtrsiz',
+  'catalog.filtersClose': 'Filtrlarni yopish',
+  'catalog.filtersShow': 'Ko‘rsatish: {count}',
 }

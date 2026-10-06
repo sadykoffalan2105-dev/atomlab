@@ -1,0 +1,104 @@
+/* Ряд чипов с горизонтальной прокруткой без полосы, стрелки-подсказки по краям */
+.wrap {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+}
+
+.scroller {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.wrap[data-right] .scroller {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent calc(100% - 6px));
+  mask-image: linear-gradient(90deg, #000 calc(100% - 56px), transparent calc(100% - 6px));
+}
+
+.wrap[data-left] .scroller {
+  -webkit-mask-image: linear-gradient(90deg, transparent 6px, #000 56px);
+  mask-image: linear-gradient(90deg, transparent 6px, #000 56px);
+}
+
+.wrap[data-left][data-right] .scroller {
+  -webkit-mask-image: linear-gradient(90deg, transparent 6px, #000 56px, #000 calc(100% - 56px), transparent calc(100% - 6px));
+  mask-image: linear-gradient(90deg, transparent 6px, #000 56px, #000 calc(100% - 56px), transparent calc(100% - 6px));
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0 0 2px;
+  border: 1px solid var(--lt-border-strong);
+  border-radius: 50%;
+  background: var(--lt-surface-solid, #121a33);
+  color: var(--lt-text);
+  font-family: var(--lt-font);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--lt-shadow-sm);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%) scale(0.85);
+  transition:
+    opacity var(--lt-dur-fast, 140ms) ease,
+    transform var(--lt-dur-fast, 140ms) ease,
+    visibility 0s linear var(--lt-dur-fast, 140ms);
+}
+
+.arrow:hover {
+  border-color: var(--lt-primary);
+}
+
+.arrowLeft {
+  left: 0;
+}
+
+.arrowRight {
+  right: 0;
+}
+
+.wrap[data-left] .arrowLeft,
+.wrap[data-right] .arrowRight {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%);
+  transition:
+    opacity var(--lt-dur-fast, 140ms) ease,
+    transform var(--lt-dur-fast, 140ms) ease,
+    visibility 0s;
+}
+
+/* сенсорный экран: стрелки не нужны — ряд листается пальцем, хватает затухания края */
+@media (hover: none) {
+  .arrow {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow,
+  .wrap[data-left] .arrowLeft,
+  .wrap[data-right] .arrowRight {
+    transition: none;
+  }
+}
