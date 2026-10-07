@@ -7,9 +7,13 @@ import type { LabTaskId } from '../../../labContract'
 import { ZnMolesRig } from './g7/ZnMolesRig'
 import { MgBurnRig } from './g7/MgBurnRig'
 import { CuOH2HeatRig } from './g7/CuOH2HeatRig'
+import { KippH2Rig } from './g7/KippH2Rig'
+import { CaoWaterRig } from './g7/CaoWaterRig'
 
 export const TASK_RIGS_G7: Partial<Record<LabTaskId, ComponentType>> = {
   'task-g7-zn-moles': ZnMolesRig,
   'task-g7-mg-burn': MgBurnRig,
+  'task-g7-kipp-h2': KippH2Rig,
+  'task-g7-cao-water': CaoWaterRig,
   'task-g7-cuoh2-heat': CuOH2HeatRig,
 }
