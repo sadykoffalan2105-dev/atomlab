@@ -7,7 +7,7 @@
 import * as THREE from 'three'
 import { Pose, Target, ease, hill, mix, mixV, useRig, useSoundAt, type PFn, type PoseValue, type V3 } from '../../../rigCore'
 import { PourStream } from '../../../parts/effects'
-import { BOTTLE_H, ReagentBottle, WatchGlass } from '../../../parts/glassware'
+import { BOTTLE_H, ReagentBottle } from '../../../parts/glassware'
 import { FILTER_CONE, FUNNEL, Falling, FilterPaper, Funnel, RingStand } from '../../../parts/practicalware'
 import { BEAKERS, MeasuringBeaker } from '../../../../measure/devices/Glass'
 import { DryingOven, OVEN, OVEN_SHELF } from '../../../../measure/devices/Bench'
@@ -82,10 +82,10 @@ export function pourPose(rest: V3, h: number, r: number, side: 1 | -1, uses: rea
 export const readoutAfter = (...steps: number[]): PFn => (p) => (steps.some((s) => p >= s + 0.72 && p <= s + 1.6) ? 1 : 0)
 
 /** Склянка с раствором: стоит на столе в rest (горлышко — начало), наливает по шагам (bottlePose из worksKit). */
-export function SolutionBottle({ pose, formula, name, level, target }: { pose: (p: number) => PoseValue; formula: string; name: string; level: PFn; target: string }) {
+export function SolutionBottle({ pose, formula, name, level, target, color }: { pose: (p: number) => PoseValue; formula: string; name: string; level: PFn; target: string; color?: string }) {
   return (
     <Pose pose={pose}>
-      <ReagentBottle formula={formula} name={name} level={level} />
+      <ReagentBottle formula={formula} name={name} level={level} color={color} />
       <group position={[0, -BOTTLE_H, 0]}>
         <Target name={target} size={[0.07, 0.13, 0.07]} center={[0, 0.06, 0]} hintY={0.16} />
       </group>
@@ -105,6 +105,9 @@ const FILTER_REST: V3 = [0.12, 0, 0.17]
 const WASH: V3 = [0.24, 0, 0.03]
 /** Наклон лежащего конуса фильтра: образующая лежит на опоре (tg θ = h / r). */
 const LIE = Math.atan2(FILTER_CONE.h, FILTER_CONE.r)
+/** Сушат фильтр конусом в стаканчике на 50 мл: бумага опирается на край, вершина — на 2,6 см выше дна стаканчика. */
+const HOLDER = BEAKERS[50]
+const HOLDER_APEX = HOLDER.h - (FILTER_CONE.h * HOLDER.ri) / FILTER_CONE.r
 
 export interface FilterPlan {
   /** Весы (основание). */
@@ -138,9 +141,10 @@ function filterPose(f: FilterPlan) {
   const panFlat = panAt(f.sc)
   const inFunnel: V3 = [FUN[0], FUN[1] + 0.011, FUN[2]]
   const oven = f.how === 'oven'
-  const dryAt: V3 = oven ? [OVEN_AT[0] + OVEN_SHELF[0] + 0.03, OVEN_AT[1] + OVEN_SHELF[1] + 0.007, OVEN_AT[2] + OVEN_SHELF[2] + 0.02] : [AIR_DRY[0] + 0.03, 0.007, AIR_DRY[2]]
-  // в шкаф — только через открытую дверцу: перед шкафом опустить до полки, затем внутрь по горизонтали
-  const front: V3 = [dryAt[0], dryAt[1] + 0.004, OVEN_AT[2] + OVEN.d / 2 + 0.07]
+  const dryAt: V3 = oven ? [OVEN_AT[0] + OVEN_SHELF[0], OVEN_AT[1] + OVEN_SHELF[1] + HOLDER_APEX, OVEN_AT[2] + OVEN_SHELF[2] + 0.02] : [AIR_DRY[0], HOLDER_APEX, AIR_DRY[2]]
+  // в шкаф — только через открытую дверцу: перед шкафом на высоте выше стаканчика, внутрь по горизонтали, опустить
+  const above: V3 = [dryAt[0], dryAt[1] + 0.04, dryAt[2]]
+  const front: V3 = [dryAt[0], dryAt[1] + 0.04, OVEN_AT[2] + OVEN.d / 2 + 0.07]
   const w = f.weigh2
   const pos = track(FILTER_REST, [
     [f.weigh, f.weigh + 0.7, panFlat, 0.12],
@@ -150,18 +154,22 @@ function filterPose(f: FilterPlan) {
     ...(oven
       ? ([
           [f.dry, f.dry + 0.2, front, 0.32],
-          [f.dry + 0.2, f.dry + 0.3, dryAt],
-          [w, w + 0.15, front],
+          [f.dry + 0.2, f.dry + 0.27, above],
+          [f.dry + 0.27, f.dry + 0.32, dryAt],
+          [w, w + 0.05, above],
+          [w + 0.05, w + 0.15, front],
           [w + 0.15, w + 0.6, pan, 0.3],
         ] as const)
       : ([
-          [f.dry, f.dry + 0.45, dryAt, 0.32],
-          [w, w + 0.55, pan, 0.3],
+          [f.dry, f.dry + 0.4, above, 0.32],
+          [f.dry + 0.4, f.dry + 0.45, dryAt],
+          [w, w + 0.05, above],
+          [w + 0.05, w + 0.55, pan, 0.3],
         ] as const)),
   ])
   return (p: number): PoseValue => {
-    // в воздухе над воронкой сложенный конус стоит вершиной вниз; на сушку и на весы — уложен на бок
-    const lie = ease(p, f.dry + 0.05, f.dry + 0.2)
+    // сложенный конус стоит вершиной вниз (в воронке, в стаканчике на сушке); на весы — уложен на бок
+    const lie = ease(p, w + (oven ? 0.17 : 0.1), w + 0.42)
     return { pos: pos(p), rot: [0, 0, LIE * lie] }
   }
 }
@@ -189,9 +197,9 @@ export function FilterStation({ f, receiver = true }: { f: FilterPlan; receiver?
   const d = f.dry
   return (
     <group>
-      {/* штатив с кольцом и воронка */}
+      {/* штатив с кольцом и воронка; основание штатива — левее стакана-приёмника (стакан стоит на столе, не на плите) */}
       <group position={[0, 0, FUN[2]]}>
-        <RingStand rodX={FUN[0] - 0.12} ringX={FUN[0]} ringY={FUN[1] + 0.044} ringR={0.028} rodH={0.36} />
+        <RingStand rodX={FUN[0] - 0.168} ringX={FUN[0]} ringY={FUN[1] + 0.044} ringR={0.028} rodH={0.36} />
       </group>
       <group position={FUN as unknown as THREE.Vector3Tuple}>
         <Funnel />
@@ -232,14 +240,14 @@ export function FilterStation({ f, receiver = true }: { f: FilterPlan; receiver?
               return [`${f.ovenT ?? 105} °C`, `00:${String(min).padStart(2, '0')}`]
             }}
           />
-          <group position={[OVEN_SHELF[0] + 0.0, OVEN_SHELF[1], OVEN_SHELF[2] + 0.02]}>
-            <WatchGlass />
+          <group position={[OVEN_SHELF[0], OVEN_SHELF[1], OVEN_SHELF[2] + 0.02]}>
+            <MeasuringBeaker size={HOLDER} volume={() => 0} color={() => '#eef6ff'} />
           </group>
           <Target name="oven" size={[0.24, 0.22, 0.2]} center={[0, 0.11, 0]} hintY={0.26} />
         </group>
       ) : (
         <group position={AIR_DRY as unknown as THREE.Vector3Tuple}>
-          <WatchGlass />
+          <MeasuringBeaker size={HOLDER} volume={() => 0} color={() => '#eef6ff'} />
           <AirClock at={d} lang={lang} />
         </group>
       )}
