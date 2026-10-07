@@ -363,8 +363,9 @@ export function GasCollector({ capacity, gasMl, lift, bubble, filled }: { capaci
       <mesh position={[rodX, 0.014 + 0.2, 0]} material={steel} castShadow>
         <cylinderGeometry args={[0.0055, 0.0055, 0.4, 14]} />
       </mesh>
-      <mesh position={[rodX - (rodX - ro) / 2, clampY, 0]} rotation={[0, 0, Math.PI / 2]} material={steel}>
-        <cylinderGeometry args={[0.0028, 0.0028, rodX - ro, 8]} />
+      {/* стержень лапки доходит до кольца-хомута (r = ro + 0,002 … + 0,0048), а не до стекла */}
+      <mesh position={[rodX - (rodX - ro - 0.0045) / 2, clampY, 0]} rotation={[0, 0, Math.PI / 2]} material={steel}>
+        <cylinderGeometry args={[0.0028, 0.0028, rodX - ro - 0.0045, 8]} />
       </mesh>
       <group ref={cyl} position={[0, GAS_MOUTH_Y, 0]}>
         <mesh geometry={cylGeo} material={sharedGlass(quality)} renderOrder={3} />
