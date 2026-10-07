@@ -9,6 +9,7 @@
  *  • RIG_LABELS — стеклянные 3D-подписи наблюдений у места события (исчезают через 3 с).
  */
 import type { LabExperimentId, LabText } from '../labContract'
+import { LAB_TASK_FOCUS, LAB_TASK_GESTURES, LAB_TASK_LABELS, LAB_TASK_RIG_TARGETS, LAB_TASK_STEP_SECONDS } from '../../../data/labTasks/labTasks'
 
 type V3 = readonly [number, number, number]
 
@@ -23,6 +24,8 @@ export const RIG_TARGETS = {
   'water-oxides': ['ppe', 'spatula', 'bottle-water', 'bottle-soda', 'phenolphthalein', 'litmus', 'rack'],
   co2: ['ppe', 'marble', 'bottle-hcl', 'stopper', 'outlet', 'tube-lime', 'litmus'],
   'metals-acids': ['ppe', 'mg', 'bottle-h2so4', 'match', 'zn', 'bottle-hcl', 'cu', 'spirit-lamp', 'holder', 'rack'],
+  // задачи-опыты (src/data/labTasks): цели — из шагов задачи
+  ...LAB_TASK_RIG_TARGETS,
 } as const satisfies Record<LabExperimentId, readonly string[]>
 
 /** Сколько секунд длится анимация действия шага (шаг s: прогресс p идёт от s к s + 1). */
@@ -37,6 +40,7 @@ export const RIG_STEP_SECONDS: Readonly<Record<LabExperimentId, readonly number[
   'water-oxides': [1.6, 2.6, 4.6, 3.2, 2.8, 3.2, 3, 3, 2.4],
   co2: [1.6, 2.4, 3.2, 2.6, 4.2, 4.6, 3.6, 3.2, 5],
   'metals-acids': [1.6, 2.2, 4.2, 3.2, 2.2, 4.4, 2.2, 3.8, 3.2, 10, 2.6],
+  ...LAB_TASK_STEP_SECONDS,
 }
 
 /**
@@ -193,6 +197,7 @@ export const RIG_GESTURES: Readonly<Record<LabExperimentId, readonly RigGesture[
     drag([0.19, 0.01, 0.06], [0, 0.2, -0.06], 0.09),
     tap,
   ],
+  ...LAB_TASK_GESTURES,
 }
 
 /** Крупный план: когда прогресс p проходит from — камера наезжает на point (с расстояния dist), на to — обратно. */
@@ -257,6 +262,7 @@ export const RIG_FOCUS: Readonly<Record<LabExperimentId, readonly RigFocus[]>> =
     { from: 9.22, to: 9.46, point: [-0.15, 0.15, 0.09], dist: 0.34 },
     { from: 9.76, to: 9.91, point: [-0.15, 0.15, 0.09], dist: 0.34 },
   ],
+  ...LAB_TASK_FOCUS,
 }
 
 /** Подпись наблюдения у места события: появляется, когда прогресс проходит at (только вперёд). */
@@ -332,4 +338,5 @@ export const RIG_LABELS: Readonly<Record<LabExperimentId, readonly RigLabel[]>> 
     { at: 9.84, pos: [-0.15, 0.36, 0.09], text: L('Cu — без изменений', 'Cu: no change', 'Cu — o‘zgarishsiz') },
     { at: 10.5, pos: [0, 0.27, -0.06], text: L('Mg > Zn > (H₂) > Cu', 'activity: Mg > Zn > (H₂) > Cu', 'faollik: Mg > Zn > (H₂) > Cu') },
   ],
+  ...LAB_TASK_LABELS,
 }

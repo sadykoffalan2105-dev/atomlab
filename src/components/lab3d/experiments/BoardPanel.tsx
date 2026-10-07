@@ -39,6 +39,7 @@ type UiKey =
   | 'substitution'
   | 'physical'
   | 'combination'
+  | 'decomposition'
   | 'hide'
 
 const UI: Record<UiKey, Record<LabLang, string>> = {
@@ -65,6 +66,7 @@ const UI: Record<UiKey, Record<LabLang, string>> = {
   substitution: { ru: 'Замещение', en: 'Substitution', uz: 'O‘rin olish' },
   physical: { ru: 'Физ. явление', en: 'Physical change', uz: 'Fizik hodisa' },
   combination: { ru: 'Соединение', en: 'Combination', uz: 'Birikish' },
+  decomposition: { ru: 'Разложение', en: 'Decomposition', uz: 'Parchalanish' },
   hide: { ru: 'Скрыть', en: 'Hide', uz: 'Yashirish' },
 }
 

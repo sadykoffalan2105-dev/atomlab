@@ -13,6 +13,14 @@ import {
   LAB_PRACTICAL_STORY,
 } from './labExperimentsPractical'
 import { LAB_WORKS_EXPERIMENTS, LAB_WORKS_QUIZ, LAB_WORKS_SIDE_EQUATIONS, LAB_WORKS_STEP_ACTIONS, LAB_WORKS_STORY } from './labExperimentsWorks'
+import {
+  LAB_TASK_EXPERIMENTS,
+  LAB_TASK_QUIZ,
+  LAB_TASK_SIDE_EQUATIONS,
+  LAB_TASK_STEP_ACTIONS,
+  LAB_TASK_STORY,
+  labTasksOfGrade,
+} from '../labTasks/labTasks'
 
 const t = (ru: string, en: string, uz: string): LabText => ({ ru, en, uz })
 
@@ -449,16 +457,26 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
   ...LAB_PRACTICAL_EXPERIMENTS,
   // ещё три практические работы (Kimyo 7 § 6.5 и § 5.6, Kimyo 9 ПР 1)
   ...LAB_WORKS_EXPERIMENTS,
+  // задачи учебников как реальный опыт (Kimyo 7–9, по 5 из класса)
+  ...LAB_TASK_EXPERIMENTS,
 ]
 
 /** Группы карточек выбора на доске. */
-export const LAB_EXPERIMENT_GROUPS: readonly { readonly id: 'signs' | 'practical'; readonly title: LabText; readonly ids: readonly LabExperimentId[] }[] = [
+export type LabExperimentGroupId = 'signs' | 'practical' | 'tasks7' | 'tasks8' | 'tasks9'
+export const LAB_EXPERIMENT_GROUPS: readonly { readonly id: LabExperimentGroupId; readonly title: LabText; readonly ids: readonly LabExperimentId[] }[] = [
   { id: 'signs', title: t('§ 2.12 · Признаки реакций', '§ 2.12 · Signs of reactions', '§ 2.12 · Reaksiya belgilari'), ids: ['baso4', 'ch4-burn', 'zn-hcl'] },
   {
     id: 'practical',
     title: t('Практические и лабораторные работы', 'Practical and laboratory work', 'Amaliy va laboratoriya ishlari'),
     ids: ['h2-practical', 'salt-purify', 'metals-acids', 'water-oxides', 'nh3', 'halogens', 'co2'],
   },
+  ...([7, 8, 9] as const)
+    .map((g) => ({
+      id: `tasks${g}` as const,
+      title: t(`Задачи-опыты · ${g} класс`, `Problems as experiments · grade ${g}`, `Masala-tajribalar · ${g}-sinf`),
+      ids: labTasksOfGrade(g).map((x) => x.id),
+    }))
+    .filter((g) => g.ids.length > 0),
 ]
 
 export function getLabExperiment(id: LabExperimentId): LabExperimentDef {
@@ -477,6 +495,7 @@ export const LAB_SIDE_EQUATIONS: Readonly<Partial<Record<LabExperimentId, readon
   'h2-practical': ['2H₂ + O₂ → 2H₂O'],
   ...LAB_PRACTICAL_SIDE_EQUATIONS,
   ...LAB_WORKS_SIDE_EQUATIONS,
+  ...LAB_TASK_SIDE_EQUATIONS,
 }
 
 /* ── Действие руками на каждом шаге (жест, как его сделать, нужный предмет со стеллажа) ── */
@@ -534,6 +553,7 @@ export const LAB_STEP_ACTIONS: Readonly<Record<LabExperimentId, readonly LabStep
     drag(t('Перетащите холодную стеклянную пластинку к пламени водорода.', 'Drag the cold glass plate to the hydrogen flame.', 'Sovuq shisha plastinkani vodorod alangasiga torting.')),
   ],  ...LAB_PRACTICAL_STEP_ACTIONS,
   ...LAB_WORKS_STEP_ACTIONS,
+  ...LAB_TASK_STEP_ACTIONS,
 }
 
 /* ── «Что произошло»: короткое объяснение на уровне частиц (доска рисует анимацию по этим данным) ── */
@@ -578,6 +598,7 @@ export const LAB_PARTICLE_STORY: Readonly<Record<LabExperimentId, LabParticleSto
     ),
   },  ...LAB_PRACTICAL_STORY,
   ...LAB_WORKS_STORY,
+  ...LAB_TASK_STORY,
 }
 
 /* ── Мини-проверка после опыта: признак реакции, тип реакции, продукт ── */
@@ -719,4 +740,5 @@ export const LAB_QUIZ: Readonly<Record<LabExperimentId, readonly LabQuizQuestion
   ],
   ...LAB_PRACTICAL_QUIZ,
   ...LAB_WORKS_QUIZ,
+  ...LAB_TASK_QUIZ,
 }

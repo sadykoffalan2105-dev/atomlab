@@ -3,10 +3,15 @@
  * Рисуется внутри drei <Html> — это отдельный React-корень: контексты сайта (язык, роутер) здесь недоступны,
  * всё нужное приходит через props. Размер — ровно BOARD_PX (1280×720).
  */
-import type { BoardPanelProps, LabExperimentId, LabLang } from '../labContract'
+import type { BoardPanelProps, LabExperimentId, LabLang, LabTaskId } from '../labContract'
 import { BOARD_PX } from '../labContract'
+import { LAB_TASKS } from '../../../data/labTasks/labTasks'
+
+const TASK_NAMES = Object.fromEntries(LAB_TASKS.map((t) => [t.id, t.source])) as Record<LabTaskId, Readonly<Record<LabLang, string>>>
+const TASK_EQUATIONS = Object.fromEntries(LAB_TASKS.map((t) => [t.id, t.equation])) as Record<LabTaskId, string>
 
 const NAMES: Readonly<Record<LabExperimentId, Readonly<Record<LabLang, string>>>> = {
+  ...TASK_NAMES,
   baso4: { ru: '§ 2.12 Обмен', en: '§ 2.12 Exchange', uz: '§ 2.12 Almashinish' },
   'ch4-burn': { ru: '§ 2.12 Горение', en: '§ 2.12 Combustion', uz: '§ 2.12 Yonish' },
   'zn-hcl': { ru: '§ 2.12 Замещение', en: '§ 2.12 Substitution', uz: '§ 2.12 O‘rin olish' },
@@ -19,6 +24,7 @@ const NAMES: Readonly<Record<LabExperimentId, Readonly<Record<LabLang, string>>>
   'metals-acids': { ru: 'Практическое § 5.6', en: 'Practical § 5.6', uz: 'Amaliy § 5.6' },
 }
 const EQUATIONS: Readonly<Record<LabExperimentId, string>> = {
+  ...TASK_EQUATIONS,
   baso4: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
   'ch4-burn': 'CH₄ + 2O₂ → CO₂ + 2H₂O + Q',
   'zn-hcl': 'Zn + 2HCl → ZnCl₂ + H₂↑',

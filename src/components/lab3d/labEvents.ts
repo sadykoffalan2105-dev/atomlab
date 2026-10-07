@@ -64,6 +64,11 @@ export type LabEvent =
    * ученик потушил пламя огнетушителем, — опыт гасит своё пламя у этой точки.
    */
   | { readonly type: 'fire'; readonly on: boolean; readonly at?: Vec3Tuple }
+  /**
+   * Показание прибора в задаче-опыте (весы, мензурка, газ над водой, термометр): опыт публикует, когда шаг
+   * с измерением выполнен; журнал сцены, доска и учитель записывают. text — готовая строка «m(Zn) = 26,03 г».
+   */
+  | { readonly type: 'measure'; readonly taskId: string; readonly key: string; readonly label: string; readonly value: number; readonly text: string }
 
 type Handler<T extends LabEvent['type']> = (e: Extract<LabEvent, { type: T }>) => void
 

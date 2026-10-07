@@ -28,6 +28,9 @@ import { HalogensRig } from './rigs/HalogensRig'
 import { WaterOxidesRig } from './rigs/WaterOxidesRig'
 import { Co2Rig } from './rigs/Co2Rig'
 import { MetalsAcidsRig } from './rigs/MetalsAcidsRig'
+import { taskRigFor } from './rigs/tasks/TaskRig'
+import { LAB_TASKS } from '../../../data/labTasks/labTasks'
+import { LAB_TASK_IDS, type LabTaskId } from '../labContract'
 
 const RIGS: Record<LabExperimentId, ComponentType> = {
   baso4: Baso4Rig,
@@ -40,6 +43,7 @@ const RIGS: Record<LabExperimentId, ComponentType> = {
   'water-oxides': WaterOxidesRig,
   co2: Co2Rig,
   'metals-acids': MetalsAcidsRig,
+  ...(Object.fromEntries(LAB_TASK_IDS.map((id) => [id, taskRigFor(id)])) as Record<LabTaskId, ComponentType>),
 }
 
 /** Доля пути, после которой отпускание засчитывается; «магнит» — дальше этой доли действие засчитывается сразу. */
@@ -240,7 +244,9 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   // точки начала и конца жеста текущего шага (CSS px), как их проходит палец ученика
   useEffect(() => {
     if (typeof window === 'undefined' || !/[?&]debugLab=1/.test(window.location.hash)) return
-    const w = window as unknown as { __labGesture?: () => unknown }
+    const w = window as unknown as { __labGesture?: () => unknown; __labTaskIds?: () => string[] }
+    // список готовых задач-опытов — для проверки жестами всех опытов подряд
+    w.__labTaskIds = () => LAB_TASKS.map((x) => x.id)
     w.__labGesture = () => {
       const s = stepRef.current
       const gst = RIG_GESTURES[experimentId][s]

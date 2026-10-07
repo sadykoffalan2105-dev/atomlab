@@ -11,7 +11,8 @@ import { HOOD_WORK_SIZE, WORK_AREA_SIZE } from '../src/components/lab3d/labContr
 import { LAB_GLASS_IDS, LAB_REAGENT_IDS } from '../src/components/lab3d/labEvents.ts'
 import { equationImbalance, parseEquationText } from '../src/chemistry/equationFormula.ts'
 import type { LabText } from '../src/components/lab3d/labContract.ts'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { LAB_TASKS } from '../src/data/labTasks/labTasks.ts'
 
 let failed = 0
 const fail = (msg: string) => {
@@ -38,8 +39,12 @@ const ids = LAB_EXPERIMENTS.map((e) => e.id)
 for (const want of ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical', 'salt-purify', 'nh3', 'halogens', 'water-oxides', 'co2', 'metals-acids'] as const) if (!ids.includes(want)) fail(`нет опыта ${want}`)
 if (new Set(ids).size !== ids.length) fail('повторяются id опытов')
 
-const PAGES: Record<string, number> = { baso4: 67, 'ch4-burn': 67, 'zn-hcl': 67, 'h2-practical': 115, 'salt-purify': 24, nh3: 169, halogens: 202, 'water-oxides': 140, co2: 191, 'metals-acids': 124 }
+// задачи-опыты: страница, тип, класс, вытяжка — из данных задачи (подробные проверки — scripts/test-lab-tasks.mts)
+const TASK_IDS = new Set<string>(LAB_TASKS.map((t) => t.id))
+const PAGES: Record<string, number> = {
+  ...Object.fromEntries(LAB_TASKS.map((t) => [t.id, t.page])), baso4: 67, 'ch4-burn': 67, 'zn-hcl': 67, 'h2-practical': 115, 'salt-purify': 24, nh3: 169, halogens: 202, 'water-oxides': 140, co2: 191, 'metals-acids': 124 }
 const KINDS: Record<string, string> = {
+  ...Object.fromEntries(LAB_TASKS.map((t) => [t.id, t.kind])),
   baso4: 'exchange',
   'ch4-burn': 'combustion',
   'zn-hcl': 'substitution',
@@ -51,9 +56,11 @@ const KINDS: Record<string, string> = {
   co2: 'exchange',
   'metals-acids': 'substitution',
 }
-const GRADES: Record<string, number> = { baso4: 7, 'ch4-burn': 7, 'zn-hcl': 7, 'h2-practical': 7, 'salt-purify': 7, nh3: 8, halogens: 8, 'water-oxides': 7, co2: 9, 'metals-acids': 7 }
+const GRADES: Record<string, number> = {
+  ...Object.fromEntries(LAB_TASKS.map((t) => [t.id, t.grade])), baso4: 7, 'ch4-burn': 7, 'zn-hcl': 7, 'h2-practical': 7, 'salt-purify': 7, nh3: 8, halogens: 8, 'water-oxides': 7, co2: 9, 'metals-acids': 7 }
 // по ТБ: аммиак, хлор и бром — только в вытяжном шкафу, в очках и перчатках
-const HOOD: Record<string, readonly string[]> = { nh3: ['goggles', 'gloves', 'coat'], halogens: ['goggles', 'gloves'] }
+const HOOD: Record<string, readonly string[]> = {
+  ...Object.fromEntries(LAB_TASKS.filter((t) => t.place === 'hood').map((t) => [t.id, t.gear ?? []])), nh3: ['goggles', 'gloves', 'coat'], halogens: ['goggles', 'gloves'] }
 
 for (const e of LAB_EXPERIMENTS) {
   checkText(`${e.id}.source`, e.source)
@@ -245,7 +252,24 @@ const RIG_FILES: Record<string, string> = {
   co2: 'Co2Rig',
   'metals-acids': 'MetalsAcidsRig',
 }
+// установки задач-опытов: все файлы rigs/tasks/** (по одному или несколько на класс)
+const TASK_RIG_SRC = (() => {
+  const root = new URL('../src/components/lab3d/experiments/rigs/tasks/', import.meta.url)
+  const out: string[] = []
+  const walk = (u: URL) => {
+    for (const d of readdirSync(u, { withFileTypes: true })) {
+      if (d.isDirectory()) walk(new URL(`${d.name}/`, u))
+      else if (d.name.endsWith('.tsx') || d.name.endsWith('.ts')) out.push(readFileSync(new URL(d.name, u), 'utf8'))
+    }
+  }
+  walk(root)
+  return out.join(' ')
+})()
 for (const e of LAB_EXPERIMENTS) {
+  if (TASK_IDS.has(e.id)) {
+    for (const tg of RIG_TARGETS[e.id]) if (!new RegExp(`(name|target)="${tg}"`).test(TASK_RIG_SRC)) fail(`${e.id}: в rigs/tasks/** нет цели «${tg}»`)
+    continue
+  }
   const file = RIG_FILES[e.id]
   if (!file) {
     fail(`${e.id}: нет файла установки`)
