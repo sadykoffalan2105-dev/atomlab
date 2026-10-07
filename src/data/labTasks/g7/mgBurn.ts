@@ -187,7 +187,7 @@ export const MG_BURN: LabTask = {
     const crucible = rng.read('scales', rng.between(19.3, 21.6))
     const mg = rng.weigh(1.2, 0.03)
     // часть MgO уходит дымом, немного Mg связывает азот воздуха (Mg₃N₂), сердцевина ленты догорает не вся
-    const mgo = rng.read('scales', ((mg * 40) / 24) * rng.between(0.968, 0.995))
+    const mgo = rng.read('scales', ((mg * 40) / 24) * rng.between(0.965, 0.995))
     return { crucible, mg, mgo, mO2: Math.round((mgo - mg) * 100) / 100 }
   },
   given: (v, lang) => [
@@ -220,13 +220,13 @@ export const MG_BURN: LabTask = {
       measured: (v) => v.mgo!,
       predicted: (v) => (v.mg! * 40) / 24,
       book: 2,
-      tolerancePct: 4,
+      tolerancePct: 5,
     },
   ],
   reconcile: L(
-    'Оксида получилось на 1–3 % меньше расчёта — и это честно: часть MgO улетает белым дымом, когда приоткрывают крышку; немного магния соединяется с азотом воздуха (Mg₃N₂ легче, чем MgO того же магния); сердцевина толстой ленты может не догореть. Весы ошибаются лишь на ±0,01 г.',
-    'The oxide comes out 1–3 % below the calculation, honestly so: some MgO escapes as white smoke when the lid is lifted; a little magnesium combines with nitrogen from the air (Mg₃N₂ is lighter than MgO from the same magnesium); the core of a thick ribbon may not burn through. The balance errs by only ±0.01 g.',
-    'Oksid hisobdan 1–3 % kam chiqdi — bu tabiiy: qopqoq ochilganda MgO ning bir qismi oq tutun bo‘lib uchadi; biroz magniy havodagi azot bilan birikadi (Mg₃N₂ o‘sha magniydan olingan MgO dan yengil); qalin lentaning o‘zagi yonib bitmasligi mumkin. Tarozi faqat ±0,01 g xato qiladi.',
+    'Оксида получилось на 0,5–3,5 % меньше расчёта — и это честно: часть MgO улетает белым дымом, когда приоткрывают крышку; немного магния соединяется с азотом воздуха (Mg₃N₂ легче, чем MgO того же магния); сердцевина толстой ленты может не догореть. Весы ошибаются лишь на ±0,01 г.',
+    'The oxide comes out 0.5–3.5 % below the calculation, honestly so: some MgO escapes as white smoke when the lid is lifted; a little magnesium combines with nitrogen from the air (Mg₃N₂ is lighter than MgO from the same magnesium); the core of a thick ribbon may not burn through. The balance errs by only ±0.01 g.',
+    'Oksid hisobdan 0,5–3,5 % kam chiqdi — bu tabiiy: qopqoq ochilganda MgO ning bir qismi oq tutun bo‘lib uchadi; biroz magniy havodagi azot bilan birikadi (Mg₃N₂ o‘sha magniydan olingan MgO dan yengil); qalin lentaning o‘zagi yonib bitmasligi mumkin. Tarozi faqat ±0,01 g xato qiladi.',
   ),
   conclusion: L(
     'Из 1,2 г магния образуется 2,0 г (0,05 моль) MgO: масса выросла ровно на присоединившийся кислород — 0,8 г.',
