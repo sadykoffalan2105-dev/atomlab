@@ -6,7 +6,9 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useRig, type V3 } from '../../../rigCore'
+import { Pose, ease, mix, mixV, useRig, type PFn, type V3 } from '../../../rigCore'
+import { Match, Matchbox, SpiritLamp } from '../../../parts/fire'
+import { TUBE_R } from '../../../parts/glassware'
 import { jarLabelTexture } from '../../../../measure/devices/deviceTextures'
 import { GRAD_PIPETTE } from '../../../../measure/devices/GradPipette'
 
@@ -92,9 +94,9 @@ export function colorTrack(stops: readonly (readonly [number, string])[]): (p: n
  * Капельки воды на внутренней стенке трубки или пробирки вдоль оси (локальная ось −Y → Y): появляются, когда
  * show(p) > 0. r — радиус, где лежат капли (у стенки), y0…y1 — участок оси.
  */
-export function WallDroplets({ r, y0, y1, show, n = 22, seed = 1 }: { r: number; y0: number; y1: number; show: (p: number) => number; n?: number; seed?: number }) {
+export function WallDroplets({ r, y0, y1, show, n = 22, seed = 1, side = Math.PI / 2 }: { r: number; y0: number; y1: number; show: (p: number) => number; n?: number; seed?: number; /** Угол стороны с каплями (0 — локальная +X). */ side?: number }) {
   const { p } = useRig()
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#eaf6ff', roughness: 0.05, metalness: 0, transparent: true, opacity: 0.75 }), [])
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#dcefff', roughness: 0.04, metalness: 0, transparent: true, opacity: 0.5 }), [])
   const pts = useMemo(() => {
     const out: { x: number; y: number; z: number; s: number; at: number }[] = []
     for (let i = 0; i < n; i++) {
@@ -102,8 +104,8 @@ export function WallDroplets({ r, y0, y1, show, n = 22, seed = 1 }: { r: number;
       const f = u - Math.floor(u)
       const w = Math.sin((i + seed * 17) * 311.7) * 24634.6345
       const g = w - Math.floor(w)
-      // капли — на нижней, более холодной стороне (−Z к ученику видна сквозь стекло)
-      const a = Math.PI * (0.25 + 0.5 * g)
+      // капли — полосой вокруг стороны side (у наклонной пробирки — нижняя, более холодная стенка)
+      const a = side + Math.PI * (g - 0.5) * 0.9
       out.push({ x: Math.cos(a) * r, y: y0 + (y1 - y0) * f, z: Math.sin(a) * r, s: 0.0007 + 0.0009 * ((f * 7.3) % 1), at: (g * 3.7) % 1 })
     }
     return out
@@ -130,6 +132,121 @@ export function WallDroplets({ r, y0, y1, show, n = 22, seed = 1 }: { r: number;
     <instancedMesh ref={ref} args={[undefined, undefined, n]} material={mat} renderOrder={2} frustumCulled={false}>
       <sphereGeometry args={[1, 8, 6]} />
     </instancedMesh>
+  )
+}
+
+/* ── Пробирка на весах и в лапке ── */
+
+/**
+ * Проволочная подставка для пробирки на весах (начало — центр низа): пластинка-основание, две стойки и кольцо;
+ * дно пробирки стоит на пластинке (y = seat), порошок в пробирке виден.
+ */
+export const TUBE_BLOCK = { w: 0.046, seat: 0.004, ringY: 0.07 } as const
+export function TubeBlock() {
+  const body = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e7ecef', roughness: 0.55 }), [])
+  const wire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.3, metalness: 0.85 }), [])
+  const ringR = TUBE_R + 0.0018
+  return (
+    <group>
+      <mesh position={[0, TUBE_BLOCK.seat / 2, 0]} material={body} castShadow receiveShadow>
+        <cylinderGeometry args={[TUBE_BLOCK.w / 2, TUBE_BLOCK.w / 2, TUBE_BLOCK.seat, 24]} />
+      </mesh>
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[s * (ringR + 0.0016), TUBE_BLOCK.seat + (TUBE_BLOCK.ringY - TUBE_BLOCK.seat) / 2, 0]} material={wire}>
+          <cylinderGeometry args={[0.0013, 0.0013, TUBE_BLOCK.ringY - TUBE_BLOCK.seat, 6]} />
+        </mesh>
+      ))}
+      <mesh position={[0, TUBE_BLOCK.ringY, 0]} rotation={[Math.PI / 2, 0, 0]} material={wire}>
+        <torusGeometry args={[ringR, 0.0013, 6, 22]} />
+      </mesh>
+    </group>
+  )
+}
+
+/**
+ * Штатив с лапкой для почти горизонтальной пробирки (начало — центр зажатого участка пробирки): стержень сзади
+ * (−Z на rodBack), муфта, лапка вдоль Z и две губки с пробковыми накладками сверху и снизу пробирки.
+ */
+export function TubeClampH({ rodBack, tilt = 0 }: { rodBack: number; tilt?: number }) {
+  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
+  const cork = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c49a6c', roughness: 0.9 }), [])
+  return (
+    <group>
+      {/* губки: над и под пробиркой, повёрнуты вместе с её наклоном */}
+      <group rotation={[0, 0, tilt]}>
+        {[-1, 1].map((s) => (
+          <group key={s} position={[0, s * (TUBE_R + 0.004), 0]}>
+            <mesh material={paint}>
+              <boxGeometry args={[0.03, 0.004, 0.03]} />
+            </mesh>
+            <mesh position={[0, -s * 0.0028, 0]} material={cork}>
+              <boxGeometry args={[0.024, 0.002, 0.024]} />
+            </mesh>
+          </group>
+        ))}
+        <mesh position={[0, 0, -0.017]} material={paint}>
+          <boxGeometry args={[0.03, 2 * (TUBE_R + 0.006), 0.006]} />
+        </mesh>
+      </group>
+      {/* лапка к стержню, муфта, стержень, основание (сзади, под стержнем) */}
+      <mesh position={[0, 0, -(rodBack + 0.02) / 2]} rotation={[Math.PI / 2, 0, 0]} material={steel} castShadow>
+        <cylinderGeometry args={[0.0035, 0.0035, rodBack - 0.02, 10]} />
+      </mesh>
+      <mesh position={[0, 0, -rodBack]} material={paint} castShadow>
+        <boxGeometry args={[0.024, 0.026, 0.022]} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Стержень штатива и основание (начало — низ стержня на столе), основание уходит назад (−Z). */
+export function StandRod({ h }: { h: number }) {
+  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
+  return (
+    <group>
+      <mesh position={[0.02, 0.007, -0.04]} material={paint} castShadow receiveShadow>
+        <boxGeometry args={[0.2, 0.014, 0.12]} />
+      </mesh>
+      <mesh position={[0, 0.014 + h / 2, 0]} material={steel} castShadow>
+        <cylinderGeometry args={[0.0055, 0.0055, h, 14]} />
+      </mesh>
+    </group>
+  )
+}
+
+/* ── Спиртовка со спичками (зажечь и погасить колпачком) ── */
+
+/**
+ * Спиртовка в lamp, коробок в matchbox, спичка: подносят к фитилю на [lightAt, lightAt + 0.3]. capOff(p) 0…1 —
+ * колпачок снят (обратно к 0 — колпачком гасят). Пламя flame(p).
+ */
+export function LampSet({ lamp, matchbox, flame, capOff, lightAt }: { lamp: V3; matchbox: V3; flame: PFn; capOff: PFn; lightAt: number }) {
+  const l = lightAt
+  return (
+    <>
+      <group position={lamp as unknown as THREE.Vector3Tuple}>
+        <SpiritLamp flame={flame} capOff={capOff} />
+      </group>
+      <group position={matchbox as unknown as THREE.Vector3Tuple}>
+        <Matchbox />
+      </group>
+      <Pose
+        pose={(p) => {
+          const rest: V3 = [matchbox[0] - 0.025, 0.018, matchbox[2]]
+          const raised: V3 = [matchbox[0] - 0.03, 0.06, matchbox[2] + 0.02]
+          const atWick: V3 = [lamp[0] + 0.05, 0.086, lamp[2] + 0.02]
+          const dropped: V3 = [matchbox[0] - 0.02, 0.002, matchbox[2] + 0.035]
+          let pos = mixV(rest, raised, ease(p, l, l + 0.08))
+          pos = mixV(pos, atWick, ease(p, l + 0.08, l + 0.2))
+          pos = mixV(pos, dropped, ease(p, l + 0.3, l + 0.42))
+          return { pos, rot: [0, mix(Math.PI, Math.PI + 0.4, ease(p, l + 0.3, l + 0.42)), 0] }
+        }}
+      >
+        <Match lit={(p) => ease(p, l + 0.05, l + 0.1) * (1 - ease(p, l + 0.3, l + 0.38))} />
+      </Pose>
+    </>
   )
 }
 
