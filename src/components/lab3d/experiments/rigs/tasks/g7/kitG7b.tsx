@@ -310,10 +310,11 @@ export function HeatTile() {
  */
 export function LimeHeap({ amount, swell, wet }: { amount: PFn; swell: PFn; wet: PFn }) {
   const { p } = useRig()
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ecebe3', roughness: 1 }), [])
-  const dry = useMemo(() => new THREE.Color('#ecebe3'), [])
-  const slaked = useMemo(() => new THREE.Color('#fbfbf9'), [])
-  const paste = useMemo(() => new THREE.Color('#d7dbd8'), [])
+  // комковатая горка: низкополигональная полусфера с плоской заливкой граней
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d8d3c1', roughness: 1, flatShading: true }), [])
+  const dry = useMemo(() => new THREE.Color('#d8d3c1'), [])
+  const slaked = useMemo(() => new THREE.Color('#f8f7f2'), [])
+  const paste = useMemo(() => new THREE.Color('#c6cbc6'), [])
   const ref = useRef<THREE.Mesh>(null)
   useFrame(() => {
     const pv = p.current ?? 0
@@ -324,13 +325,13 @@ export function LimeHeap({ amount, swell, wet }: { amount: PFn; swell: PFn; wet:
     if (!m) return
     m.visible = a > 0.01
     const k = Math.cbrt(a) * (1 + 0.36 * s)
-    m.scale.set(0.017 * k, 0.0068 * k * (1 - 0.35 * w), 0.017 * k)
+    m.scale.set(0.02 * k, 0.0085 * k * (1 - 0.3 * w), 0.02 * k)
     mat.color.copy(dry).lerp(slaked, s).lerp(paste, w * 0.8)
     mat.roughness = mix(1, 0.35, w)
   })
   return (
-    <mesh ref={ref} position={[0, 0.0016, 0]} material={mat} castShadow>
-      <sphereGeometry args={[1, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+    <mesh ref={ref} position={[0, 0.0022, 0]} material={mat} castShadow>
+      <sphereGeometry args={[1, 11, 5, 0, Math.PI * 2, 0, Math.PI / 2]} />
     </mesh>
   )
 }

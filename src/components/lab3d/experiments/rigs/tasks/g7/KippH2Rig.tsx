@@ -241,7 +241,7 @@ export function KippH2Rig() {
         <Target name="gas-cylinder" size={[0.06, 0.3, 0.06]} center={[0, 0.27, 0]} hintY={0.44} ring={false} />
       </group>
       <Readout
-        position={[BA[0] - 0.08, 0.27, BA[2] + 0.05]}
+        position={[BA[0] - 0.12, 0.33, BA[2]]}
         label={{ ru: 'газ', en: 'gas', uz: 'gaz' }}
         text={(p, l) => (p > 6.88 ? `V = ${fmtNum(V, 0, l)} ${l === 'ru' ? 'мл' : 'ml'}` : null)}
       />
@@ -252,7 +252,7 @@ export function KippH2Rig() {
         <Target name="thermometer" size={[0.03, 0.2, 0.03]} center={[0, 0.1, 0]} hintY={0.24} ring={false} />
       </Pose>
       <Readout
-        position={[inJar[0] + 0.06, 0.24, inJar[2] + 0.04]}
+        position={[inJar[0] + 0.1, 0.15, inJar[2] + 0.03]}
         label={{ ru: 'термометр', en: 'thermometer', uz: 'termometr' }}
         text={(p, l) => (p > 7.82 ? `t = ${fmtNum(v.t!, 1, l)} °C` : null)}
       />
