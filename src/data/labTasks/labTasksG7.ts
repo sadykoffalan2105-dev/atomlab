@@ -3,5 +3,6 @@
  * Формат — labTaskTypes.ts; установки — src/components/lab3d/experiments/rigs/tasks/tasksG7.tsx.
  */
 import type { LabTask } from './labTaskTypes'
+import { ZN_MOLES } from './g7/znMoles'
 
-export const LAB_TASKS_G7: readonly LabTask[] = []
+export const LAB_TASKS_G7: readonly LabTask[] = [ZN_MOLES]
