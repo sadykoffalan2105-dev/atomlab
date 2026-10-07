@@ -318,7 +318,8 @@ export function GasCollector({ capacity, gasMl, lift, bubble, filled }: { capaci
   }, [quality, g.ri, ro, len, innerTop])
   const spec = useMemo(() => cylinderSpec(capacity, true), [capacity])
   const water = useMemo(() => labLiquidMaterial('#cfe7fb', 0.5), [])
-  const tubeWater = useMemo(() => labLiquidMaterial('#cfe7fb', 0.5), [])
+  // вода в цилиндре чуть насыщеннее воды в ванне — граница газ/вода (мениск) читается на крупном плане
+  const tubeWater = useMemo(() => labLiquidMaterial('#9fcbf0', 0.66), [])
   const clampMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
   const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
   const cyl = useRef<THREE.Group>(null)
@@ -376,7 +377,7 @@ export function GasCollector({ capacity, gasMl, lift, bubble, filled }: { capaci
         </mesh>
         {/* мениск газ/вода */}
         <mesh ref={surf} rotation={[Math.PI / 2, 0, 0]} material={tubeWater} renderOrder={2}>
-          <torusGeometry args={[g.ri - 0.0012, 0.0011, 6, 28]} />
+          <torusGeometry args={[g.ri - 0.0014, 0.0016, 6, 28]} />
         </mesh>
         {/* лапка: кольцо-хомут вокруг цилиндра (в группе — двигается вместе с ним при выравнивании) */}
         <mesh position={[0, clampY - GAS_MOUTH_Y, 0]} rotation={[Math.PI / 2, 0, 0]} material={clampMat}>
