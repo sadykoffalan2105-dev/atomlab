@@ -75,6 +75,7 @@ export const learnMoleculeStructureEn = {
   'learn.studentStats.kind.oral': 'Voice Q&A',
   'learn.studentStats.kind.written': 'Written Q&A',
   'learn.studentStats.kind.task': 'Problems',
+  'learn.studentStats.kind.lab': 'Lab problems',
   'learn.studentStats.chartTitle': 'Progress over time',
   'learn.studentStats.chartCaption': 'All attempts: tests and problems. Rising line means improvement.',
   'learn.studentStats.chartEmpty': 'No attempts yet — solve a problem or take a test.',

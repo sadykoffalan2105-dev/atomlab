@@ -178,6 +178,8 @@ export function LabWidgets({ experimentId, step, finished, lang, view, onView, v
         startClock()
         add('obs', e.text)
       }),
+      // показание прибора в задаче-опыте: «m(Zn) = 26,03 г»
+      labEvents.on('measure', (e) => add('obs', e.text)),
     ]
     return () => offs.forEach((o) => o())
     // eslint-disable-next-line react-hooks/exhaustive-deps

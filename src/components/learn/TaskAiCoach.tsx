@@ -30,6 +30,8 @@ type Props = {
   userAttempt?: string
   disabled?: boolean
   onAiHintsChange: (count: number) => void
+  /** Задача-опыт в 3D-лаборатории: учитель видит журнал показаний приборов и текущий шаг. */
+  lab?: { taskId: string; measurements: string[]; currentStep?: string }
 }
 
 export function TaskAiCoach({
@@ -44,6 +46,7 @@ export function TaskAiCoach({
   userAttempt,
   disabled,
   onAiHintsChange,
+  lab,
 }: Props) {
   const { t, locale } = useT()
   const speechLocale: LearnSpeechLocale = locale === 'en' ? 'en' : 'ru'
@@ -101,6 +104,9 @@ export function TaskAiCoach({
         feedback,
         userAttempt,
         scratchpad,
+        labTaskId: lab?.taskId,
+        labMeasurements: lab?.measurements,
+        currentStep: lab?.currentStep,
       })
 
       const userMsg: TaskCoachMessage = { role: 'user', content: userContent }
@@ -138,6 +144,7 @@ export function TaskAiCoach({
       locale,
       speak,
       t,
+      lab,
     ],
   )
 

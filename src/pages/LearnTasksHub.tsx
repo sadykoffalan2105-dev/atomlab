@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { LearnTasksClassPanel } from '../components/learn/LearnTasksClassPanel'
+import { LabTasksSection } from '../components/learn/LabTasksSection'
 import { LEARN_TASK_CATEGORIES, type LearnTaskCategoryDef } from '../data/learnTaskCategories'
 import { useT, type MessageKey } from '../i18n/useT'
 import { LearnHubHero } from './LearnHubHero'
@@ -109,6 +110,8 @@ export function LearnTasksHub() {
             <LearnTasksClassPanel />
           </div>
           <div className={ui.tasksMain}>
+            {/* задачи учебников как реальный опыт в 3D-лаборатории */}
+            <LabTasksSection />
             <CategorySection title={t('learn.tasksGroupQuant')} icon="calc" items={quant} />
             <CategorySection title={t('learn.tasksGroupQual')} icon="search" items={qual} />
           </div>

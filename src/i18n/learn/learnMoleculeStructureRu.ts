@@ -75,6 +75,7 @@ export const learnMoleculeStructureRu = {
   'learn.studentStats.kind.oral': 'Голосовой опрос',
   'learn.studentStats.kind.written': 'Письменный опрос',
   'learn.studentStats.kind.task': 'Задачи',
+  'learn.studentStats.kind.lab': 'Опыты-задачи',
   'learn.studentStats.chartTitle': 'Динамика успеваемости',
   'learn.studentStats.chartCaption': 'График по всем попыткам: тесты и задачи. Рост — ученик прогрессирует.',
   'learn.studentStats.chartEmpty': 'Пока нет попыток — решите задачу или пройдите тест.',

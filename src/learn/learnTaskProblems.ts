@@ -86,7 +86,8 @@ export function generateTaskProblem(categoryId: string): LearnTaskGenerated {
       return {
         kind: 'numeric',
         categoryId,
-        compoundId: 'fe3o4',
+        // FeS в каталоге 3D нет — без 3D-молекулы (раньше показывался Fe₃O₄ — не то вещество)
+        compoundId: '',
         questionKey: 'learn.task.limit.question',
         answerLabelKey: 'learn.task.limit.answerLabel',
         params: { mFe, mS },
@@ -248,6 +249,26 @@ export function generateTaskProblem(categoryId: string): LearnTaskGenerated {
         questionKey: v.q,
         choiceKeys: permuted,
         correctIndex,
+      }
+    }
+    case 'formulas': {
+      // составление формул по валентности (Kimyo 7): правило «крест-накрест» — НОК валентностей
+      const variants = [
+        { q: 'learn.task.mcq.formula.q0', correctIndex: 0, compoundId: 'al2o3' },
+        { q: 'learn.task.mcq.formula.q1', correctIndex: 1, compoundId: null },
+        { q: 'learn.task.mcq.formula.q2', correctIndex: 2, compoundId: null },
+      ] as const
+      const v = variants[randInt(0, variants.length - 1)]!
+      const choices = [0, 1, 2, 3].map((k) => `${v.q}o${k}`)
+      const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5)
+      const permuted = order.map((i) => choices[i]!)
+      return {
+        kind: 'mcq',
+        categoryId,
+        compoundId: v.compoundId,
+        questionKey: v.q,
+        choiceKeys: permuted,
+        correctIndex: permuted.indexOf(choices[v.correctIndex]!),
       }
     }
     case 'oge_prep': {

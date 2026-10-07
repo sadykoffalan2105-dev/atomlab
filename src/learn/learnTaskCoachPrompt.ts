@@ -6,6 +6,8 @@ export type TaskCoachPromptInput = LearnLocalAssistantContext & {
   knowledgeBlock?: string
 }
 
+const NL = String.fromCharCode(10)
+
 export function buildTaskCoachSystemPrompt(input: TaskCoachPromptInput): string {
   const tc = input.taskCoach
   const lang =
@@ -51,6 +53,20 @@ MODE: SOCRATIC TASK COACH (critical thinking).
 FORBIDDEN: final numeric answer, correct option letter/number, full solution.
 REQUIRED: one short step — question, plan, or reasoning check; 2–4 sentences, max 90 words.`
 
+  const labBlock = tc.labTaskId
+    ? `
+LAB MODE: the student solves this textbook problem as a REAL experiment in the 3D lab (balance 0.01 g, measuring
+cylinders read at the bottom of the meniscus, gas collected over water at room temperature, thermometer).
+Measured values (the student's own "Given" — use THESE numbers, not the textbook ones):
+${(tc.labMeasurements ?? []).map((m) => `- ${m}`).join(NL) || '- (no readings yet)'}
+${tc.currentStep ? `Current step of the experiment: ${tc.currentStep}` : ''}
+In lab mode also: explain briefly what happens to the particles at this step; catch typical mistakes
+(reading the meniscus from the top, not waiting for the balance stability mark, forgetting the tare,
+gas volume at room temperature is not at STP — V₀ = V·273/(273 + t), air in the gas cylinder).
+Measured result may differ from the textbook by a few percent — help the student explain why (instrument error,
+losses, temperature), never call it a mistake if it is within the method error.`
+    : ''
+
   return `You are ATOMLAB Task Coach — chemistry problem tutor for school students (grades 7–11).
 
 LANGUAGE (ABSOLUTE): ${lang}. Reply ONLY in this language.
@@ -60,6 +76,7 @@ TASK TYPE: ${tc.categoryTitle} (${tc.categoryId})
 QUESTION: ${tc.questionText}
 ${tc.answerLabel ? `FIND: ${tc.answerLabel}` : ''}
 ${mcqBlock}
+${labBlock}
 
 STUDENT STATE:
 - Static hints revealed: ${tc.staticHintsRevealed}

@@ -1,0 +1,400 @@
+/* Задача-опыт: условие, журнал, учитель, расчёт и сверка. Светлая лаборатория; на доске — крупно (data-variant=board). */
+.card {
+  --ink: #18212b;
+  --muted: #5b6876;
+  --line: #e2e8ef;
+  --accent: #2f7cf6;
+  --ok: #1d8a4f;
+  --warn: #b26a00;
+  --bad: #c2412d;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: 400 0.86rem/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  text-align: left;
+}
+.card[data-variant='board'] {
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  font-size: 19px;
+}
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.kicker,
+.title {
+  margin: 0;
+  font-size: 0.72em;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.title {
+  color: var(--muted);
+}
+.source {
+  font-size: 0.82em;
+  font-weight: 650;
+  color: var(--muted);
+}
+.statement {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent);
+  border-radius: 4px 10px 10px 4px;
+  background: #f2f7ff;
+  font-style: italic;
+  font-weight: 520;
+  line-height: 1.45;
+}
+.row {
+  margin: 0;
+  color: #2a3542;
+}
+.note {
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: #fff6e6;
+  color: #7a4a00;
+  font-size: 0.92em;
+}
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92em;
+}
+.stars {
+  display: inline-flex;
+  gap: 1px;
+  margin-left: auto;
+  color: #d7dde5;
+  font-size: 1.05em;
+  letter-spacing: 1px;
+}
+.stars [data-on] {
+  color: #f2a900;
+}
+
+/* журнал */
+.journal {
+  width: 100%;
+  border-collapse: collapse;
+}
+.journal th,
+.journal td {
+  padding: 5px 6px;
+  border-top: 1px solid var(--line);
+  vertical-align: baseline;
+}
+.journal tr:first-child th,
+.journal tr:first-child td {
+  border-top: 0;
+}
+.journal th {
+  width: 1%;
+  white-space: nowrap;
+  font-weight: 700;
+  color: #9aa6b4;
+}
+.journal tr[data-done] th {
+  color: var(--ink);
+}
+.value {
+  width: 1%;
+  white-space: nowrap;
+  font: 700 1em/1.2 'Consolas', 'DejaVu Sans Mono', monospace;
+  color: #9aa6b4;
+}
+.journal tr[data-done] .value {
+  color: #0f5f32;
+}
+.what {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+.instr {
+  display: block;
+  font-size: 0.85em;
+  color: #8a96a4;
+}
+
+/* учитель */
+.teacher {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #eef5ff 0%, #f7f3ff 100%);
+  border: 1px solid #d9e6fb;
+  color: #1c2a3b;
+  font: 400 0.84rem/1.42 system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+.teacherHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #2f7cf6;
+  color: #fff;
+}
+.teacherText,
+.mistake {
+  margin: 0;
+}
+.mistake {
+  padding: 6px 9px;
+  border-radius: 9px;
+  background: rgba(255, 246, 230, 0.9);
+  color: #7a4a00;
+  font-size: 0.95em;
+}
+.linkBtn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 1px solid #c9d8f2;
+  border-radius: 999px;
+  background: #fff;
+  color: #2457c5;
+  font: 600 0.78rem/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+/* расчёт */
+.sub {
+  margin: 4px 0 2px;
+  font-size: 0.78em;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.given ul,
+.solution ol {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.given li,
+.solution li {
+  margin: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+.solution {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f4fbf6;
+  border: 1px solid #d3eedc;
+}
+.answers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+.answerRow {
+  display: grid;
+  grid-template-columns: auto minmax(70px, 140px) auto 1fr;
+  align-items: center;
+  gap: 4px 8px;
+}
+.answerLabel {
+  font-weight: 700;
+}
+.input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 2px solid #cfd8e3;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: 700 1.05em/1 'Consolas', 'DejaVu Sans Mono', monospace;
+  user-select: text;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 124, 246, 0.18);
+}
+.card[data-variant='board'] .input {
+  min-height: 56px;
+}
+.unit {
+  font-weight: 650;
+  white-space: nowrap;
+}
+.answerWhat {
+  color: var(--muted);
+  font-size: 0.86em;
+}
+.status {
+  grid-column: 1 / -1;
+  font-weight: 650;
+  font-size: 0.9em;
+}
+.answerRow[data-status='book'] .input,
+.answerRow[data-status='run'] .input {
+  border-color: var(--ok);
+}
+.answerRow[data-status='book'] .status,
+.answerRow[data-status='run'] .status {
+  color: var(--ok);
+}
+.answerRow[data-status='close'] .input {
+  border-color: #e3a32a;
+}
+.answerRow[data-status='close'] .status {
+  color: var(--warn);
+}
+.answerRow[data-status='wrong'] .input,
+.answerRow[data-status='invalid'] .input {
+  border-color: #e07a68;
+}
+.answerRow[data-status='wrong'] .status,
+.answerRow[data-status='invalid'] .status,
+.answerRow[data-status='empty'] .status {
+  color: var(--bad);
+}
+.btnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.primary,
+.secondary {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font: 650 0.9em/1 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  cursor: pointer;
+}
+.card[data-variant='board'] .primary,
+.card[data-variant='board'] .secondary {
+  min-height: 56px;
+  padding: 10px 22px;
+}
+.primary {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+}
+.secondary {
+  border: 1px solid #cfd8e3;
+  background: #fff;
+  color: #2457c5;
+}
+
+/* сверка */
+.reconcile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cmp {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.cmp th,
+.cmp td {
+  padding: 4px 6px;
+  border-top: 1px solid var(--line);
+  text-align: right;
+  vertical-align: baseline;
+}
+.cmp thead th {
+  border-top: 0;
+  font-size: 0.78em;
+  font-weight: 650;
+  color: var(--muted);
+}
+.cmp tbody th {
+  text-align: left;
+  font-weight: 650;
+}
+.strong {
+  font-weight: 750;
+  color: #0f5f32;
+}
+.devCell {
+  display: block;
+  text-align: left !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+  font-size: 0.82em;
+  color: var(--ok);
+}
+.cmp tr:not([data-ok]) .devCell {
+  color: var(--bad);
+}
+.cmp tbody tr {
+  display: table-row;
+}
+.whyText {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f6f8fb;
+  color: #2a3542;
+}
+
+/* оценка */
+.score {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fffaf0;
+  border: 1px solid #f5e2b5;
+}
+.score .stars {
+  margin-left: 6px;
+  font-size: 1.3em;
+}
+.scoreList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.scoreList li {
+  color: #8a96a4;
+}
+.scoreList li::before {
+  content: '○ ';
+}
+.scoreList li[data-on] {
+  color: var(--ok);
+}
+.scoreList li[data-on]::before {
+  content: '✓ ';
+}
+
+@media (max-width: 820px) {
+  .answerRow {
+    grid-template-columns: auto 1fr auto;
+  }
+  .answerWhat {
+    grid-column: 1 / -1;
+  }
+  .cmp {
+    font-size: 0.86em;
+  }
+}

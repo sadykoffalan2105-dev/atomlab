@@ -78,6 +78,7 @@ export function computeStudentMastery(student: ClassStudent): StudentMasteryStat
     oral: kindStats(attempts, 'oral'),
     written: kindStats(attempts, 'written'),
     task: kindStats(attempts, 'task'),
+    lab: kindStats(attempts, 'lab'),
   }
 
   const progressSeries = buildProgressSeries(student)

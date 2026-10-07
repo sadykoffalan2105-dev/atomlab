@@ -10,7 +10,11 @@ import { LAB_EXPERIMENTS } from '../components/lab3d/experiments'
 import { LabExtinguisherBar, LabHandBar } from '../components/lab3d/interaction/LabHandBar'
 import { labHand } from '../components/lab3d/interaction/labHandStore'
 import { isLabTaskId, type LabTaskId, type LabExperimentId, type LabLang, type LabReactionKind, type LabRunState } from '../components/lab3d/labContract'
-import { LAB_TASKS } from '../data/labTasks/labTasks'
+import { LAB_TASKS, getLabTask } from '../data/labTasks/labTasks'
+import { labTaskSession, useLabTaskSession } from '../components/lab3d/measure/labTaskSession'
+import { journalLines, TaskJournal, TaskSolve, TaskStatement, TaskTeacherTip } from '../components/lab3d/tasks/LabTaskUi'
+import { TaskAiCoach } from '../components/learn/TaskAiCoach'
+import type { LearnTaskNumericProblem } from '../learn/learnTaskProblems'
 import { createLabSceneBridge } from '../components/lab3d/scene/labBridge'
 import { LabWidgets } from '../components/lab3d/scene/LabWidgets'
 import type { LabViewId } from '../components/lab3d/scene/labSceneLayout'
@@ -60,6 +64,14 @@ const VIEWS: ReadonlyArray<{ id: LabViewId; key: MessageKey }> = [
   { id: 'cabinets', key: 'lab3d.scene.view.cabinets' },
 ]
 
+const noop = () => {}
+const TASK_UI = {
+  works: { ru: 'Опыты', en: 'Experiments', uz: 'Tajribalar' },
+  tasks: { ru: 'Задачи-опыты', en: 'Lab problems', uz: 'Masala-tajribalar' },
+  back: { ru: 'Вернуться к задачам', en: 'Back to problems', uz: 'Masalalarga qaytish' },
+  coach: { ru: 'Спросить учителя (ИИ) — без готового ответа', en: 'Ask the teacher (AI): no ready answers', uz: 'O‘qituvchidan so‘rash (SI) — tayyor javobsiz' },
+} satisfies Record<string, Record<LabLang, string>>
+
 function isExperimentId(v: string | null): v is LabExperimentId {
   return !!v && (EXPERIMENT_IDS as readonly string[]).includes(v)
 }
@@ -96,6 +108,20 @@ export function Lab3DPage() {
   const urlExperiment: LabExperimentId = isExperimentId(expFromUrl) ? expFromUrl : 'baso4'
 
   const [run, setRun] = useState<LabRunState>({ experimentId: urlExperiment, step: 0 })
+  const taskId = isLabTaskId(run.experimentId) ? run.experimentId : null
+  const task = taskId ? getLabTask(taskId) : null
+  const taskSession = useLabTaskSession(taskId)
+  const backHref = params.get('from')
+  const [tab, setTab] = useState<'works' | 'tasks'>(() => (isLabTaskId(urlExperiment) ? 'tasks' : 'works'))
+  // задача-опыт: новая попытка (новые показания приборов) — при выборе задачи и при «начать сначала»
+  const prevStepRef = useRef(run.step)
+  useEffect(() => {
+    if (taskId) labTaskSession.restart(taskId)
+  }, [taskId])
+  useEffect(() => {
+    if (taskId && run.step === 0 && prevStepRef.current > 0) labTaskSession.restart(taskId)
+    prevStepRef.current = run.step
+  }, [taskId, run.step])
   // Адрес сменился (назад/вперёд в браузере) — опыт начинается сначала
   if (run.experimentId !== urlExperiment) setRun({ experimentId: urlExperiment, step: 0 })
 
@@ -164,6 +190,18 @@ export function Lab3DPage() {
     [totalSteps],
   )
   const advance = useCallback(() => setRun((r) => ({ ...r, step: Math.min(r.step + 1, totalSteps) })), [totalSteps])
+  // кнопка «Далее» без действия руками — пропуск шага (в задаче-опыте снимает звезду за аккуратность)
+  const skipStep = useCallback(() => {
+    if (taskId) labTaskSession.noteSkip(taskId)
+    advance()
+  }, [advance, taskId])
+  const coachProblem = useMemo<LearnTaskNumericProblem | null>(
+    () =>
+      task && taskSession
+        ? { kind: 'numeric', categoryId: 'lab_task', compoundId: '', questionKey: '', answerLabelKey: '', params: { ...taskSession.values }, correct: Number.NaN, decimals: 2 }
+        : null,
+    [task, taskSession],
+  )
   const chooseView = (id: LabViewId) => {
     if (narrow) setPanelOpen(false)
     setView(id)
@@ -287,9 +325,22 @@ export function Lab3DPage() {
         </button>
 
         <div className={styles.panelBody}>
+          {backHref ? (
+            <Link className={styles.back} to={backHref}>
+              ← {TASK_UI.back[lang]}
+            </Link>
+          ) : null}
           <p className={styles.lead}>{t('lab3d.subtitle')}</p>
+          <div className={styles.tabs} role="tablist">
+            <button type="button" role="tab" aria-selected={tab === 'works'} className={tab === 'works' ? styles.tabOn : styles.tab} onClick={() => setTab('works')}>
+              {TASK_UI.works[lang]}
+            </button>
+            <button type="button" role="tab" aria-selected={tab === 'tasks'} className={tab === 'tasks' ? styles.tabOn : styles.tab} onClick={() => setTab('tasks')} data-lab3d-tab="tasks">
+              {TASK_UI.tasks[lang]} · {LAB_TASKS.length}
+            </button>
+          </div>
           <div className={styles.cards} role="list">
-            {EXPERIMENT_IDS.map((id) => {
+            {(tab === 'tasks' ? LAB_TASKS.map((x) => x.id) : LAB_WORK_IDS).map((id) => {
               const c = cardTitle(id)
               const on = id === run.experimentId
               return (
@@ -309,6 +360,7 @@ export function Lab3DPage() {
             })}
           </div>
 
+          {task ? <TaskStatement task={task} lang={lang} variant="panel" /> : null}
           <section className={styles.stepBox} aria-live="polite">
             {def && totalSteps > 0 ? (
               <>
@@ -335,7 +387,7 @@ export function Lab3DPage() {
               <button
                 type="button"
                 className={styles.btnPrimary}
-                onClick={advance}
+                onClick={skipStep}
                 disabled={!def || run.step >= totalSteps}
               >
                 {t('lab3d.next')}
@@ -345,6 +397,30 @@ export function Lab3DPage() {
               </button>
             </div>
           </section>
+          {task && taskSession ? (
+            <>
+              {!finished ? <TaskTeacherTip task={task} step={run.step} lang={lang} /> : null}
+              <TaskJournal task={task} step={run.step} lang={lang} variant="panel" />
+              {finished ? <TaskSolve taskId={task.id} step={run.step} lang={lang} variant="panel" onRepeat={() => setStep(0)} /> : null}
+              {coachProblem ? (
+                <details className={styles.coach}>
+                  <summary>{TASK_UI.coach[lang]}</summary>
+                  <TaskAiCoach
+                    problem={coachProblem}
+                    categoryId="lab_task"
+                    categoryTitle={task.title[lang]}
+                    questionText={task.statement[lang]}
+                    answerLabel={task.answers.map((a) => a.label).join(', ')}
+                    staticHintsRevealed={0}
+                    feedback={taskSession.solved ? 'correct' : taskSession.checks ? 'wrong' : 'idle'}
+                    userAttempt={task.answers.map((a) => `${a.label} = ${taskSession.answers[a.key] ?? ''}`).join('; ')}
+                    onAiHintsChange={noop}
+                    lab={{ taskId: task.id, measurements: journalLines(task, taskSession, run.step, lang), currentStep: current?.instruction[lang] }}
+                  />
+                </details>
+              ) : null}
+            </>
+          ) : null}
           <p className={styles.hint}>{t('lab3d.hint')}</p>
           <Link className={styles.classic} to="/vr-lab-classic">
             {t('lab3d.classic')}

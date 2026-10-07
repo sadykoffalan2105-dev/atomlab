@@ -1073,3 +1073,11 @@
   overflow-y: auto;
   scrollbar-width: thin;
 }
+
+/* ── Задача-опыт: расчёт и сверка на доске ── */
+.taskSolve {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border-radius: 16px;
+}

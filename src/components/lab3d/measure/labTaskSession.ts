@@ -25,6 +25,8 @@ export interface LabTaskSessionState {
   readonly skips: number
   /** Ответ засчитан (хотя бы раз в этой попытке). */
   readonly solved: boolean
+  /** Ученик открыл готовое решение до того, как решил сам. */
+  readonly revealed: boolean
 }
 
 const sessions = new Map<LabTaskId, LabTaskSessionState>()
@@ -38,7 +40,7 @@ function emit() {
 function make(taskId: LabTaskId, seed: number): LabTaskSessionState {
   attempts++
   const values = getLabTask(taskId).simulate(createTaskRng(seed))
-  return { taskId, seed, attempt: attempts, values, answers: {}, checks: null, tries: 0, skips: 0, solved: false }
+  return { taskId, seed, attempt: attempts, values, answers: {}, checks: null, tries: 0, skips: 0, solved: false, revealed: false }
 }
 
 export const labTaskSession = {
@@ -70,6 +72,12 @@ export const labTaskSession = {
     sessions.set(taskId, { ...s, checks, tries: s.tries + 1, solved })
     emit()
     return checks
+  },
+  reveal(taskId: LabTaskId) {
+    const s = labTaskSession.get(taskId)
+    if (s.revealed) return
+    sessions.set(taskId, { ...s, revealed: !s.solved })
+    emit()
   },
   noteSkip(taskId: LabTaskId) {
     const s = labTaskSession.get(taskId)

@@ -9,6 +9,10 @@ import { labEvents, type LabItemId } from '../labEvents'
 import { ActionIcon, LabQuiz, ParticleStory } from './BoardStory'
 import { GearBar, Instrument, ScoreCard, TimerChip, fmtTime, useLabClock } from './BoardWidgets'
 import styles from './BoardPanel.module.css'
+import { isLabTaskId } from '../labContract'
+import { getLabTask } from '../../../data/labTasks/labTasks'
+import { labTaskSession } from '../measure/labTaskSession'
+import { TaskJournal, TaskSolve } from '../tasks/LabTaskUi'
 
 /** Запасная кнопка «Взять …» (если сцена со стеллажами не прислала событие). */
 const TAKE: Record<LabLang, string> = { ru: 'Взять', en: 'Take', uz: 'Olish' }
@@ -100,8 +104,10 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
     prevStep.current = s
     // eslint-disable-next-line react-hooks/exhaustive-deps -- отметка по смене шага
   }, [s, experimentId])
+  const taskId = isLabTaskId(experimentId) ? experimentId : null
   const skipTo = (n: number) => {
     setSkips((k) => k + 1)
+    if (taskId) labTaskSession.noteSkip(taskId)
     onStep(n)
   }
   const putOn = () => {
@@ -179,13 +185,19 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
 
         {finished && info === 'none' ? (
           <div className={styles.finalBody} key={experimentId}>
-            <ParticleStory experimentId={experimentId} lang={lang} />
+            {taskId ? (
+              <div className={styles.taskSolve}>
+                <TaskSolve taskId={taskId} step={s} lang={lang} variant="board" onRepeat={() => onStep(0)} />
+              </div>
+            ) : (
+              <ParticleStory experimentId={experimentId} lang={lang} />
+            )}
             <div className={styles.focus}>
               <div className={styles.observation}>
                 <p className={styles.label}>{UI.conclusion[lang]}</p>
                 <p className={styles.obsText}>{def.conclusion[lang]}</p>
               </div>
-              <ScoreCard def={def} skips={skips} seconds={clock.total} lang={lang} />
+              {taskId ? <ParticleStory experimentId={experimentId} lang={lang} /> : <ScoreCard def={def} skips={skips} seconds={clock.total} lang={lang} />}
               <LabQuiz experimentId={experimentId} lang={lang} />
             </div>
           </div>
@@ -260,7 +272,11 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
                     <p className={styles.obsText}>{lastDone.observation[lang]}</p>
                   </div>
                 ) : null}
-                <Instrument experimentId={experimentId} step={s} inStep={clock.inStep} lang={lang} />
+                {taskId ? (
+                  <TaskJournal task={getLabTask(taskId)} step={s} lang={lang} variant="board" />
+                ) : (
+                  <Instrument experimentId={experimentId} step={s} inStep={clock.inStep} lang={lang} />
+                )}
               </>
             )}
           </div>
