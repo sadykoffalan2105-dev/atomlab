@@ -12,6 +12,7 @@ import * as THREE from 'three'
 import { LAB_COLORS, labLiquidMaterial } from '../../labContract'
 import { clamp01, seg, smooth, useRig, type PFn, type V3 } from '../rigCore'
 import { sharedGlass, sharedGlassEdge, TUBE_H, TUBE_R } from './glassware'
+import { useFlameCeiling } from './fire'
 
 const porcelainMat = () => new THREE.MeshStandardMaterial({ color: '#fbfbf8', roughness: 0.32, metalness: 0 })
 
@@ -184,6 +185,9 @@ export function PorcelainDish({ level, crystals, boil, liquidColor = '#e8f3ff' }
     return new THREE.LatheGeometry(pts, quality === 'high' ? 40 : 22)
   }, [quality])
   const liq = useMemo(() => labLiquidMaterial(liquidColor, 0.62), [liquidColor])
+  // дно чашки над спиртовкой: пламя упирается в него и растекается (а не проходит сквозь фарфор)
+  const foot = useRef<THREE.Object3D>(null)
+  useFlameCeiling(foot, 0.03)
   const liqRef = useRef<THREE.Mesh>(null)
   // кристаллы: сначала по краю у мениска, потом на дне
   const n = quality === 'high' ? 90 : 40
@@ -251,6 +255,7 @@ export function PorcelainDish({ level, crystals, boil, liquidColor = '#e8f3ff' }
   })
   return (
     <group>
+      <object3D ref={foot} position={[0, -0.002, 0]} />
       <mesh geometry={geo} material={mat} castShadow receiveShadow />
       <mesh ref={liqRef} rotation={[-Math.PI / 2, 0, 0]} material={liq} renderOrder={2}>
         <circleGeometry args={[1, 32]} />
@@ -627,9 +632,83 @@ export function GlassPath({ points, radius = 0.003 }: { points: readonly V3[]; r
   )
 }
 
+/* ── Пар и дым: мягкие облачка-биллборды ── */
+
+/** Общая на всю сцену «клякса» пара: несколько размытых пятен — облачко с мягким неровным краем (только альфа). */
+let puffTex: THREE.CanvasTexture | null = null
+function puffTexture(): THREE.CanvasTexture {
+  if (puffTex) return puffTex
+  const S = 128
+  const c = document.createElement('canvas')
+  c.width = S
+  c.height = S
+  const g = c.getContext('2d')
+  if (g) {
+    const blobs: readonly (readonly [number, number, number, number])[] = [
+      [0.5, 0.5, 0.36, 0.9],
+      [0.37, 0.45, 0.2, 0.5],
+      [0.63, 0.43, 0.19, 0.45],
+      [0.44, 0.63, 0.21, 0.45],
+      [0.62, 0.62, 0.18, 0.4],
+      [0.5, 0.33, 0.16, 0.35],
+    ]
+    for (const [x, y, r, a] of blobs) {
+      const gr = g.createRadialGradient(x * S, y * S, 0, x * S, y * S, r * S)
+      gr.addColorStop(0, `rgba(255,255,255,${a})`)
+      gr.addColorStop(0.45, `rgba(255,255,255,${a * 0.5})`)
+      gr.addColorStop(1, 'rgba(255,255,255,0)')
+      g.fillStyle = gr
+      g.fillRect(0, 0, S, S)
+    }
+  }
+  puffTex = new THREE.CanvasTexture(c)
+  puffTex.generateMipmaps = true
+  puffTex.minFilter = THREE.LinearMipmapLinearFilter
+  return puffTex
+}
+
+const PUFF_VERT = /* glsl */ `
+attribute vec2 aPuff;
+varying vec2 vUv;
+varying float vA;
+varying float vShade;
+void main() {
+  // биллборд: центр частицы — в координатах камеры, квадрат всегда лицом к камере; aPuff = (прозрачность, поворот)
+  vec4 c = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  float s = length(instanceMatrix[0].xyz);
+  float ca = cos(aPuff.y);
+  float sa = sin(aPuff.y);
+  c.xy += vec2(ca * position.x - sa * position.y, sa * position.x + ca * position.y) * s;
+  vUv = uv;
+  vA = aPuff.x;
+  vShade = position.y + 0.5;
+  gl_Position = projectionMatrix * c;
+}
+`
+const PUFF_FRAG = /* glsl */ `
+uniform sampler2D uMap;
+uniform vec3 uColor;
+uniform float uOpacity;
+varying vec2 vUv;
+varying float vA;
+varying float vShade;
+void main() {
+  float a = texture2D(uMap, vUv).a * vA * uOpacity;
+  if (a < 0.003) discard;
+  // свет сверху: верх облачка чуть светлее низа — объём без источников света; без тон-маппинга — пар белее стены
+  gl_FragColor = vec4(uColor * mix(0.9, 1.0, vShade), a);
+  #include <colorspace_fragment>
+}
+`
+
+function frac(x: number) {
+  return x - Math.floor(x)
+}
+
 /**
- * Облако частиц: пар, белый дым, запах (едва видимые струйки). Частицы рождаются у origin, поднимаются
- * (rise), расходятся (spread) и сносятся (drift); rate(p) — интенсивность 0…1.
+ * Облако частиц: пар, белый дым, запах (едва видимые струйки). Мягкие облачка (биллборды с общей текстурой) рождаются
+ * у origin, плавно проявляются, поднимаются (rise), расширяются, расходятся (spread), сносятся (drift) и тают;
+ * rate(p) — интенсивность 0…1. На качестве low частиц меньше.
  */
 export function Puffs({
   origin,
@@ -658,8 +737,28 @@ export function Puffs({
   const n = quality === 'high' ? count : Math.max(6, Math.round(count * 0.45))
   const ref = useRef<THREE.InstancedMesh>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
-  const seeds = useMemo(() => Array.from({ length: n }, (_, i) => [Math.sin(i * 12.9898) * 0.5 + 0.5, Math.sin(i * 78.233) * 0.5 + 0.5, Math.sin(i * 39.425) * 0.5 + 0.5] as const), [n])
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, transparent: true, opacity, roughness: 1, depthWrite: false }), [color, opacity])
+  // s0 — фаза, s1 — радиус/срок жизни, s2 — порог появления (чем больше rate, тем больше облачков), s3 — вращение
+  const seeds = useMemo(
+    () => Array.from({ length: n }, (_, i) => [frac(Math.sin(i * 12.9898 + 1.3) * 43758.5453), frac(Math.sin(i * 78.233 + 2.1) * 43758.5453), (i + 0.5) / n, frac(Math.sin(i * 39.425 + 0.7) * 43758.5453)] as const),
+    [n],
+  )
+  const attr = useMemo(() => new THREE.InstancedBufferAttribute(new Float32Array(n * 2), 2), [n])
+  const geo = useMemo(() => {
+    const g = new THREE.PlaneGeometry(1, 1)
+    g.setAttribute('aPuff', attr)
+    return g
+  }, [attr])
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        vertexShader: PUFF_VERT,
+        fragmentShader: PUFF_FRAG,
+        transparent: true,
+        depthWrite: false,
+        uniforms: { uMap: { value: puffTexture() }, uColor: { value: new THREE.Color(color) }, uOpacity: { value: Math.min(0.92, opacity * 1.6) } },
+      }),
+    [color, opacity],
+  )
   useFrame(() => {
     const m = ref.current
     if (!m) return
@@ -667,29 +766,30 @@ export function Puffs({
     m.visible = k > 0.01
     if (!m.visible) return
     const t = time.current ?? 0
+    const arr = attr.array as Float32Array
     for (let i = 0; i < n; i++) {
       const s = seeds[i]!
-      const ph = (t / life + i / n) % 1
-      const alive = s[2] < k ? 1 : 0
-      const a = s[0] * Math.PI * 2 + t * 0.4
-      const r = spread * (0.3 + ph) * s[1]
-      dummy.position.set(
-        origin[0] + Math.cos(a) * r + drift[0] * ph,
-        origin[1] + rise * ph + drift[1] * ph,
-        origin[2] + Math.sin(a) * r + drift[2] * ph,
-      )
-      const sc = size * (0.4 + 1.6 * ph) * Math.sin(Math.PI * Math.min(1, ph * 1.15)) * alive
-      dummy.scale.setScalar(Math.max(1e-4, sc))
+      const lifeI = life * (0.75 + 0.5 * s[1])
+      const ph = frac(t / lifeI + s[0])
+      // облачко проявляется за первые ~15 % жизни и медленно тает; при малом rate видны лишь некоторые
+      const alive = Math.min(1, Math.max(0, (k - s[2] * 0.92) * 7))
+      const fade = smooth(Math.min(1, ph / 0.16)) * Math.pow(1 - ph, 1.25)
+      const a = s[0] * Math.PI * 2 + t * 0.35 * (s[3] - 0.5)
+      const r = spread * (0.2 + 0.95 * ph) * (0.35 + 0.65 * s[1])
+      const sway = Math.sin(t * 1.3 + i * 1.7) * spread * 0.18 * ph
+      // подъём с лёгким замедлением: пар остывает и расползается
+      const up = ph * (1.15 - 0.3 * ph)
+      dummy.position.set(origin[0] + Math.cos(a) * r + drift[0] * ph + sway, origin[1] + rise * up + drift[1] * ph, origin[2] + Math.sin(a) * r + drift[2] * ph)
+      dummy.scale.setScalar(size * (2 + 4 * ph) * (0.8 + 0.4 * s[3]) * (alive > 0 ? 1 : 1e-4))
       dummy.updateMatrix()
       m.setMatrixAt(i, dummy.matrix)
+      arr[i * 2] = fade * alive
+      arr[i * 2 + 1] = s[3] * 6.283 + t * 0.25 * (s[1] - 0.5)
     }
     m.instanceMatrix.needsUpdate = true
+    attr.needsUpdate = true
   })
-  return (
-    <instancedMesh ref={ref} args={[undefined, undefined, n]} material={mat} renderOrder={8} frustumCulled={false}>
-      <icosahedronGeometry args={[1, 1]} />
-    </instancedMesh>
-  )
+  return <instancedMesh ref={ref} args={[geo, mat, n]} renderOrder={8} frustumCulled={false} />
 }
 
 /**
