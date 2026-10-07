@@ -152,3 +152,50 @@ export function LampKit({ lamp, matchbox, flame, capOff, lightAt }: { lamp: V3; 
     </>
   )
 }
+
+/** Сетка с керамическим центром (м): квадрат 10 × 10 см, керамический круг Ø 64 мм, толщина. */
+export const GAUZE = { side: 0.1, ceramicR: 0.032, t: 0.0014 } as const
+
+/**
+ * Металлическая сетка с керамическим центром (начало — центр нижней плоскости; кладут на кольцо штатива).
+ * glow(p) 0…1 — керамика в центре слегка краснеет от пламени снизу.
+ */
+export function WireGauze({ glow }: { glow?: PFn }) {
+  const { p } = useRig()
+  const wire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8d949c', roughness: 0.5, metalness: 0.75 }), [])
+  const ceramic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e9e4dc', roughness: 1, emissive: '#ff5a1f', emissiveIntensity: 0 }), [])
+  // проволочная решётка поверх листа: тонкие полоски через ~6 мм (одна геометрия)
+  const grid = useMemo(() => {
+    const n = Math.floor(GAUZE.side / 0.006)
+    const pos: number[] = []
+    for (let i = 0; i <= n; i++) {
+      const x = -GAUZE.side / 2 + (i * GAUZE.side) / n
+      for (const part of [new THREE.BoxGeometry(0.0007, 0.0004, GAUZE.side), new THREE.BoxGeometry(GAUZE.side, 0.0004, 0.0007)]) {
+        if (part.parameters.width < 0.001) part.translate(x, GAUZE.t + 0.0002, 0)
+        else part.translate(0, GAUZE.t + 0.0002, x)
+        const ni = part.toNonIndexed()
+        pos.push(...(ni.getAttribute('position').array as Float32Array))
+        ni.dispose()
+        part.dispose()
+      }
+    }
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    g.computeVertexNormals()
+    return g
+  }, [])
+  useFrame(() => {
+    ceramic.emissiveIntensity = glow ? 0.28 * glow(p.current ?? 0) : 0
+  })
+  return (
+    <group>
+      <mesh position={[0, GAUZE.t / 4, 0]} material={wire} castShadow receiveShadow>
+        <boxGeometry args={[GAUZE.side, GAUZE.t * 0.5, GAUZE.side]} />
+      </mesh>
+      <mesh geometry={grid} material={wire} />
+      <mesh position={[0, GAUZE.t / 2 + 0.0002, 0]} material={ceramic} receiveShadow>
+        <cylinderGeometry args={[GAUZE.ceramicR, GAUZE.ceramicR, GAUZE.t + 0.0004, 28]} />
+      </mesh>
+    </group>
+  )
+}

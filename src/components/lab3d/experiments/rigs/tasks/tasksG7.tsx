@@ -6,8 +6,10 @@ import type { ComponentType } from 'react'
 import type { LabTaskId } from '../../../labContract'
 import { ZnMolesRig } from './g7/ZnMolesRig'
 import { MgBurnRig } from './g7/MgBurnRig'
+import { CuOH2HeatRig } from './g7/CuOH2HeatRig'
 
 export const TASK_RIGS_G7: Partial<Record<LabTaskId, ComponentType>> = {
   'task-g7-zn-moles': ZnMolesRig,
   'task-g7-mg-burn': MgBurnRig,
+  'task-g7-cuoh2-heat': CuOH2HeatRig,
 }
