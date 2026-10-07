@@ -66,6 +66,7 @@ export const TASK_G7_CAO_WATER: LabTask = {
       book: 37,
       decimals: 0,
       fromRun: answerG,
+      altFromRun: (v) => v.mProd! * 10,
     },
   ],
   labScale: {

@@ -71,6 +71,7 @@ export const TASK_G8_AL_ACID: LabTask = {
       book: 147,
       decimals: 0,
       fromRun: (v) => (mSol(v) * 5.4) / v.mAl!,
+      altFromRun: (v) => mSol(v) * 10,
     },
   ],
   labScale: {

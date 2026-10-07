@@ -157,6 +157,11 @@ for (const task of LAB_TASKS) {
       const st = checkAnswer(a, v, runStr).status
       if (st !== 'run' && st !== 'book') fail(`${id}: ответ из измерений ${runStr} не засчитан (${st})`)
       if (checkAnswer(a, v, String(a.book * 1.5)).status !== 'wrong') fail(`${id}: ×1,5 засчитан`)
+      if (a.altFromRun) {
+        const altStr = a.altFromRun(v).toFixed(Math.max(a.decimals, 2))
+        const st2 = checkAnswer(a, v, altStr).status
+        if (st2 !== 'run' && st2 !== 'book') fail(`${id}: ответ «× масштаб» ${altStr} не засчитан (${st2})`)
+      }
     }
     for (const [i, r] of compareRows(task, v).entries()) {
       worstCmp = Math.max(worstCmp, Math.abs(r.devPct))

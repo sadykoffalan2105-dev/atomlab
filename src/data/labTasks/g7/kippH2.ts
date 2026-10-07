@@ -65,6 +65,8 @@ export const TASK_G7_KIPP_H2: LabTask = {
       book: 134.4,
       decimals: 1,
       fromRun: answerL,
+      // «опыт в 1000 раз меньше — ×1000»: V₀ в мл · 1000 / 1000 = V₀ в литрах
+      altFromRun: (v) => v.V0!,
     },
   ],
   labScale: {

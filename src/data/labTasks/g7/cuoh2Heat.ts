@@ -35,6 +35,7 @@ export const CUOH2_HEAT: LabTask = {
       book: 40,
       decimals: 0,
       fromRun: (v) => (v.mcuo! * 49) / v.mcu!,
+      altFromRun: (v) => v.mcuo! * 10,
     },
   ],
   labScale: {

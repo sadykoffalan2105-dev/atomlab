@@ -47,6 +47,7 @@ export const TASK_G8_AGCL: LabTask = {
       book: 57.4,
       decimals: 1,
       fromRun: (v) => v.mAgCl! * toBook(v),
+      altFromRun: (v) => v.mAgCl! * 20,
     },
     {
       key: 'nAgCl',
@@ -56,6 +57,7 @@ export const TASK_G8_AGCL: LabTask = {
       book: 0.4,
       decimals: 2,
       fromRun: (v) => (v.mAgCl! * toBook(v)) / M_AGCL,
+      altFromRun: (v) => (v.mAgCl! * 20) / M_AGCL,
     },
   ],
   labScale: {

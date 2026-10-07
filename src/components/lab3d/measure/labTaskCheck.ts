@@ -57,8 +57,12 @@ export function checkAnswer(a: LabTaskAnswer, values: LabTaskValues, raw: string
   // допуск на округление до decimals знаков у ответа учебника
   const roundTol = (0.5 * 10 ** -a.decimals) / Math.max(1e-9, Math.abs(a.book))
   if (rel(value, a.book) <= Math.max(0.008, roundTol * 1.01)) return { ...base, status: 'book', value }
-  if (rel(value, run) <= Math.max(0.015, (0.5 * 10 ** -a.decimals) / Math.max(1e-9, Math.abs(run)))) return { ...base, status: 'run', value }
-  if (rel(value, a.book) <= 0.05 || rel(value, run) <= 0.05) return { ...base, status: 'close', value }
+  const runTol = (x: number) => Math.max(0.015, (0.5 * 10 ** -a.decimals) / Math.max(1e-9, Math.abs(x)))
+  if (rel(value, run) <= runTol(run)) return { ...base, status: 'run', value }
+  // простое «× масштаб опыта» вместо пересчёта по фактической навеске — тоже честный расчёт из измерений
+  const alt = a.altFromRun?.(values)
+  if (alt != null && Number.isFinite(alt) && rel(value, alt) <= runTol(alt)) return { ...base, status: 'run', value }
+  if (rel(value, a.book) <= 0.05 || rel(value, run) <= 0.05 || (alt != null && rel(value, alt) <= 0.05)) return { ...base, status: 'close', value }
   return { ...base, status: 'wrong', value }
 }
 

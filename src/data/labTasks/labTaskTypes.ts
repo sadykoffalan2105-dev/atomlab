@@ -73,6 +73,11 @@ export interface LabTaskAnswer {
   readonly fromRun: (v: LabTaskValues) => number
   /** Множитель-степень, если ответ вводят мантиссой: N = __ · 10²³. */
   readonly exponent?: number
+  /**
+   * Второй честный путь из измерений, если fromRun пересчитывает по фактической навеске: простое умножение на
+   * масштаб опыта («опыт в 1000 раз меньше — ×1000»). Засчитывается так же, как fromRun.
+   */
+  readonly altFromRun?: (v: LabTaskValues) => number
 }
 
 export interface LabTaskCompare {
