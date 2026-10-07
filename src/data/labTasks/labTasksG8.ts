@@ -4,5 +4,6 @@
  */
 import type { LabTask } from './labTaskTypes'
 import { TASK_G8_ZN_HCL_GAS } from './g8/znHclGas'
+import { TASK_G8_AGCL } from './g8/agcl'
 
-export const LAB_TASKS_G8: readonly LabTask[] = [TASK_G8_ZN_HCL_GAS]
+export const LAB_TASKS_G8: readonly LabTask[] = [TASK_G8_ZN_HCL_GAS, TASK_G8_AGCL]

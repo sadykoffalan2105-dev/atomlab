@@ -178,7 +178,8 @@ export function FlaskStopper({ tube = true }: { tube?: boolean }) {
 
 /** Склянка тёмного стекла с притёртой пробкой (начало — дно): AgNO₃ и другие светочувствительные растворы. */
 export const AMBER = { r: 0.027, h: 0.105, neck: 0.011 } as const
-export function AmberBottle({ label, level }: { label: THREE.Texture; level: PFn }) {
+/** closed(p) < 0.5 — пробка снята (её рисует установка: лежит на столе рядом, см. AmberStopper). */
+export function AmberBottle({ label, level, closed }: { label: THREE.Texture; level: PFn; closed?: PFn }) {
   const { quality, p } = useRig()
   const geo = useMemo(() => {
     const { r, h, neck } = AMBER
@@ -198,10 +199,13 @@ export function AmberBottle({ label, level }: { label: THREE.Texture; level: PFn
   const amber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5a2c0c', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86 }), [])
   const liq = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2a1406', roughness: 0.2, transparent: true, opacity: 0.6 }), [])
   const liqRef = useRef<THREE.Mesh>(null)
+  const capRef = useRef<THREE.Mesh>(null)
   useFrame(() => {
+    const pv = p.current ?? 0
+    if (capRef.current) capRef.current.visible = closed ? closed(pv) >= 0.5 : true
     const m = liqRef.current
     if (!m) return
-    const k = Math.max(0.001, level(p.current ?? 0))
+    const k = Math.max(0.001, level(pv))
     const hh = AMBER.h * 0.66 * k
     m.scale.set(1, hh, 1)
     m.position.y = 0.004 + hh / 2
@@ -217,11 +221,79 @@ export function AmberBottle({ label, level }: { label: THREE.Texture; level: PFn
         <meshStandardMaterial map={label} roughness={0.7} />
       </mesh>
       {/* притёртая пробка */}
-      <mesh position={[0, AMBER.h + 0.006, 0]} material={amber}>
+      <mesh ref={capRef} position={[0, AMBER.h + 0.006, 0]} material={amber}>
         <cylinderGeometry args={[AMBER.neck + 0.002, AMBER.neck - 0.001, 0.014, 16]} />
       </mesh>
     </group>
   )
+}
+
+/** Снятая притёртая пробка лежит на столе на боку (начало — точка на столе); видна, когда shown(p) ≥ 0.5. */
+export function AmberStopper({ shown }: { shown: PFn }) {
+  const { p } = useRig()
+  const amber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5a2c0c', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86 }), [])
+  const ref = useRef<THREE.Mesh>(null)
+  useFrame(() => {
+    if (ref.current) ref.current.visible = shown(p.current ?? 0) >= 0.5
+  })
+  return (
+    <mesh ref={ref} position={[0, AMBER.neck + 0.001, 0]} rotation={[0, 0, Math.PI / 2]} material={amber} castShadow>
+      <cylinderGeometry args={[AMBER.neck + 0.002, AMBER.neck - 0.001, 0.014, 16]} />
+    </mesh>
+  )
+}
+
+/** Перенос: [начало, конец, куда, высота подъёма]. Без высоты — прямо (сдвинуть / опустить). */
+export type Move = readonly [a: number, b: number, to: V3, liftY?: number]
+
+/** Положение предмета по шагам: из rest переносами (каждый — поднять → перенести → опустить). */
+export function track(rest: V3, moves: readonly Move[]): (p: number) => V3 {
+  return (p) => {
+    let at: V3 = rest
+    let q: V3 = rest
+    for (const [a, b, to, hy] of moves) {
+      if (p <= a) break
+      if (hy == null) q = mixV(at, to, ease(p, a, b))
+      else {
+        const d = b - a
+        const up: V3 = [at[0], Math.max(at[1], hy), at[2]]
+        const over: V3 = [to[0], Math.max(to[1], hy), to[2]]
+        q = mixV(at, up, ease(p, a, a + d * 0.28))
+        q = mixV(q, over, ease(p, a + d * 0.22, b - d * 0.24))
+        q = mixV(q, to, ease(p, b - d * 0.3, b))
+      }
+      if (p < b) break
+      at = to
+    }
+    return q
+  }
+}
+
+/**
+ * Переливание из широкого сосуда (стакан; начало — центр дна, высота h, радиус края r) через носик: на отрезке
+ * [s, s + span] сосуд поднимают с места (from), носик (край со стороны приёмника) подводят к точке lip, наклоняют на
+ * tilt (рад) — сосуд поворачивается вокруг носика — и возвращают на место. Струя — s + span·(0.46…0.74).
+ * side = 1: сосуд справа от приёмника (наклон влево), −1 — слева.
+ */
+export function spoutPour(from: V3, s: number, span: number, lip: V3, h: number, r: number, tilt: number, side: 1 | -1) {
+  return (p: number) => {
+    const u = (p - s) / span
+    if (u <= 0 || u >= 1) return { pos: from, rot: [0, 0, 0] as V3 }
+    const k = ease(u, 0.38, 0.5) * (1 - ease(u, 0.76, 0.86))
+    const a = tilt * side * k
+    // носик (−side·r, h) после поворота на a стоит в точке lip
+    const nx = -side * r * Math.cos(a) - h * Math.sin(a)
+    const ny = -side * r * Math.sin(a) + h * Math.cos(a)
+    const base: V3 = [lip[0] - nx, lip[1] - ny, lip[2]]
+    const lifted: V3 = [from[0], Math.max(from[1], lip[1] - h + 0.06), from[2]]
+    const near: V3 = [lip[0] + side * r, lip[1] - h + 0.012, lip[2]]
+    let q = mixV(from, lifted, ease(u, 0, 0.18))
+    q = mixV(q, near, ease(u, 0.16, 0.36))
+    q = mixV(q, base, ease(u, 0.34, 0.5) * (1 - ease(u, 0.76, 0.86)))
+    q = mixV(q, lifted, ease(u, 0.84, 0.92))
+    q = mixV(q, from, ease(u, 0.91, 0.99))
+    return { pos: q, rot: [0, 0, k > 0 ? a : 0] as V3 }
+  }
 }
 
 /**
