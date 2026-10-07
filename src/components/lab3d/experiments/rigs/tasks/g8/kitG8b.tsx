@@ -31,7 +31,7 @@ export interface FunnelSize {
   readonly stemR: number
 }
 export const FUNNEL_BURETTE: FunnelSize = { rimR: 0.02, coneH: 0.024, stem: 0.034, stemR: 0.0034 }
-export const FUNNEL_ABSORB: FunnelSize = { rimR: 0.0135, coneH: 0.02, stem: 0.03, stemR: 0.0032 }
+export const FUNNEL_ABSORB: FunnelSize = { rimR: 0.0135, coneH: 0.02, stem: 0.065, stemR: 0.0032 }
 
 /** Высота над концом трубки, где радиус конуса снаружи равен r (воронка садится в горло радиуса r). */
 export function funnelSeatY(f: FunnelSize, r: number): number {
