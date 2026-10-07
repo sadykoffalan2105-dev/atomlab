@@ -270,6 +270,21 @@
   color: #2457c5;
 }
 
+.kind_physical {
+  background: #efe9fb;
+  color: #5b3fb0;
+}
+
+.kind_combination {
+  background: #e2f5f2;
+  color: #157a6e;
+}
+
+.kind_decomposition {
+  background: #fdebe7;
+  color: #b1402b;
+}
+
 .cardTitle {
   font-size: 0.86rem;
   font-weight: 650;

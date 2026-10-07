@@ -28,6 +28,8 @@ import { HalogensRig } from './rigs/HalogensRig'
 import { WaterOxidesRig } from './rigs/WaterOxidesRig'
 import { Co2Rig } from './rigs/Co2Rig'
 import { MetalsAcidsRig } from './rigs/MetalsAcidsRig'
+import { taskRigFor } from './rigs/tasks/TaskRig'
+import { LAB_TASK_IDS, type LabTaskId } from '../labContract'
 
 const RIGS: Record<LabExperimentId, ComponentType> = {
   baso4: Baso4Rig,
@@ -40,6 +42,7 @@ const RIGS: Record<LabExperimentId, ComponentType> = {
   'water-oxides': WaterOxidesRig,
   co2: Co2Rig,
   'metals-acids': MetalsAcidsRig,
+  ...(Object.fromEntries(LAB_TASK_IDS.map((id) => [id, taskRigFor(id)])) as Record<LabTaskId, ComponentType>),
 }
 
 /** Доля пути, после которой отпускание засчитывается; «магнит» — дальше этой доли действие засчитывается сразу. */

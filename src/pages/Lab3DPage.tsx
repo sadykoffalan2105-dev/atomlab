@@ -9,7 +9,8 @@ import { labAudio } from '../components/lab3d/audio/labAudio'
 import { LAB_EXPERIMENTS } from '../components/lab3d/experiments'
 import { LabExtinguisherBar, LabHandBar } from '../components/lab3d/interaction/LabHandBar'
 import { labHand } from '../components/lab3d/interaction/labHandStore'
-import type { LabExperimentId, LabLang, LabRunState } from '../components/lab3d/labContract'
+import { isLabTaskId, type LabTaskId, type LabExperimentId, type LabLang, type LabReactionKind, type LabRunState } from '../components/lab3d/labContract'
+import { LAB_TASKS } from '../data/labTasks/labTasks'
 import { createLabSceneBridge } from '../components/lab3d/scene/labBridge'
 import { LabWidgets } from '../components/lab3d/scene/LabWidgets'
 import type { LabViewId } from '../components/lab3d/scene/labSceneLayout'
@@ -19,9 +20,14 @@ import styles from './Lab3DPage.module.css'
 
 const Lab3DCanvas = lazy(() => import('../components/lab3d/scene/Lab3DCanvas'))
 
-const EXPERIMENT_IDS: readonly LabExperimentId[] = ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical', 'salt-purify', 'nh3', 'halogens', 'water-oxides', 'co2', 'metals-acids']
+const LAB_WORK_IDS: readonly LabExperimentId[] = ['baso4', 'ch4-burn', 'zn-hcl', 'h2-practical', 'salt-purify', 'nh3', 'halogens', 'water-oxides', 'co2', 'metals-acids']
+/** Опыты и задачи-опыты (готовые задачи из src/data/labTasks). */
+const EXPERIMENT_IDS: readonly LabExperimentId[] = [...LAB_WORK_IDS, ...LAB_TASKS.map((t) => t.id)]
+const TASK_FALLBACK = Object.fromEntries(LAB_TASKS.map((t) => [t.id, t.equation])) as Record<LabTaskId, string>
+const TASK_KIND = Object.fromEntries(LAB_TASKS.map((t) => [t.id, t.kind])) as Record<LabTaskId, LabReactionKind>
 /** Уравнения по учебнику — запасной вариант, пока часть «опыты» не отдала свои описания. */
 const FALLBACK_EQUATION: Readonly<Record<LabExperimentId, string>> = {
+  ...TASK_FALLBACK,
   baso4: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
   'ch4-burn': 'CH₄ + 2O₂ → CO₂ + 2H₂O',
   'zn-hcl': 'Zn + 2HCl → ZnCl₂ + H₂↑',
@@ -33,7 +39,8 @@ const FALLBACK_EQUATION: Readonly<Record<LabExperimentId, string>> = {
   co2: 'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑',
   'metals-acids': 'Mg + H₂SO₄ → MgSO₄ + H₂↑',
 }
-const KIND: Readonly<Record<LabExperimentId, 'exchange' | 'combustion' | 'substitution' | 'physical' | 'combination'>> = {
+const KIND: Readonly<Record<LabExperimentId, LabReactionKind>> = {
+  ...TASK_KIND,
   baso4: 'exchange',
   'ch4-burn': 'combustion',
   'zn-hcl': 'substitution',
@@ -83,7 +90,9 @@ export function Lab3DPage() {
   const { t, locale } = useT()
   const lang: LabLang = locale
   const [params, setParams] = useSearchParams()
-  const expFromUrl = params.get('exp')
+  // ?task=<id> — задача-опыт (ссылка из тренажёра задач); ?exp=<id> — опыт или задача
+  const taskFromUrl = params.get('task')
+  const expFromUrl = isLabTaskId(taskFromUrl) && isExperimentId(taskFromUrl) ? taskFromUrl : params.get('exp')
   const urlExperiment: LabExperimentId = isExperimentId(expFromUrl) ? expFromUrl : 'baso4'
 
   const [run, setRun] = useState<LabRunState>({ experimentId: urlExperiment, step: 0 })

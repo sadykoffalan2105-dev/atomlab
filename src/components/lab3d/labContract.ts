@@ -48,6 +48,53 @@ export type LabExperimentId =
   | 'water-oxides'
   | 'co2'
   | 'metals-acids'
+  // задачи учебников как реальный опыт (src/data/labTasks): ученик измеряет приборами и сверяет с расчётом
+  | LabTaskId
+
+/**
+ * Задачи-опыты: расчётная задача из учебника, которую решают в лаборатории (весы, мензурка, газ над водой…).
+ * По 5 задач из Kimyo 7, 8 и 9; описания и установки — src/data/labTasks/** и experiments/rigs/tasks/**.
+ */
+export type LabTaskId =
+  | 'task-g7-zn-moles'
+  | 'task-g7-mg-burn'
+  | 'task-g7-kipp-h2'
+  | 'task-g7-cao-water'
+  | 'task-g7-cuoh2-heat'
+  | 'task-g8-zn-hcl-gas'
+  | 'task-g8-agcl'
+  | 'task-g8-cuso4-hydrate'
+  | 'task-g8-al-acid'
+  | 'task-g8-hcl-solution'
+  | 'task-g9-soda-solution'
+  | 'task-g9-baso4-excess'
+  | 'task-g9-cu-from-cuso4'
+  | 'task-g9-naoh-cuso4'
+  | 'task-g9-nahco3-mix'
+
+export const LAB_TASK_IDS: readonly LabTaskId[] = [
+  'task-g7-zn-moles',
+  'task-g7-mg-burn',
+  'task-g7-kipp-h2',
+  'task-g7-cao-water',
+  'task-g7-cuoh2-heat',
+  'task-g8-zn-hcl-gas',
+  'task-g8-agcl',
+  'task-g8-cuso4-hydrate',
+  'task-g8-al-acid',
+  'task-g8-hcl-solution',
+  'task-g9-soda-solution',
+  'task-g9-baso4-excess',
+  'task-g9-cu-from-cuso4',
+  'task-g9-naoh-cuso4',
+  'task-g9-nahco3-mix',
+]
+
+export function isLabTaskId(v: unknown): v is LabTaskId {
+  return typeof v === 'string' && (LAB_TASK_IDS as readonly string[]).includes(v)
+}
+
+export type LabReactionKind = 'exchange' | 'combustion' | 'substitution' | 'physical' | 'combination' | 'decomposition'
 
 export interface LabExperimentDef {
   readonly id: LabExperimentId
@@ -56,8 +103,11 @@ export interface LabExperimentDef {
   readonly title: LabText
   /** Уравнение (Unicode-индексы), как в учебнике. */
   readonly equation: string
-  /** Тип реакции для цветной метки: обмен / горение / замещение / соединение (combination); physical — физическое явление (очистка смеси). */
-  readonly kind: 'exchange' | 'combustion' | 'substitution' | 'physical' | 'combination'
+  /**
+   * Тип реакции для цветной метки: обмен / горение / замещение / соединение (combination) / разложение
+   * (decomposition); physical — физическое явление (очистка смеси, взвешивание, растворение).
+   */
+  readonly kind: LabReactionKind
   /** Класс и страница учебника Kimyo. */
   readonly grade: 7 | 8 | 9
   readonly page: number
