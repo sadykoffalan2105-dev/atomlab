@@ -118,6 +118,20 @@ export function TaskStatement({ task, lang, variant }: { task: LabTask; lang: La
   )
 }
 
+/* ── Что происходит с частицами ── */
+
+const STORY_TITLE: L3 = { ru: 'Что происходит с частицами', en: 'What happens to the particles', uz: 'Zarrachalar bilan nima sodir bo‘ladi' }
+
+export function TaskStory({ task, lang }: { task: LabTask; lang: LabLang }) {
+  return (
+    <div className={css.story} data-lab3d-task-story={task.id}>
+      <p className={css.title}>{STORY_TITLE[lang]}</p>
+      <p className={css.storyEq}>{task.story.equation}</p>
+      <p className={css.storyText}>{task.story.text[lang]}</p>
+    </div>
+  )
+}
+
 /* ── Журнал измерений ── */
 
 export function TaskJournal({ task, step, lang, variant }: { task: LabTask; step: number; lang: LabLang; variant: Variant }) {

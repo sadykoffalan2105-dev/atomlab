@@ -247,6 +247,8 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
     const w = window as unknown as { __labGesture?: () => unknown; __labTaskIds?: () => string[] }
     // список готовых задач-опытов — для проверки жестами всех опытов подряд
     w.__labTaskIds = () => LAB_TASKS.map((x) => x.id)
+    // ответы учебника текущей задачи-опыта — для автоматической проверки ввода ответа
+    ;(window as unknown as { __labTaskBook?: () => number[] | null }).__labTaskBook = () => LAB_TASKS.find((x) => x.id === experimentId)?.answers.map((a) => a.book) ?? null
     w.__labGesture = () => {
       const s = stepRef.current
       const gst = RIG_GESTURES[experimentId][s]

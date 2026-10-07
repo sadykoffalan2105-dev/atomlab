@@ -12,7 +12,7 @@ import styles from './BoardPanel.module.css'
 import { isLabTaskId } from '../labContract'
 import { getLabTask } from '../../../data/labTasks/labTasks'
 import { labTaskSession } from '../measure/labTaskSession'
-import { TaskJournal, TaskSolve } from '../tasks/LabTaskUi'
+import { TaskJournal, TaskSolve, TaskStory } from '../tasks/LabTaskUi'
 
 /** Запасная кнопка «Взять …» (если сцена со стеллажами не прислала событие). */
 const TAKE: Record<LabLang, string> = { ru: 'Взять', en: 'Take', uz: 'Olish' }
@@ -197,7 +197,7 @@ export function BoardPanel({ experimentId, step, lang, onSelectExperiment, onSte
                 <p className={styles.label}>{UI.conclusion[lang]}</p>
                 <p className={styles.obsText}>{def.conclusion[lang]}</p>
               </div>
-              {taskId ? <ParticleStory experimentId={experimentId} lang={lang} /> : <ScoreCard def={def} skips={skips} seconds={clock.total} lang={lang} />}
+              {taskId ? <TaskStory task={getLabTask(taskId)} lang={lang} /> : <ScoreCard def={def} skips={skips} seconds={clock.total} lang={lang} />}
               <LabQuiz experimentId={experimentId} lang={lang} />
             </div>
           </div>

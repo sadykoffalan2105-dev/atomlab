@@ -27,7 +27,7 @@
 }
 .title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 18.5px;
   font-weight: 750;
   line-height: 1.2;
 }
@@ -38,12 +38,12 @@
   background: color-mix(in srgb, var(--lt-primary, #2f7cf6) 14%, transparent);
   color: var(--lt-primary, #2f7cf6);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 13.5px;
 }
 .lead {
   margin: 0;
   color: var(--lt-text-2, #4b5868);
-  font-size: var(--lt-fs-small, 0.92rem);
+  font-size: var(--lt-fs-small, 14.5px);
   line-height: 1.5;
 }
 .tabs {
@@ -62,7 +62,7 @@
   border-radius: 9px;
   background: transparent;
   color: var(--lt-text-2, #4b5868);
-  font: 650 0.86rem/1 inherit;
+  font: 650 14px/1 inherit;
   font-family: inherit;
   cursor: pointer;
 }
@@ -101,7 +101,7 @@
   gap: 8px;
 }
 .source {
-  font-size: var(--lt-fs-xs, 0.78rem);
+  font-size: var(--lt-fs-xs, 12.5px);
   font-weight: 700;
   color: var(--lt-primary, #2f7cf6);
 }
@@ -115,14 +115,14 @@
 }
 .cardTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.25;
 }
 .statement {
   margin: 0;
   color: var(--lt-text-2, #4b5868);
-  font-size: var(--lt-fs-small, 0.88rem);
+  font-size: var(--lt-fs-small, 14px);
   font-style: italic;
   line-height: 1.45;
   display: -webkit-box;
@@ -141,12 +141,12 @@
   padding: 2px 8px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--lt-text, #18212b) 7%, transparent);
-  font-size: var(--lt-fs-xs, 0.76rem);
+  font-size: var(--lt-fs-xs, 12px);
   font-weight: 650;
   color: var(--lt-text-2, #4b5868);
 }
 .done {
-  font-size: var(--lt-fs-xs, 0.76rem);
+  font-size: var(--lt-fs-xs, 12px);
   font-weight: 700;
   color: #1d8a4f;
 }
@@ -157,7 +157,7 @@
   background: var(--lt-grad-primary, linear-gradient(135deg, #2f7cf6, #7b4fe0));
   color: #fff;
   font-weight: 700;
-  font-size: 0.86rem;
+  font-size: 14px;
   text-decoration: none;
 }
 .open:focus-visible,
@@ -186,7 +186,7 @@
   background: color-mix(in srgb, var(--lt-primary, #2f7cf6) 10%, var(--lt-surface, #fff));
   color: var(--lt-primary, #2f7cf6);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 14.5px;
   text-decoration: none;
 }
 .inlineNext {
@@ -199,6 +199,6 @@
   cursor: pointer;
 }
 .inlineHint {
-  font-size: var(--lt-fs-xs, 0.76rem);
+  font-size: var(--lt-fs-xs, 12px);
   color: var(--lt-text-3, #7a8695);
 }

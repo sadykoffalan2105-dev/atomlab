@@ -460,7 +460,7 @@
 /* ── Задачи-опыты: вкладки, возврат, ИИ-учитель ── */
 .back {
   align-self: flex-start;
-  font-size: 0.82rem;
+  font-size: 13px;
   font-weight: 650;
   color: var(--lab-accent);
   text-decoration: none;
@@ -484,7 +484,7 @@
   border-radius: 9px;
   background: transparent;
   color: var(--lab-muted);
-  font: 650 0.8rem/1.1 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font: 650 13px/1.1 system-ui, -apple-system, 'Segoe UI', sans-serif;
   cursor: pointer;
 }
 .tabOn {
@@ -500,7 +500,7 @@
 }
 .coach > summary {
   cursor: pointer;
-  font-size: 0.82rem;
+  font-size: 13px;
   font-weight: 650;
   color: #2457c5;
 }
