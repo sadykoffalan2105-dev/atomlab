@@ -232,7 +232,7 @@ export const BASO4_EXCESS: LabTask = {
     {
       id: 'weigh',
       target: 'filter',
-      gesture: { kind: 'drag', from: [0.48, 0.08, -0.1], to: [-0.2, 0.06, 0.05], lead: 0.6 },
+      gesture: { kind: 'drag', from: [0.45, 0.11, -0.1], to: [-0.2, 0.06, 0.05], lead: 0.6 },
       seconds: 3.2,
       instruction: L('Обнулите пустые весы «T» и положите остывший фильтр с осадком на чашу.', 'Zero the empty balance with “T” and put the cooled filter with the precipitate on the pan.', 'Bo‘sh tarozini «T» bilan nolga keltiring va sovigan cho‘kmali filtrni pallaga qo‘ying.'),
       observation: L('Весы показывают массу фильтра с осадком — около 6,6 г.', 'The balance shows the filter with the precipitate — about 6.6 g.', 'Tarozi cho‘kmali filtr massasini ko‘rsatadi — taxminan 6,6 g.'),

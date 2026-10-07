@@ -82,10 +82,10 @@ export function pourPose(rest: V3, h: number, r: number, side: 1 | -1, uses: rea
 export const readoutAfter = (...steps: number[]): PFn => (p) => (steps.some((s) => p >= s + 0.72 && p <= s + 1.6) ? 1 : 0)
 
 /** Склянка с раствором: стоит на столе в rest (горлышко — начало), наливает по шагам (bottlePose из worksKit). */
-export function SolutionBottle({ pose, formula, name, level, target }: { pose: (p: number) => PoseValue; formula: string; name: string; level: PFn; target: string }) {
+export function SolutionBottle({ pose, formula, name, level, target, color }: { pose: (p: number) => PoseValue; formula: string; name: string; level: PFn; target: string; color?: string }) {
   return (
     <Pose pose={pose}>
-      <ReagentBottle formula={formula} name={name} level={level} />
+      <ReagentBottle formula={formula} name={name} level={level} color={color} />
       <group position={[0, -BOTTLE_H, 0]}>
         <Target name={target} size={[0.07, 0.13, 0.07]} center={[0, 0.06, 0]} hintY={0.16} />
       </group>

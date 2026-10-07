@@ -5,5 +5,6 @@
 import type { LabTask } from './labTaskTypes'
 import { SODA_SOLUTION } from './g9/sodaSolution'
 import { BASO4_EXCESS } from './g9/baso4Excess'
+import { CU_FROM_CUSO4 } from './g9/cuFromCuso4'
 
-export const LAB_TASKS_G9: readonly LabTask[] = [SODA_SOLUTION, BASO4_EXCESS]
+export const LAB_TASKS_G9: readonly LabTask[] = [SODA_SOLUTION, BASO4_EXCESS, CU_FROM_CUSO4]

@@ -6,8 +6,10 @@ import type { ComponentType } from 'react'
 import type { LabTaskId } from '../../../labContract'
 import { SodaSolutionRig } from './g9/SodaSolutionRig'
 import { Baso4ExcessRig } from './g9/Baso4ExcessRig'
+import { CuFromCuso4Rig } from './g9/CuFromCuso4Rig'
 
 export const TASK_RIGS_G9: Partial<Record<LabTaskId, ComponentType>> = {
   'task-g9-soda-solution': SodaSolutionRig,
   'task-g9-baso4-excess': Baso4ExcessRig,
+  'task-g9-cu-from-cuso4': CuFromCuso4Rig,
 }
