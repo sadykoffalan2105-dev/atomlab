@@ -835,6 +835,10 @@
 .kind[data-kind='combination'] {
   --kc: #1f9e8f;
 }
+.card[data-kind='decomposition'],
+.kind[data-kind='decomposition'] {
+  --kc: #d0573d;
+}
 
 /* ── Таймер и отметки времени шагов ── */
 .timer {
@@ -1068,4 +1072,12 @@
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
+}
+
+/* ── Задача-опыт: расчёт и сверка на доске ── */
+.taskSolve {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border-radius: 16px;
 }

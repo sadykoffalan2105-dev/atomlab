@@ -75,12 +75,12 @@ export function Funnel() {
  */
 const PAPER_S = 0.075
 export const FILTER_CONE = { r: 0.032, h: 0.05 } as const
-export function FilterPaper({ fold, wet, fill, dirt, liquidColor = '#cdbf9e' }: { fold: PFn; wet: PFn; fill: PFn; dirt: PFn; liquidColor?: string }) {
+export function FilterPaper({ fold, wet, fill, dirt, liquidColor = '#cdbf9e', dirtColor = '#a88a5c' }: { fold: PFn; wet: PFn; fill: PFn; dirt: PFn; liquidColor?: string; /** Цвет слоя на фильтре: песок, белый AgCl/BaSO₄, голубой Cu(OH)₂, красная медь. */ dirtColor?: string }) {
   const { p } = useRig()
   const paper = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fbfbf9', roughness: 0.95, side: THREE.DoubleSide }), [])
   const cone = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fbfbf9', roughness: 0.95, side: THREE.DoubleSide, transparent: true }), [])
   const liq = useMemo(() => labLiquidMaterial(liquidColor, 0.8), [liquidColor])
-  const sand = useMemo(() => new THREE.MeshStandardMaterial({ color: '#a88a5c', roughness: 1, side: THREE.DoubleSide }), [])
+  const sand = useMemo(() => new THREE.MeshStandardMaterial({ color: dirtColor, roughness: 1, side: THREE.DoubleSide }), [dirtColor])
   const flat = useRef<THREE.Group>(null)
   const h1l = useRef<THREE.Group>(null)
   const h1r = useRef<THREE.Group>(null)

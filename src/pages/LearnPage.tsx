@@ -470,6 +470,9 @@ function NotFound({ backTo, backLabel }: { backTo: string; backLabel: string }) 
 export function LearnPage() {
   const { t } = useT()
   const bookMatch = useMatch('/learn/g/:gradeId/book')
+  // маршруты learn/tasks и learn/tasks/:lessonId статические — topicId в них нет, узнаём хаб задач по адресу
+  const tasksRootMatch = useMatch('/learn/tasks')
+  const tasksLessonMatch = useMatch('/learn/tasks/:lessonId')
   const params = useParams<{
     gradeId?: string
     chapterId?: string
@@ -494,12 +497,13 @@ export function LearnPage() {
     return <LearnTextbookReader gradeId={bookGradeId} />
   }
 
-  if (params.topicId === 'tasks') {
-    if (params.lessonId) {
-      if (!LEARN_TASK_CATEGORY_IDS.has(params.lessonId)) {
+  if (params.topicId === 'tasks' || tasksRootMatch || tasksLessonMatch) {
+    const lessonId = params.lessonId ?? tasksLessonMatch?.params.lessonId
+    if (lessonId) {
+      if (!LEARN_TASK_CATEGORY_IDS.has(lessonId)) {
         return <NotFound backTo="/learn/tasks" backLabel={t('learn.tasksBack')} />
       }
-      return <LearnTaskRunner categoryId={params.lessonId} />
+      return <LearnTaskRunner categoryId={lessonId} />
     }
     return <LearnTasksHub />
   }

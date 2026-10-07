@@ -32,7 +32,7 @@ type Props = {
   onSelect: () => void
 }
 
-const KINDS: StudentTestKind[] = ['molecule', 'topic', 'oral', 'written', 'ai', 'task']
+const KINDS: StudentTestKind[] = ['molecule', 'topic', 'oral', 'written', 'ai', 'task', 'lab']
 
 function kindLabel(t: (k: MessageKey) => string, kind: StudentTestKind) {
   const map: Record<StudentTestKind, MessageKey> = {
@@ -42,6 +42,7 @@ function kindLabel(t: (k: MessageKey) => string, kind: StudentTestKind) {
     oral: 'learn.studentStats.kind.oral',
     written: 'learn.studentStats.kind.written',
     task: 'learn.studentStats.kind.task',
+    lab: 'learn.studentStats.kind.lab',
   }
   return t(map[kind])
 }

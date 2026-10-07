@@ -55,7 +55,7 @@ const O = '#e04b3a'
 const C = '#3a3f46'
 const atom = (label: string, color: string, r: number, from: Pt, to: Pt, extra: Partial<Atom> = {}): Atom => ({ label, color, r, from, to, ...extra })
 
-const STORIES: Record<LabExperimentId, { atoms: readonly Atom[]; product?: { at: Pt; w: number; label: string } }> = {
+const STORIES: Partial<Record<LabExperimentId, { atoms: readonly Atom[]; product?: { at: Pt; w: number; label: string } }>> = {
   baso4: {
     atoms: [
       atom('Cl⁻', '#6aa8e8', 17, [60, 70], [74, 92]),
@@ -177,7 +177,7 @@ const STORIES: Record<LabExperimentId, { atoms: readonly Atom[]; product?: { at:
   },
 }
 
-const LEFT: Record<LabExperimentId, string> = {
+const LEFT: Partial<Record<LabExperimentId, string>> = {
   baso4: 'BaCl₂ + H₂SO₄',
   'zn-hcl': 'Zn + 2HCl',
   'ch4-burn': 'CH₄ + 2O₂',
@@ -202,7 +202,8 @@ const UI = {
 } as const
 
 export function ParticleStory({ experimentId, lang }: { experimentId: LabExperimentId; lang: LabLang }) {
-  const st = STORIES[experimentId]
+  // у задач-опытов своей анимации частиц нет — только текст и уравнение «что произошло»
+  const st = STORIES[experimentId] ?? { atoms: [] }
   const info = LAB_PARTICLE_STORY[experimentId]
   return (
     <div className={styles.story} data-lab3d-story={experimentId}>
@@ -210,7 +211,7 @@ export function ParticleStory({ experimentId, lang }: { experimentId: LabExperim
       <svg className={styles.storySvg} viewBox="0 0 520 250" aria-hidden>
         <rect x="6" y="6" width="508" height="238" rx="18" className={styles.storyBg} />
         <text x="18" y="236" className={styles.storyCap}>
-          {LEFT[experimentId]}
+          {LEFT[experimentId] ?? info.equation.split('→')[0]?.trim()}
         </text>
         {st.product ? (
           <g className={styles.storyProduct}>

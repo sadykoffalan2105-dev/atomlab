@@ -15,6 +15,10 @@ export type LearnTaskCoachContext = {
   feedback: 'idle' | 'wrong' | 'correct'
   userAttempt?: string
   scratchpad?: string
+  /** Задача-опыт в 3D-лаборатории: id, журнал показаний приборов («m(Zn) = 1,31 г»), текущий шаг опыта. */
+  labTaskId?: string
+  labMeasurements?: string[]
+  currentStep?: string
 }
 
 export function buildTaskCoachContext(
@@ -30,6 +34,9 @@ export function buildTaskCoachContext(
     userAttempt?: string
     scratchpad?: string
     choiceLabels?: string[]
+    labTaskId?: string
+    labMeasurements?: string[]
+    currentStep?: string
   },
 ): LearnTaskCoachContext {
   return {
@@ -45,5 +52,8 @@ export function buildTaskCoachContext(
     feedback: meta.feedback,
     userAttempt: meta.userAttempt,
     scratchpad: meta.scratchpad,
+    labTaskId: meta.labTaskId,
+    labMeasurements: meta.labMeasurements,
+    currentStep: meta.currentStep,
   }
 }

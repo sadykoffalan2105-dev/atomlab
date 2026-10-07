@@ -270,6 +270,21 @@
   color: #2457c5;
 }
 
+.kind_physical {
+  background: #efe9fb;
+  color: #5b3fb0;
+}
+
+.kind_combination {
+  background: #e2f5f2;
+  color: #157a6e;
+}
+
+.kind_decomposition {
+  background: #fdebe7;
+  color: #b1402b;
+}
+
 .cardTitle {
   font-size: 0.86rem;
   font-weight: 650;
@@ -440,4 +455,52 @@
   .eq {
     display: none;
   }
+}
+
+/* ── Задачи-опыты: вкладки, возврат, ИИ-учитель ── */
+.back {
+  align-self: flex-start;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--lab-accent);
+  text-decoration: none;
+}
+.back:hover {
+  text-decoration: underline;
+}
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(24, 32, 42, 0.06);
+}
+.tab,
+.tabOn {
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--lab-muted);
+  font: 650 0.8rem/1.1 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  cursor: pointer;
+}
+.tabOn {
+  background: #fff;
+  color: #18212b;
+  box-shadow: 0 1px 4px rgba(24, 32, 42, 0.12);
+}
+.coach {
+  border: 1px solid var(--lab-border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 8px 10px;
+}
+.coach > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: #2457c5;
 }

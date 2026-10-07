@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
+import { LabTaskButton, labTasksForCategory } from './LabTasksSection'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { generateTaskProblem, answersClose, type LearnTaskGenerated } from '../../learn/learnTaskProblems'
 import { readWorkspaceDraft, writeWorkspaceDraft } from '../../learn/learnProgressStorage'
@@ -26,6 +27,10 @@ export function LearnWorkspace({
   presentationMode?: boolean
 }) {
   const { t } = useT()
+  const labTaskIds = useMemo(() => {
+    const g = Number(/(?:^|[^0-9])(7|8|9)(?:[^0-9]|$)/.exec(sectionPathId)?.[1] ?? 0)
+    return taskCategoryId ? labTasksForCategory(taskCategoryId, g || undefined).map((x) => x.id) : []
+  }, [sectionPathId, taskCategoryId])
   const [scratch, setScratch] = useState(() => readWorkspaceDraft(sectionPathId))
   const [problem, setProblem] = useState<LearnTaskGenerated | null>(null)
   const [userText, setUserText] = useState('')
@@ -156,6 +161,8 @@ export function LearnWorkspace({
                   <LearnShellIcon name="plus" size={15} />
                   <span>{t('learn.task.newTask')}</span>
                 </button>
+                {/* похожая задача учебника — как настоящий опыт в 3D-лаборатории (сначала своего класса) */}
+                <LabTaskButton taskIds={labTaskIds} />
               </div>
             </>
           ) : problem.kind === 'mcq' ? (
