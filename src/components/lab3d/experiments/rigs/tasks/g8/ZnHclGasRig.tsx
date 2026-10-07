@@ -41,7 +41,7 @@ const JT: readonly V3[] = [
 ]
 const JT_START = add(TR, JT[0]!)
 const PIECES = 7
-const C_ACID = '#eaf4ff'
+const C_ACID = '#d3e8fb'
 
 /** Сколько гранул уже в лодочке (шаг 1: два захода шпателем). */
 const inBoat: PFn = (p) => 5 * ease(p, 1.48, 1.56) + 2 * ease(p, 1.84, 1.9)

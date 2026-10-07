@@ -114,11 +114,16 @@ export function FilterPaper({ fold, wet, fill, dirt, liquidColor = '#cdbf9e', di
     if (liqM.current) {
       liqM.current.visible = fl > 0.02
       liqM.current.scale.set(fl, fl, fl)
+      // вершина конуса раствора — в вершине фильтра (а не основание под ней)
+      liqM.current.position.y = (FILTER_CONE.h * 0.92 * fl) / 2
     }
     const d = dirt(pv)
     if (sandM.current) {
       sandM.current.visible = d > 0.02
-      sandM.current.scale.set(0.98, Math.max(0.01, 0.55 * d), 0.98)
+      // слой на стенках у вершины: конус вершиной вниз, подобный фильтру (не торчит сквозь вершину и стекло воронки)
+      const k = 0.98 * Math.max(0.02, d)
+      sandM.current.scale.setScalar(k)
+      sandM.current.position.y = (FILTER_CONE.h * 0.55 * k) / 2
     }
   })
   const q = PAPER_S / 2
@@ -144,12 +149,12 @@ export function FilterPaper({ fold, wet, fill, dirt, liquidColor = '#cdbf9e', di
           <coneGeometry args={[FILTER_CONE.r, FILTER_CONE.h, 32, 1, true]} />
         </mesh>
         {/* песок на стенках — тонкий тёмный конус у вершины */}
-        <mesh ref={sandM} position={[0, 0, 0]} material={sand}>
+        <mesh ref={sandM} rotation={[Math.PI, 0, 0]} material={sand}>
           <coneGeometry args={[FILTER_CONE.r * 0.55, FILTER_CONE.h * 0.55, 24, 1, true]} />
         </mesh>
         {/* раствор в фильтре: конус, подобный фильтру */}
         <group>
-          <mesh ref={liqM} material={liq} renderOrder={2}>
+          <mesh ref={liqM} rotation={[Math.PI, 0, 0]} material={liq} renderOrder={2}>
             <coneGeometry args={[FILTER_CONE.r * 0.92, FILTER_CONE.h * 0.92, 24, 1, false]} />
           </mesh>
         </group>
