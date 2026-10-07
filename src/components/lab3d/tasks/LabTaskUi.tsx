@@ -285,7 +285,7 @@ export function TaskSolve({ taskId, step, lang, variant, onRepeat }: { taskId: L
                 inputMode="decimal"
                 autoComplete="off"
                 value={s.answers[a.key] ?? ''}
-                placeholder={a.exponent ? '2,41' : '0,0'}
+                placeholder={a.exponent ? '0,00' : '0,0'}
                 onChange={(e) => labTaskSession.setAnswer(taskId, a.key, e.target.value)}
                 data-lab3d-answer={a.key}
               />
