@@ -12,7 +12,7 @@ import { detectVrLabQuality } from '../../../vrLab/vrLabPerformance'
 import { BoardPanel, ExperimentRig, getLabExperiment, isLabExperimentId } from '../index'
 
 /** Кадр камеры под размер установки: [высота над столом, отступ по Z, высота цели]. */
-const VIEW: Record<LabExperimentId, readonly [number, number, number]> = {
+const VIEW: Partial<Record<LabExperimentId, readonly [number, number, number]>> = {
   baso4: [0.26, 0.44, 0.09],
   'ch4-burn': [0.42, 0.88, 0.12],
   'zn-hcl': [0.36, 0.82, 0.1],
@@ -60,7 +60,7 @@ export function ExperimentSandbox() {
           shadows={quality === 'high'}
           dpr={quality === 'high' ? [1, 1.75] : [1, 1.25]}
           key={experimentId}
-          camera={{ position: [0, BENCH_TOP_Y + VIEW[experimentId][0], VIEW[experimentId][1]], fov: 42, near: 0.02, far: 20 }}
+          camera={{ position: [0, BENCH_TOP_Y + (VIEW[experimentId] ?? [0.5, 1.1, 0.12])[0], (VIEW[experimentId] ?? [0.5, 1.1, 0.12])[1]], fov: 42, near: 0.02, far: 20 }}
           gl={{ antialias: true, preserveDrawingBuffer: true }}
           onCreated={({ gl }) => {
             gl.toneMapping = THREE.ACESFilmicToneMapping
@@ -99,7 +99,7 @@ export function ExperimentSandbox() {
           <group position={WORK_AREA_CENTER}>
             <ExperimentRig experimentId={experimentId} step={step} onAdvance={() => goto(step + 1)} quality={quality} lang={lang} />
           </group>
-          <OrbitControls target={[0, BENCH_TOP_Y + VIEW[experimentId][2], 0]} enableDamping minDistance={0.25} maxDistance={2.2} maxPolarAngle={Math.PI / 2 - 0.05} />
+          <OrbitControls target={[0, BENCH_TOP_Y + (VIEW[experimentId] ?? [0.5, 1.1, 0.12])[2], 0]} enableDamping minDistance={0.25} maxDistance={2.2} maxPolarAngle={Math.PI / 2 - 0.05} />
         </Canvas>
       </div>
       <div

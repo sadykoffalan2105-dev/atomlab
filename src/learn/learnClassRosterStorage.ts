@@ -5,7 +5,8 @@ export const CLASS_ROSTER_CHANGED = 'atomlab:classRosterChanged'
 /** Отдельный roster для режима задач (/learn/tasks). */
 export const TASKS_ROSTER_SECTION_ID = 'learn-tasks-global'
 
-export type StudentTestKind = 'molecule' | 'topic' | 'ai' | 'task' | 'oral' | 'written'
+/** 'lab' — задача учебника, решённая как опыт в 3D-лаборатории (весы, мензурка, газ над водой…). */
+export type StudentTestKind = 'molecule' | 'topic' | 'ai' | 'task' | 'oral' | 'written' | 'lab'
 
 export type ClassTestAttempt = {
   at: string
@@ -17,6 +18,10 @@ export type ClassTestAttempt = {
   /** Режим задач */
   taskCategoryId?: string
   hintsUsed?: number
+  /** Задача-опыт: id задачи, звёзды (ТБ, аккуратность, расчёт), показания приборов. */
+  labTaskId?: string
+  stars?: number
+  measurements?: Record<string, number>
 }
 
 /** Персональный конспект по пробелам, выданный учителем. */
@@ -47,7 +52,7 @@ function normalizeAttempt(raw: Partial<ClassTestAttempt>): ClassTestAttempt {
   const kind = raw.kind ?? 'molecule'
   const totalRaw = raw.total
   const total =
-    kind === 'task'
+    kind === 'task' || kind === 'lab'
       ? typeof totalRaw === 'number' && totalRaw > 0
         ? totalRaw
         : 5
@@ -64,6 +69,9 @@ function normalizeAttempt(raw: Partial<ClassTestAttempt>): ClassTestAttempt {
     wrongQuestionIds: Array.isArray(raw.wrongQuestionIds) ? raw.wrongQuestionIds : undefined,
     taskCategoryId: typeof raw.taskCategoryId === 'string' ? raw.taskCategoryId : undefined,
     hintsUsed: typeof raw.hintsUsed === 'number' ? raw.hintsUsed : undefined,
+    labTaskId: typeof raw.labTaskId === 'string' ? raw.labTaskId : undefined,
+    stars: typeof raw.stars === 'number' ? raw.stars : undefined,
+    measurements: raw.measurements && typeof raw.measurements === 'object' ? raw.measurements : undefined,
   }
 }
 
@@ -182,6 +190,24 @@ export function recordStudentTaskResult(
     correct: result.correct ? 1 : 0,
     taskCategoryId: result.taskCategoryId,
     hintsUsed: result.hintsUsed,
+  })
+}
+
+/** Задача-опыт решена: звёзды 0–3 (ТБ, аккуратность, расчёт), показания приборов попытки. */
+export function recordStudentLabResult(
+  sectionId: string,
+  studentId: string,
+  result: { labTaskId: string; correct: boolean; stars: number; tries: number; measurements: Record<string, number> },
+) {
+  recordStudentTestResult(sectionId, studentId, {
+    kind: 'lab',
+    score: Math.round((result.stars / 3) * 100),
+    total: 3,
+    correct: result.correct ? 1 : 0,
+    hintsUsed: Math.max(0, result.tries - 1),
+    labTaskId: result.labTaskId,
+    stars: result.stars,
+    measurements: result.measurements,
   })
 }
 

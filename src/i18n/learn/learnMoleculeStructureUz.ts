@@ -75,6 +75,7 @@ export const learnMoleculeStructureUz = {
   'learn.studentStats.kind.oral': `Og'zaki so'rovnoma`,
   'learn.studentStats.kind.written': `Yozma so'rovnoma`,
   'learn.studentStats.kind.task': `Vazifalar`,
+  'learn.studentStats.kind.lab': `Tajriba-masalalar`,
   'learn.studentStats.chartTitle': `Muvaffaqiyat dinamikasi`,
   'learn.studentStats.chartCaption': `Barcha urinishlar grafigi: testlar va vazifalar. O'sish — o'quvchi rivojlanmoqda.`,
   'learn.studentStats.chartEmpty': `Hali urinish yo'q — vazifa yeching yoki test o'ting.`,

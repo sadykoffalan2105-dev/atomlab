@@ -105,8 +105,42 @@ export function generateTaskCoachLocalReply(
 
   const level = taskCoach.aiHintsGiven
   void problem
+  if (taskCoach.labTaskId) return labStep(level, taskCoach, locale)
   const hintText = genericFromCategory(taskCoach.categoryId, level, ru, taskCoach.problemKind)
   return socraticWrap(hintText || genericStep(level, taskCoach, ru), ru)
+}
+
+/** Задача-опыт: шаги рассуждения опираются на журнал измерений ученика (а не на числа учебника). */
+function labStep(level: number, tc: LearnTaskCoachContext, locale: 'ru' | 'en' | 'uz'): string {
+  const list = (tc.labMeasurements ?? []).slice(0, 4).join('; ')
+  const steps: Record<'ru' | 'en' | 'uz', string[]> = {
+    ru: [
+      `Посмотри в журнал измерений${list ? ` (${list})` : ''}: это и есть твоё «Дано». Что из этого нужно, чтобы ответить на вопрос задачи?`,
+      'Запиши уравнение реакции. Какое вещество ты взвесил или отмерил — найди его количество вещества n = m / M.',
+      'По коэффициентам уравнения перейди к искомому веществу. Какой множитель даёт уравнение?',
+      'Газ измерен при температуре класса, а задача — при н.у. Как привести объём: V₀ = V · 273 / (273 + t)?',
+      'Опыт поставлен в уменьшенном масштабе. Во сколько раз задача больше опыта — на что умножишь результат?',
+      'Сравни свой результат с учебником. Если разница в пару процентов — какие причины назовёшь: прибор, потери, температура?',
+    ],
+    en: [
+      `Look at your measurement log${list ? ` (${list})` : ''}: this is your "Given". Which values answer the question?`,
+      'Write the equation. Which substance did you weigh or measure? Find its amount n = m / M.',
+      'Use the equation coefficients to move to the substance you are asked about.',
+      'The gas was measured at room temperature, the problem is at STP: V₀ = V · 273 / (273 + t).',
+      'The experiment is scaled down. How many times bigger is the problem? Multiply accordingly.',
+      'Compare with the textbook. If it differs by a few percent, what are the reasons: instrument, losses, temperature?',
+    ],
+    uz: [
+      `O‘lchovlar jurnaliga qarang${list ? ` (${list})` : ''}: bu sizning «Berilgan»ingiz. Savolga javob uchun qaysi qiymatlar kerak?`,
+      'Reaksiya tenglamasini yozing. Qaysi moddani tortdingiz yoki o‘lchadingiz — n = m / M ni toping.',
+      'Tenglama koeffitsiyentlari bo‘yicha izlanayotgan moddaga o‘ting.',
+      'Gaz xona haroratida o‘lchangan, masala esa n.sh. da: V₀ = V · 273 / (273 + t).',
+      'Tajriba kichraytirilgan masshtabda. Masala necha marta katta — natijani nimaga ko‘paytirasiz?',
+      'Natijani darslik bilan solishtiring. Farq bir necha foiz bo‘lsa — sabablari: asbob, yo‘qotishlar, harorat?',
+    ],
+  }
+  const s = steps[locale]
+  return s[Math.min(level, s.length - 1)]!
 }
 
 function genericFromCategory(

@@ -13,6 +13,7 @@ import {
 } from '../learn/learnClassRosterStorage'
 import { useT, type MessageKey } from '../i18n/useT'
 import { isWebGLAvailable } from '../utils/webgl'
+import { LabTaskButton, labTasksForCategory } from '../components/learn/LabTasksSection'
 import styles from './LearnPage.module.css'
 
 function parseLocaleNumber(raw: string): number | null {
@@ -43,7 +44,10 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
   const [aiHints, setAiHints] = useState(0)
   const hintsUsed = staticHints + aiHints
   const recordedRef = useRef(false)
+  // была неверная попытка — если ученик уйдёт к новой задаче, не решив, запишем «не решено»
+  const failedRef = useRef(false)
   const webglOk = isWebGLAvailable()
+  const labTaskIds = useMemo(() => labTasksForCategory(categoryId).map((x) => x.id), [categoryId])
 
   useEffect(() => {
     setProblem(generateTaskProblem(categoryId))
@@ -52,6 +56,7 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
     setStaticHints(0)
     setAiHints(0)
     recordedRef.current = false
+    failedRef.current = false
     setHeroTick((k) => k + 1)
   }, [categoryId])
 
@@ -74,6 +79,8 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
   )
 
   const newProblem = useCallback(() => {
+    if (failedRef.current && !recordedRef.current) saveResult(false, hintsUsed)
+    failedRef.current = false
     setProblem(generateTaskProblem(categoryId))
     setUserText('')
     setFeedback('idle')
@@ -81,19 +88,21 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
     setAiHints(0)
     recordedRef.current = false
     setHeroTick((k) => k + 1)
-  }, [categoryId])
+  }, [categoryId, hintsUsed, saveResult])
 
   const checkNumeric = useCallback(() => {
     if (problem.kind !== 'numeric') return
     const u = parseLocaleNumber(userText)
     if (u === null) {
       setFeedback('wrong')
-      saveResult(false, hintsUsed)
+      failedRef.current = true
       return
     }
     const ok = answersClose(u, problem.correct, problem.decimals)
     setFeedback(ok ? 'correct' : 'wrong')
-    saveResult(ok, hintsUsed)
+    // засчитываем решённую задачу (раньше записывалась только первая попытка — и верный ответ после ошибки терялся)
+    if (ok) saveResult(true, hintsUsed)
+    else failedRef.current = true
   }, [problem, userText, hintsUsed, saveResult])
 
   const pickMcq = useCallback(
@@ -101,7 +110,8 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
       if (problem.kind !== 'mcq') return
       const ok = idx === problem.correctIndex
       setFeedback(ok ? 'correct' : 'wrong')
-      saveResult(ok, hintsUsed)
+      if (ok) saveResult(true, hintsUsed)
+      else failedRef.current = true
     },
     [problem, hintsUsed, saveResult],
   )
@@ -228,6 +238,8 @@ export function LearnTaskRunner({ categoryId, rosterSectionId = TASKS_ROSTER_SEC
               <button type="button" className={styles.btn} onClick={newProblem}>
                 {t('learn.task.newTask')}
               </button>
+              {/* та же задача — как настоящий опыт в 3D-лаборатории */}
+              <LabTaskButton taskIds={labTaskIds} />
             </div>
           </>
         ) : (
