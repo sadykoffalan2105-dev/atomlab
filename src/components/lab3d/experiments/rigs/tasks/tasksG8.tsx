@@ -4,5 +4,8 @@
  */
 import type { ComponentType } from 'react'
 import type { LabTaskId } from '../../../labContract'
+import { ZnHclGasRig } from './g8/ZnHclGasRig'
 
-export const TASK_RIGS_G8: Partial<Record<LabTaskId, ComponentType>> = {}
+export const TASK_RIGS_G8: Partial<Record<LabTaskId, ComponentType>> = {
+  'task-g8-zn-hcl-gas': ZnHclGasRig,
+}
