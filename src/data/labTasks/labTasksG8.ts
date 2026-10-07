@@ -6,5 +6,13 @@ import type { LabTask } from './labTaskTypes'
 import { TASK_G8_ZN_HCL_GAS } from './g8/znHclGas'
 import { TASK_G8_AGCL } from './g8/agcl'
 import { TASK_G8_CUSO4_HYDRATE } from './g8/cuso4Hydrate'
+import { TASK_G8_AL_ACID } from './g8/alAcid'
+import { TASK_G8_HCL_SOLUTION } from './g8/hclSolution'
 
-export const LAB_TASKS_G8: readonly LabTask[] = [TASK_G8_ZN_HCL_GAS, TASK_G8_AGCL, TASK_G8_CUSO4_HYDRATE]
+export const LAB_TASKS_G8: readonly LabTask[] = [
+  TASK_G8_ZN_HCL_GAS,
+  TASK_G8_AGCL,
+  TASK_G8_CUSO4_HYDRATE,
+  TASK_G8_AL_ACID,
+  TASK_G8_HCL_SOLUTION,
+]
