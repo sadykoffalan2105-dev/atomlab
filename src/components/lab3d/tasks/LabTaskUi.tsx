@@ -336,7 +336,8 @@ export function TaskSolve({ taskId, step, lang, variant, onRepeat }: { taskId: L
           <p className={css.sub}>{UI.solution[lang]}</p>
           <ol>
             {task.solution(s.values, lang).map((l) => (
-              <li key={l}>{l}</li>
+              // нумерация — у списка; своя «1)» в начале строки задачи не дублируется
+              <li key={l}>{l.replace(/^\s*\d+[).]\s+/, '')}</li>
             ))}
           </ol>
         </div>
