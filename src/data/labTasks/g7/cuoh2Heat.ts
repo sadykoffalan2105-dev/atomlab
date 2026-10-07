@@ -1,7 +1,8 @@
 /**
  * Kimyo 7, с. 148, задача 2: разложение 49 г Cu(OH)₂ → масса CuO. На столе — в 10 раз меньше: 4,90 г.
  * Опыт: фарфоровая чашка на весах (тара) → 4,90 г голубого Cu(OH)₂ → чашка на сетку кольца штатива над спиртовкой →
- * нагрев: голубой → чёрный, пар → помешивать палочкой → погасить колпачком → остывшую чашку щипцами на весы: m(CuO).
+ * нагрев: голубой → чёрный, пар → холодное часовое стекло над чашкой: капли воды → помешивать палочкой → погасить
+ * колпачком → остывшую чашку щипцами на весы: m(CuO).
  * Убыль массы — вода. Честная систематика: в порошке остаётся немного воды (недосушили) — CuO выходит на 0–1 % больше.
  */
 import { fmtNum } from '../../../components/lab3d/measure/instruments'
@@ -102,7 +103,7 @@ export const CUOH2_HEAT: LabTask = {
     {
       id: 'stand',
       target: 'dish',
-      gesture: { kind: 'drag', from: [-0.3, 0.07, -0.052], to: [0.15, 0.22, -0.06], lead: 0.5 },
+      gesture: { kind: 'drag', from: [-0.3, 0.07, -0.052], to: [0.15, 0.2, -0.06], lead: 0.5 },
       seconds: 3,
       instruction: L('Перенесите чашку на керамическую сетку над спиртовкой.', 'Move the dish onto the ceramic gauze above the spirit lamp.', 'Kosachani spirt lampa ustidagi keramik to‘rga o‘tkazing.'),
       observation: L('Чашка стоит на сетке кольца штатива. Весы без чашки показывают минус.', 'The dish stands on the gauze of the ring. The empty balance shows a minus.', 'Kosacha shtativ halqasidagi to‘rda turibdi. Kosachasiz tarozi minus ko‘rsatadi.'),
@@ -118,6 +119,18 @@ export const CUOH2_HEAT: LabTask = {
       observation: L('Порошок темнеет с краёв: голубой → чёрный. Над чашкой поднимается пар.', 'The powder darkens from the edges: blue → black. Steam rises above the dish.', 'Kukun chetidan qorayadi: ko‘k → qora. Kosacha ustida bug‘ ko‘tariladi.'),
       how: L('Проведите по колпачку вправо — спичка зажжёт фитиль.', 'Swipe the cap to the right — a match lights the wick.', 'Qalpoqchani o‘ngga suring — gugurt pilikni yoqadi.'),
       teacher: L('При нагревании ионы OH⁻ попарно отдают воду: из Cu(OH)₂ остаётся CuO, а H₂O уходит паром.', 'On heating, OH⁻ ions give off water in pairs: CuO remains from Cu(OH)₂ and H₂O leaves as steam.', 'Qizdirilganda OH⁻ ionlari juft-juft suv beradi: Cu(OH)₂ dan CuO qoladi, H₂O esa bug‘ bo‘lib chiqadi.'),
+      mistake: L('Ставить чашку прямо в пламя без сетки — фарфор нагреется неравномерно и может треснуть.', 'Putting the dish straight into the flame without the gauze — the porcelain heats unevenly and may crack.', 'Kosachani to‘rsiz to‘g‘ridan-to‘g‘ri alangaga qo‘yish — chinni notekis qiziydi va yorilishi mumkin.'),
+    },
+    {
+      id: 'glass',
+      target: 'watch-glass',
+      gesture: { kind: 'drag', from: [0.34, 0.01, 0.18], to: [0.15, 0.2, -0.06], lead: 0.4 },
+      seconds: 4,
+      instruction: L('Подержите над чашкой холодное часовое стекло.', 'Hold a cold watch glass above the dish.', 'Kosacha ustida sovuq soat oynasini ushlab turing.'),
+      observation: L('Снизу на стекле появились мелкие капли воды — пар над чашкой это водяной пар.', 'Small drops of water appear on the underside of the glass: the vapour above the dish is water.', 'Oynaning ostida mayda suv tomchilari paydo bo‘ldi — kosacha ustidagi bug‘ suv bug‘idir.'),
+      how: L('Перетащите часовое стекло со стола и задержите его над чашкой.', 'Drag the watch glass from the bench and hold it above the dish.', 'Soat oynasini stoldan torting va kosacha ustida ushlab turing.'),
+      teacher: L('Молекулы H₂O, вышедшие из кристалла, на холодном стекле теряют скорость и снова собираются в жидкую воду — так доказывают второй продукт.', 'H₂O molecules that left the crystal slow down on the cold glass and gather into liquid water again — this proves the second product.', 'Kristalldan chiqqan H₂O molekulalari sovuq oynada sekinlashib, yana suyuq suvga yig‘iladi — ikkinchi mahsulot shunday isbotlanadi.'),
+      mistake: L('Держать стекло низко над пламенем — оно нагреется, и капли не появятся.', 'Holding the glass low over the flame — it heats up and no drops form.', 'Oynani alangaga yaqin ushlash — u qiziydi va tomchilar paydo bo‘lmaydi.'),
     },
     {
       id: 'stir',
@@ -154,24 +167,28 @@ export const CUOH2_HEAT: LabTask = {
   ],
   focus: [
     { from: 1.6, to: 1.97, point: [-0.3, 0.04, 0.0], dist: 0.36 },
+    { from: 2.15, to: 2.95, point: [-0.3, 0.025, 0.06], dist: 0.22 },
     { from: 3.55, to: 3.97, point: [-0.3, 0.04, 0.0], dist: 0.32 },
     { from: 5.6, to: 5.97, point: [0.15, 0.14, -0.06], dist: 0.34 },
-    { from: 6.3, to: 6.9, point: [0.15, 0.14, -0.06], dist: 0.3 },
-    { from: 8.72, to: 8.98, point: [-0.3, 0.03, 0.03], dist: 0.28 },
+    { from: 6.3, to: 6.72, point: [0.15, 0.17, -0.06], dist: 0.26 },
+    { from: 7.3, to: 7.85, point: [0.15, 0.14, -0.06], dist: 0.28 },
+    { from: 9.72, to: 9.98, point: [-0.3, 0.03, 0.03], dist: 0.28 },
   ],
   labels: [
     { at: 1.7, pos: [-0.22, 0.12, -0.05], text: L('фарфоровая чашка', 'porcelain dish', 'chinni kosacha') },
     { at: 3.6, pos: [-0.22, 0.12, -0.05], text: L('Cu(OH)₂ — голубой', 'Cu(OH)₂: blue', 'Cu(OH)₂ — ko‘k') },
+    { at: 4.85, pos: [0.06, 0.16, -0.06], text: L('сетка: жар — равномерно', 'gauze: even heat', 'to‘r: issiqlik bir tekis') },
     { at: 5.75, pos: [0.22, 0.24, -0.06], text: L('пар — уходит вода H₂O', 'steam: water H₂O leaves', 'bug‘ — suv H₂O chiqadi') },
-    { at: 6.6, pos: [0.22, 0.2, -0.06], text: L('CuO — чёрный', 'CuO: black', 'CuO — qora') },
-    { at: 7.6, pos: [0.22, 0.2, -0.06], text: L('остывание (в жизни ~10 мин)', 'cooling (~10 min in real life)', 'sovish (hayotda ~10 daq)') },
-    { at: 8.85, pos: [-0.22, 0.12, -0.05], text: L('масса уменьшилась — ушла вода', 'the mass fell: water has left', 'massa kamaydi — suv chiqdi') },
+    { at: 6.5, pos: [0.22, 0.23, -0.06], text: L('капли воды на стекле', 'water drops on the glass', 'oynada suv tomchilari') },
+    { at: 7.6, pos: [0.22, 0.2, -0.06], text: L('CuO — чёрный', 'CuO: black', 'CuO — qora') },
+    { at: 8.6, pos: [0.22, 0.2, -0.06], text: L('остывание (в жизни ~10 мин)', 'cooling (~10 min in real life)', 'sovish (hayotda ~10 daq)') },
+    { at: 9.85, pos: [-0.22, 0.12, -0.05], text: L('масса уменьшилась — ушла вода', 'the mass fell: water has left', 'massa kamaydi — suv chiqdi') },
   ],
   measurements: [
     { key: 'dish', label: 'm₀', what: L('масса пустой чашки (до тары)', 'mass of the empty dish (before taring)', 'bo‘sh kosacha massasi (taragacha)'), instrument: 'scales', afterStep: 1 },
     { key: 'mcu', label: 'm(Cu(OH)₂)', what: L('масса гидроксида меди(II)', 'mass of copper(II) hydroxide', 'mis(II) gidroksidi massasi'), instrument: 'scales', afterStep: 3 },
-    { key: 'mcuo', label: 'm(CuO)', what: L('масса оксида меди(II) после нагрева', 'mass of copper(II) oxide after heating', 'qizdirishdan keyingi mis(II) oksidi massasi'), instrument: 'scales', afterStep: 8 },
-    { key: 'mH2O', label: 'm(H₂O)', what: L('масса ушедшей воды (убыль массы)', 'mass of water given off (mass loss)', 'chiqib ketgan suv massasi (massa kamayishi)'), instrument: 'scales', afterStep: 8, derived: true },
+    { key: 'mcuo', label: 'm(CuO)', what: L('масса оксида меди(II) после нагрева', 'mass of copper(II) oxide after heating', 'qizdirishdan keyingi mis(II) oksidi massasi'), instrument: 'scales', afterStep: 9 },
+    { key: 'mH2O', label: 'm(H₂O)', what: L('масса ушедшей воды (убыль массы)', 'mass of water given off (mass loss)', 'chiqib ketgan suv massasi (massa kamayishi)'), instrument: 'scales', afterStep: 9, derived: true },
   ],
   simulate: (rng) => {
     const dish = rng.read('scales', rng.between(58, 67))

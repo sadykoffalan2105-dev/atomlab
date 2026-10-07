@@ -5,5 +5,6 @@
 import type { LabTask } from './labTaskTypes'
 import { ZN_MOLES } from './g7/znMoles'
 import { MG_BURN } from './g7/mgBurn'
+import { CUOH2_HEAT } from './g7/cuoh2Heat'
 
-export const LAB_TASKS_G7: readonly LabTask[] = [ZN_MOLES, MG_BURN]
+export const LAB_TASKS_G7: readonly LabTask[] = [ZN_MOLES, MG_BURN, CUOH2_HEAT]
