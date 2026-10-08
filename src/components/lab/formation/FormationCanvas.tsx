@@ -15,7 +15,7 @@ import { FormationClouds } from './FormationClouds'
 import { useCloudsOn } from './board/cloudsStore'
 import { FormationHud, type HudLayout } from './FormationHud'
 import { showcaseSceneFor } from './showcase/registry'
-import { Backdrop, ShowcaseClock } from './showcase/kit/core'
+import { Backdrop, ShowcaseBounds, ShowcaseClock } from './showcase/kit/core'
 import type { CamCtl } from './showcase/types'
 import hudStyles from './FormationHud.module.css'
 
@@ -131,7 +131,9 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
               {/* showcase: сцена внутри группы атомов (та же система координат) */}
               {Scene ? (
                 <ShowcaseClock value={clockFn}>
-                  <Scene model={model} plan={plan} story={story} clock={clock} cam={cam} lowPower={lowPower} />
+                  <ShowcaseBounds value={layout}>
+                    <Scene model={model} plan={plan} story={story} clock={clock} cam={cam} lowPower={lowPower} />
+                  </ShowcaseBounds>
                 </ShowcaseClock>
               ) : null}
             </FormationMoleculeView>

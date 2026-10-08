@@ -177,7 +177,10 @@ const tagStyle: CSSProperties = {
   border: '1px solid rgba(125, 211, 252, 0.35)',
   color: '#e6f3ff',
   font: '600 13px/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  whiteSpace: 'nowrap',
+  whiteSpace: 'normal',
+  width: 'max-content',
+  maxWidth: 240,
+  textAlign: 'center',
   pointerEvents: 'none',
   userSelect: 'none',
   boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
@@ -198,6 +201,37 @@ export function Tag({ pos, text, k, tone = 'info', offset = [0, 0, 0] }: { pos: 
   const el = useRef<HTMLDivElement>(null)
   const last = useRef(-1)
   const clock = useClockCtx()
+  const bounds = useContext(BoundsCtx)
+  // Подпись не уходит за край 3D-окна и не залезает под HUD-карточки (справа dx px / сверху dy px).
+  const calc = useMemo(
+    () => (o: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }) => {
+      const v = new THREE.Vector3().setFromMatrixPosition(o.matrixWorld).project(camera)
+      let x = ((v.x + 1) / 2) * size.width
+      let y = ((1 - v.y) / 2) * size.height
+      const w = el.current?.offsetWidth ?? 120
+      const h = el.current?.offsetHeight ?? 28
+      const b = bounds.current
+      const m = 6
+      const maxX = size.width - (b.dx > 0 ? b.dx + 8 : 0) - w / 2 - m
+      const minY = (b.dy > 0 ? b.dy + 8 : 0) + h / 2 + m
+      x = Math.max(w / 2 + m, Math.min(maxX, x))
+      y = Math.max(minY, Math.min(size.height - h / 2 - m, y))
+      // подписи не наезжают друг на друга: занятые прямоугольники этого кадра (старше 40 мс — забыты); при
+      // пересечении подпись сдвигается вниз под соседку (или вверх, если снизу места нет)
+      const now = performance.now()
+      for (let i = PLACED.length - 1; i >= 0; i--) if (now - PLACED[i]!.at > 40) PLACED.splice(i, 1)
+      const hit = (px: number, py: number) => PLACED.some((r) => Math.abs(r.x - px) < (r.w + w) / 2 + 4 && Math.abs(r.y - py) < (r.h + h) / 2 + 4)
+      let tries = 0
+      while (hit(x, y) && tries < 6) {
+        const down = y + h + 6
+        y = down <= size.height - h / 2 - m ? down : y - h - 6
+        tries++
+      }
+      PLACED.push({ x, y, w, h, at: now })
+      return [x, y]
+    },
+    [bounds],
+  )
   useFrame(() => {
     const t = clock()
     const kk = clamp01(k(t))
@@ -211,7 +245,7 @@ export function Tag({ pos, text, k, tone = 'info', offset = [0, 0, 0] }: { pos: 
   })
   return (
     <group ref={g}>
-      <Html center zIndexRange={[30, 10]} style={{ pointerEvents: 'none' }}>
+      <Html center zIndexRange={[30, 10]} style={{ pointerEvents: 'none' }} calculatePosition={calc}>
         <div ref={el} style={{ ...tagStyle, ...TONE[tone], opacity: 0, display: 'none' }} data-showcase-tag="">
           {text}
         </div>
@@ -420,6 +454,11 @@ export function Backdrop({ lowPower, tint = '#0b1733' }: { lowPower: boolean; ti
 import { createContext, useContext } from 'react'
 const ClockCtx = createContext<() => number>(() => 0)
 export const ShowcaseClock = ClockCtx.Provider
+/** Прямоугольники подписей текущего кадра (экранные px) — чтобы подписи не наезжали друг на друга. */
+const PLACED: { x: number; y: number; w: number; h: number; at: number }[] = []
+/** Занятая HUD область 3D-окна (px): dx — справа, dy — сверху; ставит FormationCanvas. */
+const BoundsCtx = createContext<MutableRefObject<{ dx: number; dy: number }>>({ current: { dx: 0, dy: 0 } })
+export const ShowcaseBounds = BoundsCtx.Provider
 /** Функция времени сценария (внутри сцены — через ShowcaseClock). */
 export function useClockCtx(): () => number {
   return useContext(ClockCtx)
