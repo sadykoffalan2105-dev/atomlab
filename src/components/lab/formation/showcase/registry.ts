@@ -4,9 +4,10 @@
  * длительности — durations.ts. См. README.md.
  */
 import type { ShowcaseId, ShowcaseScene } from './types'
+import { H2OScene } from './scenes/h2o'
 
 const SCENES: Partial<Record<ShowcaseId, ShowcaseScene>> = {
-  // h2o: H2OScene,
+  h2o: H2OScene,
   // co2: CO2Scene,
   // sio2: SiO2Scene,
 }

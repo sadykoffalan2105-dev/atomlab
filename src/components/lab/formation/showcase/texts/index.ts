@@ -5,6 +5,7 @@
 import type { FormationLocale } from '../../../../../chemistry/formationText'
 import type { StageKey, StoryHud } from '../../formationStory'
 import type { ShowcaseId } from '../types'
+import { H2O_TEXTS } from './h2o'
 
 export type Tri = [string, string, string]
 export type ShowcaseStageText = { title?: Tri; main?: Tri; sub?: Tri }
@@ -16,7 +17,7 @@ export type ShowcaseTexts = {
 }
 
 const TEXTS: Partial<Record<ShowcaseId, ShowcaseTexts>> = {
-  // h2o: H2O_TEXTS,
+  h2o: H2O_TEXTS,
   // co2: CO2_TEXTS,
   // sio2: SIO2_TEXTS,
 }

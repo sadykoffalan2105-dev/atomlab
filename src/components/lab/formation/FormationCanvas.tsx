@@ -88,8 +88,11 @@ function CameraRig({ story, layout, clock, crystal, cam }: { story: FormationSto
     const len = camera.position.length()
     if (len > 1e-6) camera.position.multiplyScalar(dist / len)
     else camera.position.set(0, 0, dist)
-    camera.near = Math.max(0.01, dist - 3)
-    camera.far = dist + 6
+    // showcase с отдалением (zoom < 1): окружение вокруг модели дальше от центра — ближняя/дальняя плоскости шире,
+    // иначе шары перед моделью срезаются ближней плоскостью (кольцо вместо сферы)
+    const pad = cc && cc.active ? Math.max(1, 1 / Math.max(0.5, c.z)) : 1
+    camera.near = Math.max(0.01, dist - 3 * pad)
+    camera.far = dist + 6 * pad
     // HUD справа: центр кадра — в левой части (x = dx); HUD сверху: центр — в нижней части (y = 0).
     if (c.dx > 0.5 || c.dy > 0.5) camera.setViewOffset(fullW, fullH, c.dx, 0, W, H)
     else camera.clearViewOffset()
