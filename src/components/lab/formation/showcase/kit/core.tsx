@@ -202,6 +202,7 @@ export function Tag({ pos, text, k, tone = 'info', offset = [0, 0, 0] }: { pos: 
   const last = useRef(-1)
   const clock = useClockCtx()
   const bounds = useContext(BoundsCtx)
+  const me = useMemo(() => ({ id: TAG_SEQ.n++ }), [])
   // Подпись не уходит за край 3D-окна и не залезает под HUD-карточки (справа dx px / сверху dy px).
   const calc = useMemo(
     () => (o: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }) => {
@@ -219,18 +220,22 @@ export function Tag({ pos, text, k, tone = 'info', offset = [0, 0, 0] }: { pos: 
       // подписи не наезжают друг на друга: занятые прямоугольники этого кадра (старше 40 мс — забыты); при
       // пересечении подпись сдвигается вниз под соседку (или вверх, если снизу места нет)
       const now = performance.now()
-      for (let i = PLACED.length - 1; i >= 0; i--) if (now - PLACED[i]!.at > 40) PLACED.splice(i, 1)
-      const hit = (px: number, py: number) => PLACED.some((r) => Math.abs(r.x - px) < (r.w + w) / 2 + 4 && Math.abs(r.y - py) < (r.h + h) / 2 + 4)
-      let tries = 0
-      while (hit(x, y) && tries < 6) {
-        const down = y + h + 6
-        y = down <= size.height - h / 2 - m ? down : y - h - 6
-        tries++
+      // чужие подписи этого кадра (свою прошлую позицию не считаем препятствием — иначе подпись «убегает» сама от себя)
+      for (let i = PLACED.length - 1; i >= 0; i--) if (now - PLACED[i]!.at > 40 || PLACED[i]!.owner === me) PLACED.splice(i, 1)
+      // скрытая подпись место не занимает и никого не двигает
+      if (!el.current || el.current.style.display === 'none') return [x, y]
+      // уступает только младшая подпись (создана позже): старшие стоят на месте — без «погони» друг за другом
+      const hit = (px: number, py: number) => PLACED.some((r) => r.owner.id < me.id && Math.abs(r.x - px) < (r.w + w) / 2 + 4 && Math.abs(r.y - py) < (r.h + h) / 2 + 4)
+      // направление выбирается один раз: вниз, если есть место, иначе вверх (без «качелей» вниз-вверх)
+      if (hit(x, y)) {
+        const dir = y + 3 * (h + 6) <= size.height - h / 2 - m ? 1 : -1
+        for (let tries = 0; tries < 8 && hit(x, y); tries++) y += dir * (h + 6)
+        y = Math.max(minY, Math.min(size.height - h / 2 - m, y))
       }
-      PLACED.push({ x, y, w, h, at: now })
+      PLACED.push({ x, y, w, h, at: now, owner: me })
       return [x, y]
     },
-    [bounds],
+    [bounds, me],
   )
   useFrame(() => {
     const t = clock()
@@ -455,7 +460,8 @@ import { createContext, useContext } from 'react'
 const ClockCtx = createContext<() => number>(() => 0)
 export const ShowcaseClock = ClockCtx.Provider
 /** Прямоугольники подписей текущего кадра (экранные px) — чтобы подписи не наезжали друг на друга. */
-const PLACED: { x: number; y: number; w: number; h: number; at: number }[] = []
+const PLACED: { x: number; y: number; w: number; h: number; at: number; owner: { id: number } }[] = []
+const TAG_SEQ = { n: 0 }
 /** Занятая HUD область 3D-окна (px): dx — справа, dy — сверху; ставит FormationCanvas. */
 const BoundsCtx = createContext<MutableRefObject<{ dx: number; dy: number }>>({ current: { dx: 0, dy: 0 } })
 export const ShowcaseBounds = BoundsCtx.Provider
