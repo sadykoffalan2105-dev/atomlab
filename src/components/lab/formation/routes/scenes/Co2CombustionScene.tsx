@@ -74,7 +74,7 @@ export function Co2CombustionScene({ model, L, tags, lowPower }: RouteSceneProps
       <AngleArc v={pC} a={posOf(model, 'Oa')} b={posOf(model, 'Ob')} r={0.2} label={() => tx('angle')} k={(t) => win(t, F.t0 + 0.6, F.t1 + 1)} />
       <DipoleArrow from={posOf(model, 'C', [0, 0.2, 0])} to={posOf(model, 'Oa', [0, 0.2, 0])} width={0.022} k={(t) => win(t, F.t0 + 1.6, F.t1 + 1)} />
       <DipoleArrow from={posOf(model, 'C', [0, 0.2, 0])} to={posOf(model, 'Ob', [0, 0.2, 0])} width={0.022} k={(t) => win(t, F.t0 + 1.6, F.t1 + 1)} />
-      <Tag pos={posOf(model, 'C', [0, -0.3, 0])} text={tx('co2')} tone="key" k={(t) => win(t, F.t0 + 0.8, F.t1 + 1)} />
+      <Tag pos={posOf(model, 'C', [0, -0.52, 0])} text={tx('co2')} tone="key" k={(t) => win(t, F.t0 + 0.8, F.t1 + 1)} />
     </group>
   )
 }

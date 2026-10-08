@@ -182,9 +182,9 @@ export function co2CalcinationModel(): RouteModel {
     { t: -1, d: 1, yaw: 0.45, pitch: 0.42, zoom: 1, focus: [0, -0.05, 0] },
     { t: R.t0 + 2.4, d: 2.6, yaw: 0.2, pitch: 0.5, zoom: 1.05, focus: [0, 0, 0] },
     { t: H.t0, d: 2, yaw: 0.32, pitch: 0.3, zoom: 1.0, focus: [0, -0.05, 0] },
-    { t: B.t0 + 0.2, d: 1.8, yaw: -0.8, pitch: 0.32, zoom: 1.45, focus: [-0.5, 0.05, 0.6] },
-    { t: E.t0 + 0.2, d: 2.4, yaw: 0.3, pitch: 0.3, zoom: 0.95, focus: [-0.1, 0.35, 0.1] },
-    { t: C.t0 + 0.2, d: 2.4, yaw: 0.55, pitch: 0.32, zoom: 1.2, focus: [0, -0.25, 0] },
+    { t: B.t0 + 0.2, d: 1.8, yaw: 0.2, pitch: 1.0, zoom: 1.5, focus: [-0.5, 0.12, 0.5] },
+    { t: E.t0 + 0.2, d: 2.4, yaw: 0.3, pitch: 0.45, zoom: 0.88, focus: [-0.1, 0.4, 0] },
+    { t: C.t0 + 0.2, d: 2.4, yaw: 0.55, pitch: 0.4, zoom: 1.0, focus: [0, -0.25, 0] },
     { t: F.t0, d: 2.4, yaw: 0.3, pitch: 0.2, zoom: 1.0, focus: [-0.1, 0.25, 0.1] },
   ]
 

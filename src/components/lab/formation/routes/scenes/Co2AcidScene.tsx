@@ -33,7 +33,7 @@ export function Co2AcidScene({ model, L, tags, lowPower }: RouteSceneProps) {
       <Burst pos={midOf(model, 'C', 'O3')} t0={Dc.t0 + 1.3} dur={1.2} r={0.34} color="#ffd7a8" />
       {/* пузырёк CO₂ и мелкие пузырьки от мрамора */}
       <Bubble pos={pC} r={0.52} k={(t) => win(t, G.t0 + 0.2, F.t0 + 1.6, 0.7)} />
-      <RisingBubbles n={lowPower ? 6 : 12} from={[0.1, SURF_Y + 0.1, -0.25]} height={1.6} spread={0.8} k={(t) => win(t, P1.t0 + 1, end, 1.2)} />
+      <RisingBubbles n={lowPower ? 6 : 12} from={[0.1, SURF_Y + 0.1, -0.25]} height={1.6} spread={0.8} k={(t) => win(t, G.t0 - 0.4, end, 1.2)} />
       {/* ионы в растворе окружены водой (гидратация) */}
       <Glow pos={posOf(model, 'Ca')} r={0.42} color={AQ} k={(t) => 0.4 * win(t, G.t0 + 1.2, end, 1)} />
       <Glow pos={posOf(model, 'Cl1')} r={0.55} color={AQ} k={(t) => 0.3 * win(t, G.t0 + 1.4, end, 1)} />

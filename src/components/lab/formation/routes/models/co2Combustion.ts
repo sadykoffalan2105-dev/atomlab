@@ -115,9 +115,9 @@ export function co2CombustionModel(): RouteModel {
   // ── центр молекулы: отрыв от слоя, затем подъём газом; поворот вокруг вертикали ──
   const molC = track([
     { t: A.t0 + 0.8, p: [0, SHEET_Y, 0] },
-    { t: A.t0 + 3.0, p: [0, 0.12, 0] },
-    { t: Re.t0 + 0.3, p: [0, 0.12, 0] },
-    { t: Re.t0 + 3.6, p: [0, 0.62, 0] },
+    { t: A.t0 + 3.0, p: [0, 0.3, 0] },
+    { t: Re.t0 + 0.3, p: [0, 0.3, 0] },
+    { t: Re.t0 + 3.6, p: [0, 0.78, 0] },
   ])
   const spin = (t: number) => 1.1 * seg(t, Re.t0 + 0.6, F.t0 + 1.5)
   // активный C: колебания при поджиге (до 10 пм), затем — центр молекулы
@@ -229,11 +229,12 @@ export function co2CombustionModel(): RouteModel {
     { t: R.t0 + 2.2, d: 2.4, yaw: 0.12, pitch: 0.4, zoom: 1.08, focus: [-0.1, 0, 0] },
     { t: I.t0, d: 2, yaw: 0.22, pitch: 0.36, zoom: 1.25, focus: [0, 0.05, 0] },
     { t: A.t0 + 0.6, d: 2.4, yaw: 0.34, pitch: 0.3, zoom: 1.3, focus: [0, -0.1, 0] },
-    { t: T.t0, d: 1.6, yaw: 0.16, pitch: 0.16, zoom: 1.75, focus: [0, 0.12, 0] },
-    { t: Bo.t0 + 2.2, d: 2, yaw: 0.36, pitch: 0.22, zoom: 1.7, focus: [0, 0.12, 0] },
-    { t: Re.t0 + 0.2, d: 2.6, yaw: 0.3, pitch: 0.34, zoom: 1.02, focus: [0, 0.25, 0] },
-    { t: F.t0, d: 2.2, yaw: 0.22, pitch: 0.12, zoom: 1.85, focus: [0, 0.62, 0] },
-    { t: F.t0 + 2.6, d: 3, yaw: 0.62, pitch: 0.18, zoom: 1.85, focus: [0, 0.62, 0] },
+    { t: A.t0 + 2.6, d: 1.6, yaw: 0.26, pitch: 0.1, zoom: 1.45, focus: [0, 0.22, 0] },
+    { t: T.t0, d: 1.6, yaw: 0.16, pitch: 0.02, zoom: 1.75, focus: [0, 0.3, 0] },
+    { t: Bo.t0 + 2.2, d: 2, yaw: 0.36, pitch: 0.06, zoom: 1.7, focus: [0, 0.3, 0] },
+    { t: Re.t0 + 0.2, d: 2.6, yaw: 0.3, pitch: 0.3, zoom: 1.0, focus: [0, 0.32, 0] },
+    { t: F.t0, d: 2.2, yaw: 0.22, pitch: 0.1, zoom: 1.85, focus: [0, 0.78, 0] },
+    { t: F.t0 + 2.6, d: 3, yaw: 0.62, pitch: 0.16, zoom: 1.85, focus: [0, 0.78, 0] },
   ]
 
   return { stages, particles, bonds, electrons, cam, fit: 1.15 }

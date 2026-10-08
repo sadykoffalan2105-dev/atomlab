@@ -68,12 +68,24 @@ export function Bubble({ pos, r, k }: { pos: PFn; r: number; k: Fn }) {
   )
 }
 
-/** Мелкие пузырьки, поднимающиеся от поверхности (детерминированно по t). */
-export function RisingBubbles({ n, from, height, spread, k, r = 0.05 }: { n: number; from: V3; height: number; spread: number; k: Fn; r?: number }) {
+/** Мелкие пузырьки газа, поднимающиеся от поверхности: прозрачные колечки (френель), детерминированно по t. */
+export function RisingBubbles({ n, from, height, spread, k, r = 0.035 }: { n: number; from: V3; height: number; spread: number; k: Fn; r?: number }) {
   const ref = useRef<THREE.InstancedMesh>(null)
   const clock = useClockCtx()
-  const mat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#bae6fd', transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }), [])
-  const geo = useMemo(() => new THREE.SphereGeometry(1, 12, 8), [])
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: { uK: { value: 0 }, uC: { value: new THREE.Color('#bae6fd') } },
+        vertexShader:
+          'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * instanceMatrix * vec4(position,1.0); vN = normalize(normalMatrix * mat3(instanceMatrix) * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: 'uniform float uK; uniform vec3 uC; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - abs(dot(vN, vV)), 2.0); gl_FragColor = vec4(uC * f * uK, f * uK); }',
+      }),
+    [],
+  )
+  const geo = useMemo(() => new THREE.SphereGeometry(1, 16, 10), [])
   const m4 = useMemo(() => new THREE.Matrix4(), [])
   useFrame(() => {
     const im = ref.current
@@ -82,12 +94,12 @@ export function RisingBubbles({ n, from, height, spread, k, r = 0.05 }: { n: num
     const kk = clamp01(k(t))
     im.visible = kk > 0.01
     if (!im.visible) return
-    mat.opacity = 0.35 * kk
+    mat.uniforms.uK!.value = 0.8 * kk
     for (let i = 0; i < n; i++) {
       const ph = (t * 0.35 + i / n) % 1
       const x = from[0] + spread * Math.sin(i * 2.39996)
       const z = from[2] + spread * 0.6 * Math.cos(i * 2.39996)
-      const s = r * (0.6 + 0.5 * ((i * 7) % 5) / 5) * (0.5 + ph)
+      const s = r * (0.6 + 0.5 * (((i * 7) % 5) / 5)) * (0.5 + ph)
       m4.makeScale(s, s, s).setPosition(x + 0.03 * Math.sin(6 * ph + i), from[1] + ph * height, z)
       im.setMatrixAt(i, m4)
     }
