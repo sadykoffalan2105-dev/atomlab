@@ -284,6 +284,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.productEmpty': 'Pick a product',
   'reactor.recipeLabel': 'Template: {recipe}',
   'reactor.generateEquation': 'Generate equation',
+  'reactor.howForms': 'How it forms',
+  'reactor.howFormsTitle': 'Watch step by step how the particles turn into the products in this reaction',
   'reactor.generateEquationShort': 'Equation',
   'reactor.generateEquationTitle':
     'Open catalog: substance template as reagents with coefficient 1 — balance manually',

@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useId,
@@ -30,6 +32,10 @@ import { mainReactionLabNeeds, type MainReaction } from '../../data/catalog/main
 import { ReactorAtomLedger, ReactorLedgerComment, useAtomLedger } from './ReactorAtomLedger'
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
+import { reactorRouteFor } from './formation/routes/routeIndex'
+
+/** «Как образуется» для реакций с собственным показом пути (CO₂ тремя способами) — грузится по клику. */
+const RouteFormationModal = lazy(() => import('./formation/routes/RouteFormationModal'))
 
 const COEFF_MAX = REACTOR_COEFF_MAX
 
@@ -622,6 +628,17 @@ export function SynthesisReactorPanel({
   const coeffFocusGenRef = useRef(0)
   const coeffFocusReleaseTimerRef = useRef<number | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  const [routeOpen, setRouteOpen] = useState(false)
+  // показ «Как образуется» этой реакцией: по id из 200 основных или по набору веществ (школьный каталог)
+  const routeId = useMemo(
+    () =>
+      reactorRouteFor({
+        mainReactionId: mainReaction?.id ?? null,
+        left: leftTerms.map((x) => x.compoundId ?? `${getElementByZ(x.z)?.symbol ?? ''}${x.diatomic ? '₂' : ''}`),
+        right: [productCompound?.id, ...coProducts.map((x) => x.compoundId)].filter((x): x is string => Boolean(x)),
+      }),
+    [mainReaction, leftTerms, productCompound, coProducts],
+  )
   /** Раскрытый раздел под уравнением (аккордеон: одновременно один). */
   const [openSection, setOpenSection] = useState<ReactorSection | null>(null)
   const sectionsId = useId()
@@ -823,6 +840,18 @@ export function SynthesisReactorPanel({
                 </button>
               ) : null}
             </div>
+          ) : null}
+          {routeId ? (
+            <button
+              type="button"
+              className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent}`}
+              onClick={() => setRouteOpen(true)}
+              title={t('reactor.howFormsTitle')}
+              data-reactor-how-forms={routeId}
+            >
+              <span aria-hidden>▶</span>
+              <span>{t('reactor.howForms')}</span>
+            </button>
           ) : null}
           <button
             type="button"
@@ -1363,6 +1392,11 @@ export function SynthesisReactorPanel({
           {t('reactor.showPanel')}
         </button>
       </div>
+    ) : null}
+    {routeOpen && routeId ? (
+      <Suspense fallback={null}>
+        <RouteFormationModal routeId={routeId} onClose={() => setRouteOpen(false)} />
+      </Suspense>
     ) : null}
     </>
   )

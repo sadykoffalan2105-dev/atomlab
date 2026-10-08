@@ -284,6 +284,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.productEmpty': 'Mahsulotni tanlang',
   'reactor.recipeLabel': 'Namuna: {recipe}',
   'reactor.generateEquation': 'Tenglama yaratish',
+  'reactor.howForms': 'Qanday hosil boʻladi',
+  'reactor.howFormsTitle': 'Aynan shu reaksiyada zarrachalar mahsulotga qanday aylanishini bosqichma-bosqich koʻring',
   'reactor.generateEquationShort': 'Tenglama',
   'reactor.generateEquationTitle':
     'Katalogni ochish: modda namunasi 1 koeffitsientli reagentlar sifatida — qo\'lda muvozanatlang',

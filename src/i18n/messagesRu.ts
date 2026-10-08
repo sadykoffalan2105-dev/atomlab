@@ -282,6 +282,8 @@ export const messagesRu = {
   'reactor.productEmpty': 'Выберите продукт',
   'reactor.recipeLabel': 'Эталон: {recipe}',
   'reactor.generateEquation': 'Сгенерировать уравнение',
+  'reactor.howForms': 'Как образуется',
+  'reactor.howFormsTitle': 'Посмотреть по шагам, как частицы превращаются в продукты именно в этой реакции',
   'reactor.generateEquationShort': 'Уравнение',
   'reactor.generateEquationTitle':
     'Открыть каталог: эталон вещества как реагенты с коэффициентом 1 — уравняйте вручную',
