@@ -19,6 +19,7 @@ import { BEAKERS, MeasuringBeaker, RisingBubbles, beakerLevel } from '../../../.
 import { PowderJar } from '../../../../measure/devices/Bench'
 import { solutionDensity } from '../../../../measure/quantities'
 import { FUN, FilterStation, SolutionBottle, panAt, track, type FilterPlan } from './g9Kit'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g9-cu-from-cuso4' as const
 const PPE: V3 = [0.52, 0, 0.21]
@@ -131,8 +132,8 @@ function beakerPose(p: number): PoseValue {
 /** Слои на дне стакана: серое железо снизу, красно-бурая медь поверх (в группе стакана). */
 function BottomLayers() {
   const { p } = useRig()
-  const fe = useMemo(() => new THREE.MeshStandardMaterial({ color: C_FE, roughness: 0.75, metalness: 0.35 }), [])
-  const cu = useMemo(() => new THREE.MeshStandardMaterial({ color: C_CU, roughness: 0.9, metalness: 0.1 }), [])
+  const fe = useOwned(() => new THREE.MeshStandardMaterial({ color: C_FE, roughness: 0.75, metalness: 0.35 }), [])
+  const cu = useOwned(() => new THREE.MeshStandardMaterial({ color: C_CU, roughness: 0.9, metalness: 0.1 }), [])
   const feM = useRef<THREE.Mesh>(null)
   const cuM = useRef<THREE.Mesh>(null)
   useFrame(() => {

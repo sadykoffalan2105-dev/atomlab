@@ -12,6 +12,7 @@ import * as THREE from 'three'
 import { LAB_COLORS, labLiquidMaterial } from '../../labContract'
 import { useRig, type PFn, type V3 } from '../../experiments/rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../experiments/parts/glassware'
+import { useOwned } from './deviceTextures'
 
 const RI = 0.0055
 const SCALE_H = 25e-6 / (Math.PI * RI * RI)
@@ -111,11 +112,11 @@ export function Burette({ reading, open, flow, streamTo, color = '#b9d3f1' }: { 
     ]
     return new THREE.LatheGeometry(pts, seg)
   }, [seg])
-  const ptfe = useMemo(() => new THREE.MeshStandardMaterial({ color: '#f4f6f8', roughness: 0.55 }), [])
-  const blue = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2f6fd1', roughness: 0.5 }), [])
-  const liq = useMemo(() => labLiquidMaterial(color, 0.72), [color])
+  const ptfe = useOwned(() => new THREE.MeshStandardMaterial({ color: '#f4f6f8', roughness: 0.55 }), [])
+  const blue = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2f6fd1', roughness: 0.5 }), [])
+  const liq = useOwned(() => labLiquidMaterial(color, 0.72), [color])
   // мениск чуть темнее раствора: так его нижний край виден на фоне белой шкалы
-  const menMat = useMemo(() => labLiquidMaterial(new THREE.Color(color).multiplyScalar(0.72).getStyle(), 0.9), [color])
+  const menMat = useOwned(() => labLiquidMaterial(new THREE.Color(color).multiplyScalar(0.72).getStyle(), 0.9), [color])
   const tex = useMemo(buretteScaleTexture, [])
   const col = useRef<THREE.Mesh>(null)
   const men = useRef<THREE.Mesh>(null)
@@ -199,9 +200,9 @@ export function Burette({ reading, open, flow, streamTo, color = '#b9d3f1' }: { 
  * накладками обхватывает бюретку. rod — [x, z] стержня, at — [x, z] оси бюретки, clampY — высота лапки, rodH — стержень.
  */
 export function BuretteStand({ rod, at, clampY, rodH = 0.62 }: { rod: readonly [number, number]; at: readonly [number, number]; clampY: number; rodH?: number }) {
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
-  const rubber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3a3f46', roughness: 0.9 }), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
+  const rubber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#3a3f46', roughness: 0.9 }), [])
   const dx = at[0] - rod[0]
   const dz = at[1] - rod[1]
   const len = Math.hypot(dx, dz)

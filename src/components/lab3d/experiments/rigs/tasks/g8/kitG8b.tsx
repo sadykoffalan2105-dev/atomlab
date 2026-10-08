@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import { clamp01, smooth, useRig, type PFn } from '../../../rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../../parts/glassware'
 import { hoodSash } from '../../../../scene/LabHood'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 /**
  * Створка вытяжного шкафа на рабочей высоте: нижняя планка створки не должна закрывать шкалу бюретки или газометра
@@ -66,9 +67,9 @@ export function SmallFunnel({ size }: { size: FunnelSize }) {
 /** Белая фарфоровая плитка с полоской синей лакмусовой бумаги; red(p) 0…1 — пятно краснеет от капли кислоты. */
 export function LitmusTile({ red }: { red: PFn }) {
   const { p } = useRig()
-  const tile = useMemo(() => new THREE.MeshStandardMaterial({ color: '#fbfbf8', roughness: 0.35 }), [])
-  const paper = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3d63c9', roughness: 0.95 }), [])
-  const spot = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3d63c9', roughness: 0.9, transparent: true, opacity: 0 }), [])
+  const tile = useOwned(() => new THREE.MeshStandardMaterial({ color: '#fbfbf8', roughness: 0.35 }), [])
+  const paper = useOwned(() => new THREE.MeshStandardMaterial({ color: '#3d63c9', roughness: 0.95 }), [])
+  const spot = useOwned(() => new THREE.MeshStandardMaterial({ color: '#3d63c9', roughness: 0.9, transparent: true, opacity: 0 }), [])
   const blue = useMemo(() => new THREE.Color('#3d63c9'), [])
   const pink = useMemo(() => new THREE.Color('#d8394f'), [])
   useFrame(() => {

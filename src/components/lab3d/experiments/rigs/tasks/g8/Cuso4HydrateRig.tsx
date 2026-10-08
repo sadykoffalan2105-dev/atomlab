@@ -20,6 +20,7 @@ import { PowderJar } from '../../../../measure/devices/Bench'
 import { CU } from '../../../../../../data/labTasks/g8/layoutG8'
 import { track } from './g8Kit'
 import { WireGauze as KitWireGauze } from '../g7/kitG7'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g8-cuso4-hydrate' as const
 const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
@@ -131,9 +132,9 @@ const rnd = (i: number, k: number) => {
 function VitriolHeap() {
   const { quality, p } = useRig()
   const n = quality === 'high' ? 34 : 16
-  const base = useMemo(() => new THREE.MeshStandardMaterial({ color: BLUE, roughness: 0.9 }), [])
-  const glassy = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25, metalness: 0.05 }), [])
-  const wet = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2f80d8', roughness: 0.35 }), [])
+  const base = useOwned(() => new THREE.MeshStandardMaterial({ color: BLUE, roughness: 0.9 }), [])
+  const glassy = useOwned(() => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25, metalness: 0.05 }), [])
+  const wet = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2f80d8', roughness: 0.35 }), [])
   const blue = useMemo(() => new THREE.Color(BLUE), [])
   const whiteC = useMemo(() => new THREE.Color(WHITE), [])
   const c = useMemo(() => new THREE.Color(), [])

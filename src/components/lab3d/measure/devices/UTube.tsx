@@ -10,6 +10,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useRig, type PFn, type V3 } from '../../experiments/rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../experiments/parts/glassware'
+import { useOwned } from './deviceTextures'
 
 /** Размеры (м): half — половина расстояния между коленами, arm — высота колен над изгибом, y0 — низ изгиба. */
 export const UTUBE = {
@@ -50,9 +51,9 @@ export function UTube({ wet }: { wet: PFn }) {
     const mk = (s: number) => new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(s * U.half, y, 0), new THREE.Vector3(s * (U.half + U.side), y, 0)), 4, 0.0028, 8, false)
     return [mk(-1), mk(1)]
   }, [U.half, U.side])
-  const stand = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const rubber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5f6670', roughness: 0.85 }), [])
-  const salt = useMemo(() => new THREE.MeshStandardMaterial({ color: '#f4f3ee', roughness: 0.85 }), [])
+  const stand = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const rubber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#5f6670', roughness: 0.85 }), [])
+  const salt = useOwned(() => new THREE.MeshStandardMaterial({ color: '#f4f3ee', roughness: 0.85 }), [])
   const dry = useMemo(() => new THREE.Color('#f4f3ee'), [])
   const wetC = useMemo(() => new THREE.Color('#d9dcd6'), [])
   // гранулы: заполняют оба колена и изгиб до 2 см ниже отводов (вата сверху не даёт им высыпаться)

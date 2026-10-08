@@ -19,6 +19,7 @@ import { PowderJar } from '../../../../measure/devices/Bench'
 import { cylinderGeom, quantize } from '../../../../measure/quantities'
 import { fmtNum } from '../../../../measure/instruments'
 import { SolutionBottle, panAt, pourPose, readoutAfter, track } from './g9Kit'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g9-soda-solution' as const
 const PPE: V3 = [0.52, 0, 0.21]
@@ -104,7 +105,7 @@ const rnd = (i: number, k: number) => {
 function CrystalHeap() {
   const { quality, p } = useRig()
   const n = quality === 'high' ? 46 : 20
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#dde8ec', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.88 }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#dde8ec', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.88 }), [])
   const seeds = useMemo(
     () =>
       Array.from({ length: n }, (_, i) => {
@@ -142,8 +143,8 @@ function CrystalHeap() {
 
 /** Штатив с термометром: лапка с муфтой ездит по стержню (термометр поднимают и опускают в стакан). */
 function ThermoStand({ temp }: { temp: PFn }) {
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
   const armLen = TX - ROD_X
   return (
     <group>

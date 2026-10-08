@@ -8,7 +8,7 @@ import * as THREE from 'three'
 import { Pose, ease, mix, mixV, useRig, type PFn, type V3 } from '../../../rigCore'
 import { Match, Matchbox, SpiritLamp, useFlameCeiling } from '../../../parts/fire'
 import { Spatula } from '../../worksKit'
-import { jarLabelTexture } from '../../../../measure/devices/deviceTextures'
+import { jarLabelTexture, useOwned } from '../../../../measure/devices/deviceTextures'
 
 function rnd(i: number, k: number) {
   const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
@@ -51,7 +51,7 @@ export function hash01(key: number, i: number): number {
 export function Scoop({ full, kind, color }: { full: PFn; kind: 'granules' | 'powder'; color: string }) {
   const { p } = useRig()
   const g = useRef<THREE.Group>(null)
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: kind === 'powder' ? 1 : 0.38, metalness: kind === 'powder' ? 0 : 0.8, flatShading: kind === 'granules' }), [color, kind])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color, roughness: kind === 'powder' ? 1 : 0.38, metalness: kind === 'powder' ? 0 : 0.8 }), [color, kind])
   useFrame(() => {
     if (g.current) g.current.visible = kind === 'granules' && full(p.current ?? 0) > 0.02
   })
@@ -74,7 +74,8 @@ export function GranuleBed({ r, show, n = 30, color, size = 0.0032, y0 = 0.003 }
   const { p, quality } = useRig()
   const count = quality === 'high' ? n : Math.ceil(n * 0.6)
   const ref = useRef<THREE.InstancedMesh>(null)
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.38, metalness: 0.8, flatShading: true }), [color])
+  // грани: у додекаэдра (detail 0) нормали уже свои у каждой грани — flatShading не нужен (лишняя программа шейдера)
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color, roughness: 0.38, metalness: 0.8 }), [color])
   const seeds = useMemo(
     () =>
       Array.from({ length: count }, (_, i) => {

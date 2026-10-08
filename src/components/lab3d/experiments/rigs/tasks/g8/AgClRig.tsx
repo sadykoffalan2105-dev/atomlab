@@ -21,7 +21,7 @@ import { solutionDensity } from '../../../../measure/quantities'
 import { DigitalScales, Readout, SCALES, SCALES_PAN_CENTER } from '../../../../measure/devices/Scales'
 import { BEAKERS, CYL_BOTTOM, MeasuringBeaker, MeasuringCylinder, beakerLevel, cylinderTop } from '../../../../measure/devices/Glass'
 import { DryingOven, OVEN, OVEN_SHELF } from '../../../../measure/devices/Bench'
-import { jarLabelTexture } from '../../../../measure/devices/deviceTextures'
+import { jarLabelTexture, useOwned } from '../../../../measure/devices/deviceTextures'
 import { cylinderGeom } from '../../../../measure/quantities'
 import { AG } from '../../../../../../data/labTasks/g8/layoutG8'
 import { AMBER, AmberBottle, AmberStopper, pourPose, spoutPour, track } from './g8Kit'
@@ -293,7 +293,7 @@ export function AgClRig() {
 function AgClHeap({ shown }: { shown: PFn }) {
   const { p } = useRig()
   const ref = useRef<THREE.Mesh>(null)
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: C_AGCL, roughness: 1 }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: C_AGCL, roughness: 1 }), [])
   useFrame(() => {
     const m = ref.current
     if (!m) return

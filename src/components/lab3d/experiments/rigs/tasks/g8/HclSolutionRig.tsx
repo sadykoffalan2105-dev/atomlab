@@ -4,7 +4,7 @@
  * вниз до воды, T · 4 кран газометра: масло поднимается до ≈ 600 мл, весы растут · 5 кран закрыть, V и t ·
  * 6 весы — m(HCl) · 7 капля на синий лакмус — красный. Все числа — из показаний попытки (useLabTaskValues).
  */
-import { useMemo } from 'react'
+import {  } from 'react'
 import * as THREE from 'three'
 import { LAB_COLORS } from '../../../../labContract'
 import { GlassRod, PpeTray, Puffs } from '../../../parts/practicalware'
@@ -20,6 +20,7 @@ import { GASOMETER, Gasometer, gasometerLevelY } from '../../../../measure/devic
 import { HC } from '../../../../../../data/labTasks/g8/hclSolution'
 import { moveVia, pourPose } from './g8Kit'
 import { FUNNEL_ABSORB, LitmusTile, SmallFunnel, useHoodSashAt } from './kitG8b'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g8-hcl-solution' as const
 const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
@@ -108,9 +109,9 @@ export function HclSolutionRig() {
     return { pos, rot: [0, 0, (1 - up) * (-Math.PI / 2)] as V3 }
   }
 
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const rubber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3a3f46', roughness: 0.9 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const rubber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#3a3f46', roughness: 0.9 }), [])
   // лапка держит трубку воронки выше края стаканчика (и когда воронка опущена к воде)
   const clampY0 = RIM_UP + F.coneH + F.stem * 0.75
   const armLen = ARM_Z - HC.rod[1]

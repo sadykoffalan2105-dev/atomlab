@@ -8,7 +8,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { useRig, type PFn, type V3 } from '../../experiments/rigCore'
-import { createSmallDisplay } from './deviceTextures'
+import { createSmallDisplay, useOwned } from './deviceTextures'
 
 export const HOTPLATE = {
   w: 0.17,
@@ -27,11 +27,11 @@ export const HOTPLATE = {
  */
 export function HotPlate({ on, temp }: { on: PFn; temp: PFn }) {
   const { p } = useRig()
-  const body = useMemo(() => new THREE.MeshStandardMaterial({ color: '#eef0f2', roughness: 0.45 }), [])
-  const panel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2b333b', roughness: 0.5 }), [])
-  const ceramic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1c1f23', roughness: 0.25, metalness: 0.1, emissive: '#ff3a12', emissiveIntensity: 0 }), [])
-  const knobMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1e2329', roughness: 0.6 }), [])
-  const lamp = useMemo(() => new THREE.MeshBasicMaterial({ color: '#4a1a12', toneMapped: false }), [])
+  const body = useOwned(() => new THREE.MeshStandardMaterial({ color: '#eef0f2', roughness: 0.45 }), [])
+  const panel = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2b333b', roughness: 0.5 }), [])
+  const ceramic = useOwned(() => new THREE.MeshStandardMaterial({ color: '#1c1f23', roughness: 0.25, metalness: 0.1, emissive: '#ff3a12', emissiveIntensity: 0 }), [])
+  const knobMat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#1e2329', roughness: 0.6 }), [])
+  const lamp = useOwned(() => new THREE.MeshBasicMaterial({ color: '#4a1a12', toneMapped: false }), [])
   const disp = useMemo(() => createSmallDisplay(256, 96, '#0f1418', '#ff7a45'), [])
   const knob = useRef<THREE.Group>(null)
   useFrame(() => {

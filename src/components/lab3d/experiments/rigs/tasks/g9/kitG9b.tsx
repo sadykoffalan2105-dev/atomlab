@@ -9,7 +9,7 @@ import * as THREE from 'three'
 import { Pose, ease, mix, mixV, useRig, type PFn, type V3 } from '../../../rigCore'
 import { Match, Matchbox, SpiritLamp } from '../../../parts/fire'
 import { TUBE_R } from '../../../parts/glassware'
-import { jarLabelTexture } from '../../../../measure/devices/deviceTextures'
+import { jarLabelTexture, useOwned } from '../../../../measure/devices/deviceTextures'
 import { GRAD_PIPETTE } from '../../../../measure/devices/GradPipette'
 
 /* ── Штатив для пипеток ── */
@@ -18,9 +18,9 @@ import { GRAD_PIPETTE } from '../../../../measure/devices/GradPipette'
 export const PIPETTE_STAND = { baseTop: 0.012, ringY: 0.2, rodBack: 0.03, rodH: 0.26 } as const
 
 export function PipetteStand() {
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
-  const pad = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2b3036', roughness: 0.9 }), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
+  const pad = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2b3036', roughness: 0.9 }), [])
   const S = PIPETTE_STAND
   const ringR = GRAD_PIPETTE.ro + 0.0016
   return (
@@ -96,7 +96,7 @@ export function colorTrack(stops: readonly (readonly [number, string])[]): (p: n
  */
 export function WallDroplets({ r, y0, y1, show, n = 22, seed = 1, side = Math.PI / 2 }: { r: number; y0: number; y1: number; show: (p: number) => number; n?: number; seed?: number; /** Угол стороны с каплями (0 — локальная +X). */ side?: number }) {
   const { p } = useRig()
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#dcefff', roughness: 0.04, metalness: 0, transparent: true, opacity: 0.5 }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#dcefff', roughness: 0.04, metalness: 0, transparent: true, opacity: 0.5 }), [])
   const pts = useMemo(() => {
     const out: { x: number; y: number; z: number; s: number; at: number }[] = []
     for (let i = 0; i < n; i++) {
@@ -143,8 +143,8 @@ export function WallDroplets({ r, y0, y1, show, n = 22, seed = 1, side = Math.PI
  */
 export const TUBE_BLOCK = { w: 0.046, seat: 0.004, ringY: 0.07 } as const
 export function TubeBlock() {
-  const body = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e7ecef', roughness: 0.55 }), [])
-  const wire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.3, metalness: 0.85 }), [])
+  const body = useOwned(() => new THREE.MeshStandardMaterial({ color: '#e7ecef', roughness: 0.55 }), [])
+  const wire = useOwned(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.3, metalness: 0.85 }), [])
   const ringR = TUBE_R + 0.0018
   return (
     <group>
@@ -168,9 +168,9 @@ export function TubeBlock() {
  * (−Z на rodBack), муфта, лапка вдоль Z и две губки с пробковыми накладками сверху и снизу пробирки.
  */
 export function TubeClampH({ rodBack, tilt = 0 }: { rodBack: number; tilt?: number }) {
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
-  const cork = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c49a6c', roughness: 0.9 }), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
+  const cork = useOwned(() => new THREE.MeshStandardMaterial({ color: '#c49a6c', roughness: 0.9 }), [])
   return (
     <group>
       {/* губки: над и под пробиркой, повёрнуты вместе с её наклоном */}
@@ -202,8 +202,8 @@ export function TubeClampH({ rodBack, tilt = 0 }: { rodBack: number; tilt?: numb
 
 /** Стержень штатива и основание (начало — низ стержня на столе), основание уходит назад (−Z). */
 export function StandRod({ h }: { h: number }) {
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: '#b9c2cc', roughness: 0.28, metalness: 0.85 }), [])
   return (
     <group>
       <mesh position={[0.02, 0.007, -0.04]} material={paint} castShadow receiveShadow>
