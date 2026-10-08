@@ -11,6 +11,7 @@ import { INORGANIC_RAW } from './inorganicCompounds.data'
 import { TEXTBOOK_EXTRA_RAW } from './textbookCompounds.data'
 import { isTextbookCompoundId } from './textbook/catalogWhitelist'
 import { catalogObtainingSteps } from './catalog/catalogObtaining200'
+import { applyCatalogCardOverride } from './catalog/catalogCardOverrides200'
 
 function accentForCategory(cat: CompoundCategory): string {
   if (cat === 'oxide') return '#5ad8ff'
@@ -271,7 +272,8 @@ const handRaw: RawCompoundDef[] = [
   },
 ]
 
-const mergedRaw: RawCompoundDef[] = [...handRaw, ...INORGANIC_RAW, ...TEXTBOOK_EXTRA_RAW]
+// Правки карточек 200 веществ каталога по аудиту (имена по учебнику, классы, описания, условия) — поверх сырья.
+const mergedRaw: RawCompoundDef[] = [...handRaw, ...INORGANIC_RAW, ...TEXTBOOK_EXTRA_RAW].map(applyCatalogCardOverride)
 /** Скрипт build-whitelist.mts выставляет флаг, чтобы сверять учебники с полным (неотфильтрованным) набором. */
 const keepAll = (globalThis as { __ATOMLAB_CATALOG_ALL__?: boolean }).__ATOMLAB_CATALOG_ALL__ === true
 const seenComp = new Set<string>()
