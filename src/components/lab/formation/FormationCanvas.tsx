@@ -1,7 +1,7 @@
 import { useMemo, useRef, type MutableRefObject } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import type * as THREE from 'three'
+import * as THREE from 'three'
 import { formationPlan } from '../../../chemistry/formationPlan'
 import { easeInOut, formationStoryFor, type FormationStory, type StageKey } from './formationStory'
 import { CanvasErrorBoundary } from '../../common/CanvasErrorBoundary'
@@ -14,6 +14,9 @@ import { formationScript } from '../../../chemistry/formationScripts'
 import { FormationClouds } from './FormationClouds'
 import { useCloudsOn } from './board/cloudsStore'
 import { FormationHud, type HudLayout } from './FormationHud'
+import { showcaseSceneFor } from './showcase/registry'
+import { Backdrop, ShowcaseClock } from './showcase/kit/core'
+import type { CamCtl } from './showcase/types'
 import hudStyles from './FormationHud.module.css'
 
 /** Доля меньшей стороны кадра под описанную сферу — как у SchoolCatalogCanvas. */
@@ -43,10 +46,24 @@ function zoomAt(story: FormationStory, t: number, crystal: boolean): number {
  * Камера: вписывает модель в 3D-окно за вычетом HUD (смещение вида — центр кадра в свободной части), зум по этапам.
  * Всё сглажено (экспонента ~0,25 с): перемотка ползунком не даёт рывков.
  */
-function CameraRig({ story, layout, clock, crystal }: { story: FormationStory; layout: MutableRefObject<HudLayout>; clock: MutableRefObject<FormationClock>; crystal: boolean }) {
+function CameraRig({ story, layout, clock, crystal, cam }: { story: FormationStory; layout: MutableRefObject<HudLayout>; clock: MutableRefObject<FormationClock>; crystal: boolean; cam?: MutableRefObject<CamCtl> }) {
   const cur = useRef<{ dx: number; dy: number; z: number } | null>(null)
+  const dir = useRef(new THREE.Vector3())
+  const want = useRef(new THREE.Vector3())
   useFrame((state, dt) => {
     const camera = state.camera as THREE.PerspectiveCamera
+    // showcase: сцена ведёт направление камеры (yaw/pitch) и зум, пока пользователь не крутит сам
+    const cc = cam?.current
+    if (cc && cc.active && performance.now() > cc.userUntil) {
+      const cp = Math.max(-1.2, Math.min(1.2, cc.pitch))
+      want.current.set(Math.sin(cc.yaw) * Math.cos(cp), Math.sin(cp), Math.cos(cc.yaw) * Math.cos(cp))
+      const L = camera.position.length() || 4
+      dir.current.copy(camera.position).divideScalar(L)
+      const kk = 1 - Math.exp(-Math.min(0.1, Math.max(0.001, dt)) * 2.2)
+      dir.current.lerp(want.current, kk).normalize()
+      camera.position.copy(dir.current).multiplyScalar(L)
+      camera.lookAt(0, 0, 0)
+    }
     const W = Math.max(1, state.size.width)
     const H = Math.max(1, state.size.height)
     const hud = layout.current
@@ -56,7 +73,7 @@ function CameraRig({ story, layout, clock, crystal }: { story: FormationStory; l
     // Без «урезания» места под HUD: атомы никогда не заходят под фактический прямоугольник карточек.
     const tdx = hud.dx > 0 && left >= below ? Math.min(hud.dx, W - 60) : 0
     const tdy = hud.dy > 0 && left < below ? Math.min(hud.dy, H - 60) : 0
-    const tz = zoomAt(story, clock.current.t, crystal)
+    const tz = zoomAt(story, clock.current.t, crystal) * (cc && cc.active ? Math.max(0.5, Math.min(2, cc.zoom)) : 1)
     const c = cur.current ?? (cur.current = { dx: tdx, dy: tdy, z: tz })
     const k = 1 - Math.exp(-Math.min(0.1, Math.max(0.001, dt)) * 4)
     c.dx += (tdx - c.dx) * k
@@ -89,9 +106,12 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
   const cloudsOn = useCloudsOn()
   const ftype = useMemo(() => formationScript(shape.id)?.type ?? null, [shape.id])
   const layout = useRef<HudLayout>({ dx: 0, dy: 0 })
+  const Scene = useMemo(() => showcaseSceneFor(shape.id), [shape.id])
+  const cam = useRef<CamCtl>({ active: false, yaw: 0, pitch: 0.12, zoom: 1, userUntil: 0 })
+  const clockFn = useMemo(() => () => clock.current.t, [clock])
   if (!model || !plan || !story) return null
   return (
-    <div className={hudStyles.wrap} data-formation-3d={plan.mode}>
+    <div className={hudStyles.wrap} data-formation-3d={plan.mode} data-formation-showcase={Scene ? shape.id : undefined}>
       <div className={hudStyles.stage}>
         <CanvasErrorBoundary fallback={<CanvasSceneErrorFallback />} resetKey={`formation-${shape.id}`}>
           <Canvas
@@ -101,12 +121,20 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
             frameloop="always"
           >
             <color attach="background" args={[SCHOOL_CATALOG_BG]} />
-            <CameraRig story={story} layout={layout} clock={clock} crystal={model.kind === 'crystal'} />
+            <CameraRig story={story} layout={layout} clock={clock} crystal={model.kind === 'crystal'} cam={cam} />
+            {Scene ? <Backdrop lowPower={lowPower} /> : null}
             {/* Кристалл на экране меньше описанной сферы — как в SchoolCatalogCanvas. */}
-            <FormationMoleculeView model={model} plan={plan} story={story} clock={clock} fitRadius={model.kind === 'crystal' ? 1.1 : 1} lowPower={lowPower} />
+            <FormationMoleculeView model={model} plan={plan} story={story} clock={clock} fitRadius={model.kind === 'crystal' ? 1.1 : 1} lowPower={lowPower} hideElectrons={!!Scene && Scene.hideElectrons !== false}>
+              {/* showcase: сцена внутри группы атомов (та же система координат) */}
+              {Scene ? (
+                <ShowcaseClock value={clockFn}>
+                  <Scene model={model} plan={plan} story={story} clock={clock} cam={cam} lowPower={lowPower} />
+                </ShowcaseClock>
+              ) : null}
+            </FormationMoleculeView>
             {/* Электронные облака — после вида атомов: читают ту же группу и те же часы (переключатель на доске). */}
-            {cloudsOn ? <FormationClouds model={model} story={story} clock={clock} type={ftype} lowPower={lowPower} /> : null}
-            <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.6} />
+            {cloudsOn && !Scene ? <FormationClouds model={model} story={story} clock={clock} type={ftype} lowPower={lowPower} /> : null}
+            <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.6} onStart={() => { cam.current.userUntil = performance.now() + 3000 }} />
           </Canvas>
         </CanvasErrorBoundary>
       </div>

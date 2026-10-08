@@ -62,6 +62,8 @@ function reagentNote(f: string, loc: FormationLocale): string {
   return f
 }
 
+import { pickT, showcaseStageText } from './showcase/texts/index'
+
 export function formationStageTexts(
   plan: FormationPlan,
   story: FormationStory,
@@ -75,7 +77,7 @@ export function formationStageTexts(
   const els = [...new Set(plan.species.flatMap((s) => Object.keys(s.comp)))]
   const out: FormationStageText[] = []
   for (const st of story.stages) {
-    const title = pick((TITLES as Partial<Record<string, Tri>>)[st.key] ?? TITLE_FALLBACK, loc)
+    let title = pick((TITLES as Partial<Record<string, Tri>>)[st.key] ?? TITLE_FALLBACK, loc)
     let main = ''
     let sub = ''
     switch (st.key) {
@@ -273,6 +275,13 @@ export function formationStageTexts(
     if (t && t.main && t.sub) {
       main = t.main
       sub = REF_IN_SUB ? `${t.sub} (${t.ref})` : t.sub
+    }
+    // showcase (H₂O, CO₂, SiO₂): свои подписи этапа, если заданы в showcase/texts/<id>.ts
+    const sc = showcaseStageText(plan.compoundId, st.key)
+    if (sc) {
+      if (sc.title) title = pickT(sc.title, loc)
+      if (sc.main) main = pickT(sc.main, loc)
+      if (sc.sub) sub = pickT(sc.sub, loc)
     }
     out.push(t ? { key: st.key, title, main, sub, ref: t.ref } : { key: st.key, title, main, sub })
   }

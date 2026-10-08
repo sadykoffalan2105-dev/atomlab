@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { FormationPlan } from '../../../chemistry/formationPlan'
@@ -110,6 +110,8 @@ export function FormationMoleculeView({
   clock,
   fitRadius,
   lowPower = false,
+  hideElectrons = false,
+  children,
 }: {
   model: SchoolHeroModel
   plan: FormationPlan
@@ -117,6 +119,10 @@ export function FormationMoleculeView({
   clock: MutableRefObject<FormationClock>
   fitRadius: number
   lowPower?: boolean
+  /** showcase: сцена рисует электроны сама — точки вида скрыты. */
+  hideElectrons?: boolean
+  /** showcase: слой сцены внутри группы атомов (та же система координат, что у шаров). */
+  children?: ReactNode
 }) {
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
@@ -839,11 +845,12 @@ export function FormationMoleculeView({
           <primitive object={res.atoms} />
           <primitive object={res.sticks} />
           <primitive object={res.ghosts} />
-          <primitive object={res.electrons} />
+          <primitive object={res.electrons} visible={!hideElectrons} />
           <primitive object={res.lattice} />
           <primitive object={res.routeAtoms} />
           {res.edges ? <primitive object={res.edges} /> : null}
           <SchoolBallLabels atoms={stepLabels ?? finalLabels ?? (ionLabels ? anim.ionic : anim.neutral)} crystal={crystal} opacity={labelOpacity} />
+          {children}
          </group>
         </group>
       </group>

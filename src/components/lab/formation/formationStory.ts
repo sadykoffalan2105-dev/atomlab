@@ -8,6 +8,8 @@ import { latticeFor, type LatticeAtom, type StoryLatticeKind } from './story/lat
 import { buildRouteStage, ROUTE_DUR, type RouteStage } from './story/route'
 import { buildStoryHud } from './story/hud'
 import { buildRedoxDecomposition, type RedoxSceneInfo } from './story/redoxDecomposition'
+import { showcaseDur } from './showcase/durations'
+import { showcaseHud } from './showcase/texts/index'
 
 export type { LatticeAtom, StoryLatticeKind } from './story/lattice'
 export type { RouteStage, RouteAtom, RouteStick, RouteElectron, RouteBadge, RouteShow } from './story/route'
@@ -81,6 +83,8 @@ export type StoryChargeStep = { atom: number; src: 'route'; t: number; from: num
 export type FormationStory = {
   /** HUD-карточки (стекло, справа сверху у 3D-окна); если заданы — формулы НЕ рисуются 3D-плашками поверх атомов */
   hud?: StoryHud[]
+  /** (showcase) id вещества — для текстов/карточек по id. */
+  compoundId?: string
   /** (добавлено) смены зарядов по времени (перенос e⁻ в ОВР-разложении) — для подписей ионов сцены */
   chargeSteps?: StoryChargeStep[]
   /**
@@ -429,7 +433,9 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   const hasBreak = reagentSticks.length > 0 || groups.some((g) => g.kind === 'metal' && g.atoms.length > 1)
   const stages: Stage[] = []
   let t = 0
-  const push = (key: StageKey, dur: number) => {
+  const push = (key: StageKey, durBase: number) => {
+    // showcase-вещества (H₂O, CO₂, SiO₂): свои длительности этапов (durations.ts)
+    const dur = showcaseDur(plan.compoundId, key, durBase)
     if (dur <= 0) return
     stages.push({ key, t0: t, dur })
     t += dur
@@ -621,6 +627,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
 
   const tr = st('transfer')
   return withHud(plan.formula, {
+    compoundId: plan.compoundId,
     stages,
     total: t,
     P: [P0, P1, P2, P3, PF],
@@ -692,8 +699,12 @@ function redoxStory(plan: FormationPlan, model: SchoolHeroModel, r: NonNullable<
 }
 
 /** HUD для всех сценариев: текст бывших 3D-плашек пути и подпись решётки (story/hud.ts). */
-function withHud(formula: string, s: FormationStory): FormationStory {
+function withHud(formula: string, s: FormationStory, compoundId?: string): FormationStory {
+  if (compoundId) s.compoundId = compoundId
   if (!s.hud) s.hud = buildStoryHud(s, formula)
+  // карточки фактов showcase (texts/<id>.ts) — после стандартных
+  const extra = showcaseHud(s.compoundId ?? '', s.stages)
+  if (extra.length) s.hud = [...s.hud, ...extra]
   return s
 }
 
