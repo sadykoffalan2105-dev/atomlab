@@ -3,20 +3,117 @@
  * осадок), сбор газа над водой в перевёрнутый цилиндр и спиртовой термометр.
  * Объёмы — в мл: высота уровня считается из геометрии сосуда (measure/quantities.ts), а не подбирается на глаз.
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { labLiquidMaterial } from '../../labContract'
 import { useRig, type PFn, type V3 } from '../../experiments/rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../experiments/parts/glassware'
 import { cylinderGeom } from '../quantities'
-import { SCALE_TEX_PAD, scaleTexture, thermometerScaleTexture, type ScaleSpec } from './deviceTextures'
+import { SCALE_TEX_PAD, scaleTexture, type ScaleSpec } from './deviceTextures'
 
 function rand(i: number, k: number): number {
   const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
   return x - Math.floor(x)
 }
 const tmp = new THREE.Object3D()
+
+/* ── Жидкость, поверхность которой остаётся горизонтальной при наклоне сосуда ── */
+
+const _wq = new THREE.Quaternion()
+const _up = new THREE.Vector3()
+
+/** Направление «вверх» мира в координатах объекта (единичный вектор). */
+export function localUp(obj: THREE.Object3D, out: THREE.Vector3 = _up): THREE.Vector3 {
+  obj.getWorldQuaternion(_wq)
+  return out.set(0, 1, 0).applyQuaternion(_wq.invert())
+}
+
+/**
+ * Столбик жидкости в цилиндрическом сосуде (ось — Y объекта): стенка, дно и поверхность. Поверхность — плоскость,
+ * горизонтальная в мире и проходящая через ось на высоте level, т. е. объём при наклоне сохраняется (пока плоскость
+ * не задевает дно); выше края rim и ниже дна floor жидкость не выходит — у носика она стоит вровень с краем.
+ */
+export class TiltLiquid {
+  readonly geometry = new THREE.BufferGeometry()
+  private readonly n: number
+  private readonly sx: Float32Array
+  private readonly cz: Float32Array
+  private readonly pos: THREE.BufferAttribute
+  private readonly nor: THREE.BufferAttribute
+  /** cos угла наклона оси сосуда к вертикали после последнего update (1 — стоит прямо). */
+  tiltCos = 1
+  constructor(segs: number) {
+    const n = segs
+    this.n = n
+    this.sx = new Float32Array(n + 1)
+    this.cz = new Float32Array(n + 1)
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * Math.PI * 2
+      this.sx[i] = Math.sin(a)
+      this.cz[i] = Math.cos(a)
+    }
+    const count = 4 * n + 6
+    this.pos = new THREE.BufferAttribute(new Float32Array(count * 3), 3)
+    this.nor = new THREE.BufferAttribute(new Float32Array(count * 3), 3)
+    this.pos.setUsage(THREE.DynamicDrawUsage)
+    this.nor.setUsage(THREE.DynamicDrawUsage)
+    const idx: number[] = []
+    const T0 = 2 * (n + 1)
+    const B0 = T0 + n + 2
+    for (let i = 0; i < n; i++) {
+      // стенка: 2i — низ, 2i + 1 — верх (обход как у CylinderGeometry — лицом наружу)
+      idx.push(2 * i + 1, 2 * i, 2 * i + 3, 2 * i, 2 * i + 2, 2 * i + 3)
+      idx.push(T0 + 1 + i, T0 + 2 + i, T0)
+      idx.push(B0 + 2 + i, B0 + 1 + i, B0)
+    }
+    for (let i = 0; i <= n; i++) {
+      this.nor.setXYZ(2 * i, this.sx[i]!, 0, this.cz[i]!)
+      this.nor.setXYZ(2 * i + 1, this.sx[i]!, 0, this.cz[i]!)
+      this.nor.setXYZ(B0 + 1 + i, 0, -1, 0)
+    }
+    this.nor.setXYZ(B0, 0, -1, 0)
+    this.geometry.setAttribute('position', this.pos)
+    this.geometry.setAttribute('normal', this.nor)
+    this.geometry.setIndex(idx)
+  }
+  /** Пересчитать по текущему наклону объекта obj (меш жидкости или его родитель с той же осью). */
+  update(obj: THREE.Object3D, r: number, floor: number, rim: number, level: number) {
+    const up = localUp(obj)
+    this.tiltCos = up.y
+    // за горизонталью (сосуд опрокинут) — как почти горизонтальный: жидкость тонким клином вдоль нижней стенки
+    const uy = Math.max(0.1, up.y)
+    const ux = up.x
+    const uz = up.z
+    const n = this.n
+    const T0 = 2 * (n + 1)
+    const B0 = T0 + n + 2
+    const lv = Math.min(rim, Math.max(floor, level))
+    for (let i = 0; i <= n; i++) {
+      const x = r * this.sx[i]!
+      const z = r * this.cz[i]!
+      const y = Math.min(rim, Math.max(floor, level - (ux * x + uz * z) / uy))
+      this.pos.setXYZ(2 * i, x, floor, z)
+      this.pos.setXYZ(2 * i + 1, x, y, z)
+      this.pos.setXYZ(T0 + 1 + i, x, y, z)
+      this.nor.setXYZ(T0 + 1 + i, ux, uy, uz)
+      this.pos.setXYZ(B0 + 1 + i, x, floor, z)
+    }
+    this.pos.setXYZ(T0, 0, lv, 0)
+    this.nor.setXYZ(T0, ux, uy, uz)
+    this.pos.setXYZ(B0, 0, floor, 0)
+    this.pos.needsUpdate = true
+    this.nor.needsUpdate = true
+    this.geometry.computeBoundingSphere()
+  }
+  /** Высота поверхности над точкой (x, z) сосуда при последнем наклоне (для частиц мути). */
+  static surfaceAt(up: THREE.Vector3, level: number, x: number, z: number): number {
+    return level - (up.x * x + up.z * z) / Math.max(0.1, up.y)
+  }
+  dispose() {
+    this.geometry.dispose()
+  }
+}
 
 /** Полоса шкалы на передней дуге сосуда (радиус r, высота шкалы scaleH от y0). */
 function ScaleBand({ spec, r, y0, scaleH, arc = 1.6 }: { spec: ScaleSpec; r: number; y0: number; scaleH: number; arc?: number }) {
@@ -76,17 +173,19 @@ export function MeasuringCylinder({ capacity, volume, color = '#dcefff', opacity
   const liq = useMemo(() => labLiquidMaterial(color, opacity), [color, opacity])
   const col = useRef<THREE.Mesh>(null)
   const men = useRef<THREE.Mesh>(null)
+  const tilt = useMemo(() => new TiltLiquid(28), [])
+  useEffect(() => () => tilt.dispose(), [tilt])
   useFrame(() => {
     const v = Math.max(0, volume(p.current ?? 0))
     const h = (v / capacity) * g.scaleH
     const m = col.current
     if (m) {
       m.visible = h > 0.0005
-      m.scale.set(1, Math.max(1e-4, h), 1)
-      m.position.y = CYL_BOTTOM + h / 2
+      // поверхность горизонтальна и при наклоне (переливание): у носика жидкость не выше края
+      if (m.visible) tilt.update(m, g.ri - 0.0003, CYL_BOTTOM, top - 0.0008, CYL_BOTTOM + h)
     }
     if (men.current) {
-      men.current.visible = h > 0.002
+      men.current.visible = h > 0.002 && tilt.tiltCos > 0.9995
       men.current.position.y = CYL_BOTTOM + h + 0.0006
     }
   })
@@ -99,9 +198,7 @@ export function MeasuringCylinder({ capacity, volume, color = '#dcefff', opacity
       <mesh geometry={glass} material={sharedGlass(quality)} renderOrder={3} />
       <mesh geometry={glass} material={sharedGlassEdge()} renderOrder={4} />
       <ScaleBand spec={spec} r={ro + 0.0004} y0={CYL_BOTTOM} scaleH={g.scaleH} />
-      <mesh ref={col} material={liq} renderOrder={2}>
-        <cylinderGeometry args={[g.ri - 0.0003, g.ri - 0.0003, 1, 28]} />
-      </mesh>
+      <mesh ref={col} geometry={tilt.geometry} material={liq} renderOrder={2} frustumCulled={false} />
       {/* мениск: кольцо у стенки чуть выше плоской поверхности */}
       <mesh ref={men} rotation={[Math.PI / 2, 0, 0]} material={liq} renderOrder={2}>
         <torusGeometry args={[g.ri - 0.0012, 0.0011, 6, 28]} />
@@ -177,6 +274,9 @@ export function MeasuringBeaker({
   const seeds = useMemo(() => Array.from({ length: n }, (_, i) => ({ a: rand(i, 1) * Math.PI * 2, r: Math.sqrt(rand(i, 2)), y: rand(i, 3), s: 0.6 + rand(i, 4) })), [n])
   const milk = useMemo(() => new THREE.Color(solidColor), [solidColor])
   const base = useMemo(() => new THREE.Color(), [])
+  const tilt = useMemo(() => new TiltLiquid(32), [])
+  useEffect(() => () => tilt.dispose(), [tilt])
+  const up = useMemo(() => new THREE.Vector3(0, 1, 0), [])
   useFrame(() => {
     const pv = p.current ?? 0
     const t = time.current ?? 0
@@ -189,9 +289,11 @@ export function MeasuringBeaker({
     const m = col.current
     if (m) {
       m.visible = v > 0.3
-      const hh = Math.max(1e-4, lv - BEAKER_FLOOR)
-      m.scale.set(1, hh, 1)
-      m.position.y = BEAKER_FLOOR + hh / 2
+      // при наклоне (переливание через носик) поверхность остаётся горизонтальной, у носика — вровень с краем
+      if (m.visible) {
+        tilt.update(m, size.ri - 0.0004, BEAKER_FLOOR, size.h - 0.0006, lv)
+        localUp(m, up)
+      }
     }
     const b = bed ? bed(pv) : 0
     if (bedM.current) {
@@ -207,8 +309,12 @@ export function MeasuringBeaker({
           const sd = seeds[i]!
           const on = sd.y < c
           const rr = size.ri * 0.9 * sd.r
+          const px = Math.cos(sd.a + t * 0.15) * rr
+          const pz = Math.sin(sd.a + t * 0.15) * rr
+          // муть — только под поверхностью (при наклоне она ниже на «верхней» стороне)
+          const top = Math.min(size.h - 0.002, TiltLiquid.surfaceAt(up, lv, px, pz))
           const y = BEAKER_FLOOR + 0.002 + sd.y * Math.max(0.002, lv - BEAKER_FLOOR - 0.004)
-          tmp.position.set(Math.cos(sd.a + t * 0.15) * rr, y + Math.sin(t * 0.8 + i) * 0.0008, Math.sin(sd.a + t * 0.15) * rr)
+          tmp.position.set(px, Math.min(y + Math.sin(t * 0.8 + i) * 0.0008, top - 0.0015), pz)
           tmp.scale.setScalar(on ? 0.0008 * sd.s : 1e-6)
           tmp.updateMatrix()
           im.setMatrixAt(i, tmp.matrix)
@@ -222,9 +328,7 @@ export function MeasuringBeaker({
       <mesh geometry={geo} material={sharedGlass(quality)} renderOrder={3} />
       <mesh geometry={geo} material={sharedGlassEdge()} renderOrder={4} />
       <ScaleBand spec={spec} r={ro + 0.0004} y0={BEAKER_FLOOR} scaleH={scaleH} arc={1.1} />
-      <mesh ref={col} material={liq} renderOrder={2}>
-        <cylinderGeometry args={[size.ri - 0.0004, size.ri - 0.0004, 1, 32]} />
-      </mesh>
+      <mesh ref={col} geometry={tilt.geometry} material={liq} renderOrder={2} frustumCulled={false} />
       <mesh ref={bedM} material={solid} renderOrder={2}>
         <cylinderGeometry args={[size.ri - 0.0006, size.ri - 0.0006, 1, 32]} />
       </mesh>
@@ -391,24 +495,100 @@ export function GasCollector({ capacity, gasMl, lift, bubble, filled }: { capaci
 
 /* ── Термометр ── */
 
-export const THERMO = { len: 0.26, r: 0.0036, bulbR: 0.0045, yMin: 0.035, span: 0.2 } as const
+/** Трубка-оболочка Ø 8,4 мм (термометр со вложенной шкалой): внутри — молочная пластинка шириной ~7 мм. */
+export const THERMO = { len: 0.26, r: 0.0042, bulbR: 0.0045, yMin: 0.035, span: 0.2 } as const
 
 /** Высота столбика (от низа шарика) для температуры t °C. */
 export function thermoY(tC: number): number {
   return THERMO.yMin + ((Math.max(-10, Math.min(110, tC)) + 10) / 120) * THERMO.span
 }
 
+/* Шкала термометра: пропорции текстуры = пропорциям пластинки (цифры не сплющены). */
+const TH_TEX_W = 128
+const TH_TEX_H = 3840
+const TH_PLATE_H = THERMO.span / (1 - 2 * SCALE_TEX_PAD)
+const TH_PLATE_W = (TH_PLATE_H * TH_TEX_W) / TH_TEX_H
+/** Капилляр — левее середины пластинки (справа от него риски и цифры), доля ширины. */
+const TH_CAP_U = 0.2
+const TH_CAP_X = (TH_CAP_U - 0.5) * TH_PLATE_W
+const TH_PLATE_Z = -0.0013
+/** Резервуар со спиртом: радиус и полувысота (вытянут вверх, уже трубки). */
+const BULB_R = THERMO.bulbR * 0.78
+const BULB_RY = BULB_R * 1.45
+
+let thScaleTex: THREE.CanvasTexture | null = null
 /**
- * Спиртовой термометр (начало — низ шарика, ось вверх): красный столбик в капилляре, шкала −10…110 °C на белой
- * пластинке. temp(p) — истинная температура; столбик догоняет её с инерцией (~1,5 с), как настоящий.
+ * Молочная пластинка как у лабораторного термометра: риски через 1 °C, удлинённые через 5 °C, длинные с цифрами
+ * через 10 °C, «°C» вверху, пустой капилляр — тонкая серая нить.
+ */
+function thermoPlateTexture(): THREE.CanvasTexture {
+  if (thScaleTex) return thScaleTex
+  const W = TH_TEX_W
+  const H = TH_TEX_H
+  const c = document.createElement('canvas')
+  c.width = W
+  c.height = H
+  const g = c.getContext('2d')
+  if (g) {
+    g.fillStyle = '#f8f7f1'
+    g.fillRect(0, 0, W, H)
+    const pad = SCALE_TEX_PAD * H
+    const usable = H - 2 * pad
+    const cx = TH_CAP_U * W
+    // пустой капилляр (виден в стекле как тонкая нить)
+    const cg = g.createLinearGradient(cx - 4, 0, cx + 4, 0)
+    cg.addColorStop(0, 'rgba(120,130,140,0)')
+    cg.addColorStop(0.5, 'rgba(120,130,140,0.55)')
+    cg.addColorStop(1, 'rgba(120,130,140,0)')
+    g.fillStyle = cg
+    g.fillRect(cx - 4, pad - 30, 8, usable + 60)
+    g.strokeStyle = '#14181e'
+    g.fillStyle = '#14181e'
+    for (let t = -10; t <= 110; t++) {
+      const y = H - pad - ((t + 10) / 120) * usable
+      const major = t % 10 === 0
+      const mid = t % 5 === 0
+      g.lineWidth = major ? 4 : mid ? 3 : 2.2
+      g.beginPath()
+      g.moveTo(cx - (major ? 16 : mid ? 12 : 8), y)
+      g.lineTo(cx + (major ? 30 : mid ? 22 : 14), y)
+      g.stroke()
+      if (major) {
+        g.save()
+        g.translate(cx + 34, y)
+        g.scale(0.8, 1)
+        g.font = '700 46px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
+        g.textAlign = 'left'
+        g.textBaseline = 'middle'
+        g.fillText(String(t).replace('-', '−'), 0, 2)
+        g.restore()
+      }
+    }
+    g.font = '700 44px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    g.fillText('°C', W * 0.62, pad * 0.5)
+  }
+  thScaleTex = new THREE.CanvasTexture(c)
+  thScaleTex.colorSpace = THREE.SRGBColorSpace
+  thScaleTex.anisotropy = 8
+  thScaleTex.minFilter = THREE.LinearMipmapLinearFilter
+  return thScaleTex
+}
+
+/**
+ * Спиртовой термометр (начало — низ шарика, ось вверх): красный столбик в капилляре перед молочной пластинкой со
+ * шкалой −10…110 °C. temp(p) — истинная температура; столбик догоняет её с инерцией (~1,5 с), как настоящий.
  */
 export function Thermometer({ temp }: { temp: PFn }) {
   const { quality, p } = useRig()
-  const red = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d0262f', roughness: 0.35, emissive: '#5a0a0e', emissiveIntensity: 0.2 }), [])
-  const tex = useMemo(thermometerScaleTexture, [])
+  // спирт и шкала рисуются после стекла (прозрачный проход, renderOrder между стеклом и контуром): иначе их видно лишь
+  // через буфер преломления стекла — размыто, и риски с цифрами не читаются
+  const red = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d81f2c', roughness: 0.3, emissive: '#7a0710', emissiveIntensity: 0.45, transparent: true }), [])
+  const tex = useMemo(thermoPlateTexture, [])
   const col = useRef<THREE.Mesh>(null)
   const shown = useRef<number | null>(null)
-  const scaleH = THERMO.span / (1 - 2 * SCALE_TEX_PAD)
+  const segs = quality === 'high' ? 20 : 14
   useFrame((_, dt) => {
     const target = temp(p.current ?? 0)
     if (shown.current == null) shown.current = target
@@ -424,21 +604,22 @@ export function Thermometer({ temp }: { temp: PFn }) {
   return (
     <group>
       <mesh position={[0, THERMO.len / 2, 0]} material={sharedGlass(quality)} renderOrder={3}>
-        <cylinderGeometry args={[THERMO.r, THERMO.r, THERMO.len, 14]} />
+        <cylinderGeometry args={[THERMO.r, THERMO.r, THERMO.len, segs]} />
       </mesh>
       <mesh position={[0, THERMO.len / 2, 0]} material={sharedGlassEdge()} renderOrder={4}>
-        <cylinderGeometry args={[THERMO.r, THERMO.r, THERMO.len, 14]} />
+        <cylinderGeometry args={[THERMO.r, THERMO.r, THERMO.len, segs]} />
       </mesh>
-      <mesh position={[0, THERMO.bulbR, 0]} material={red}>
-        <sphereGeometry args={[THERMO.bulbR, 14, 10]} />
+      {/* резервуар: вытянутая капля со спиртом (низ — в начале координат); из неё выходит капилляр */}
+      <mesh position={[0, BULB_RY, 0]} scale={[1, BULB_RY / BULB_R, 1]} material={red} renderOrder={3.6}>
+        <sphereGeometry args={[BULB_R, 16, 12]} />
       </mesh>
-      <mesh ref={col} material={red}>
-        <cylinderGeometry args={[0.0009, 0.0009, 1, 8]} />
+      <mesh ref={col} position={[TH_CAP_X, 0, 0]} material={red} renderOrder={3.6}>
+        <cylinderGeometry args={[0.00085, 0.00085, 1, 8]} />
       </mesh>
       {/* шкала на молочной пластинке за капилляром */}
-      <mesh position={[0, THERMO.yMin + THERMO.span / 2, -0.0012]} renderOrder={2}>
-        <planeGeometry args={[0.0058, scaleH]} />
-        <meshBasicMaterial map={tex} toneMapped={false} />
+      <mesh position={[0, THERMO.yMin + THERMO.span / 2, TH_PLATE_Z]} renderOrder={3.5}>
+        <planeGeometry args={[TH_PLATE_W, TH_PLATE_H]} />
+        <meshBasicMaterial map={tex} toneMapped={false} transparent />
       </mesh>
     </group>
   )
