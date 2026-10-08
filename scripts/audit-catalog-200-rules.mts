@@ -693,6 +693,10 @@ for (const id of CATALOG_TOP200_IDS) {
       if (['cro3', 'tb_v2o5', 'h2sio3', 'tb_hpo3'].includes(id)) return 'PM'
       if (PEROXIDES.has(id) && id !== 'h2o2') return 'IC'
       if (SUPEROXIDES.has(id)) return 'IC'
+      // Кислоты HₙR с металлом в кислотном остатке (HMnO₄, H₂CrO₄, H₂Cr₂O₇) — молекулы с полярными ковалентными
+      // связями H–O–Mn(=O)₃ / H–O–Cr: ионов в чистом веществе нет (formation200-rules.md, MP: «… кислоты»; строка 153
+      // таблицы — hmno4 **MP**). Наличие Mn/Cr в формуле не делает кислоту ионным веществом (исправлено 08.10).
+      if (cat === 'acid') return 'MP'
       if (hasMetal || isAmmonium) {
         if (['tb_mn2o7', 'cro3', 'tb_v2o5', 'tb_aucl3', 'tb_cl2o7'].includes(id)) return fs.type // ковалентные оксиды/хлориды металлов — по таблице правил
         return els.length === 2 && !isAmmonium ? 'IB' : 'IC'
