@@ -19,6 +19,7 @@ import { DigitalScales, SCALES, SCALES_PAN_CENTER } from '../../../../measure/de
 import { PowderJar } from '../../../../measure/devices/Bench'
 import { CU } from '../../../../../../data/labTasks/g8/layoutG8'
 import { track } from './g8Kit'
+import { WireGauze as KitWireGauze } from '../g7/kitG7'
 
 const ID = 'task-g8-cuso4-hydrate' as const
 const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
@@ -330,18 +331,12 @@ export function Cuso4HydrateRig() {
   )
 }
 
-/** Металлическая сетка с керамическим кругом в центре (лежит на кольце штатива; начало — центр сетки). */
+/** Металлическая сетка с керамическим кругом в центре (лежит на кольце штатива; at — центр сетки): общая проволочная из kitG7. */
 function WireGauze({ at }: { at: V3 }) {
-  const wire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8d959e', roughness: 0.5, metalness: 0.7 }), [])
-  const ceramic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d9d4c9', roughness: 0.95 }), [])
+  // верх керамики — там же, где был (at.y + 0,0012): чашка стоит на нём
   return (
-    <group position={at as unknown as THREE.Vector3Tuple}>
-      <mesh material={wire} castShadow receiveShadow>
-        <boxGeometry args={[0.1, 0.0015, 0.1]} />
-      </mesh>
-      <mesh position={[0, 0.0004, 0]} material={ceramic} receiveShadow>
-        <cylinderGeometry args={[0.032, 0.032, 0.0016, 28]} />
-      </mesh>
+    <group position={[at[0], at[1] - 0.0006, at[2]]}>
+      <KitWireGauze glow={flame} />
     </group>
   )
 }

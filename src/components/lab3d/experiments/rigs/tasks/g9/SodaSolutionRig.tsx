@@ -162,7 +162,7 @@ function ThermoStand({ temp }: { temp: PFn }) {
           <cylinderGeometry args={[0.0028, 0.0028, armLen - 0.006, 8]} />
         </mesh>
         <mesh position={[TX, 0.215, B0[2]]} rotation={[Math.PI / 2, 0, 0]} material={paint}>
-          <torusGeometry args={[0.0058, 0.0022, 6, 18]} />
+          <torusGeometry args={[0.0064, 0.0022, 6, 18]} />
         </mesh>
         <group position={[TX, 0, B0[2]]}>
           <Thermometer temp={temp} />

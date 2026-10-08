@@ -3,7 +3,7 @@
  * газовая горелка с газовым краном и шлангом, спичка.
  * Пламя рисуется обычным смешиванием (не аддитивным) — на светлом фоне лаборатории оно остаётся видимым.
  */
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { LAB_COLORS } from '../../labContract'
@@ -14,6 +14,8 @@ import { sharedGlass, sharedGlassEdge } from './glassware'
 const FLAME_VERT = /* glsl */ `
 uniform float uTime;
 uniform float uSeed;
+uniform float uCeil;
+uniform float uSpread;
 varying float vH;
 varying vec3 vN;
 varying vec3 vV;
@@ -26,6 +28,15 @@ void main() {
   p.x += w * h * h;
   p.z += sin(uTime * 9.7 + uSeed * 1.3) * 0.04 * h * h;
   p.y = h * (1.0 + 0.1 * sin(uTime * 11.0 + uSeed));
+  // над пламенем сетка / дно сосуда (uCeil — в долях высоты): язык не проходит сквозь неё, а растекается под ней
+  if (p.y > uCeil) {
+    float e = p.y - uCeil;
+    float az = uv.x * 6.2831853;
+    p.y = uCeil - e * 0.12;
+    p.xz += vec2(-cos(az), sin(az)) * e * uSpread;
+    // растёкшийся язык ярок у центра и гаснет к краю (иначе его съедает верхнее затухание)
+    h = min(h, uCeil * 0.72 + e * 1.3);
+  }
   vH = h;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vN = normalize(normalMatrix * normal);
@@ -109,6 +120,38 @@ function useDouse(report: boolean) {
   }
 }
 
+/**
+ * Горизонтальные преграды над пламенем (сетка с керамическим центром): регистрирует сама деталь, пламя под ней
+ * каждый кадр ищет ближайшую сверху и расплющивается под ней. half — полуразмер преграды по X и Z (м).
+ */
+const ceilings = new Set<{ obj: THREE.Object3D; half: number }>()
+export function useFlameCeiling(ref: RefObject<THREE.Object3D | null>, half: number) {
+  useEffect(() => {
+    const o = ref.current
+    if (!o) return
+    const e = { obj: o, half }
+    ceilings.add(e)
+    return () => {
+      ceilings.delete(e)
+    }
+  }, [ref, half])
+}
+const tmpBase = new THREE.Vector3()
+const tmpCeil = new THREE.Vector3()
+/** Высота (м) ближайшей преграды над точкой основания пламени, не дальше maxUp; иначе Infinity. */
+function ceilingAbove(base: THREE.Object3D, maxUp: number): number {
+  if (ceilings.size === 0) return Infinity
+  base.getWorldPosition(tmpBase)
+  let best = Infinity
+  for (const c of ceilings) {
+    if (!c.obj.visible) continue
+    c.obj.getWorldPosition(tmpCeil)
+    const dy = tmpCeil.y - tmpBase.y
+    if (dy > 0.002 && dy < maxUp && Math.abs(tmpCeil.x - tmpBase.x) < c.half && Math.abs(tmpCeil.z - tmpBase.z) < c.half) best = Math.min(best, dy)
+  }
+  return best
+}
+
 /** Пламя: начало — основание, высота height (м), ширина width. intensity(p) — 0 погашено … 1 горит. */
 export function Flame({
   height,
@@ -142,6 +185,8 @@ export function Flame({
           uEdge: { value: new THREE.Color(edge) },
           uIntensity: { value: 0 },
           uAlpha: { value: alpha },
+          uCeil: { value: 10 },
+          uSpread: { value: 0 },
         },
       }),
     [core, edge, alpha, seed],
@@ -156,7 +201,12 @@ export function Flame({
     if (m) {
       m.visible = k > 0.01
       const s = 0.35 + 0.65 * k
-      m.scale.set(width * (0.6 + 0.4 * k), height * s, width * (0.6 + 0.4 * k))
+      const sw = 0.6 + 0.4 * k
+      m.scale.set(width * sw, height * s, width * sw)
+      // преграда сверху: доля высоты, где язык упирается, и насколько он растекается вширь (в долях ширины)
+      const up = m.visible ? ceilingAbove(m, height * 1.15) : Infinity
+      mat.uniforms.uCeil!.value = up === Infinity ? 10 : up / (height * s)
+      mat.uniforms.uSpread!.value = ((height * s) / (width * sw)) * 0.9
     }
   })
   return (
@@ -310,7 +360,7 @@ export function SpiritLamp({ flame, capOff }: { flame: PFn; capOff: PFn }) {
         <meshStandardMaterial color="#efe9dc" roughness={1} transparent opacity={0.6} />
       </mesh>
       <group position={[0, 0.081, 0]}>
-        <Flame height={0.05} width={0.013} core="#fff1c4" edge="#ff9a1f" intensity={flame} seed={2.3} />
+        <Flame height={0.05} width={0.014} core="#ffd27a" edge="#ff7f1a" intensity={flame} alpha={0.92} seed={2.3} />
         <Flame height={0.014} width={0.008} core="#9cc4ff" edge="#3d76ff" intensity={flame} alpha={0.55} seed={4.1} />
         <group position={[0, 0.02, 0]}>
           <FlameLight intensity={flame} color="#ffb35c" />

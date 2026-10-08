@@ -3,13 +3,14 @@
  * колба 100 мл с уровнем в мл (из геометрии), гранулы металла на дне, резиновая пробка с коленом газоотводной трубки,
  * склянка тёмного стекла.
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { labLiquidMaterial } from '../../../../labContract'
 import { ease, mixV, useRig, type PFn, type V3 } from '../../../rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../../parts/glassware'
 import { GlassPath } from '../../../parts/practicalware'
+import { TiltLiquid } from '../../../../measure/devices/Glass'
 
 /** Путь по точкам: legs — [начало, конец отрезка прогресса, куда]. */
 export function moveVia(p: number, start: V3, legs: readonly (readonly [number, number, V3])[]): V3 {
@@ -200,6 +201,9 @@ export function AmberBottle({ label, level, closed }: { label: THREE.Texture; le
   const liq = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2a1406', roughness: 0.2, transparent: true, opacity: 0.6 }), [])
   const liqRef = useRef<THREE.Mesh>(null)
   const capRef = useRef<THREE.Mesh>(null)
+  // при наливании склянку наклоняют: поверхность раствора остаётся горизонтальной (не столбик вдоль оси)
+  const tilt = useMemo(() => new TiltLiquid(20), [])
+  useEffect(() => () => tilt.dispose(), [tilt])
   useFrame(() => {
     const pv = p.current ?? 0
     if (capRef.current) capRef.current.visible = closed ? closed(pv) >= 0.5 : true
@@ -207,15 +211,12 @@ export function AmberBottle({ label, level, closed }: { label: THREE.Texture; le
     if (!m) return
     const k = Math.max(0.001, level(pv))
     const hh = AMBER.h * 0.66 * k
-    m.scale.set(1, hh, 1)
-    m.position.y = 0.004 + hh / 2
+    tilt.update(m, AMBER.r - 0.003, 0.004, AMBER.h * 0.7, 0.004 + hh)
   })
   return (
     <group>
       <mesh geometry={geo} material={amber} castShadow />
-      <mesh ref={liqRef} material={liq}>
-        <cylinderGeometry args={[AMBER.r - 0.003, AMBER.r - 0.003, 1, 20]} />
-      </mesh>
+      <mesh ref={liqRef} geometry={tilt.geometry} material={liq} frustumCulled={false} />
       <mesh position={[0, AMBER.h * 0.42, 0]} renderOrder={5}>
         <cylinderGeometry args={[AMBER.r + 0.0006, AMBER.r + 0.0006, 0.036, 20, 1, true, -0.85, 1.7]} />
         <meshStandardMaterial map={label} roughness={0.7} />

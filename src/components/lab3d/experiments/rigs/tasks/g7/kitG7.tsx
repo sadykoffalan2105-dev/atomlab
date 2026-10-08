@@ -6,7 +6,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Pose, ease, mix, mixV, useRig, type PFn, type V3 } from '../../../rigCore'
-import { Match, Matchbox, SpiritLamp } from '../../../parts/fire'
+import { Match, Matchbox, SpiritLamp, useFlameCeiling } from '../../../parts/fire'
 import { Spatula } from '../../worksKit'
 import { jarLabelTexture } from '../../../../measure/devices/deviceTextures'
 
@@ -156,45 +156,137 @@ export function LampKit({ lamp, matchbox, flame, capOff, lightAt }: { lamp: V3; 
 /** Сетка с керамическим центром (м): квадрат 10 × 10 см, керамический круг Ø 64 мм, толщина. */
 export const GAUZE = { side: 0.1, ceramicR: 0.032, t: 0.0014 } as const
 
+/** Плетёная проволока сетки (одна плитка — две проволоки в каждую сторону; RGBA: сквозь ячейки видно пламя). */
+let wireTex: THREE.CanvasTexture | null = null
+function wireTexture(): THREE.CanvasTexture {
+  if (wireTex) return wireTex
+  const S = 64
+  const c = document.createElement('canvas')
+  c.width = S
+  c.height = S
+  const g = c.getContext('2d')
+  if (g) {
+    g.clearRect(0, 0, S, S)
+    const w = 7
+    // переплетение: проволока «сверху» светлее посередине, «снизу» — темнее у перекрестья
+    for (let k = 0; k < 2; k++) {
+      const x = k * 32 + 16
+      const gr = g.createLinearGradient(x - w / 2, 0, x + w / 2, 0)
+      gr.addColorStop(0, '#6f767e')
+      gr.addColorStop(0.5, '#e4e8ec')
+      gr.addColorStop(1, '#6f767e')
+      g.fillStyle = gr
+      g.fillRect(x - w / 2, 0, w, S)
+    }
+    for (let k = 0; k < 2; k++) {
+      const y = k * 32 + 16
+      const gr = g.createLinearGradient(0, y - w / 2, 0, y + w / 2)
+      gr.addColorStop(0, '#6f767e')
+      gr.addColorStop(0.5, '#dfe3e8')
+      gr.addColorStop(1, '#6f767e')
+      g.fillStyle = gr
+      // уток проходит то над, то под основой
+      for (let j = 0; j < 2; j++) {
+        const over = (j + k) % 2 === 0
+        const x0 = j * 32
+        if (over) g.fillRect(x0, y - w / 2, 32, w)
+        else {
+          g.fillRect(x0, y - w / 2, 16 - w / 2 - 1, w)
+          g.fillRect(x0 + 16 + w / 2 + 1, y - w / 2, 16 - w / 2 - 1, w)
+        }
+      }
+    }
+  }
+  wireTex = new THREE.CanvasTexture(c)
+  wireTex.wrapS = THREE.RepeatWrapping
+  wireTex.wrapT = THREE.RepeatWrapping
+  wireTex.repeat.set(20, 20)
+  wireTex.anisotropy = 4
+  wireTex.colorSpace = THREE.SRGBColorSpace
+  return wireTex
+}
+
+/** Радиальное пятно накала (центр — 1, к краю 0): общее для керамики и проволоки вокруг неё. */
+let glowTex: THREE.CanvasTexture | null = null
+function glowTexture(): THREE.CanvasTexture {
+  if (glowTex) return glowTex
+  const S = 64
+  const c = document.createElement('canvas')
+  c.width = S
+  c.height = S
+  const g = c.getContext('2d')
+  if (g) {
+    g.fillStyle = '#000'
+    g.fillRect(0, 0, S, S)
+    const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2)
+    gr.addColorStop(0, '#ffffff')
+    gr.addColorStop(0.35, '#d0d0d0')
+    gr.addColorStop(0.7, '#3a3a3a')
+    gr.addColorStop(1, '#000000')
+    g.fillStyle = gr
+    g.fillRect(0, 0, S, S)
+  }
+  glowTex = new THREE.CanvasTexture(c)
+  return glowTex
+}
+
 /**
  * Металлическая сетка с керамическим центром (начало — центр нижней плоскости; кладут на кольцо штатива).
- * glow(p) 0…1 — керамика в центре слегка краснеет от пламени снизу.
+ * Проволочная (сквозь ячейки видно пламя), края загнуты рамкой; пламя спиртовки под ней растекается (useFlameCeiling).
+ * glow(p) 0…1 — керамика в центре и проволока вокруг неё краснеют от пламени снизу.
  */
 export function WireGauze({ glow }: { glow?: PFn }) {
   const { p } = useRig()
-  const wire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8d949c', roughness: 0.5, metalness: 0.75 }), [])
-  const ceramic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e9e4dc', roughness: 1, emissive: '#ff5a1f', emissiveIntensity: 0 }), [])
-  // проволочная решётка поверх листа: тонкие полоски через ~6 мм (одна геометрия)
-  const grid = useMemo(() => {
-    const n = Math.floor(GAUZE.side / 0.006)
-    const pos: number[] = []
-    for (let i = 0; i <= n; i++) {
-      const x = -GAUZE.side / 2 + (i * GAUZE.side) / n
-      for (const part of [new THREE.BoxGeometry(0.0007, 0.0004, GAUZE.side), new THREE.BoxGeometry(GAUZE.side, 0.0004, 0.0007)]) {
-        if (part.parameters.width < 0.001) part.translate(x, GAUZE.t + 0.0002, 0)
-        else part.translate(0, GAUZE.t + 0.0002, x)
-        const ni = part.toNonIndexed()
-        pos.push(...(ni.getAttribute('position').array as Float32Array))
-        ni.dispose()
-        part.dispose()
-      }
-    }
-    const g = new THREE.BufferGeometry()
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
-    g.computeVertexNormals()
-    return g
-  }, [])
+  const root = useRef<THREE.Group>(null)
+  useFlameCeiling(root, GAUZE.side / 2)
+  const wire = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#a9b0b8',
+        map: wireTexture(),
+        alphaTest: 0.32,
+        side: THREE.DoubleSide,
+        roughness: 0.45,
+        metalness: 0.7,
+        emissive: '#ff3a12',
+        emissiveMap: glowTexture(),
+        emissiveIntensity: 0,
+      }),
+    [],
+  )
+  const frame = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8d949c', roughness: 0.45, metalness: 0.75 }), [])
+  const ceramic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e7e1d6', roughness: 1, emissive: '#ff3c14', emissiveMap: glowTexture(), emissiveIntensity: 0 }), [])
+  const baseColor = useMemo(() => new THREE.Color('#e7e1d6'), [])
+  const hotColor = useMemo(() => new THREE.Color('#c9a58f'), [])
   useFrame(() => {
-    ceramic.emissiveIntensity = glow ? 0.28 * glow(p.current ?? 0) : 0
+    const k = glow ? glow(p.current ?? 0) : 0
+    ceramic.emissiveIntensity = 1.35 * k
+    ceramic.color.copy(baseColor).lerp(hotColor, k * 0.55)
+    wire.emissiveIntensity = 0.9 * k
   })
+  const s = GAUZE.side
+  const midY = GAUZE.t * 0.5
+  const rim = 0.0022
   return (
-    <group>
-      <mesh position={[0, GAUZE.t / 4, 0]} material={wire} castShadow receiveShadow>
-        <boxGeometry args={[GAUZE.side, GAUZE.t * 0.5, GAUZE.side]} />
+    <group ref={root}>
+      {/* плетёная проволока (плоскость с альфа-текстурой) */}
+      <mesh position={[0, midY, 0]} rotation={[-Math.PI / 2, 0, 0]} material={wire} receiveShadow>
+        <planeGeometry args={[s, s]} />
       </mesh>
-      <mesh geometry={grid} material={wire} />
-      <mesh position={[0, GAUZE.t / 2 + 0.0002, 0]} material={ceramic} receiveShadow>
-        <cylinderGeometry args={[GAUZE.ceramicR, GAUZE.ceramicR, GAUZE.t + 0.0004, 28]} />
+      {/* загнутые края — рамка из проволоки */}
+      {[-1, 1].map((d) => (
+        <mesh key={`x${d}`} position={[(d * (s - rim)) / 2, midY, 0]} material={frame} castShadow>
+          <boxGeometry args={[rim, GAUZE.t * 0.7, s]} />
+        </mesh>
+      ))}
+      {[-1, 1].map((d) => (
+        <mesh key={`z${d}`} position={[0, midY, (d * (s - rim)) / 2]} material={frame} castShadow>
+          <boxGeometry args={[s - 2 * rim, GAUZE.t * 0.7, rim]} />
+        </mesh>
+      ))}
+      {/* керамический круг, вдавленный в сетку (верх — на GAUZE.t + 0,0004: на нём стоит чашка) */}
+      <mesh position={[0, (GAUZE.t + 0.0004) / 2, 0]} material={ceramic} castShadow receiveShadow>
+        <cylinderGeometry args={[GAUZE.ceramicR, GAUZE.ceramicR * 0.985, GAUZE.t + 0.0004, 40]} />
       </mesh>
     </group>
   )
