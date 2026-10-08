@@ -87,16 +87,16 @@ export const CO2_TEXTS: ShowcaseTexts = {
       lines: [['C — атом (уголь, графит)', 'C — an atom (coal, graphite)', 'C — atom (koʻmir, grafit)'], ['O₂ — связь O=O: σ + π', 'O₂ — the O=O bond: σ + π', 'O₂ — O=O bogʻ: σ + π'], ['C + O₂ → CO₂', 'C + O₂ → CO₂', 'C + O₂ → CO₂']],
     },
     {
-      stage: 'valence', from: 0.02, to: 0.42, title: ['Углерод: основное состояние', 'Carbon: ground state', 'Uglerod: asosiy holat'],
+      stage: 'valence', from: 0.02, to: 0.32, title: ['Углерод: основное состояние', 'Carbon: ground state', 'Uglerod: asosiy holat'],
       lines: [['2s² 2p² — 2 неспаренных e⁻', '2s² 2p² — 2 unpaired e⁻', '2s² 2p² — 2 ta juftlashmagan e⁻'], ['валентность II', 'valence II', 'valentlik II']],
     },
     {
-      stage: 'valence', from: 0.42, to: 1, title: ['Углерод: возбуждённое состояние', 'Carbon: excited state', 'Uglerod: qoʻzgʻalgan holat'],
+      stage: 'valence', from: 0.32, to: 1, title: ['Углерод: возбуждённое состояние', 'Carbon: excited state', 'Uglerod: qoʻzgʻalgan holat'],
       lines: [['2s¹ 2p³ — 4 неспаренных e⁻', '2s¹ 2p³ — 4 unpaired e⁻', '2s¹ 2p³ — 4 ta juftlashmagan e⁻'], ['валентность IV', 'valence IV', 'valentlik IV'], ['s и p смешиваются: два облака вдоль оси (sp)', 's and p mix: two clouds along the axis (sp)', 's va p aralashadi: oʻq boʻylab ikki bulut (sp)']],
       tone: 'check',
     },
     {
-      stage: 'pairs', from: 0.04, to: 1, title: ['Связь C=O = σ + π', 'The C=O bond = σ + π', 'C=O bogʻ = σ + π'],
+      stage: 'pairs', from: 0.04, to: 1, title: ['Связь C=O — две пары', 'The C=O bond — two pairs', 'C=O bogʻ — ikki juft'],
       lines: [['σ — перекрывание по оси', 'σ — overlap along the axis', 'σ — oʻq boʻylab qoplanish'], ['π — сбоку, над и под осью', 'π — sideways, above and below the axis', 'π — yon tomondan, oʻq ustida va ostida'], ['ΔЭО = 3,44 − 2,55 = 0,89 — полярные', 'ΔEN = 3.44 − 2.55 = 0.89 — polar', 'ΔEM = 3,44 − 2,55 = 0,89 — qutbli']],
     },
     {

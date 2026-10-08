@@ -145,9 +145,9 @@ const CO2SceneImpl = ({ model, story, cam, lowPower }: ShowcaseProps) => {
   const camKeys = useMemo<CamKey[]>(() => [
     { t: -1, d: 1, yaw: 0.05, pitch: 0.1, zoom: 1 },
     { t: R.t0 + 1.4, d: 2.2, yaw: 0.38, pitch: 0.2, zoom: 1.04 },
-    { t: B.t0, d: 1.4, yaw: 0.18, pitch: 0.12, zoom: 1.1 },
+    { t: B.t0, d: 1.4, yaw: 0.16, pitch: 0.12, zoom: 1 },
     { t: A.t0, d: 2.2, yaw: 0.45, pitch: 0.24, zoom: 1 },
-    { t: V.t0 + 0.8, d: 1.6, yaw: 0.55, pitch: 0.3, zoom: 1.22 },
+    { t: V.t0 + 0.8, d: 1.6, yaw: 0.55, pitch: 0.3, zoom: 1.1 },
     { t: P.t0 - 0.4, d: 1.6, yaw: 0.36, pitch: 0.16, zoom: 1.08 },
     { t: moves.s2.t0 - 0.6, d: 1.8, yaw: 0.42, pitch: 0.42, zoom: 1.08 },
     { t: Bo.t0, d: 1.6, yaw: 0.26, pitch: 0.3, zoom: 1 },
@@ -211,11 +211,11 @@ const CO2SceneImpl = ({ model, story, cam, lowPower }: ShowcaseProps) => {
       <Lobe kind="s" center={midO} r={0.1} color={SIG} k={(t) => seg(t, R.t0 + 0.4, R.t0 + 1.2) * (1 - seg(t, B.t0 + 0.4, B.t0 + 1.3))} />
       <Lobe kind="p" center={midO} axis={(t) => { const d = dir(pO2, pO1)(t); return [d[1], -d[0], 0] }} r={0.17} color={PI} k={(t) => seg(t, R.t0 + 0.6, R.t0 + 1.4) * (1 - seg(t, B.t0 + 0.4, B.t0 + 1.3))} />
       {/* ── кислород: p_x (к C → σ), p_y у O₁ / p_z у O₂ (→ π), неподелённые пары: 2s и третье p-облако ── */}
-      <Lobe kind="p" center={pO1} axis={xAxis} r={0.2} color={O_LOBE} k={(t) => oAppear(t) * fadeBy(moves.s1)(t)} />
+      <Lobe kind="p" center={pO1} axis={xAxis} r={0.17} color={O_LOBE} k={(t) => oAppear(t) * fadeBy(moves.s1)(t)} />
       <Lobe kind="p" center={pO1} axis={yAxis} r={0.2} color={O_LOBE} k={(t) => oAppear(t) * fadeBy(moves.p1)(t)} />
       <Lobe kind="s" center={pO1} r={0.16} color={O_LOBE} k={(t) => 0.7 * seg(t, V.t0 + 0.2, V.t0 + 1) * loneOut(t)} />
       <Lobe kind="lone" center={pO1} axis={() => [0, 0.33, 0.94]} r={0.17} color={O_LOBE} k={(t) => seg(t, V.t0 + 0.2, V.t0 + 1) * loneOut(t)} />
-      <Lobe kind="p" center={pO2} axis={xAxis} r={0.2} color={O_LOBE} k={(t) => oAppear(t) * fadeBy(moves.s2)(t)} />
+      <Lobe kind="p" center={pO2} axis={xAxis} r={0.17} color={O_LOBE} k={(t) => oAppear(t) * fadeBy(moves.s2)(t)} />
       <Lobe kind="p" center={pO2} axis={zAxis} r={0.2} color={O_LOBE} k={(t) => oAppear(t) * fadeBy(moves.p2)(t)} />
       <Lobe kind="s" center={pO2} r={0.16} color={O_LOBE} k={(t) => 0.7 * seg(t, V.t0 + 0.2, V.t0 + 1) * loneOut(t)} />
       <Lobe kind="lone" center={pO2} axis={() => [0, 0.94, 0.33]} r={0.17} color={O_LOBE} k={(t) => seg(t, V.t0 + 0.2, V.t0 + 1) * loneOut(t)} />
@@ -239,7 +239,7 @@ const CO2SceneImpl = ({ model, story, cam, lowPower }: ShowcaseProps) => {
       <Tag pos={at(midO, [0, 0.45, 0])} text={T('o2')} k={(t) => win(t, R.t0 + 0.9, B.t0 + 0.3)} />
       <Tag pos={at(midO, [-0.33, 0, 0])} text={T('sigma')} k={(t) => win(t, R.t0 + 1.3, B.t0 + 0.2)} />
       <Tag pos={at(midO, [0.33, 0, 0])} text={T('pi')} k={(t) => win(t, R.t0 + 1.3, B.t0 + 0.2)} />
-      <Tag pos={at(midO, [0, 0.45, 0])} text={T('ignite')} tone="heat" k={(t) => win(t, B.t0 + 0.5, B.t1 - 0.1)} />
+      <Tag pos={at(midO, [-0.3, 0.46, 0])} text={T('ignite')} tone="heat" k={(t) => win(t, B.t0 + 0.5, B.t1 - 0.1)} />
       <Tag pos={at(pO1, [0, 0.32, 0])} text={T('twoUnpaired')} tone="minus" k={(t) => win(t, A.t0 + 0.9, V.t0 + 1.6)} />
       <Tag pos={at(pO2, [0, -0.32, 0])} text={T('twoUnpaired')} tone="minus" k={(t) => win(t, A.t0 + 0.9, V.t0 + 1.6)} />
       <Tag pos={at(pC, [0, -0.36, 0])} text={T('ground')} k={(t) => win(t, A.t0 + 0.5, X0 - 0.1)} />
@@ -254,7 +254,7 @@ const CO2SceneImpl = ({ model, story, cam, lowPower }: ShowcaseProps) => {
       <Tag pos={at(pO2, [0, -0.3, 0])} text={T('deltaMinus')} tone="minus" k={(t) => win(t, moves.s2.t1 - 0.2, As.t0 + 0.9)} />
       <Tag pos={at(pC, [0, 0.5, 0])} text={T('heat')} tone="heat" k={(t) => win(t, sticksStart + 0.4, Bo.t1 + 0.8)} />
       {/* ── геометрия: 180°, 1,16 Å, диполи гасят друг друга ── */}
-      <AngleArc v={pC} a={pO1} b={pO2} r={0.5} k={(t) => win(t, As.t0 + 0.3, F.t0 + 1.5)} label={() => T('angle')} />
+      <AngleArc v={pC} a={pO1} b={pO2} r={0.36} k={(t) => win(t, As.t0 + 0.3, F.t0 + 1.5)} label={() => T('angle')} />
       <MeasureLine a={pC} b={pO1} offset={-0.2} text={T('length')} k={(t) => win(t, As.t0 + 1.2, As.t0 + 3.8)} />
       <DipoleArrow from={at(pC, [0, 0.16, 0])} to={shrink(at(pO1, [0, 0.16, 0]))} k={(t) => win(t, As.t0 + 1.6, As.t0 + 5.2)} />
       <DipoleArrow from={at(pC, [0, 0.16, 0])} to={shrink(at(pO2, [0, 0.16, 0]))} k={(t) => win(t, As.t0 + 1.6, As.t0 + 5.2)} />
