@@ -384,12 +384,27 @@ function loadTextbookText(): string | null {
         const pages = JSON.parse(readFileSync(f, 'utf8')) as { lines: { t: string }[] }[]
         for (const p of pages) out += p.lines.map((l) => l.t).join(' ') + '\n'
       }
-      return out.toLowerCase().replace(/ё/g, 'е')
+      // перенос «кисло- родом» → «кислородом»; «йод» (Kimyo) ≡ «иод» (проект, правило d1)
+      return out.toLowerCase().replace(/ё/g, 'е').replace(/([а-я])-\s+([а-я])/g, '$1$2').replace(/йод/g, 'иод')
     } catch {
       return null
     }
   }
   return null
+}
+
+/** Имя (в нижнем регистре) встречается в тексте учебника с точностью до окончаний слов и пробела перед «(IV)». */
+function textbookHasName(text: string, name: string): boolean {
+  if (text.includes(name)) return true
+  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const word = (w: string) => {
+    const m = w.match(/^([а-я-]+)(\([ivx,]+\))?$/)
+    if (!m) return esc(w)
+    const base = m[1]!
+    const stem = base.length > 5 ? base.slice(0, -2) : base
+    return esc(stem) + '[а-я]*' + (m[2] ? '\\s?' + esc(m[2]) : '')
+  }
+  return new RegExp(name.split(/\s+/).map(word).join('\\s+')).test(text)
 }
 
 // ───────────────────────── аудит ─────────────────────────
@@ -554,11 +569,16 @@ for (const id of CATALOG_TOP200_IDS) {
   if (uz && (cat === 'oxide' || cat === 'base') && !/(oksidi|gidroksidi|Suv|peroksidi|ammiak)$/i.test(uz.replace(/\s*\(.*\)$/, '')))
     flag('d2', id, `UZ оксид/основание: «${uz}»`)
 
-  // d3 имя в учебнике (info)
+  // d3 имя в учебнике (info). Уточнено 08.10: систематическая часть и тривиальная («Оксид углерода(IV) (углекислый
+  // газ)», «Оксид азота(IV), димер») ищутся порознь; падежные формы («хлорида магния») и «оксид серы (IV)» — совпадение.
   if (textbook) {
-    const needle = name.toLowerCase().replace(/ё/g, 'е')
-    const alt = needle.replace(/\(([ivx]+)\)/, ' ($1)')
-    if (!textbook.includes(needle) && !textbook.includes(alt)) flag('d3', id, `«${name}» не найдено в тексте Kimyo 7–9`)
+    const full = name.toLowerCase().replace(/ё/g, 'е').replace(/йод/g, 'иод')
+    const trivial = full.match(/\(([^()]*[а-я][^()]*)\)\s*$/)?.[1] ?? ''
+    const head = full.replace(/\s*\(([^()]*[а-я][^()]*)\)\s*$/, '').replace(/,.*$/, '')
+    // в перечнях учебник пишет «HBr – бромоводородная» без слова «кислота» — длинное прилагательное считаем именем
+    const acidAdj = /^[а-я]{9,} кислота$/.test(head) ? head.replace(/ кислота$/, '') : ''
+    const found = [full, head, trivial, acidAdj].filter(Boolean).some((part) => textbookHasName(textbook, part))
+    if (!found) flag('d3', id, `«${name}» не найдено в тексте Kimyo 7–9`)
   }
 
   // e1/e2/e3 геометрия модели
@@ -693,6 +713,10 @@ for (const id of CATALOG_TOP200_IDS) {
       if (['cro3', 'tb_v2o5', 'h2sio3', 'tb_hpo3'].includes(id)) return 'PM'
       if (PEROXIDES.has(id) && id !== 'h2o2') return 'IC'
       if (SUPEROXIDES.has(id)) return 'IC'
+      // Кислоты HₙR с металлом в кислотном остатке (HMnO₄, H₂CrO₄, H₂Cr₂O₇) — молекулы с полярными ковалентными
+      // связями H–O–Mn(=O)₃ / H–O–Cr: ионов в чистом веществе нет (formation200-rules.md, MP: «… кислоты»; строка 153
+      // таблицы — hmno4 **MP**). Наличие Mn/Cr в формуле не делает кислоту ионным веществом (исправлено 08.10).
+      if (cat === 'acid') return 'MP'
       if (hasMetal || isAmmonium) {
         if (['tb_mn2o7', 'cro3', 'tb_v2o5', 'tb_aucl3', 'tb_cl2o7'].includes(id)) return fs.type // ковалентные оксиды/хлориды металлов — по таблице правил
         return els.length === 2 && !isAmmonium ? 'IB' : 'IC'
