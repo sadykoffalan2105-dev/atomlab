@@ -13,7 +13,7 @@
  * Всё — функции clock t (перемотка без артефактов). Данные story не меняются (аудит B/C/E).
  */
 import { useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import type { V3 } from '../../../hero/schoolHeroModel'
 import { atomPosAt, clamp01, easeInOut, screenToModel, type FormationStory, type StageKey } from '../../formationStory'
 import { viewLocale } from '../../FormationHud'
@@ -55,6 +55,8 @@ export const SiO2Scene: ShowcaseScene = function SiO2Scene({ model, story, cam, 
   const L = viewLocale()
   const tx = (k: keyof typeof T) => T[k][L]!
   const clock = useClockCtx()
+  const camDbg = useThree((s) => s.camera)
+  const glDbg = useThree((s) => s.gl)
 
   const S = useMemo(() => buildScene(story, model), [story, model])
 
@@ -72,6 +74,7 @@ export const SiO2Scene: ShowcaseScene = function SiO2Scene({ model, story, cam, 
     c.yaw = a.yaw + (b.yaw - a.yaw) * u + 0.15 * Math.sin(t * 0.35) + (t > S.fin.t0 ? 0.06 * (t - S.fin.t0) : 0)
     c.pitch = a.pitch + (b.pitch - a.pitch) * u + 0.04 * Math.sin(t * 0.23 + 1)
     c.zoom = a.zoom + (b.zoom - a.zoom) * u
+    ;(globalThis as unknown as { __sio2dbg?: unknown }).__sio2dbg = { t, zoom: c.zoom, calls: glDbg.info.render.calls, tris: glDbg.info.render.triangles, camL: camDbg.position.length() }
   })
 
   const { posOf, si, oList, fin, sv, sp, sb, sa, brk, tEx, eR, rSi, rO, up } = S
@@ -83,16 +86,17 @@ export const SiO2Scene: ShowcaseScene = function SiO2Scene({ model, story, cam, 
       {/* ── reagents / break: одна молекула O₂ крупным планом — σ (вдоль оси) и π (сбоку) ── */}
       {S.o2 && (
         <>
-          <Lobe kind="p" center={(t) => posOf(S.o2!.a, t)} axis={(t) => S.o2!.axis(t)} r={1.35 * rO} k={lobeK(0.5, brk.t0 + 1.3, 0.6)} color="#7dd3fc" />
-          <Lobe kind="p" center={(t) => posOf(S.o2!.b, t)} axis={(t) => S.o2!.axis(t)} r={1.35 * rO} k={lobeK(0.5, brk.t0 + 1.3, 0.6)} color="#7dd3fc" />
-          <Lobe kind="p" center={(t) => posOf(S.o2!.a, t)} axis={(t) => S.o2!.perp(t)} r={1.35 * rO} k={lobeK(0.9, brk.t0 + 1.0, 0.6)} color="#c4b5fd" />
-          <Lobe kind="p" center={(t) => posOf(S.o2!.b, t)} axis={(t) => S.o2!.perp(t)} r={1.35 * rO} k={lobeK(0.9, brk.t0 + 1.0, 0.6)} color="#c4b5fd" />
-          <Tag pos={(t) => S.o2!.mid(t)} text={tx('o2')} k={lobeK(1.3, brk.t0 - 0.2)} offset={sc3(up, 2.6 * rO)} />
-          <Tag pos={(t) => S.o2!.mid(t)} text={tx('heat')} k={lobeK(brk.t0 + 0.3, brk.t0 + brk.dur - 0.2)} tone="heat" offset={sc3(up, 2.6 * rO)} />
+          <Lobe kind="p" center={(t) => posOf(S.o2!.a, t)} axis={(t) => S.o2!.axis(t)} r={2.3 * rO} k={lobeK(0.5, brk.t0 + 1.3, 0.6)} color="#7dd3fc" />
+          <Lobe kind="p" center={(t) => posOf(S.o2!.b, t)} axis={(t) => S.o2!.axis(t)} r={2.3 * rO} k={lobeK(0.5, brk.t0 + 1.3, 0.6)} color="#7dd3fc" />
+          <Lobe kind="p" center={(t) => posOf(S.o2!.a, t)} axis={(t) => S.o2!.perp(t)} r={2.3 * rO} k={lobeK(0.9, brk.t0 + 1.0, 0.6)} color="#c4b5fd" />
+          <Lobe kind="p" center={(t) => posOf(S.o2!.b, t)} axis={(t) => S.o2!.perp(t)} r={2.3 * rO} k={lobeK(0.9, brk.t0 + 1.0, 0.6)} color="#c4b5fd" />
+          {/* подписи — ближе к центру кадра (молекула на краю кольца), чтобы не обрезались */}
+          <Tag pos={(t) => lerp3(S.o2!.mid(t), [0, 0, 0], 0.45)} text={tx('o2')} k={lobeK(1.3, brk.t0 - 0.2)} offset={sc3(up, 0.45)} />
+          <Tag pos={(t) => lerp3(S.o2!.mid(t), [0, 0, 0], 0.55)} text={tx('heat')} k={lobeK(brk.t0 + 0.3, brk.t0 + brk.dur - 0.2)} tone="heat" offset={sc3(up, 0.45)} />
           <Burst pos={(t) => S.o2!.mid(t)} t0={brk.t0 + 0.55} dur={1.4} color="#fda4af" r={5 * rO} />
         </>
       )}
-      <Tag pos={siPos} text={tx('siCrystal')} k={lobeK(0.9, brk.t0 + 0.6)} offset={sc3(up, 2.4 * rSi)} />
+      <Tag pos={(t) => lerp3(siPos(t), [0, 0, 0], 0.3)} text={tx('siCrystal')} k={lobeK(0.9, brk.t0 + 0.6)} offset={sc3(up, -0.5)} />
 
       {/* ── valence: Si 3s² 3p² → 3s¹3p³ ── */}
       <Lobe kind="s" center={siPos} r={1.45 * rSi} k={lobeK(sv.t0 + 0.4, tEx + 0.3, 0.5)} color="#fde68a" />
@@ -102,8 +106,8 @@ export const SiO2Scene: ShowcaseScene = function SiO2Scene({ model, story, cam, 
         <Lobe key={`sd${k}`} kind="lone" center={siPos} axis={() => d} r={2.1 * rSi} k={(t) => win(t, tEx + 0.2, S.siMoveT1[k]! - 0.2, 0.6)} color="#fdba74" />
       ))}
       <Burst pos={siPos} t0={tEx} dur={1.1} color="#fde68a" r={4.5 * rSi} />
-      <Tag pos={siPos} text={tx('siGround')} k={lobeK(sv.t0 + 0.7, tEx - 0.1)} offset={sc3(up, 2.6 * rSi)} />
-      <Tag pos={siPos} text={tx('siExcited')} k={lobeK(tEx + 0.2, sp.t0 + 0.9)} tone="key" offset={sc3(up, 2.6 * rSi)} />
+      <Tag pos={siPos} text={tx('siGround')} k={lobeK(sv.t0 + 0.7, tEx - 0.1)} offset={sc3(up, 1.05)} />
+      <Tag pos={siPos} text={tx('siExcited')} k={lobeK(tEx + 0.2, sp.t0 + 0.9)} tone="key" offset={sc3(up, 1.05)} />
       {oList.map((o, j) => (
         <group key={`o${j}`}>
           <Lobe kind="lone" center={(t) => posOf(o.i, t)} axis={() => o.n1} r={1.5 * rO} k={lobeK(sv.t0 + 0.9 + 0.1 * j, sb.t0 + 2.5, 0.6)} color="#7dd3fc" />
@@ -112,7 +116,7 @@ export const SiO2Scene: ShowcaseScene = function SiO2Scene({ model, story, cam, 
           <Lobe kind="lone" center={(t) => posOf(o.i, t)} axis={() => o.d2} r={1.5 * rO} k={(t) => win(t, sv.t0 + 1.2 + 0.1 * j, o.stick.t0 + 0.2, 0.6)} color="#a5f3fc" />
         </group>
       ))}
-      {oList[0] && <Tag pos={(t) => posOf(oList[0]!.i, t)} text={tx('oVal')} k={lobeK(sv.t0 + 1.6, sv.t0 + sv.dur - 0.1)} offset={sc3(up, 2.6 * rO)} />}
+      {oList[0] && <Tag pos={(t) => posOf(oList[0]!.i, t)} text={tx('oVal')} k={lobeK(sv.t0 + 1.6, sv.t0 + sv.dur - 0.1)} offset={sc3(up, -1.05)} />}
 
       {/* ── электроны: ровно story.electrons, положения — по орбитальным направлениям ── */}
       {S.electrons.map((e, i) => (
@@ -123,13 +127,11 @@ export const SiO2Scene: ShowcaseScene = function SiO2Scene({ model, story, cam, 
       {oList[0] && (
         <>
           <DipoleArrow from={(t) => add3(posOf(si, t), S.D[0]!, 1.1 * rSi)} to={(t) => add3(posOf(oList[0]!.i, t), S.D[0]!, -1.3 * rO)} k={lobeK(oList[0]!.pairT1 + 0.1, sb.t0 + 2.4, 0.6)} />
-          <Tag pos={siPos} text={tx('dPlus')} k={lobeK(oList[0]!.pairT1 + 0.1, sb.t0 + 2.8)} tone="plus" offset={sc3(up, -2.3 * rSi)} />
-          <Tag pos={(t) => mid3(posOf(si, t), posOf(oList[0]!.i, t))} text={tx('den')} k={lobeK(oList[0]!.pairT1 + 0.4, sp.t0 + sp.dur - 0.1)} offset={sc3(up, 3.2 * rO)} />
+          <Tag pos={siPos} text={tx('dPlus')} k={lobeK(oList[0]!.pairT1 + 0.1, sb.t0 + 2.8)} tone="plus" offset={sc3(up, 0.42)} />
+          <Tag pos={(t) => posOf(oList[0]!.i, t)} text={tx('dMinus')} k={lobeK(oList[0]!.pairT1 + 0.1, sb.t0 + 2.8)} tone="minus" offset={sc3(up, -0.42)} />
+          <Tag pos={siPos} text={tx('den')} k={lobeK(oList[0]!.pairT1 + 0.4, sp.t0 + sp.dur - 0.1)} offset={sc3(up, -0.95)} />
         </>
       )}
-      {oList.map((o, j) => (
-        <Tag key={`dm${j}`} pos={(t) => posOf(o.i, t)} text={tx('dMinus')} k={lobeK(o.pairT1 + 0.1, sb.t0 + 2.8)} tone="minus" offset={sc3(o.d2, 2.2 * rO)} />
-      ))}
       {oList.map((o, j) => (
         <Burst key={`bu${j}`} pos={(t) => mid3(posOf(si, t), posOf(o.i, t))} t0={o.stickC.t0} dur={1.1} color="#fff1c4" r={3.2 * rO} />
       ))}
@@ -139,28 +141,28 @@ export const SiO2Scene: ShowcaseScene = function SiO2Scene({ model, story, cam, 
         <>
           <AngleArc v={siPos} a={(t) => posOf(oList[0]!.i, t)} b={(t) => posOf(oList[1]!.i, t)} r={0.6 * S.dSiO} k={lobeK(S.tTetra, S.tTetra + 4.2, 0.6)} label={() => tx('angle')} />
           <MeasureLine a={siPos} b={(t) => posOf(oList[2]!.i, t)} k={lobeK(S.tTetra + 0.3, S.tTetra + 4.2, 0.6)} text={tx('len')} offset={0.26 * S.dSiO} />
-          <Tag pos={siPos} text={tx('tetra')} k={lobeK(S.tTetra + 0.2, S.tTetra + 3.8)} tone="key" offset={sc3(up, -3.4 * rSi)} />
+          <Tag pos={siPos} text={tx('tetra')} k={lobeK(S.tTetra + 0.2, S.tTetra + 3.8)} tone="key" offset={sc3(up, -0.9)} />
         </>
       )}
       {S.bridge && (
         <>
           <AngleArc v={(t) => posOf(S.bridge!.o, t)} a={siPos} b={(t) => posOf(S.bridge!.si2, t)} r={0.55 * S.dSiO} k={lobeK(S.tBridge, S.tBridge + 4.4, 0.6)} label={() => tx('bridge')} color="#f0abfc" />
-          <Tag pos={(t) => posOf(S.bridge!.o, t)} text={tx('bridgeKey')} k={lobeK(S.tBridge + 0.2, S.tBridge + 4.4)} tone="key" offset={sc3(up, 3.2 * rO)} />
+          <Tag pos={(t) => posOf(S.bridge!.o, t)} text={tx('bridgeKey')} k={lobeK(S.tBridge + 0.2, S.tBridge + 4.4)} tone="key" offset={sc3(up, -1.1)} />
         </>
       )}
-      <Tag pos={siPos} text={tx('noMol')} k={lobeK(S.tNoMol, sb.t0 + sb.dur + 0.4)} tone="key" offset={sc3(up, 3.6 * rSi)} />
+      <Tag pos={siPos} text={tx('noMol')} k={lobeK(S.tNoMol, sb.t0 + sb.dur + 0.4)} tone="key" offset={sc3(up, -1.3)} />
       <TetraFaces tetras={S.tetras} posAt={(i, t, out) => atomPosAt(story, i, t, out)} alpha={S.tetraAlpha} />
 
       {/* ── assemble ── */}
-      <Tag pos={siPos} text={tx('corners')} k={lobeK(sa.t0 + 1.2, sa.t0 + sa.dur - 1.0)} offset={sc3(up, 3.6 * rSi)} />
+      <Tag pos={() => [0, 0, 0]} text={tx('corners')} k={lobeK(sa.t0 + 1.2, sa.t0 + sa.dur - 1.0)} offset={sc3(up, S.R * 1.3)} />
 
       {/* ── final: кварц → песок → стекло; модель остаётся ── */}
       <HexPrism r={S.R * 1.22} h={S.R * 1.15} tip={S.R * 0.55} axis={up} k={(t) => win(t, fin.t0 + 0.5, fin.t0 + 4.6, 0.8)} />
-      <Tag pos={() => [0, 0, 0]} text={tx('quartz')} k={(t) => win(t, fin.t0 + 0.9, fin.t0 + 4.4)} offset={sc3(up, -S.R * 1.6)} />
+      <Tag pos={() => [0, 0, 0]} text={tx('quartz')} k={(t) => win(t, fin.t0 + 0.9, fin.t0 + 4.4)} offset={sc3(up, S.R * 1.85)} />
       <SandGrains n={lowPower ? 60 : 150} r0={S.R * 1.25} r1={S.R * 1.75} k={(t) => win(t, fin.t0 + 4.3, fin.t0 + 7.6, 0.8)} size={0.09 * S.R} />
-      <Tag pos={() => [0, 0, 0]} text={tx('sand')} k={(t) => win(t, fin.t0 + 4.6, fin.t0 + 7.3)} offset={sc3(up, -S.R * 1.6)} />
+      <Tag pos={() => [0, 0, 0]} text={tx('sand')} k={(t) => win(t, fin.t0 + 4.6, fin.t0 + 7.3)} offset={sc3(up, S.R * 1.85)} />
       <DecorTetra count={lowPower ? 14 : 22} R={S.R * 1.3} edge={1.6 * S.dSiO} k={(t) => win(t, fin.t0 + 7.2, fin.t0 + 10.8, 0.8)} disorder={(t) => seg(t, fin.t0 + 8.5, fin.t0 + 9.6)} />
-      <Tag pos={() => [0, 0, 0]} text={tx('glass')} k={(t) => win(t, fin.t0 + 7.6, fin.t0 + 10.5)} offset={sc3(up, -S.R * 1.6)} />
+      <Tag pos={() => [0, 0, 0]} text={tx('glass')} k={(t) => win(t, fin.t0 + 7.6, fin.t0 + 10.5)} offset={sc3(up, S.R * 1.85)} />
     </group>
   )
 }
@@ -370,10 +372,10 @@ function buildScene(story: FormationStory, model: ShowcaseProps['model']) {
     { t: 0, yaw: 0.25, pitch: 0.18, zoom: 1.0 },
     { t: brk.t0, yaw: 0.3, pitch: 0.2, zoom: 1.12 },
     { t: st('approach').t0, yaw: 0.5, pitch: 0.24, zoom: 1.0 },
-    { t: sv.t0, yaw: 0.35, pitch: 0.3, zoom: 1.38 },
-    { t: sp.t0, yaw: 0.6, pitch: 0.22, zoom: 1.42 },
-    { t: sb.t0, yaw: 0.75, pitch: 0.26, zoom: 1.3 },
-    { t: tBridge - 0.5, yaw: 1.0, pitch: 0.3, zoom: 1.12 },
+    { t: sv.t0, yaw: 0.35, pitch: 0.3, zoom: 1.85 },
+    { t: sp.t0, yaw: 0.6, pitch: 0.22, zoom: 1.9 },
+    { t: sb.t0, yaw: 0.75, pitch: 0.26, zoom: 1.6 },
+    { t: tBridge - 0.5, yaw: 1.0, pitch: 0.3, zoom: 1.2 },
     { t: tNoMol - 0.5, yaw: 1.15, pitch: 0.32, zoom: 0.96 },
     { t: sa.t0, yaw: 1.3, pitch: 0.3, zoom: 0.9 },
     { t: fin.t0, yaw: 1.45, pitch: 0.26, zoom: 0.86 },
