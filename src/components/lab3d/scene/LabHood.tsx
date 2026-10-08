@@ -14,13 +14,13 @@ import { labHand, useHand } from '../interaction/labHandStore'
 import { BENCH_TOP_Y } from '../labContract'
 import { labEvents } from '../labEvents'
 import type { LabMaterials } from './labMaterials'
-import { HOOD, ROOM } from './labSceneLayout'
+import { HOOD, HOOD_SASH, ROOM } from './labSceneLayout'
 
-/** Должны совпадать с FumeHood (LabRoom): низ створки и верх проёма (под козырьком). */
-export const SASH_BOTTOM = 1.26
-const CANOPY_H = 0.42
+/** Должны совпадать с FumeHood (LabRoom): низ створки и верх проёма (под козырьком). Камера знает их же (проём, labSceneLayout). */
+export const SASH_BOTTOM = HOOD_SASH.bottom
+const CANOPY_H = HOOD_SASH.canopyH
 const SASH_TOP = HOOD.h - CANOPY_H
-export const SASH_MAX_LIFT = 0.4
+export const SASH_MAX_LIFT = HOOD_SASH.maxLift
 
 /** Положение створки (м подъёма): lift — текущее, target — куда её ведёт рука (можно задать и из кода). */
 export const hoodSash = { lift: 0.06, target: 0.06 }

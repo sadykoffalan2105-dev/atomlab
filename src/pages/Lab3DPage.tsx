@@ -16,6 +16,7 @@ import { journalLines, TaskJournal, TaskSolve, TaskStatement, TaskTeacherTip } f
 import { TaskAiCoach } from '../components/learn/TaskAiCoach'
 import type { LearnTaskNumericProblem } from '../learn/learnTaskProblems'
 import { createLabSceneBridge } from '../components/lab3d/scene/labBridge'
+import { labCameraInsets } from '../components/lab3d/scene/labCameraInsets'
 import { LabWidgets } from '../components/lab3d/scene/LabWidgets'
 import type { LabViewId } from '../components/lab3d/scene/labSceneLayout'
 import { detectVrLabQuality, webglSupported } from '../components/vrLab/vrLabPerformance'
@@ -141,6 +142,48 @@ export function Lab3DPage() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [narrow, panelOpen])
+  // Телефон: сколько холста закрыто сверху (виды, «Приборы») и снизу (подсказка руки, панель опыта) — крупный план
+  // камеры ставит предмет в середину свободной полосы (раскрыл панель — предмет поднимается над ней)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap || !narrow) {
+      labCameraInsets.set(0, 0)
+      return
+    }
+    const measure = () => {
+      const stage = wrap.querySelector<HTMLElement>(`.${styles.stage}`)
+      if (!stage) return
+      const c = stage.getBoundingClientRect()
+      const mid = (c.top + c.bottom) / 2
+      let top = 0
+      let bottom = 0
+      for (const el of wrap.children) {
+        if (el === stage) continue
+        const r = el.getBoundingClientRect()
+        // пустые и во весь экран (слои-подложки) не в счёт
+        if (r.width < 1 || r.height < 1 || r.height > c.height * 0.6 || r.bottom <= c.top || r.top >= c.bottom) continue
+        if ((r.top + r.bottom) / 2 < mid) top = Math.max(top, r.bottom - c.top)
+        else bottom = Math.max(bottom, c.bottom - r.top)
+      }
+      labCameraInsets.set(top, bottom)
+    }
+    const ro = new ResizeObserver(measure)
+    const observeAll = () => {
+      ro.disconnect()
+      for (const el of wrap.children) ro.observe(el)
+      measure()
+    }
+    // подсказка руки и «Приборы» появляются и пропадают (раскрыта панель) — пересчёт по составу
+    const mo = new MutationObserver(observeAll)
+    mo.observe(wrap, { childList: true })
+    observeAll()
+    return () => {
+      ro.disconnect()
+      mo.disconnect()
+      labCameraInsets.set(0, 0)
+    }
+  }, [narrow])
   // Смена опыта: предметы возвращаются на полки и в шкафы, рука пуста; опыт «под тягой» — рабочее место
   // в вытяжке и камера летит к ней; нужные средства защиты подсвечиваются (опыт может уточнить через 'needGear')
   useEffect(() => {
@@ -220,7 +263,7 @@ export function Lab3DPage() {
   const active = cardTitle(run.experimentId)
 
   return (
-    <div className={styles.wrap}>
+    <div ref={wrapRef} className={styles.wrap}>
       <div className={styles.stage}>
         {hasWebgl ? (
           <Suspense

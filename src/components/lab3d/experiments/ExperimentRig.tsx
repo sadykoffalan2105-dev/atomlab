@@ -83,6 +83,7 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   const forceP = useRef<number | null>(null)
   const time = useRef(0)
   const anim = useRef<{ from: number; dur: number } | null>(null)
+  const advanced = useRef<{ step: number; t: number } | null>(null)
   const scrub = useRef<Scrub | null>(null)
   const root = useRef<THREE.Group>(null)
   const [busy, setBusy] = useState(false)
@@ -144,6 +145,7 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
         if (p.current >= a.from + 1 - 1e-6) {
           anim.current = null
           setBusy(false)
+          advanced.current = { step: a.from, t: time.current }
           advanceRef.current()
         }
         return
@@ -155,6 +157,13 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
       const want = sc.step + sc.k * sc.lead
       p.current += (want - p.current) * (1 - Math.exp(-dt * 16))
       return
+    }
+    // шаг доигран, а страница ещё не засчитала его (кадр-другой) — прогресс не откатывается назад к старому шагу
+    // (иначе он на миг заходит обратно в диапазон крупного плана и камера дёргается)
+    const adv = advanced.current
+    if (adv) {
+      if (stepRef.current === adv.step && time.current - adv.t < 0.6) return
+      advanced.current = null
     }
     const target = Math.min(stepRef.current, total)
     const d = target - p.current
@@ -309,24 +318,74 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   }, [need, act, def])
   useEffect(() => () => labEvents.emit({ type: 'need', itemIds: [] }), [])
 
-  // крупный план реакции: камера наезжает, потом обратно
+  // крупный план реакции: камера наезжает, потом обратно.
+  // focusIdx — крупный план, который сейчас на экране (−1 — общий вид). Новый крупный план — только при действии
+  // (доигрывание шага, а не перемотка доской и не середина перетаскивания: камера не уезжает из-под пальца).
+  // Общий вид возвращается, только когда крупного плана больше нет: между двумя крупными планами одного действия
+  // камера ждёт на первом и перелетает ко второму; на стыке шагов — тоже, если цель следующего жеста видна в кадре.
   const focusIdx = useRef(-1)
+  const inViewCache = useRef({ key: '', value: false })
+  /** Цель шага s (и конец жеста) видна в середине кадра текущей камеры — ученик сделает жест, не уходя с крупного плана. */
+  const stepTargetInView = useCallback(
+    (s: number) => {
+      // пересчёт, когда камера сдвинулась (≈5 см) — пока она летит к крупному плану, ответ меняется
+      const c = camera.position
+      const key = `${focusIdx.current}:${s}:${Math.round(c.x * 20)},${Math.round(c.y * 20)},${Math.round(c.z * 20)}`
+      if (inViewCache.current.key === key) return inViewCache.current.value
+      const g = root.current
+      const name = def.steps[s]?.target
+      let value = false
+      if (g && name && !LAB_STEP_ACTIONS[experimentId][s]?.need) {
+        const pts: THREE.Vector3[] = []
+        g.traverse((o) => {
+          if (!pts.length && (o.userData as { labTarget?: string }).labTarget === name) pts.push(o.getWorldPosition(new THREE.Vector3()))
+        })
+        const gst = RIG_GESTURES[experimentId][s]
+        if (pts.length && gst && gst.kind !== 'tap') pts.push(g.localToWorld(new THREE.Vector3(gst.to[0], gst.to[1], gst.to[2])))
+        value =
+          pts.length > 0 &&
+          pts.every((w) => {
+            w.project(camera)
+            return Math.abs(w.z) < 1 && Math.abs(w.x) < 0.6 && w.y > -0.55 && w.y < 0.7
+          })
+      }
+      inViewCache.current = { key, value }
+      return value
+    },
+    [camera, def, experimentId],
+  )
   useFrame(() => {
+    if (forceP.current != null) return
     const v = p.current
     const list = RIG_FOCUS[experimentId]
     let idx = -1
     for (let i = 0; i < list.length; i++) if (v >= list[i]!.from && v < list[i]!.to) idx = i
-    // только при действии (а не при перемотке шагов доской)
-    if (idx !== focusIdx.current) {
-      const prev = focusIdx.current
-      focusIdx.current = idx
-      if (idx >= 0 && (anim.current || scrub.current)) {
+    const a = anim.current
+    const shown = focusIdx.current
+    if (idx >= 0 && a) {
+      if (idx !== shown) {
+        focusIdx.current = idx
         const f = list[idx]!
         const target = toWorld(f.point)
         const position: [number, number, number] = [target[0] + f.dist * 0.18, target[1] + f.dist * 0.42, target[2] + f.dist * 0.9]
         labEvents.emit({ type: 'focus', position, target })
-      } else if (prev >= 0) labEvents.emit({ type: 'focusReset' })
+      }
+      return
     }
+    if (shown < 0 || idx === shown) return
+    // крупный план на экране, а прогресс вышел из его диапазона: ждать следующий или вернуть общий вид
+    let next = Infinity
+    for (const f of list) if (f.from > v - 1e-6 && f.from < next) next = f.from
+    const sc = scrub.current
+    const rest = !a && !sc && Math.abs(v - Math.round(v)) < 0.02
+    // шаг, в котором сейчас прогресс: действие, перетаскивание или покой после шага
+    const s = a ? a.from : sc ? sc.step : rest ? Math.round(v) : -1
+    let hold = false
+    if (s >= 0 && next < s + 1) hold = a != null || sc != null || stepTargetInView(s)
+    else if (a && next < s + 1.35) hold = stepTargetInView(s + 1)
+    if (hold) return
+    focusIdx.current = -1
+    labEvents.emit({ type: 'focusReset' })
   })
   useEffect(
     () => () => {

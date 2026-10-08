@@ -105,27 +105,73 @@ export const CAMERA_SOLIDS: ReadonlyArray<{ readonly min: THREE.Vector3; readonl
 /** Запас от мебели до камеры (м): ближняя плоскость 0,03 м + поле зрения — ничего не обрезается. */
 const SOLID_MARGIN = 0.1
 
-/** Выталкивает точку камеры из мебели к ближайшей свободной грани (в пределах CAMERA_BOUNDS). Возвращает true, если сдвинула. */
-export function keepCameraOutOfFurniture(p: THREE.Vector3): boolean {
+/**
+ * Створка вытяжного шкафа (общие размеры для LabHood и камеры): низ стекла при подъёме 0, высота козырька, ход створки.
+ * Планка с ручкой свисает ниже низа стекла на HANDLE_DROP.
+ */
+export const HOOD_SASH = { bottom: 1.26, canopyH: 0.42, maxLift: 0.4, handleDrop: 0.05 } as const
+/** Плоскость створки (z): камера «внутри вытяжки», если она за ней. */
+export const HOOD_SASH_Z = ROOM.frontZ + HOOD.d - 0.03
+/** Толщина боковин и задней стенки шкафа (LabRoom/FumeHood). */
+const HOOD_WALL = 0.07
+const HOOD_BACK = 0.022
+/** Запас камеры внутри рабочей зоны (до боковин, планки створки, задней стенки): ближняя плоскость 0,03 м. */
+const HOOD_INNER_MARGIN = 0.045
+
+/**
+ * Проём под поднятой створкой: где камера крупного плана может стоять внутри рабочей зоны вытяжки (между боковинами,
+ * над столом, ниже планки с ручкой, перед задней стенкой). lift — подъём створки (м); null — проём слишком низкий.
+ */
+export function hoodOpening(lift: number): { readonly min: THREE.Vector3; readonly max: THREE.Vector3 } | null {
+  const top = HOOD_SASH.bottom + lift - HOOD_SASH.handleDrop - HOOD_INNER_MARGIN
+  const bottom = CAMERA_BOUNDS.min.y
+  if (top - bottom < 0.06) return null
+  return {
+    min: new THREE.Vector3(HOOD.x - HOOD.w / 2 + HOOD_WALL + HOOD_INNER_MARGIN, bottom, ROOM.frontZ + HOOD_BACK + HOOD_INNER_MARGIN),
+    max: new THREE.Vector3(HOOD.x + HOOD.w / 2 - HOOD_WALL - HOOD_INNER_MARGIN, top, ROOM.frontZ + HOOD.d + SOLID_MARGIN),
+  }
+}
+
+/** Точка за створкой, в рабочей зоне вытяжки (для перелёта камеры через проём, а не сквозь стекло). */
+export function insideHood(p: THREE.Vector3): boolean {
+  return p.z < HOOD_SASH_Z && p.x > HOOD.x - HOOD.w / 2 && p.x < HOOD.x + HOOD.w / 2 && p.y < HOOD.h
+}
+
+/**
+ * Выталкивает точку камеры из мебели к ближайшей свободной грани (в пределах CAMERA_BOUNDS). Возвращает true, если сдвинула.
+ * hoodLift — подъём створки вытяжки: тогда камера может заехать под створку в рабочую зону (крупный план шкалы прибора);
+ * если точка за створкой, но выше проёма — её опускает в проём (когда это ближе, чем вытолкнуть наружу).
+ */
+export function keepCameraOutOfFurniture(p: THREE.Vector3, hoodLift?: number): boolean {
   let moved = false
-  for (const s of CAMERA_SOLIDS) {
+  const opening = hoodLift == null ? null : hoodOpening(hoodLift)
+  for (let i = 0; i < CAMERA_SOLIDS.length; i++) {
+    const s = CAMERA_SOLIDS[i]!
     const x0 = s.min.x - SOLID_MARGIN
     const x1 = s.max.x + SOLID_MARGIN
     const y0 = s.min.y - SOLID_MARGIN
     const y1 = s.max.y + SOLID_MARGIN
     const z1 = s.max.z + SOLID_MARGIN
     if (p.x <= x0 || p.x >= x1 || p.y <= y0 || p.y >= y1 || p.z >= z1) continue
+    const hoodBox = i === 0 && opening
+    if (hoodBox && p.x >= opening.min.x && p.x <= opening.max.x && p.y >= opening.min.y && p.y <= opening.max.y && p.z >= opening.min.z) continue
     // Выход к ближайшей грани: влево, вправо, вперёд (к ученику), вверх или вниз — только если там не стена/потолок/стол
     let best = z1 - p.z
-    let axis: 'x0' | 'x1' | 'y0' | 'y1' | 'z1' = 'z1'
+    let axis: 'x0' | 'x1' | 'y0' | 'y1' | 'z1' | 'in' = 'z1'
     if (x0 >= CAMERA_BOUNDS.min.x && p.x - x0 < best) [best, axis] = [p.x - x0, 'x0']
     if (x1 <= CAMERA_BOUNDS.max.x && x1 - p.x < best) [best, axis] = [x1 - p.x, 'x1']
     if (y1 <= CAMERA_BOUNDS.max.y && y1 - p.y < best) [best, axis] = [y1 - p.y, 'y1']
     if (y0 >= CAMERA_BOUNDS.min.y && p.y - y0 < best) [best, axis] = [p.y - y0, 'y0']
+    // …или внутрь проёма вытяжки (под створку), если это ближе
+    if (hoodBox) {
+      const dIn = tmp.copy(p).clamp(opening.min, opening.max).distanceTo(p)
+      if (dIn < best) [best, axis] = [dIn, 'in']
+    }
     if (axis === 'x0') p.x = x0
     else if (axis === 'x1') p.x = x1
     else if (axis === 'y0') p.y = y0
     else if (axis === 'y1') p.y = y1
+    else if (axis === 'in' && hoodBox) p.clamp(opening.min, opening.max)
     else p.z = z1
     moved = true
   }
