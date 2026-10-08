@@ -29,10 +29,14 @@ export function localUp(obj: THREE.Object3D, out: THREE.Vector3 = _up): THREE.Ve
   return out.set(0, 1, 0).applyQuaternion(_wq.invert())
 }
 
+/** Отсчёты по хорде для подбора уровня при наклоне (объём — интеграл по ширине хорды). */
+const TILT_SAMPLES = 32
+
 /**
  * Столбик жидкости в цилиндрическом сосуде (ось — Y объекта): стенка, дно и поверхность. Поверхность — плоскость,
- * горизонтальная в мире и проходящая через ось на высоте level, т. е. объём при наклоне сохраняется (пока плоскость
- * не задевает дно); выше края rim и ниже дна floor жидкость не выходит — у носика она стоит вровень с краем.
+ * горизонтальная в мире; её высота на оси подбирается так, что объём жидкости при наклоне тот же, что у прямого
+ * столбика высотой level − floor: у почти пустого сосуда при сильном наклоне остаётся лужица у нижней стенки (а не
+ * полсосуда). Выше края rim жидкость не поднимается — что не помещается, «вылилось» через носик; дно не протекает.
  */
 export class TiltLiquid {
   readonly geometry = new THREE.BufferGeometry()
@@ -43,6 +47,11 @@ export class TiltLiquid {
   private readonly nor: THREE.BufferAttribute
   /** cos угла наклона оси сосуда к вертикали после последнего update (1 — стоит прямо). */
   tiltCos = 1
+  /** Плоскость поверхности после update: y = axisLevel − slope·(x·dirX + z·dirZ). */
+  private axisLevel = 0
+  private slope = 0
+  private dirX = 0
+  private dirZ = 0
   constructor(segs: number) {
     const n = segs
     this.n = n
@@ -77,38 +86,95 @@ export class TiltLiquid {
     this.geometry.setAttribute('normal', this.nor)
     this.geometry.setIndex(idx)
   }
+  /** Объём (в долях πr²·высота) под плоскостью с высотой c на оси: среднее по хорде, вес — ширина хорды. */
+  private static volumeAt(c: number, s: number, floor: number, rim: number): number {
+    let v = 0
+    let w = 0
+    for (let k = 0; k < TILT_SAMPLES; k++) {
+      const t = -1 + (2 * k + 1) / TILT_SAMPLES
+      const cw = Math.sqrt(1 - t * t)
+      v += cw * (Math.min(rim, Math.max(floor, c - s * t)) - floor)
+      w += cw
+    }
+    return v / w
+  }
   /** Пересчитать по текущему наклону объекта obj (меш жидкости или его родитель с той же осью). */
   update(obj: THREE.Object3D, r: number, floor: number, rim: number, level: number) {
     const up = localUp(obj)
     this.tiltCos = up.y
     // за горизонталью (сосуд опрокинут) — как почти горизонтальный: жидкость тонким клином вдоль нижней стенки
     const uy = Math.max(0.1, up.y)
-    const ux = up.x
-    const uz = up.z
+    const uh = Math.hypot(up.x, up.z)
+    const dx = uh > 1e-6 ? up.x / uh : 1
+    const dz = uh > 1e-6 ? up.z / uh : 0
+    // перепад высоты поверхности от оси до стенки
+    const s = (uh / uy) * r
+    const h = Math.min(rim, Math.max(floor, level)) - floor
+    // уровень на оси: не выше, чем позволяет носик (нижняя точка края), объём — как у прямого столбика
+    const cMax = rim - s
+    let c = floor + h
+    if (s > 1e-6) {
+      const target = h
+      let lo = floor - s
+      let hi = Math.max(lo, cMax)
+      if (TiltLiquid.volumeAt(hi, s, floor, rim) <= target) c = hi
+      else {
+        for (let it = 0; it < 22; it++) {
+          const mid = (lo + hi) / 2
+          if (TiltLiquid.volumeAt(mid, s, floor, rim) < target) lo = mid
+          else hi = mid
+        }
+        c = (lo + hi) / 2
+      }
+    } else c = Math.min(c, rim)
+    this.axisLevel = c
+    this.slope = s / r
+    this.dirX = dx
+    this.dirZ = dz
+    // точка внутри зеркала: на оси, а если плоскость у «верхней» стенки уходит под дно — посередине мокрой части
+    const tF = s > 1e-6 ? (c - floor) / s : 1
+    const t0 = tF >= 1 ? 0 : ((Math.max(-1, tF) - 1) / 2) * r
+    const px = dx * t0
+    const pz = dz * t0
+    const py = Math.max(floor, c - (s / r) * t0)
+    const nl = Math.hypot(up.x, uy, up.z)
+    const nx = up.x / nl
+    const ny = uy / nl
+    const nz = up.z / nl
     const n = this.n
     const T0 = 2 * (n + 1)
     const B0 = T0 + n + 2
-    const lv = Math.min(rim, Math.max(floor, level))
     for (let i = 0; i <= n; i++) {
       const x = r * this.sx[i]!
       const z = r * this.cz[i]!
-      const y = Math.min(rim, Math.max(floor, level - (ux * x + uz * z) / uy))
+      const ys = c - (s / r) * (x * dx + z * dz)
+      const y = Math.min(rim, Math.max(floor, ys))
       this.pos.setXYZ(2 * i, x, floor, z)
       this.pos.setXYZ(2 * i + 1, x, y, z)
-      this.pos.setXYZ(T0 + 1 + i, x, y, z)
-      this.nor.setXYZ(T0 + 1 + i, ux, uy, uz)
-      this.pos.setXYZ(B0 + 1 + i, x, floor, z)
+      // зеркало и дно — по мокрой части: где плоскость ушла под дно, край зеркала — линия касания дна
+      let qx = x
+      let qz = z
+      let qy = y
+      if (ys < floor && py > floor) {
+        const l = (py - floor) / (py - ys)
+        qx = px + (x - px) * l
+        qz = pz + (z - pz) * l
+        qy = floor
+      }
+      this.pos.setXYZ(T0 + 1 + i, qx, qy, qz)
+      this.nor.setXYZ(T0 + 1 + i, nx, ny, nz)
+      this.pos.setXYZ(B0 + 1 + i, qx, floor, qz)
     }
-    this.pos.setXYZ(T0, 0, lv, 0)
-    this.nor.setXYZ(T0, ux, uy, uz)
-    this.pos.setXYZ(B0, 0, floor, 0)
+    this.pos.setXYZ(T0, px, py, pz)
+    this.nor.setXYZ(T0, nx, ny, nz)
+    this.pos.setXYZ(B0, px, floor, pz)
     this.pos.needsUpdate = true
     this.nor.needsUpdate = true
     this.geometry.computeBoundingSphere()
   }
-  /** Высота поверхности над точкой (x, z) сосуда при последнем наклоне (для частиц мути). */
-  static surfaceAt(up: THREE.Vector3, level: number, x: number, z: number): number {
-    return level - (up.x * x + up.z * z) / Math.max(0.1, up.y)
+  /** Высота поверхности над точкой (x, z) сосуда при последнем update (для частиц мути). */
+  surfaceAt(x: number, z: number): number {
+    return this.axisLevel - this.slope * (x * this.dirX + z * this.dirZ)
   }
   dispose() {
     this.geometry.dispose()
@@ -276,7 +342,6 @@ export function MeasuringBeaker({
   const base = useMemo(() => new THREE.Color(), [])
   const tilt = useMemo(() => new TiltLiquid(32), [])
   useEffect(() => () => tilt.dispose(), [tilt])
-  const up = useMemo(() => new THREE.Vector3(0, 1, 0), [])
   useFrame(() => {
     const pv = p.current ?? 0
     const t = time.current ?? 0
@@ -290,10 +355,7 @@ export function MeasuringBeaker({
     if (m) {
       m.visible = v > 0.3
       // при наклоне (переливание через носик) поверхность остаётся горизонтальной, у носика — вровень с краем
-      if (m.visible) {
-        tilt.update(m, size.ri - 0.0004, BEAKER_FLOOR, size.h - 0.0006, lv)
-        localUp(m, up)
-      }
+      if (m.visible) tilt.update(m, size.ri - 0.0004, BEAKER_FLOOR, size.h - 0.0006, lv)
     }
     const b = bed ? bed(pv) : 0
     if (bedM.current) {
@@ -311,11 +373,11 @@ export function MeasuringBeaker({
           const rr = size.ri * 0.9 * sd.r
           const px = Math.cos(sd.a + t * 0.15) * rr
           const pz = Math.sin(sd.a + t * 0.15) * rr
-          // муть — только под поверхностью (при наклоне она ниже на «верхней» стороне)
-          const top = Math.min(size.h - 0.002, TiltLiquid.surfaceAt(up, lv, px, pz))
+          // муть — только под поверхностью (при наклоне она ниже на «верхней» стороне, а там, где дно обсохло, её нет)
+          const top = Math.min(size.h - 0.002, tilt.surfaceAt(px, pz))
           const y = BEAKER_FLOOR + 0.002 + sd.y * Math.max(0.002, lv - BEAKER_FLOOR - 0.004)
           tmp.position.set(px, Math.min(y + Math.sin(t * 0.8 + i) * 0.0008, top - 0.0015), pz)
-          tmp.scale.setScalar(on ? 0.0008 * sd.s : 1e-6)
+          tmp.scale.setScalar(on && top > BEAKER_FLOOR + 0.003 ? 0.0008 * sd.s : 1e-6)
           tmp.updateMatrix()
           im.setMatrixAt(i, tmp.matrix)
         }

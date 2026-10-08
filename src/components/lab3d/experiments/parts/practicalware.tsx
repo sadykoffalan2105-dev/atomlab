@@ -6,12 +6,13 @@
  * облака частиц (пар, белый дым NH₄Cl), падающие капли и крупинки.
  * Всё — функции прогресса p (rigCore): анимация обратима и не «телепортирует» предметы.
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { LAB_COLORS, labLiquidMaterial } from '../../labContract'
 import { clamp01, seg, smooth, useRig, type PFn, type V3 } from '../rigCore'
-import { sharedGlass, sharedGlassEdge, TUBE_H, TUBE_R } from './glassware'
+import { BEAKER_H, sharedGlass, sharedGlassEdge, TUBE_H, TUBE_R } from './glassware'
+import { TiltLiquid } from '../../measure/devices/Glass'
 import { useFlameCeiling } from './fire'
 
 const porcelainMat = () => new THREE.MeshStandardMaterial({ color: '#fbfbf8', roughness: 0.32, metalness: 0 })
@@ -830,30 +831,30 @@ export function Falling({ from, toY, a, b, n, color, size = 0.0022, box = false,
   )
 }
 
-/** Столбик жидкости в стакане (начало — дно): уровень, цвет и муть меняются с p. */
-export function LiquidColumn({ r, level, color, cloud, cloudColor = '#b9a77f' }: { r: number; level: PFn; color: string; cloud?: PFn; cloudColor?: string }) {
+/**
+ * Столбик жидкости в стакане (начало — дно): уровень, цвет и муть меняются с p. При наклоне стакана (переливание)
+ * поверхность остаётся горизонтальной, объём сохраняется, выше края rim жидкость не поднимается.
+ */
+export function LiquidColumn({ r, level, color, cloud, cloudColor = '#b9a77f', rim = BEAKER_H - 0.0015 }: { r: number; level: PFn; color: string; cloud?: PFn; cloudColor?: string; rim?: number }) {
   const { p } = useRig()
   const mat = useMemo(() => labLiquidMaterial(color, 0.6), [color])
   const base = useMemo(() => new THREE.Color(color), [color])
   const murk = useMemo(() => new THREE.Color(cloudColor), [cloudColor])
   const ref = useRef<THREE.Mesh>(null)
+  const tilt = useMemo(() => new TiltLiquid(28), [])
+  useEffect(() => () => tilt.dispose(), [tilt])
   useFrame(() => {
     const pv = p.current ?? 0
     const lv = level(pv)
     const m = ref.current
     if (!m) return
     m.visible = lv > 0.001
-    m.scale.set(1, Math.max(0.0001, lv), 1)
-    m.position.y = 0.0015 + lv / 2
+    if (m.visible) tilt.update(m, r, 0.0015, rim, 0.0015 + lv)
     const c = cloud ? cloud(pv) : 0
     mat.color.copy(base).lerp(murk, c)
     mat.opacity = 0.55 + 0.35 * c
   })
-  return (
-    <mesh ref={ref} material={mat} renderOrder={2}>
-      <cylinderGeometry args={[r, r, 1, 28]} />
-    </mesh>
-  )
+  return <mesh ref={ref} geometry={tilt.geometry} material={mat} renderOrder={2} frustumCulled={false} />
 }
 
 /** Рука ученика (стилизованная ладонь) — для помахивания «запах к себе». Начало — центр ладони. */
