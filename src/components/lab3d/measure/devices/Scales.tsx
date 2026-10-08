@@ -30,6 +30,8 @@ export const SCALES = {
 } as const
 
 const UNSTABLE_S = 0.5
+/** Лицевая грань бруска панели (половина толщины) + 0,2 мм, чтобы текстура не мерцала со стенкой. */
+const PANEL_FACE = 0.005 + 0.0002
 
 const chipStyle: CSSProperties = {
   display: 'flex',
@@ -115,13 +117,13 @@ export function DigitalScales({
   return (
     <group>
       <RoundedBox args={[SCALES.w, SCALES.bodyH, SCALES.d]} radius={0.008} smoothness={3} position-y={SCALES.bodyH / 2} material={body} castShadow receiveShadow />
-      {/* скошенная передняя панель с дисплеем */}
+      {/* скошенная передняя панель: тёмный брусок, на его лицевой грани — текстура «панель + ЖК-экран» (ровно в плоскости грани) */}
       <mesh position={[0, 0.019, SCALES.d / 2 - 0.004]} rotation={[-0.32, 0, 0]} material={dark}>
         <boxGeometry args={[0.15, 0.024, 0.01]} />
       </mesh>
-      <mesh position={[0, 0.0205, SCALES.d / 2 + 0.0019]} rotation={[-0.32, 0, 0]}>
-        <planeGeometry args={[0.072, 0.0252]} />
-        <meshBasicMaterial map={display.texture} toneMapped={false} />
+      <mesh position={[0, 0.019 + PANEL_FACE * Math.sin(0.32), SCALES.d / 2 - 0.004 + PANEL_FACE * Math.cos(0.32)]} rotation={[-0.32, 0, 0]} renderOrder={1}>
+        <planeGeometry args={[0.15, 0.024]} />
+        <meshBasicMaterial map={display.texture} toneMapped={false} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
       </mesh>
       {/* кнопки ON/OFF и T */}
       {[SCALES.onBtn, SCALES.tareBtn].map((b, i) => (

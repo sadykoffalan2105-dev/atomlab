@@ -55,8 +55,16 @@ export interface ScalesDisplay {
   draw(text: string | null, stable: boolean, zero: boolean): void
 }
 
+/**
+ * Передняя панель весов целиком — тёмная окантовка и утопленный ЖК-экран в ОДНОЙ текстуре (плоскость лежит ровно на
+ * скосе корпуса, поэтому экран не «отрывается» от панели при крупном плане). 640 × 102 px ↔ панель 0,15 × 0,024 м.
+ */
+export const SCALES_PANEL_PX = { w: 640, h: 102 } as const
+/** Окно ЖК-экрана в пикселях панели (по центру, с полями). */
+const LCD = { x: 168, y: 10, w: 304, h: 82 } as const
+
 export function createScalesDisplay(): ScalesDisplay {
-  const [c, g] = canvas(320, 112)
+  const [c, g] = canvas(SCALES_PANEL_PX.w, SCALES_PANEL_PX.h)
   const texture = toTexture(c)
   let last = ''
   return {
@@ -65,27 +73,41 @@ export function createScalesDisplay(): ScalesDisplay {
       const key = `${text}|${stable}|${zero}`
       if (key === last) return
       last = key
-      // ЖК-экран с подсветкой
+      // тёмный пластик панели
+      g.fillStyle = '#1d2329'
+      g.fillRect(0, 0, SCALES_PANEL_PX.w, SCALES_PANEL_PX.h)
+      // утопленное окно экрана: тень сверху, ЖК с подсветкой (выключен — тёмно-зелёное стекло)
+      g.fillStyle = '#0d1114'
+      g.fillRect(LCD.x - 3, LCD.y - 3, LCD.w + 6, LCD.h + 6)
       g.fillStyle = text == null ? '#26302a' : '#c6dfc1'
-      g.fillRect(0, 0, 320, 112)
+      g.fillRect(LCD.x, LCD.y, LCD.w, LCD.h)
       if (text != null) {
+        const cx = LCD.x
+        const cy = LCD.y
         g.fillStyle = '#16211a'
-        g.font = `700 70px ${MONO}`
+        g.font = `700 54px ${MONO}`
         g.textAlign = 'right'
         g.textBaseline = 'middle'
-        g.fillText(text, 262, 62)
-        g.font = `700 34px ${FONT}`
+        g.fillText(text, cx + LCD.w - 46, cy + LCD.h / 2 + 2)
+        g.font = `700 26px ${FONT}`
         g.textAlign = 'left'
-        g.fillText('g', 272, 74)
+        g.fillText('g', cx + LCD.w - 38, cy + LCD.h / 2 + 12)
         // значок стабильности «○» и «→0←»
-        g.font = `600 22px ${FONT}`
+        g.font = `600 17px ${FONT}`
         g.textAlign = 'left'
-        g.globalAlpha = stable ? 1 : 0.12
-        g.fillText('○', 12, 26)
-        g.globalAlpha = zero ? 1 : 0.12
-        g.fillText('→0←', 12, 96)
+        g.globalAlpha = stable ? 1 : 0.14
+        g.fillText('○', cx + 8, cy + 16)
+        g.globalAlpha = zero ? 1 : 0.14
+        g.fillText('→0←', cx + 8, cy + LCD.h - 14)
         g.globalAlpha = 1
       }
+      // подписи кнопок на панели
+      g.fillStyle = '#c9d1d9'
+      g.font = `600 15px ${FONT}`
+      g.textAlign = 'center'
+      g.textBaseline = 'alphabetic'
+      g.fillText('ON/OFF', 80, 96)
+      g.fillText('TARE', 560, 96)
       texture.needsUpdate = true
     },
   }
