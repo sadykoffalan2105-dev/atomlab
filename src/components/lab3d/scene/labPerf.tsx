@@ -104,10 +104,27 @@ export function ContactShadowBake({
 
 export function LabPerfProbe() {
   const gl = useThree((s) => s.gl)
+  const scene = useThree((s) => s.scene)
   useEffect(() => {
     if (typeof window === 'undefined' || !/[?&]debugPerf=1/.test(window.location.hash)) return
-    const w = window as unknown as { __labPerf?: { info: () => Record<string, number> } }
+    const w = window as unknown as {
+      __labPerf?: {
+        info: () => Record<string, number>
+        gl: unknown
+        scene: unknown
+        programs: () => { name: string; key: string; used: number }[]
+      }
+    }
     w.__labPerf = {
+      // Для отладки из консоли/скриптов: какие материалы держат какую программу (gl.properties.get(m).programs)
+      gl,
+      scene,
+      // Список собранных программ: тип материала + ключ кеша (по нему видно, какой флаг порождает отдельную программу)
+      programs: () =>
+        (gl.info.programs ?? []).map((pr) => {
+          const x = pr as unknown as { name: string; cacheKey: string; usedTimes: number }
+          return { name: x.name, key: x.cacheKey, used: x.usedTimes }
+        }),
       info: () => ({
         geometries: gl.info.memory.geometries,
         textures: gl.info.memory.textures,
@@ -120,6 +137,6 @@ export function LabPerfProbe() {
     return () => {
       delete w.__labPerf
     }
-  }, [gl])
+  }, [gl, scene])
   return null
 }

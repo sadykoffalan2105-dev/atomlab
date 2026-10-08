@@ -29,6 +29,7 @@ import { WaterOxidesRig } from './rigs/WaterOxidesRig'
 import { Co2Rig } from './rigs/Co2Rig'
 import { MetalsAcidsRig } from './rigs/MetalsAcidsRig'
 import { taskRigFor } from './rigs/tasks/TaskRig'
+import { RigScope } from './rigs/tasks/rigSweep'
 import { LAB_TASKS } from '../../../data/labTasks/labTasks'
 import { LAB_TASK_IDS, type LabTaskId } from '../labContract'
 
@@ -345,7 +346,10 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
   return (
     <RigContext.Provider value={ctx}>
       <group ref={root} name={`lab3d-rig:${experimentId}`}>
-        <Rig />
+        {/* RigScope: после смены опыта освобождает материалы прошлой установки (их программы шейдеров) */}
+        <RigScope key={experimentId}>
+          <Rig />
+        </RigScope>
         {activeTarget && gesture && gesture.kind !== 'tap' && !dragging ? <GestureGhost gesture={gesture} /> : null}
         <ObsLabels experimentId={experimentId} />
       </group>

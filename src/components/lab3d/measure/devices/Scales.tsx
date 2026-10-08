@@ -14,7 +14,7 @@ import type { LabLang } from '../../labContract'
 import { useRig, type PFn, type V3 } from '../../experiments/rigCore'
 import { LabLabel } from '../../scene/labOccluders'
 import { fmtNum } from '../instruments'
-import { createScalesDisplay } from './deviceTextures'
+import { createScalesDisplay, useOwned } from './deviceTextures'
 
 /** Размеры весов (м): верх чаши, радиус чаши, кнопки (для целей шагов). */
 export const SCALES = {
@@ -61,10 +61,10 @@ export function DigitalScales({
 }) {
   const { p, time, lang } = useRig()
   const display = useMemo(createScalesDisplay, [])
-  const body = useMemo(() => new THREE.MeshStandardMaterial({ color: '#f1f3f5', roughness: 0.45, metalness: 0 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c9cfd6', roughness: 0.22, metalness: 0.9 }), [])
-  const dark = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1d2329', roughness: 0.5, metalness: 0.1 }), [])
-  const btn = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3b4752', roughness: 0.6 }), [])
+  const body = useOwned(() => new THREE.MeshStandardMaterial({ color: '#f1f3f5', roughness: 0.45, metalness: 0 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: '#c9cfd6', roughness: 0.22, metalness: 0.9 }), [])
+  const dark = useOwned(() => new THREE.MeshStandardMaterial({ color: '#1d2329', roughness: 0.5, metalness: 0.1 }), [])
+  const btn = useOwned(() => new THREE.MeshStandardMaterial({ color: '#3b4752', roughness: 0.6 }), [])
   const st = useRef({ shown: 0, target: 0, changedAt: -10, on: false })
   const chip = useRef<HTMLDivElement>(null)
   const chipVal = useRef<HTMLSpanElement>(null)

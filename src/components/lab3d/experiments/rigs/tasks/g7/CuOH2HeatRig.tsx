@@ -19,6 +19,7 @@ import { CrucibleTongs } from '../../../../measure/devices/Crucible'
 import { quantize } from '../../../../measure/quantities'
 import { useLabTaskValues } from '../../../../measure/labTaskSession'
 import { LampKit, Scoop, WireGauze, carry, hash01, track, type Key } from './kitG7'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g7-cuoh2-heat'
 /** Сферическая чаша PorcelainDish: радиус сферы и высота от дна. */
@@ -180,7 +181,7 @@ const tongsOpen = (p: number) => Math.max(hill(p, T1 - 0.08, T1 + 0.01, 0.4), hi
 function DishPowder({ amount, dark }: { amount: PFn; dark: PFn }) {
   const { p, quality } = useRig()
   const seg = quality === 'high' ? 40 : 24
-  const { geo, thr } = useMemo(() => {
+  const { geo, thr, rows } = useMemo(() => {
     const top = 0.0088
     const edgeY = 0.0074
     const rEdge = dishInnerR(edgeY) - 0.0005
@@ -206,11 +207,22 @@ function DishPowder({ amount, dark }: { amount: PFn; dark: PFn }) {
       tt[k] = 1 - uu + 0.11 * Math.sin(3 * th + 1.7 + uu * 2.5) + 0.07 * Math.sin(5 * th + 0.4 - uu * 4) + (hash01(ring * 53 + ang, 5) - 0.5) * 0.05
     }
     g.computeVertexNormals()
-    g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3))
-    return { geo: g, thr: tt }
+    // цвет участков — в маленькой текстуре (столбец — угол, строка — кольцо), а не в цветах вершин: с картой
+    // материал собирается той же программой шейдера, что этикетки банок (vertexColors — отдельная программа).
+    // uv вершины — точно в центр своего texel'а: линейная фильтрация даёт тот же плавный переход, что цвета вершин
+    const uv = g.getAttribute('uv') as THREE.BufferAttribute
+    for (let k = 0; k < n; k++) uv.setXY(k, (Math.floor(k / pts.length) + 0.5) / (seg + 1), ((k % pts.length) + 0.5) / pts.length)
+    return { geo: g, thr: tt, rows: pts.length }
   }, [seg])
   useEffect(() => () => geo.dispose(), [geo])
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide }), [])
+  const tex = useOwned(() => {
+    const t = new THREE.DataTexture(new Uint8Array((seg + 1) * rows * 4), seg + 1, rows)
+    t.colorSpace = THREE.SRGBColorSpace
+    t.magFilter = THREE.LinearFilter
+    t.minFilter = THREE.LinearFilter
+    return t
+  }, [seg, rows])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ map: tex, roughness: 1, side: THREE.DoubleSide }), [tex])
   const blue = useMemo(() => new THREE.Color(BLUE), [])
   const black = useMemo(() => new THREE.Color(BLACK), [])
   const ref = useRef<THREE.Mesh>(null)
@@ -228,13 +240,21 @@ function DishPowder({ amount, dark }: { amount: PFn; dark: PFn }) {
     m.scale.set(s * mix(1, 0.94, d), s * mix(1, 0.86, d), s * mix(1, 0.94, d))
     if (Math.abs(d - last.current) < 0.002) return
     last.current = d
-    const col = geo.getAttribute('color') as THREE.BufferAttribute
-    for (let k = 0; k < col.count; k++) {
+    // текстура — через меш (ref), а не через значение хука: её данные меняются здесь каждый кадр почернения
+    const t = (m.material as THREE.MeshStandardMaterial).map as THREE.DataTexture
+    const data = t.image.data as Uint8Array
+    for (let k = 0; k < thr.length; k++) {
       const x = Math.min(1, Math.max(0, (d * 1.35 - thr[k]!) / 0.3))
       c.copy(blue).lerp(black, x * x * (3 - 2 * x))
-      col.setXYZ(k, c.r, c.g, c.b)
+      // texel (угол, кольцо) — та же вершина; в sRGB, как цвет карты (смешение — в линейном, как было у цветов вершин)
+      const o = ((k % rows) * (seg + 1) + Math.floor(k / rows)) * 4
+      const h = c.getHex()
+      data[o] = (h >> 16) & 255
+      data[o + 1] = (h >> 8) & 255
+      data[o + 2] = h & 255
+      data[o + 3] = 255
     }
-    col.needsUpdate = true
+    t.needsUpdate = true
   })
   return <mesh ref={ref} geometry={geo} material={mat} receiveShadow />
 }

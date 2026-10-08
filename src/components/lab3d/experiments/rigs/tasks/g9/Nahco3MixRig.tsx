@@ -7,7 +7,7 @@
  * подставку на весах А (остаток; тара сохранилась — убыль = 6,00 − остаток).
  * Числа на приборах — из попытки (useLabTaskValues): к концу шага прибор показывает то, что записано в журнал.
  */
-import { useMemo, useRef } from 'react'
+import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { Pose, Target, ease, hill, mix, mixV, useRig, useSoundAt, type PFn, type PoseValue, type V3 } from '../../../rigCore'
@@ -22,6 +22,7 @@ import { PowderJar } from '../../../../measure/devices/Bench'
 import { UTUBE_IN, UTUBE_OUT, UTube } from '../../../../measure/devices/UTube'
 import { panAt, readoutAfter, track } from './g9Kit'
 import { BandTag, LampSet, StandRod, TUBE_BLOCK, TubeBlock, TubeClampH, WallDroplets } from './kitG9b'
+import { faceted, useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g9-nahco3-mix' as const
 const Z = -0.06
@@ -174,8 +175,10 @@ function spatulaPose(p: number) {
 function Powder({ fill, shrink }: { fill: PFn; shrink: PFn }) {
   const { p } = useRig()
   const ri = TUBE_R * 0.86
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: C.powder, roughness: 1, flatShading: true }), [])
-  const matD = useMemo(() => new THREE.MeshStandardMaterial({ color: C.powder, roughness: 1, side: THREE.DoubleSide }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: C.powder, roughness: 1 }), [])
+  // гранёный столбик: грани в нормалях геометрии, а не flatShading материала (тот — отдельная программа шейдера)
+  const colGeo = useOwned(() => faceted(new THREE.CylinderGeometry(ri * 0.97, ri * 0.7, 1, 20)), [ri])
+  const matD = useOwned(() => new THREE.MeshStandardMaterial({ color: C.powder, roughness: 1, side: THREE.DoubleSide }), [])
   const col = useRef<THREE.Mesh>(null)
   const slab = useRef<THREE.Group>(null)
   useFrame(() => {
@@ -198,9 +201,7 @@ function Powder({ fill, shrink }: { fill: PFn; shrink: PFn }) {
   })
   return (
     <group>
-      <mesh ref={col} material={mat} renderOrder={1}>
-        <cylinderGeometry args={[ri * 0.97, ri * 0.7, 1, 20]} />
-      </mesh>
+      <mesh ref={col} geometry={colGeo} material={mat} renderOrder={1} />
       <group ref={slab} position={[0, 0.0085 + 0.028, 0]}>
         <mesh material={matD} renderOrder={1}>
           <cylinderGeometry args={[ri * 0.95, ri * 0.95, 0.056, 20, 1, false, 0, Math.PI]} />

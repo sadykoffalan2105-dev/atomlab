@@ -14,7 +14,7 @@ import { useRig, type PFn, type V3 } from '../../experiments/rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../experiments/parts/glassware'
 import { GlassPath } from '../../experiments/parts/practicalware'
 import { RubberHose } from '../../experiments/rigs/worksKit'
-import { scaleTexture, SCALE_TEX_PAD, type ScaleSpec } from './deviceTextures'
+import { scaleTexture, SCALE_TEX_PAD, type ScaleSpec, useOwned } from './deviceTextures'
 
 const RI = 0.045
 const SCALE_H = 1000e-6 / (Math.PI * RI * RI)
@@ -89,10 +89,10 @@ export function Gasometer({ passed, tap }: { passed: PFn; tap: PFn }) {
   // без подписи производителя: у верхней риски «1000» ей нет места
   const spec = useMemo<ScaleSpec>(() => ({ capacity: 1000, division: 10, majorEvery: 100, labelEvery: 100 }), [])
   const tex = useMemo(() => scaleTexture(spec), [spec])
-  const oil = useMemo(() => labLiquidMaterial(OIL, 0.78), [])
-  const footMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2f3740', roughness: 0.6 }), [])
-  const wood = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b98a5a', roughness: 0.8 }), [])
-  const ptfe = useMemo(() => new THREE.MeshStandardMaterial({ color: '#f4f6f8', roughness: 0.55 }), [])
+  const oil = useOwned(() => labLiquidMaterial(OIL, 0.78), [])
+  const footMat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2f3740', roughness: 0.6 }), [])
+  const wood = useOwned(() => new THREE.MeshStandardMaterial({ color: '#b98a5a', roughness: 0.8 }), [])
+  const ptfe = useOwned(() => new THREE.MeshStandardMaterial({ color: '#f4f6f8', roughness: 0.55 }), [])
   const col = useRef<THREE.Mesh>(null)
   const bcol = useRef<THREE.Mesh>(null)
   const handle = useRef<THREE.Group>(null)

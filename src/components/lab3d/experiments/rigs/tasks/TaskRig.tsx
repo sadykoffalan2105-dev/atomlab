@@ -14,6 +14,7 @@ import { useRig } from '../../rigCore'
 import { TASK_RIGS_G7 } from './tasksG7'
 import { TASK_RIGS_G8 } from './tasksG8'
 import { TASK_RIGS_G9 } from './tasksG9'
+import { RigScope } from './rigSweep'
 
 export const TASK_RIGS: Partial<Record<LabTaskId, ComponentType>> = { ...TASK_RIGS_G7, ...TASK_RIGS_G8, ...TASK_RIGS_G9 }
 
@@ -54,7 +55,14 @@ export function taskRigFor(id: LabTaskId): ComponentType {
     const Shell = () => {
       useMeasureEvents(id)
       const Rig = TASK_RIGS[id]
-      return Rig ? <Rig /> : <Missing />
+      // RigScope: после ухода из задачи освобождает материалы установки (иначе их программы шейдеров копятся)
+      return Rig ? (
+        <RigScope>
+          <Rig />
+        </RigScope>
+      ) : (
+        <Missing />
+      )
     }
     Shell.displayName = `TaskRig(${id})`
     c = Shell

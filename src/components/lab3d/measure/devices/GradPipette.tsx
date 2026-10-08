@@ -10,6 +10,7 @@ import * as THREE from 'three'
 import { labLiquidMaterial } from '../../labContract'
 import { useRig, type PFn } from '../../experiments/rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../experiments/parts/glassware'
+import { useOwned } from './deviceTextures'
 
 /** Размеры пипетки (м). zero — риска «0», span — длина шкалы 0…2 мл, top — верхний конец стекла. */
 export const GRAD_PIPETTE = {
@@ -84,9 +85,9 @@ export function GradPipette({ level, color, squeeze }: { level: PFn; color: stri
     ]
     return new THREE.LatheGeometry(pts, quality === 'high' ? 16 : 10)
   }, [quality, P.ro, P.ri, P.top, P.tipLen])
-  const liq = useMemo(() => labLiquidMaterial(color, 0.8), [color])
+  const liq = useOwned(() => labLiquidMaterial(color, 0.8), [color])
   const tex = useMemo(pipetteScaleTexture, [])
-  const rubber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#b8322a', roughness: 0.6 }), [])
+  const rubber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#b8322a', roughness: 0.6 }), [])
   const col = useRef<THREE.Mesh>(null)
   const tip = useRef<THREE.Mesh>(null)
   const bulb = useRef<THREE.Mesh>(null)

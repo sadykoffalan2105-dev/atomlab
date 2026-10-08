@@ -5,7 +5,7 @@
  * 8 смесь на фильтр, промывание · 9 сушка 105 °C · 10 ноль, фильтр с осадком на весы (m₃).
  * Все числа на приборах — из попытки (useLabTaskValues): к концу шага весы показывают то, что записано в журнал.
  */
-import { useMemo } from 'react'
+import {  } from 'react'
 import * as THREE from 'three'
 import { Pose, Target, ease, hill, mix, mixV, useRig, useSoundAt, type PFn, type PoseValue, type V3 } from '../../../rigCore'
 import { PourStream } from '../../../parts/effects'
@@ -18,6 +18,7 @@ import { DigitalScales, Readout, SCALES } from '../../../../measure/devices/Scal
 import { BEAKERS, MeasuringBeaker, beakerLevel } from '../../../../measure/devices/Glass'
 import { TUBE_GEOM, heightForVolume, solutionDensity } from '../../../../measure/quantities'
 import { FUN, FilterStation, SolutionBottle, panAt, track, type FilterPlan } from './g9Kit'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g9-baso4-excess' as const
 const PPE: V3 = [0.52, 0, 0.21]
@@ -105,7 +106,7 @@ const drop2 = dropIn(DB2, T2, 7.82, 7.92)
 export function Baso4ExcessRig() {
   const v = useLabTaskValues(ID)
   const { lang } = useRig()
-  const darkCard = useMemo(() => new THREE.MeshStandardMaterial({ color: '#1e252c', roughness: 0.85 }), [])
+  const darkCard = useOwned(() => new THREE.MeshStandardMaterial({ color: '#1e252c', roughness: 0.85 }), [])
   useGearStep(ID, 0)
   useSoundAt(0.2, 'click', PPE, 0.5)
   useSoundAt(2.92, 'glass-place', PAN, 0.4)

@@ -12,7 +12,7 @@ import { ease, mix, mixV, useRig, type PFn, type V3 } from '../../../rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../../parts/glassware'
 import { GlassPath } from '../../../parts/practicalware'
 import { RisingBubbles, THERMO, Thermometer, cylinderSpec } from '../../../../measure/devices/Glass'
-import { SCALE_TEX_PAD, scaleTexture } from '../../../../measure/devices/deviceTextures'
+import { SCALE_TEX_PAD, faceted, scaleTexture, useOwned } from '../../../../measure/devices/deviceTextures'
 import { cylinderGeom } from '../../../../measure/quantities'
 
 function rand(i: number, k: number): number {
@@ -60,7 +60,7 @@ export const TUBE_STOPPER_IN = 0.011
 
 /** Резиновая пробка Ø 16/21 мм (начало — низ пробки) со стеклянной трубкой, колено — вправо (+X). */
 export function TubeStopper() {
-  const rubber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5f6670', roughness: 0.85 }), [])
+  const rubber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#5f6670', roughness: 0.85 }), [])
   return (
     <group>
       <mesh position={[0, 0.009, 0]} material={rubber} castShadow>
@@ -76,7 +76,8 @@ export function TubeStopper() {
 export function MeltingGranules({ n, show, left, color, spread, size = 0.0024, y0 = 0.0024 }: { n: number; show: PFn; left: PFn; color: string; spread: number; size?: number; y0?: number }) {
   const { p } = useRig()
   const ref = useRef<THREE.InstancedMesh>(null)
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.75, flatShading: true }), [color])
+  // грани: у додекаэдра (detail 0) нормали уже свои у каждой грани — flatShading не нужен (лишняя программа шейдера)
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.75 }), [color])
   const tmp = useMemo(() => new THREE.Object3D(), [])
   const seeds = useMemo(() => Array.from({ length: n }, (_, i) => ({ a: rand(i, 3) * Math.PI * 2, r: Math.sqrt(rand(i, 4)) * spread, s: 0.8 + rand(i, 5) * 0.45, rot: rand(i, 6) * 6, h: rand(i, 7) })), [n, spread])
   useFrame(() => {
@@ -173,10 +174,10 @@ export function TallGasJar({ gasMl, mouth, bubble }: { gasMl: PFn; mouth: PFn; b
     ]
     return new THREE.LatheGeometry(pts, quality === 'high' ? 36 : 20)
   }, [quality, ri, ro, len, innerTop])
-  const jarWater = useMemo(() => labLiquidMaterial('#b9d8f2', 0.55), [])
-  const tubeWater = useMemo(() => labLiquidMaterial('#cfe7fb', 0.5), [])
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
+  const jarWater = useOwned(() => labLiquidMaterial('#b9d8f2', 0.55), [])
+  const tubeWater = useOwned(() => labLiquidMaterial('#cfe7fb', 0.5), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
   const cyl = useRef<THREE.Group>(null)
   const col = useRef<THREE.Mesh>(null)
   const surf = useRef<THREE.Mesh>(null)
@@ -247,9 +248,9 @@ export function TallGasJar({ gasMl, mouth, bubble }: { gasMl: PFn; mouth: PFn; b
  */
 export function ThermoStand({ rodDx, bulbY, temp, clampAt = 0.2 }: { rodDx: number; bulbY: PFn; temp: PFn; clampAt?: number }) {
   const { p } = useRig()
-  const paint = useMemo(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
-  const cork = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c49a6c', roughness: 0.9 }), [])
+  const paint = useOwned(() => new THREE.MeshStandardMaterial({ color: '#4f5b68', roughness: 0.55, metalness: 0.2 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: LAB_COLORS.metal, roughness: 0.28, metalness: 0.85 }), [])
+  const cork = useOwned(() => new THREE.MeshStandardMaterial({ color: '#c49a6c', roughness: 0.9 }), [])
   const g = useRef<THREE.Group>(null)
   useFrame(() => {
     if (g.current) g.current.position.y = bulbY(p.current ?? 0)
@@ -294,7 +295,7 @@ export function ThermoStand({ rodDx, bulbY, temp, clampAt = 0.2 }: { rodDx: numb
 
 export const TILE = { w: 0.15, h: 0.008 } as const
 export function HeatTile() {
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e7e1d6', roughness: 0.7 }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#e7e1d6', roughness: 0.7 }), [])
   return (
     <mesh position={[0, TILE.h / 2, 0]} material={mat} castShadow receiveShadow>
       <boxGeometry args={[TILE.w, TILE.h, TILE.w]} />
@@ -311,7 +312,9 @@ export function HeatTile() {
 export function LimeHeap({ amount, swell, wet }: { amount: PFn; swell: PFn; wet: PFn }) {
   const { p } = useRig()
   // комковатая горка: низкополигональная полусфера с плоской заливкой граней
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d8d3c1', roughness: 1, flatShading: true }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#d8d3c1', roughness: 1 }), [])
+  // грани заданы нормалями геометрии (а не flatShading материала — тот собирал бы отдельную программу шейдера)
+  const geo = useOwned(() => faceted(new THREE.SphereGeometry(1, 11, 5, 0, Math.PI * 2, 0, Math.PI / 2)), [])
   const dry = useMemo(() => new THREE.Color('#d8d3c1'), [])
   const slaked = useMemo(() => new THREE.Color('#f8f7f2'), [])
   const paste = useMemo(() => new THREE.Color('#c6cbc6'), [])
@@ -330,9 +333,7 @@ export function LimeHeap({ amount, swell, wet }: { amount: PFn; swell: PFn; wet:
     mat.roughness = mix(1, 0.35, w)
   })
   return (
-    <mesh ref={ref} position={[0, 0.0022, 0]} material={mat} castShadow>
-      <sphereGeometry args={[1, 11, 5, 0, Math.PI * 2, 0, Math.PI / 2]} />
-    </mesh>
+    <mesh ref={ref} position={[0, 0.0022, 0]} geometry={geo} material={mat} castShadow />
   )
 }
 
@@ -349,7 +350,7 @@ export function WatchDish({ color, show }: { color: (p: number) => string; show:
     }
     return new THREE.LatheGeometry(pts, quality === 'high' ? 32 : 18)
   }, [quality])
-  const liq = useMemo(() => labLiquidMaterial('#eef6ff', 0.7), [])
+  const liq = useOwned(() => labLiquidMaterial('#eef6ff', 0.7), [])
   const tint = useMemo(() => new THREE.Color(), [])
   const ref = useRef<THREE.Mesh>(null)
   useFrame(() => {

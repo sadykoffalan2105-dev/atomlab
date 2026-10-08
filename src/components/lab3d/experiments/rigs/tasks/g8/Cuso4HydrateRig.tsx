@@ -19,6 +19,7 @@ import { DigitalScales, SCALES, SCALES_PAN_CENTER } from '../../../../measure/de
 import { PowderJar } from '../../../../measure/devices/Bench'
 import { CU } from '../../../../../../data/labTasks/g8/layoutG8'
 import { track } from './g8Kit'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const ID = 'task-g8-cuso4-hydrate' as const
 const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
@@ -130,9 +131,9 @@ const rnd = (i: number, k: number) => {
 function VitriolHeap() {
   const { quality, p } = useRig()
   const n = quality === 'high' ? 34 : 16
-  const base = useMemo(() => new THREE.MeshStandardMaterial({ color: BLUE, roughness: 0.9 }), [])
-  const glassy = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25, metalness: 0.05 }), [])
-  const wet = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2f80d8', roughness: 0.35 }), [])
+  const base = useOwned(() => new THREE.MeshStandardMaterial({ color: BLUE, roughness: 0.9 }), [])
+  const glassy = useOwned(() => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25, metalness: 0.05 }), [])
+  const wet = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2f80d8', roughness: 0.35 }), [])
   const blue = useMemo(() => new THREE.Color(BLUE), [])
   const whiteC = useMemo(() => new THREE.Color(WHITE), [])
   const c = useMemo(() => new THREE.Color(), [])
@@ -332,8 +333,8 @@ export function Cuso4HydrateRig() {
 
 /** Металлическая сетка с керамическим кругом в центре (лежит на кольце штатива; начало — центр сетки). */
 function WireGauze({ at }: { at: V3 }) {
-  const wire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8d959e', roughness: 0.5, metalness: 0.7 }), [])
-  const ceramic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d9d4c9', roughness: 0.95 }), [])
+  const wire = useOwned(() => new THREE.MeshStandardMaterial({ color: '#8d959e', roughness: 0.5, metalness: 0.7 }), [])
+  const ceramic = useOwned(() => new THREE.MeshStandardMaterial({ color: '#d9d4c9', roughness: 0.95 }), [])
   return (
     <group position={at as unknown as THREE.Vector3Tuple}>
       <mesh material={wire} castShadow receiveShadow>

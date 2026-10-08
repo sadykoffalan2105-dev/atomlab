@@ -3,13 +3,14 @@
  * колба 100 мл с уровнем в мл (из геометрии), гранулы металла на дне, резиновая пробка с коленом газоотводной трубки,
  * склянка тёмного стекла.
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { labLiquidMaterial } from '../../../../labContract'
 import { ease, mixV, useRig, type PFn, type V3 } from '../../../rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../../parts/glassware'
 import { GlassPath } from '../../../parts/practicalware'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 /** Путь по точкам: legs — [начало, конец отрезка прогресса, куда]. */
 export function moveVia(p: number, start: V3, legs: readonly (readonly [number, number, V3])[]): V3 {
@@ -86,7 +87,10 @@ export function ConicalFlask({ volume, color, cloud, cloudColor = '#f4f4f0' }: {
     const pts = [new THREE.Vector2(rn + wall, hb), new THREE.Vector2(rn + wall, h - 0.002), new THREE.Vector2(rn + wall + 0.0018, h), new THREE.Vector2(rn, h), new THREE.Vector2(rn, hb)]
     return new THREE.LatheGeometry(pts, seg)
   }, [seg])
-  const liq = useMemo(() => labLiquidMaterial('#e6f2ff', 0.6), [])
+  const liq = useOwned(() => labLiquidMaterial('#e6f2ff', 0.6), [])
+  useEffect(() => () => liq.dispose(), [liq])
+  // начальная геометрия — с нормалями: пустая BufferGeometry дала бы отдельную программу (плоская заливка без нормалей)
+  const liqGeo0 = useOwned(() => new THREE.CylinderGeometry(0.001, 0.001, 0.001, 8), [])
   const tint = useMemo(() => new THREE.Color(), [])
   const milk = useMemo(() => new THREE.Color(cloudColor), [cloudColor])
   const mesh = useRef<THREE.Mesh>(null)
@@ -118,7 +122,7 @@ export function ConicalFlask({ volume, color, cloud, cloudColor = '#f4f4f0' }: {
       <mesh geometry={body} material={sharedGlassEdge()} renderOrder={4} />
       <mesh geometry={neck} material={sharedGlass(quality)} renderOrder={3} />
       <mesh geometry={neck} material={sharedGlassEdge()} renderOrder={4} />
-      <mesh ref={mesh} material={liq} renderOrder={2} />
+      <mesh ref={mesh} geometry={liqGeo0} material={liq} renderOrder={2} />
     </group>
   )
 }
@@ -130,7 +134,7 @@ export function ConicalFlask({ volume, color, cloud, cloudColor = '#f4f4f0' }: {
 export function MetalPieces({ n, show, left, color, spread, size = 0.0034, kind = 'granule', y0 = 0.003 }: { n: number; show: PFn; left: PFn; color: string; spread: number; size?: number; kind?: 'granule' | 'chip'; y0?: number }) {
   const { p } = useRig()
   const ref = useRef<THREE.InstancedMesh>(null)
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: 0.38, metalness: 0.75 }), [color])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color, roughness: 0.38, metalness: 0.75 }), [color])
   const tmp = useMemo(() => new THREE.Object3D(), [])
   const seeds = useMemo(() => Array.from({ length: n }, (_, i) => ({ a: rand(i, 3) * Math.PI * 2, r: Math.sqrt(rand(i, 4)) * spread, s: 0.75 + rand(i, 5) * 0.5, rot: rand(i, 6) * 6 })), [n, spread])
   useFrame(() => {
@@ -165,7 +169,7 @@ export const ELBOW: V3 = [0.032, 0.05, 0]
 
 /** Резиновая пробка для горла колбы (начало — низ пробки) с коленом газоотводной трубки (вправо, +X). */
 export function FlaskStopper({ tube = true }: { tube?: boolean }) {
-  const rubber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5f6670', roughness: 0.85 }), [])
+  const rubber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#5f6670', roughness: 0.85 }), [])
   return (
     <group>
       <mesh position={[0, 0.0105, 0]} material={rubber} castShadow>
@@ -196,8 +200,8 @@ export function AmberBottle({ label, level, closed }: { label: THREE.Texture; le
     ]
     return new THREE.LatheGeometry(pts, quality === 'high' ? 32 : 18)
   }, [quality])
-  const amber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5a2c0c', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86 }), [])
-  const liq = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2a1406', roughness: 0.2, transparent: true, opacity: 0.6 }), [])
+  const amber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#5a2c0c', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86 }), [])
+  const liq = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2a1406', roughness: 0.2, transparent: true, opacity: 0.6 }), [])
   const liqRef = useRef<THREE.Mesh>(null)
   const capRef = useRef<THREE.Mesh>(null)
   useFrame(() => {
@@ -231,7 +235,7 @@ export function AmberBottle({ label, level, closed }: { label: THREE.Texture; le
 /** Снятая притёртая пробка лежит на столе на боку (начало — точка на столе); видна, когда shown(p) ≥ 0.5. */
 export function AmberStopper({ shown }: { shown: PFn }) {
   const { p } = useRig()
-  const amber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5a2c0c', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86 }), [])
+  const amber = useOwned(() => new THREE.MeshStandardMaterial({ color: '#5a2c0c', roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86 }), [])
   const ref = useRef<THREE.Mesh>(null)
   useFrame(() => {
     if (ref.current) ref.current.visible = shown(p.current ?? 0) >= 0.5

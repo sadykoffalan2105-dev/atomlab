@@ -17,6 +17,7 @@ import { DigitalScales, SCALES } from '../../../../measure/devices/Scales'
 import { CRUCIBLE, CRUCIBLE_SINK, ClayTriangle, Crucible, CrucibleLid, CrucibleTongs, TRIANGLE, Tripod } from '../../../../measure/devices/Crucible'
 import { useLabTaskValues } from '../../../../measure/labTaskSession'
 import { LampKit, carry } from './kitG7'
+import { useOwned } from '../../../../measure/devices/deviceTextures'
 
 const PPE: V3 = [0.5, 0, 0.17]
 const SC: V3 = [-0.3, 0, -0.04]
@@ -110,7 +111,7 @@ function MgCoil() {
     g.scale(1, 1, 1)
     return g
   }, [])
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#cfd5da', roughness: 0.3, metalness: 0.85 }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#cfd5da', roughness: 0.3, metalness: 0.85 }), [])
   const silver = useMemo(() => new THREE.Color('#cfd5da'), [])
   const white = useMemo(() => new THREE.Color('#f3f2ec'), [])
   const ref = useRef<THREE.Mesh>(null)

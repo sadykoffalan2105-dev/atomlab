@@ -8,7 +8,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { useRig, type PFn, type V3 } from '../../experiments/rigCore'
 import { sharedGlass, sharedGlassEdge } from '../../experiments/parts/glassware'
-import { createSmallDisplay, jarLabelTexture } from './deviceTextures'
+import { createSmallDisplay, jarLabelTexture, useOwned } from './deviceTextures'
 
 function rand(i: number, k: number): number {
   const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
@@ -37,10 +37,10 @@ export function PowderJar({ formula, name, sub = '', color, fill = 0.7, open, am
     ]
     return new THREE.LatheGeometry(pts, quality === 'high' ? 32 : 18)
   }, [quality])
-  const amberMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#6b3a12', roughness: 0.15, transparent: true, opacity: 0.82 }), [])
+  const amberMat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#6b3a12', roughness: 0.15, transparent: true, opacity: 0.82 }), [])
   const label = useMemo(() => jarLabelTexture(formula, name, sub, amber ? '#7a4a1c' : '#2f7cf6'), [formula, name, sub, amber])
-  const content = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: granules ? 0.4 : 1, metalness: granules ? 0.6 : 0 }), [color, granules])
-  const capMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#f4f5f6', roughness: 0.5 }), [])
+  const content = useOwned(() => new THREE.MeshStandardMaterial({ color, roughness: granules ? 0.4 : 1, metalness: granules ? 0.6 : 0 }), [color, granules])
+  const capMat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#f4f5f6', roughness: 0.5 }), [])
   const cap = useRef<THREE.Group>(null)
   useFrame(() => {
     const g = cap.current
@@ -84,8 +84,8 @@ export const BOAT = { w: 0.056, d: 0.044, h: 0.011, mass: 1.84 } as const
  */
 export function WeighBoat({ fill, kind, color, maxPieces = 34 }: { fill: PFn; kind: 'powder' | 'granules' | 'ribbon'; color: string; maxPieces?: number }) {
   const { quality, p } = useRig()
-  const plastic = useMemo(() => new THREE.MeshStandardMaterial({ color: '#eef2f6', roughness: 0.55, transparent: true, opacity: 0.92 }), [])
-  const solid = useMemo(() => new THREE.MeshStandardMaterial({ color, roughness: kind === 'powder' ? 1 : 0.35, metalness: kind === 'powder' ? 0 : 0.7 }), [color, kind])
+  const plastic = useOwned(() => new THREE.MeshStandardMaterial({ color: '#eef2f6', roughness: 0.55, transparent: true, opacity: 0.92 }), [])
+  const solid = useOwned(() => new THREE.MeshStandardMaterial({ color, roughness: kind === 'powder' ? 1 : 0.35, metalness: kind === 'powder' ? 0 : 0.7 }), [color, kind])
   const heap = useRef<THREE.Mesh>(null)
   const pieces = useRef<THREE.InstancedMesh>(null)
   const n = quality === 'high' ? maxPieces : Math.ceil(maxPieces * 0.6)
@@ -158,11 +158,11 @@ export const OVEN = { w: 0.25, h: 0.23, d: 0.22, shelfY: 0.07 } as const
  */
 export function DryingOven({ door, on, lines }: { door: PFn; on: PFn; lines: (p: number) => readonly string[] }) {
   const { p } = useRig()
-  const body = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e8ebee', roughness: 0.42, metalness: 0.1 }), [])
-  const inner = useMemo(() => new THREE.MeshStandardMaterial({ color: '#8d969f', roughness: 0.6, metalness: 0.5, side: THREE.DoubleSide }), [])
-  const dark = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2b333b', roughness: 0.5 }), [])
-  const glow = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ff8a3c', transparent: true, opacity: 0, depthWrite: false }), [])
-  const glassMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c7d6e2', roughness: 0.08, transparent: true, opacity: 0.32, depthWrite: false }), [])
+  const body = useOwned(() => new THREE.MeshStandardMaterial({ color: '#e8ebee', roughness: 0.42, metalness: 0.1 }), [])
+  const inner = useOwned(() => new THREE.MeshStandardMaterial({ color: '#8d969f', roughness: 0.6, metalness: 0.5, side: THREE.DoubleSide }), [])
+  const dark = useOwned(() => new THREE.MeshStandardMaterial({ color: '#2b333b', roughness: 0.5 }), [])
+  const glow = useOwned(() => new THREE.MeshBasicMaterial({ color: '#ff8a3c', transparent: true, opacity: 0, depthWrite: false }), [])
+  const glassMat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#c7d6e2', roughness: 0.08, transparent: true, opacity: 0.32, depthWrite: false }), [])
   const disp = useMemo(() => createSmallDisplay(256, 96), [])
   const hinge = useRef<THREE.Group>(null)
   useFrame(() => {

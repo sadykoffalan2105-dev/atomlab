@@ -2,6 +2,7 @@
  * Текстуры приборов (CanvasTexture, без шрифтов из сети): дисплей весов, шкалы мерной посуды и термометра
  * с цифрами, этикетки банок. Шкалы кешируются по параметрам — одинаковые приборы делят одну текстуру.
  */
+import { useEffect, useMemo, type DependencyList } from 'react'
 import * as THREE from 'three'
 
 const FONT = 'system-ui, "Segoe UI", Arial, sans-serif'
@@ -21,6 +22,29 @@ function toTexture(c: HTMLCanvasElement): THREE.CanvasTexture {
   t.colorSpace = THREE.SRGBColorSpace
   t.anisotropy = 4
   return t
+}
+
+/**
+ * Как useMemo, но созданный материал/геометрия освобождается при размонтировании (и при смене deps).
+ * Без этого материал опыта живёт после ухода из опыта и держит свою программу шейдера — число программ
+ * растёт с каждой сменой опыта. Только для объектов, созданных здесь же (не для общих кешей: sharedGlass, шкалы).
+ */
+export function useOwned<T extends { dispose: () => void }>(make: () => T, deps: DependencyList): T {
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo -- deps задаёт вызывающий, как у useMemo
+  const v = useMemo(make, deps)
+  useEffect(() => () => v.dispose(), [v])
+  return v
+}
+
+/**
+ * Грани «плоской заливки» прямо в геометрии (у каждого треугольника своя нормаль) — вместо flatShading у
+ * материала: flatShading собирает отдельную программу шейдера, а так подходит общая программа.
+ */
+export function faceted(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const f = g.index ? g.toNonIndexed() : g
+  f.computeVertexNormals()
+  if (f !== g) g.dispose()
+  return f
 }
 
 /* ── Дисплей электронных весов ── */

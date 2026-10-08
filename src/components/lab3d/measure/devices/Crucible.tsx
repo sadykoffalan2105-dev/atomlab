@@ -10,6 +10,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useRig, type PFn } from '../../experiments/rigCore'
+import { useOwned } from './deviceTextures'
 
 export const CRUCIBLE = { rBot: 0.011, rTop: 0.0185, h: 0.03, wall: 0.0017, lidR: 0.0205, lidH: 0.0078 } as const
 
@@ -26,7 +27,7 @@ function porcelain() {
 /** Тигель (начало — центр дна). */
 export function Crucible({ heat }: { heat?: PFn }) {
   const { quality, p } = useRig()
-  const mat = useMemo(porcelain, [])
+  const mat = useOwned(porcelain, [])
   const geo = useMemo(() => {
     const { rBot, rTop, h, wall } = CRUCIBLE
     const pts = [
@@ -51,7 +52,7 @@ export function Crucible({ heat }: { heat?: PFn }) {
 /** Крышка тигля (начало — плоскость, которой она лежит на крае тигля; бортик уходит внутрь). */
 export function CrucibleLid() {
   const { quality } = useRig()
-  const mat = useMemo(porcelain, [])
+  const mat = useOwned(porcelain, [])
   const geo = useMemo(() => {
     const { rTop, wall, lidR } = CRUCIBLE
     const pts = [
@@ -82,8 +83,8 @@ export const CRUCIBLE_SINK = (() => {
 })()
 
 export function ClayTriangle({ ringR }: { ringR: number }) {
-  const clay = useMemo(() => new THREE.MeshStandardMaterial({ color: '#efe3d6', roughness: 0.75 }), [])
-  const wire = useMemo(() => new THREE.MeshStandardMaterial({ color: '#7d848c', roughness: 0.45, metalness: 0.8 }), [])
+  const clay = useOwned(() => new THREE.MeshStandardMaterial({ color: '#efe3d6', roughness: 0.75 }), [])
+  const wire = useOwned(() => new THREE.MeshStandardMaterial({ color: '#7d848c', roughness: 0.45, metalness: 0.8 }), [])
   const sides = useMemo(() => {
     const R = TRIANGLE.inR * 2
     const v = [0, 1, 2].map((i) => {
@@ -130,7 +131,7 @@ export function ClayTriangle({ ringR }: { ringR: number }) {
 
 /** Треножник (начало — центр на столе): кольцо радиуса ringR на высоте h и три ножки, разведённые к столу. */
 export function Tripod({ h, ringR = 0.045 }: { h: number; ringR?: number }) {
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3b4148', roughness: 0.55, metalness: 0.55 }), [])
+  const mat = useOwned(() => new THREE.MeshStandardMaterial({ color: '#3b4148', roughness: 0.55, metalness: 0.55 }), [])
   const geo = useMemo(() => {
     const parts: THREE.BufferGeometry[] = []
     const ring = new THREE.TorusGeometry(ringR, 0.0035, 8, 40)
@@ -164,7 +165,7 @@ export function Tripod({ h, ringR = 0.045 }: { h: number; ringR?: number }) {
  */
 export function CrucibleTongs({ open }: { open: PFn }) {
   const { p } = useRig()
-  const steel = useMemo(() => new THREE.MeshStandardMaterial({ color: '#c3c9d0', roughness: 0.3, metalness: 0.9 }), [])
+  const steel = useOwned(() => new THREE.MeshStandardMaterial({ color: '#c3c9d0', roughness: 0.3, metalness: 0.9 }), [])
   const arms = [useRef<THREE.Group>(null), useRef<THREE.Group>(null)]
   const PIVOT = 0.055
   useFrame(() => {
