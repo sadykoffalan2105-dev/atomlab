@@ -63,9 +63,9 @@ const SPECIAL_SALT: Record<string, { en: string; uz: string }> = {
  */
 const MANUAL: Record<string, { en: string; uz: string }> = {
   h2o: { en: 'Water', uz: 'Suv' },
-  co2: { en: 'Carbon dioxide', uz: 'Uglerod(IV) oksidi (karbonat angidrid)' },
+  co2: { en: 'Carbon dioxide', uz: 'Uglerod(IV) oksidi' }, // «karbonat angidrid» — в описании (аудит d2: имя без тривиального)
   nacl: { en: 'Sodium chloride', uz: 'Natriy xloridi' },
-  co: { en: 'Carbon monoxide', uz: 'Uglerod(II) oksidi (is gazi)' },
+  co: { en: 'Carbon monoxide', uz: 'Uglerod(II) oksidi' }, // «is gazi» — в описании
   so2: { en: 'Sulfur dioxide', uz: 'Oltingugurt(IV) oksidi' },
   so3: { en: 'Sulfur trioxide', uz: 'Oltingugurt(VI) oksidi' },
   no: { en: 'Nitrogen monoxide', uz: 'Azot(II) oksidi' },
@@ -108,9 +108,9 @@ const MANUAL: Record<string, { en: string; uz: string }> = {
   tb_v2o5: { en: 'Vanadium(V) oxide', uz: 'Vanadiy(V) oksidi' },
   tb_hgo: { en: 'Mercury(II) oxide', uz: 'Simob(II) oksidi' },
   tb_n2o3: { en: 'Nitrogen(III) oxide', uz: 'Azot(III) oksidi' },
-  tb_n2o4: { en: 'Dinitrogen tetroxide', uz: 'Azot(IV) oksidi dimeri (N₂O₄)' },
+  tb_n2o4: { en: 'Dinitrogen tetroxide', uz: 'Diazot tetraoksidi' }, // «azot(IV) oksidi dimeri» — в описании
   tb_beo: { en: 'Beryllium oxide', uz: 'Berilliy oksidi' },
-  tb_p4o10: { en: 'Phosphorus(V) oxide (P₄O₁₀)', uz: 'Fosfor(V) oksidi (P₄O₁₀)' },
+  tb_p4o10: { en: 'Phosphorus(V) oxide', uz: 'Fosfor(V) oksidi' }, // молекулы P₄O₁₀ — в описании (как RU «Оксид фосфора(V)»)
   tb_k2o2: { en: 'Potassium peroxide', uz: 'Kaliy peroksidi' },
   tb_bao2: { en: 'Barium peroxide', uz: 'Bariy peroksidi' },
   tb_ko2: { en: 'Potassium superoxide', uz: 'Kaliy nadperoksidi' },
@@ -168,7 +168,7 @@ const MANUAL: Record<string, { en: string; uz: string }> = {
   tb_ph3: { en: 'Phosphine', uz: 'Fosfin' },
   tb_sih4: { en: 'Silane', uz: 'Silan' },
   tb_cs2: { en: 'Carbon disulfide', uz: 'Uglerod disulfidi' },
-  tb_sif4: { en: 'Silicon tetrafluoride', uz: 'Kremniy(IV) ftoridi' },
+  tb_sif4: { en: 'Silicon tetrafluoride', uz: 'Kremniy ftoridi' }, // как RU «Фторид кремния» (Kimyo 9: «фторид кремния SiF₄»)
   tb_nah: { en: 'Sodium hydride', uz: 'Natriy gidridi' },
   tb_kh: { en: 'Potassium hydride', uz: 'Kaliy gidridi' },
   tb_cah2: { en: 'Calcium hydride', uz: 'Kalsiy gidridi' },

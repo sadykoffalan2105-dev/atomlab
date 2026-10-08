@@ -132,7 +132,7 @@ const MANUAL_DESC: Record<string, { en: string; uz: string }> = {
   },
   co: {
     en: 'Colorless, odorless toxic gas from incomplete combustion. Binds hemoglobin stronger than oxygen — a household hazard with poor ventilation. Compared with CO₂ in lessons.',
-    uz: 'To\'liq bo\'lmagan yonishdan hosil bo\'ladigan hidsiz zaharli gaz. Gemoglobinga kisloroddan kuchliroq bog\'lanadi — yomon shamollatishda xavfli. Darslarda CO₂ bilan solishtiriladi.',
+    uz: 'Is gazi — to\'liq bo\'lmagan yonishdan hosil bo\'ladigan hidsiz zaharli gaz. Gemoglobinga kisloroddan kuchliroq bog\'lanadi — yomon shamollatishda xavfli. Darslarda CO₂ bilan solishtiriladi.',
   },
   so2: {
     en: 'Colourless gas with the pungent smell of a burning match; dissolves in water forming acidic solution. Used industrially for sulfuric acid; food preservative in trace amounts. School demos cover solubility and redox of sulfur.',
@@ -262,6 +262,196 @@ const MANUAL_DESC: Record<string, { en: string; uz: string }> = {
   salt_k2cr2o7: {
     en: 'Orange-red crystals of strong chromium(VI) oxidizer. Organic oxidations and leather tanning; store away from reducers.',
     uz: 'To\'q sariq-qizil xrom(VI) kuchli oksidlovchi kristallari. Organik oksidlanish va charm ishlov; qaytaruvchilardan alohida saqlang.',
+  },
+  // Вещества учебников из каталога 200, у которых EN/UZ было общим fallback по классу (аудит g1, 08.10).
+  // Перевод по смыслу descriptionRu (compounds.ts / catalogCardOverrides200.ts), без новых фактов; UZ — латиница, o‘/g‘.
+  tb_al4c3: {
+    en: 'Aluminum carbide — yellow crystals; with water it releases methane (Al₄C₃ + 12H₂O → 4Al(OH)₃ + 3CH₄↑), a laboratory way to make methane. Made from Al₂O₃ and carbon in an electric furnace.',
+    uz: 'Alyuminiy karbidi — sariq kristallar; suv bilan metan ajratadi (Al₄C₃ + 12H₂O → 4Al(OH)₃ + 3CH₄↑) — metanni laboratoriyada olish usuli. Elektr pechda Al₂O₃ va ko‘mirdan olinadi.',
+  },
+  tb_aucl3: {
+    en: 'Gold(III) chloride — red-brown crystals formed when gold dissolves in aqua regia (a mixture of HNO₃ and HCl); neither of these acids dissolves gold on its own.',
+    uz: 'Oltin(III) xloridi — qizg‘ish-qo‘ng‘ir kristallar; oltin «shoh arog‘i»da (HNO₃ va HCl aralashmasi) eriganda hosil bo‘ladi, bu kislotalarning har biri alohida oltinni eritmaydi.',
+  },
+  tb_bao2: {
+    en: 'Barium peroxide — white powder with the peroxide anion O₂²⁻; formed when BaO is heated in air (~500 °C). With dilute sulfuric acid it gives hydrogen peroxide: BaO₂ + H₂SO₄ → BaSO₄↓ + H₂O₂.',
+    uz: 'Bariy peroksidi — oq kukun (O₂²⁻ anioni); BaO havoda ~500 °C da qizdirilganda hosil bo‘ladi. Suyultirilgan sulfat kislota bilan vodorod peroksid beradi: BaO₂ + H₂SO₄ → BaSO₄↓ + H₂O₂.',
+  },
+  tb_beo: {
+    en: 'Beryllium oxide — white refractory powder, an amphoteric oxide like ZnO and Al₂O₃; it does not react with water. Beryllium compounds are poisonous.',
+    uz: 'Berilliy oksidi — oq, qiyin suyuqlanadigan kukun, ZnO va Al₂O₃ kabi amfoter oksid; suv bilan reaksiyaga kirishmaydi. Berilliy birikmalari zaharli.',
+  },
+  tb_ca3p2: {
+    en: 'Calcium phosphide — red-brown solid; with water it releases poisonous, spontaneously flammable phosphine: Ca₃P₂ + 6H₂O → 3Ca(OH)₂ + 2PH₃↑.',
+    uz: 'Kalsiy fosfidi — qizg‘ish-qo‘ng‘ir modda; suv bilan zaharli, o‘z-o‘zidan alangalanadigan fosfin ajratadi: Ca₃P₂ + 6H₂O → 3Ca(OH)₂ + 2PH₃↑.',
+  },
+  tb_cah2po42: {
+    en: 'Calcium dihydrogen phosphate — a soluble acid salt, the active ingredient of superphosphate: simple superphosphate is a mixture of Ca(H₂PO₄)₂ with CaSO₄, double superphosphate is pure Ca(H₂PO₄)₂.',
+    uz: 'Kalsiy digidrofosfati — eriydigan nordon tuz, superfosfatning asosiy moddasi: oddiy superfosfat — Ca(H₂PO₄)₂ va CaSO₄ aralashmasi, qo‘sh superfosfat — sof Ca(H₂PO₄)₂.',
+  },
+  tb_cahpo4: {
+    en: 'Calcium hydrogen phosphate (precipitate) — a white, sparingly soluble acid salt used as a phosphorus fertilizer; made by neutralizing phosphoric acid with milk of lime in a 1 : 1 ratio.',
+    uz: 'Kalsiy gidrofosfati (pretsipitat) — oq, kam eriydigan nordon tuz, fosforli o‘g‘it; fosfat kislotani ohak suti bilan 1 : 1 nisbatda neytrallab olinadi.',
+  },
+  tb_caocl2: {
+    en: 'Bleaching powder — white powder smelling of chlorine, a mixed salt (Ca²⁺ cation, Cl⁻ and ClO⁻ anions); a strong oxidizer used for disinfection and bleaching. Made by passing chlorine through slaked lime.',
+    uz: 'Xlorli ohak — xlor hidli oq kukun, aralash tuz (Ca²⁺ kationi, Cl⁻ va ClO⁻ anionlari); kuchli oksidlovchi — dezinfeksiya va oqartirishda ishlatiladi. O‘chirilgan ohak orqali xlor o‘tkazib olinadi.',
+  },
+  tb_caso4_2h2o: {
+    en: 'Gypsum — white mineral, the crystal hydrate of calcium sulfate; heated to 150–180 °C it turns into plaster of Paris (CaSO₄)₂·H₂O, which sets back into gypsum when mixed with water.',
+    uz: 'Gips — oq mineral, kalsiy sulfatining kristallogidrati; 150–180 °C gacha qizdirilganda alebastrga (CaSO₄)₂·H₂O aylanadi, alebastr suv bilan qorilganda yana gipsga aylanib qotadi.',
+  },
+  tb_cl2o7: {
+    en: 'Chlorine(VII) oxide — colourless oily liquid, the anhydride of perchloric acid (Cl₂O₇ + H₂O → 2HClO₄); explosive. It is the higher oxide of chlorine, with chlorine in the +7 oxidation state.',
+    uz: 'Xlor(VII) oksidi — rangsiz moysimon suyuqlik, perxlorat kislotaning angidridi (Cl₂O₇ + H₂O → 2HClO₄); portlovchi. Xlorning yuqori oksidi — xlorning oksidlanish darajasi +7.',
+  },
+  tb_crcl2: {
+    en: 'Chromium(II) chloride — colourless crystals giving a blue solution; a strong reducing agent that is quickly oxidized in air to chromium(III) compounds.',
+    uz: 'Xrom(II) xloridi — rangsiz kristallar, eritmasi ko‘k; kuchli qaytaruvchi, havoda tezda Cr³⁺ birikmalarigacha oksidlanadi.',
+  },
+  tb_cro: {
+    en: 'Chromium(II) oxide — black powder, a basic oxide; a strong reducing agent that is oxidized in air to Cr₂O₃.',
+    uz: 'Xrom(II) oksidi — qora kukun, asosli oksid; kuchli qaytaruvchi, havoda Cr₂O₃ gacha oksidlanadi.',
+  },
+  tb_croh2: {
+    en: 'Chromium(II) hydroxide — yellow precipitate, a typical base; it is quickly oxidized by atmospheric oxygen to grey-green Cr(OH)₃.',
+    uz: 'Xrom(II) gidroksidi — sariq cho‘kma, tipik asos; havo kislorodi ta’sirida tezda kulrang-yashil Cr(OH)₃ gacha oksidlanadi.',
+  },
+  tb_croh3: {
+    en: 'Chromium(III) hydroxide — grey-green gelatinous precipitate; amphoteric: it dissolves both in acids and in alkalis.',
+    uz: 'Xrom(III) gidroksidi — kulrang-yashil iviqsimon cho‘kma; amfoter: kislotalarda ham, ishqorlarda ham eriydi.',
+  },
+  tb_cs2: {
+    en: 'Carbon disulfide — colourless, volatile, poisonous liquid, a solvent for sulfur, fats and rubber; made by passing sulfur vapour over red-hot coal at 900–1000 °C. Linear S=C=S molecule.',
+    uz: 'Uglerod disulfidi — rangsiz, uchuvchan, zaharli suyuqlik; oltingugurt, yog‘ va kauchukni eritadi. Oltingugurt bug‘ini 900–1000 °C da cho‘g‘langan ko‘mir ustidan o‘tkazib olinadi; molekulasi chiziqli S=C=S.',
+  },
+  tb_cu2s: {
+    en: 'Copper(I) sulfide — chalcocite (copper glance), a grey-black mineral and an important copper ore; formed when copper burns in sulfur vapour: 2Cu + S → Cu₂S.',
+    uz: 'Mis(I) sulfidi — xalkozin (mis yaltirog‘i), kulrang-qora mineral, muhim mis rudasi; mis oltingugurt bug‘ida yonganda hosil bo‘ladi: 2Cu + S → Cu₂S.',
+  },
+  tb_feso4_7h2o: {
+    en: 'Green vitriol — greenish crystals of iron(II) sulfate heptahydrate; it turns brown in air as Fe²⁺ is oxidized to Fe³⁺. Used against plant pests and to control moss.',
+    uz: 'Temir kuporosi — temir(II) sulfat kristallogidratining yashilroq kristallari; havoda Fe²⁺ ning Fe³⁺ gacha oksidlanishi tufayli qo‘ng‘ir tusga kiradi. O‘simlik zararkunandalari va moxga qarshi ishlatiladi.',
+  },
+  tb_h4p2o7: {
+    en: 'Pyrophosphoric (diphosphoric) acid — colourless glassy substance formed by heating orthophosphoric acid: 2H₃PO₄ → H₄P₂O₇ + H₂O. It is a tetrabasic acid.',
+    uz: 'Pirofosfat (difosfat) kislota — rangsiz shishasimon modda; ortofosfat kislota qizdirilganda hosil bo‘ladi: 2H₃PO₄ → H₄P₂O₇ + H₂O. To‘rt asosli kislota.',
+  },
+  tb_hpo3: {
+    en: 'Metaphosphoric acid — glassy mass (HPO₃)ₙ formed when P₂O₅ reacts with cold water; on boiling the solution it turns into orthophosphoric acid H₃PO₄.',
+    uz: 'Metafosfat kislota — shishasimon massa (HPO₃)ₙ; P₂O₅ sovuq suv bilan reaksiyaga kirishganda hosil bo‘ladi, eritma qaynatilganda ortofosfat kislota H₃PO₄ ga aylanadi.',
+  },
+  tb_k2mno4: {
+    en: 'Potassium manganate — dark green crystals (manganese +6) formed when permanganate decomposes: 2KMnO₄ → K₂MnO₄ + MnO₂ + O₂↑. In water the green manganate turns into purple permanganate and brown MnO₂.',
+    uz: 'Kaliy manganati — to‘q yashil kristallar (marganets +6); permanganat parchalanganda hosil bo‘ladi: 2KMnO₄ → K₂MnO₄ + MnO₂ + O₂↑. Suvda yashil manganat binafsha permanganat va qo‘ng‘ir MnO₂ ga aylanadi.',
+  },
+  tb_k2o2: {
+    en: 'Potassium peroxide — yellow solid (oxygen −1), formed together with the superoxide KO₂ when potassium burns. With water it releases oxygen and forms KOH.',
+    uz: 'Kaliy peroksidi — sariq modda (kislorod −1); kaliy yonganda KO₂ nadperoksidi bilan birga hosil bo‘ladi. Suv bilan kislorod ajratadi va KOH hosil qiladi.',
+  },
+  tb_kcl_mgcl2_6h2o: {
+    en: 'Carnallite — a natural mineral, the double salt crystal hydrate KCl·MgCl₂·6H₂O; raw material for magnesium (by electrolysis of the melt) and for potash fertilizers.',
+    uz: 'Karnallit — tabiiy mineral, KCl·MgCl₂·6H₂O qo‘sh tuz-kristallogidrati; magniy (suyuqlanmani elektroliz qilib) va kaliyli o‘g‘itlar olish uchun xom ashyo.',
+  },
+  tb_kcl_mgso4_3h2o: {
+    en: 'Kainite — a natural mineral, the double salt KCl·MgSO₄·3H₂O, used as a potassium–magnesium fertilizer.',
+    uz: 'Kainit — tabiiy mineral, KCl·MgSO₄·3H₂O qo‘sh tuzi; kaliy-magniyli o‘g‘it sifatida ishlatiladi.',
+  },
+  tb_kcl_nacl: {
+    en: 'Sylvinite — a natural intergrowth of KCl and NaCl crystals (two lattices, not one compound) and the main potassium ore; KCl for fertilizers is extracted from it.',
+    uz: 'Silvinit — KCl va NaCl kristallarining tabiiy qo‘shilmasi (bitta birikma emas, ikki panjara), asosiy kaliy rudasi; undan o‘g‘itlar uchun KCl ajratib olinadi.',
+  },
+  tb_kclo: {
+    en: 'Potassium hypochlorite — salt of hypochlorous acid (chlorine +1) that exists in solution (“Javel water”); a strong oxidizer and bleach. Formed when chlorine is passed into a cold KOH solution.',
+    uz: 'Kaliy gipoxloriti — gipoxlorit kislota tuzi (xlor +1), eritmada mavjud («javel suvi»); kuchli oksidlovchi va oqartiruvchi. Sovuq KOH eritmasiga xlor o‘tkazilganda hosil bo‘ladi.',
+  },
+  tb_kh: {
+    en: 'Potassium hydride — an ionic hydride K⁺H⁻ formed when potassium is heated in hydrogen; it reacts violently with water, releasing hydrogen.',
+    uz: 'Kaliy gidridi — K⁺H⁻ ionli gidrid; kaliy vodorodda qizdirilganda hosil bo‘ladi, suv bilan shiddatli reaksiyaga kirishib vodorod ajratadi.',
+  },
+  tb_ko2: {
+    en: 'Potassium superoxide — orange-yellow solid (O₂⁻ anion, oxygen −½) formed when potassium burns: K + O₂ → KO₂. It absorbs CO₂ and releases oxygen, regenerating air in gas masks.',
+    uz: 'Kaliy nadperoksidi — to‘q sariq-sariq modda (O₂⁻ anioni, kislorod −½); kaliy yonganda hosil bo‘ladi: K + O₂ → KO₂. CO₂ ni yutib kislorod ajratadi — gazniqoblarda havoni qayta tiklash uchun.',
+  },
+  tb_mg3po42: {
+    en: 'Magnesium phosphate — white insoluble precipitate obtained by exchange in solution: 3MgSO₄ + 2Na₃PO₄ → Mg₃(PO₄)₂↓ + 3Na₂SO₄. It is part of bone tissue.',
+    uz: 'Magniy fosfati — oq, erimaydigan cho‘kma; eritmada almashinish reaksiyasi bilan olinadi: 3MgSO₄ + 2Na₃PO₄ → Mg₃(PO₄)₂↓ + 3Na₂SO₄. Suyak to‘qimasi tarkibiga kiradi.',
+  },
+  tb_mn2o3: {
+    en: 'Manganese(III) oxide — brown-black powder formed when MnO₂ is calcined: 4MnO₂ → 2Mn₂O₃ + O₂↑. A basic oxide.',
+    uz: 'Marganets(III) oksidi — qo‘ng‘ir-qora kukun; MnO₂ qattiq qizdirilganda hosil bo‘ladi: 4MnO₂ → 2Mn₂O₃ + O₂↑. Asosli oksid.',
+  },
+  tb_mn2o7: {
+    en: 'Manganese(VII) oxide — greenish-brown oily liquid, the anhydride of permanganic acid HMnO₄; an extremely strong oxidizer that explodes on heating. Formed by the action of concentrated H₂SO₄ on KMnO₄.',
+    uz: 'Marganets(VII) oksidi — yashilroq-qo‘ng‘ir moysimon suyuqlik, permanganat kislota HMnO₄ angidridi; juda kuchli oksidlovchi, qizdirilganda portlaydi. Konsentrlangan H₂SO₄ ning KMnO₄ ga ta’siridan hosil bo‘ladi.',
+  },
+  tb_mn3o4: {
+    en: 'Manganese(II,III) oxide — brown-black mixed oxide MnO·Mn₂O₃ (the mineral hausmannite), formed by strong calcination of MnO₂.',
+    uz: 'Marganets(II,III) oksidi — qo‘ng‘ir-qora aralash oksid MnO·Mn₂O₃ (gausmanit minerali); MnO₂ kuchli qizdirilganda hosil bo‘ladi.',
+  },
+  tb_mno: {
+    en: 'Manganese(II) oxide — green powder, a basic oxide; with acids it gives Mn²⁺ salts.',
+    uz: 'Marganets(II) oksidi — yashil kukun, asosli oksid; kislotalar bilan Mn²⁺ tuzlarini hosil qiladi.',
+  },
+  tb_n2o3: {
+    en: 'Nitrogen(III) oxide — dark blue liquid, stable only below −4 °C; the anhydride of nitrous acid (N₂O₃ + H₂O → 2HNO₂). At room temperature it decomposes into NO and NO₂.',
+    uz: 'Azot(III) oksidi — to‘q ko‘k suyuqlik, faqat −4 °C dan past haroratda barqaror; nitrit kislota angidridi (N₂O₃ + H₂O → 2HNO₂). Xona haroratida NO va NO₂ ga parchalanadi.',
+  },
+  tb_n2o4: {
+    en: 'Dinitrogen tetroxide (nitrogen(IV) oxide dimer) — colourless dimer of brown NO₂: on cooling the equilibrium 2NO₂ ⇄ N₂O₄ shifts to the right (below 21 °C it is a colourless liquid), and on heating the gas turns brown again — a classic example of equilibrium shift.',
+    uz: 'Diazot tetraoksidi (azot(IV) oksidi dimeri) — qo‘ng‘ir NO₂ ning rangsiz dimeri: sovutilganda 2NO₂ ⇄ N₂O₄ muvozanati o‘ngga siljiydi (21 °C dan past — rangsiz suyuqlik), qizdirilganda gaz yana qo‘ng‘ir tusga kiradi. Kimyoviy muvozanat siljishining klassik misoli.',
+  },
+  tb_na2so4_10h2o: {
+    en: 'Glauber’s salt — colourless crystals of sodium sulfate decahydrate that effloresce (lose water) in air; used as a laxative and as raw material for glass and soda.',
+    uz: 'Glauber tuzi — natriy sulfat dekagidratining rangsiz kristallari, havoda nuraydi (suvini yo‘qotadi); surgi dori, shisha va soda uchun xom ashyo.',
+  },
+  tb_na2zno2: {
+    en: 'Sodium zincate — white salt formed by fusing ZnO or Zn(OH)₂ with alkali, which shows the amphoteric nature of zinc. In aqueous solution it exists as Na₂[Zn(OH)₄].',
+    uz: 'Natriy sinkati — oq tuz; ZnO yoki Zn(OH)₂ ni ishqor bilan suyuqlantirib olinadi — ruxning amfoterligini ko‘rsatadi. Suvli eritmada Na₂[Zn(OH)₄] holida bo‘ladi.',
+  },
+  tb_na2znoh4: {
+    en: 'Sodium tetrahydroxozincate — a complex salt with the [Zn(OH)₄]²⁻ anion, formed when Zn(OH)₂ or zinc dissolves in an alkali solution.',
+    uz: 'Natriy tetragidroksosinkati — [Zn(OH)₄]²⁻ anionli kompleks tuz; Zn(OH)₂ yoki rux ishqor eritmasida eriganda hosil bo‘ladi.',
+  },
+  tb_na3po4: {
+    en: 'Sodium phosphate — white soluble salt whose solution is strongly alkaline (hydrolysis); it softens water by precipitating Ca²⁺ and Mg²⁺. With AgNO₃ it gives a yellow Ag₃PO₄ precipitate — the test for the phosphate ion.',
+    uz: 'Natriy fosfati — oq, eriydigan tuz, eritmasi kuchli ishqoriy (gidroliz); Ca²⁺ va Mg²⁺ ni cho‘ktirib suvni yumshatadi. AgNO₃ bilan sariq Ag₃PO₄ cho‘kmasini beradi — fosfat ioniga sifat reaksiyasi.',
+  },
+  tb_naalo2: {
+    en: 'Sodium metaaluminate — white salt formed by fusing Al₂O₃ or Al(OH)₃ with alkali, which shows the amphoteric nature of aluminum. In aqueous solution it exists as Na[Al(OH)₄].',
+    uz: 'Natriy metaalyuminati — oq tuz; Al₂O₃ yoki Al(OH)₃ ni ishqor bilan suyuqlantirib olinadi — alyuminiyning amfoterligini ko‘rsatadi. Suvli eritmada Na[Al(OH)₄] holida bo‘ladi.',
+  },
+  tb_nah: {
+    en: 'Sodium hydride — white ionic solid with hydrogen in the −1 oxidation state; made by heating sodium in hydrogen. With water it releases H₂ and forms an alkali.',
+    uz: 'Natriy gidridi — oq ionli modda, vodorodning oksidlanish darajasi −1; natriyni vodorodda qizdirib olinadi. Suv bilan H₂ ajratadi va ishqor hosil qiladi.',
+  },
+  tb_nahso4: {
+    en: 'Sodium hydrogen sulfate — an acid salt of sulfuric acid (one hydrogen atom remains in the acid residue); white crystals with an acidic solution. Formed with excess acid (NaOH + H₂SO₄ → NaHSO₄ + H₂O) and when NaCl is heated with concentrated H₂SO₄.',
+    uz: 'Natriy gidrosulfati — sulfat kislotaning nordon tuzi (kislota qoldig‘ida bitta vodorod atomi qolgan); oq kristallar, eritmasi nordon. Kislota ortiqcha bo‘lganda (NaOH + H₂SO₄ → NaHSO₄ + H₂O) va NaCl konsentrlangan H₂SO₄ bilan qizdirilganda hosil bo‘ladi.',
+  },
+  tb_nh42hpo4: {
+    en: 'Diammonium hydrogen phosphate — white soluble salt, a component of the compound fertilizer ammophos (it supplies both nitrogen and phosphorus); made by neutralizing phosphoric acid with ammonia.',
+    uz: 'Ammoniy gidrofosfati — oq, eriydigan tuz, ammofos kompleks o‘g‘itining tarkibiy qismi (ham azot, ham fosfor beradi); fosfat kislotani ammiak bilan neytrallab olinadi.',
+  },
+  tb_p4o10: {
+    en: 'Phosphorus(V) oxide — white hygroscopic powder built of real P₄O₁₀ molecules (simplest formula P₂O₅); a very powerful drying agent that gives phosphoric acids with water.',
+    uz: 'Fosfor(V) oksidi — oq gigroskopik kukun, haqiqiy P₄O₁₀ molekulalaridan iborat (eng oddiy formulasi P₂O₅); juda kuchli quritgich, suv bilan fosfat kislotalarni hosil qiladi.',
+  },
+  tb_ph3: {
+    en: 'Phosphine — colourless poisonous gas smelling of garlic; it ignites spontaneously in air (the “will-o’-the-wisp” over marshes). Made by hydrolysis of calcium phosphide.',
+    uz: 'Fosfin — sarimsoq hidli rangsiz zaharli gaz; havoda o‘z-o‘zidan alangalanadi. Kalsiy fosfidining gidrolizidan olinadi.',
+  },
+  tb_sif4: {
+    en: 'Silicon tetrafluoride — colourless gas formed when glass is etched with hydrofluoric acid: SiO₂ + 4HF → SiF₄↑ + 2H₂O. The molecule is tetrahedral.',
+    uz: 'Kremniy ftoridi (SiF₄) — rangsiz gaz; shisha ftorid kislota bilan yedirilganda hosil bo‘ladi: SiO₂ + 4HF → SiF₄↑ + 2H₂O. Molekulasi tetraedrik.',
+  },
+  tb_sih4: {
+    en: 'Silane — colourless gas, the silicon analogue of methane; it ignites spontaneously in air (SiH₄ + 2O₂ → SiO₂ + 2H₂O). Made by the action of acid on magnesium silicide.',
+    uz: 'Silan — rangsiz gaz, metanning kremniyli analogi; havoda o‘z-o‘zidan alangalanadi (SiH₄ + 2O₂ → SiO₂ + 2H₂O). Magniy silitsidiga kislota ta’sir ettirib olinadi.',
+  },
+  tb_v2o5: {
+    en: 'Vanadium(V) oxide — orange-yellow powder, an acidic oxide; the catalyst for oxidizing SO₂ to SO₃ in the contact process for sulfuric acid.',
+    uz: 'Vanadiy(V) oksidi — to‘q sariq-sariq kukun, kislotali oksid; sulfat kislota ishlab chiqarishning kontakt usulida SO₂ ni SO₃ ga oksidlash katalizatori.',
   },
 }
 
