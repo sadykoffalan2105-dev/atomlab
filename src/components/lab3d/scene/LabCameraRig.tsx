@@ -11,6 +11,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { BOARD_CENTER, BOARD_SIZE } from '../labContract'
 import { labEvents } from '../labEvents'
 import type { LabSceneBridge } from './labBridge'
+import { labCameraInsets } from './labCameraInsets'
 import { hoodSash } from './LabHood'
 import {
   CAMERA_BOUNDS,
@@ -49,6 +50,11 @@ interface Flight {
   focus: boolean
 }
 
+/**
+ * Полуширина свободной части экрана компьютера на крупном плане, в долях расстояния до предмета:
+ * 1280×800, поле зрения 48°, панель опыта слева ≈ 376 px → tan 24° · (1280 − 376) / 800 ≈ 0,5.
+ */
+const PC_FOCUS_HALF_W = 0.5
 const MAX_POLAR = 1.52
 const MAX_POLAR_HOOD = 1.64
 /** Камера у проёма вытяжки или в нём (там можно смотреть на риску снизу вверх). */
@@ -169,24 +175,47 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
     if (!placed.current) return
     const pose = poseFor(view)
     flyTo(pose.position, pose.target)
-    // ученик выбрал вид — возврат после крупного плана идёт уже в этот вид
+    // ученик выбрал вид — возврат после крупного плана идёт уже в этот вид; крупный план за панелью больше не следит
     before.current = null
+    focusRaw.current = null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, viewNonce, portrait, leftInsetPx])
 
-  /** Сдвиг крупного плана по экрану: предмет — в середине свободной части экрана (справа от панели опыта). */
+  /**
+   * Сдвиг крупного плана по экрану: предмет — в середине свободной части экрана (справа от панели опыта; на телефоне —
+   * между полосой видов сверху и подсказкой/панелью снизу: раскрытая панель поднимает предмет над собой).
+   */
   const centerInFree = (pos: THREE.Vector3, target: THREE.Vector3) => {
     const fov = portrait ? 58 : 48
     const inset = portrait ? 0 : Math.min(leftInsetPx, size.width * 0.45)
-    if (inset <= 0) return
+    const ins = labCameraInsets.get()
+    // на сколько px вниз от середины холста середина свободной полосы (не больше четверти высоты)
+    const down = THREE.MathUtils.clamp((ins.top - ins.bottom) / 2, -size.height * 0.25, size.height * 0.25)
+    if (inset <= 0 && Math.abs(down) < 1) return
     const dist = pos.distanceTo(target)
     const worldPerPx = (2 * dist * Math.tan(THREE.MathUtils.degToRad(fov) / 2)) / Math.max(1, size.height)
     const dir = target.clone().sub(pos).normalize()
-    const right = dir.cross(new THREE.Vector3(0, 1, 0))
+    const right = dir.clone().cross(new THREE.Vector3(0, 1, 0))
     if (right.lengthSq() < 1e-8) return
-    const shift = right.normalize().multiplyScalar(-(inset / 2) * worldPerPx)
+    right.normalize()
+    const up = right.clone().cross(dir).normalize()
+    // взгляд вверх — предмет на экране ниже (и наоборот)
+    const shift = right.multiplyScalar(-(inset / 2) * worldPerPx).addScaledVector(up, down * worldPerPx)
     pos.add(shift)
     target.add(shift)
+  }
+
+  /**
+   * Телефон (портрет): по ширине видно втрое меньше, чем на компьютере, — крупный план отъезжает, чтобы по ширине
+   * поместилось столько же, сколько в свободной части экрана компьютера. Крупный план шкалы (бюретка, газометр — с
+   * 0,1–0,2 м) отъезжает меньше: деления и цифры должны читаться.
+   */
+  const phoneFocusDistance = (pos: THREE.Vector3, target: THREE.Vector3) => {
+    if (!portrait) return
+    const halfW = Math.tan(THREE.MathUtils.degToRad(58) / 2) * (size.width / Math.max(1, size.height))
+    const f0 = THREE.MathUtils.clamp(PC_FOCUS_HALF_W / halfW, 1, 1.8)
+    const k = THREE.MathUtils.clamp((pos.distanceTo(target) - 0.1) / 0.2, 0.3, 1)
+    pos.sub(target).multiplyScalar(1 + (f0 - 1) * k).add(target)
   }
 
   // Крупный план от опыта ('focus') и возврат в текущий вид ('focusReset'); двойной клик по предмету — приближение
@@ -194,6 +223,29 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
   poseRef.current = poseFor
   const centerRef = useRef(centerInFree)
   centerRef.current = centerInFree
+  const phoneDistRef = useRef(phoneFocusDistance)
+  phoneDistRef.current = phoneFocusDistance
+  /** Крупный план на экране — до сдвига в свободную часть экрана (чтобы пересчитать сдвиг, когда панель раскрыли). */
+  const focusRaw = useRef<{ position: THREE.Vector3; target: THREE.Vector3 } | null>(null)
+  // Раскрыли/свернули панель на телефоне при крупном плане — предмет переезжает в середину свободной полосы
+  // (если ученик сам не повернул камеру)
+  useEffect(
+    () =>
+      labCameraInsets.subscribe(() => {
+        const raw = focusRaw.current
+        const c = controls.current
+        if (!raw || !c || userTook.current) return
+        const end = focusEnd.current
+        if (end && !flight.current && (camera.position.distanceTo(end.position) > 0.08 || c.target.distanceTo(end.target) > 0.08)) return
+        const pos = raw.position.clone()
+        const target = raw.target.clone()
+        centerRef.current(pos, target)
+        focusEnd.current = null
+        flyTo(pos, target, 0.5, true)
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [camera],
+  )
   const viewRef = useRef(view)
   viewRef.current = view
   useEffect(() => {
@@ -212,8 +264,11 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
       }
       userTook.current = false
       focusEnd.current = null
-      const pos = new THREE.Vector3(...e.position).clamp(CAMERA_BOUNDS.min, CAMERA_BOUNDS.max)
       const target = new THREE.Vector3(...e.target)
+      const pos = new THREE.Vector3(...e.position)
+      phoneDistRef.current(pos, target)
+      pos.clamp(CAMERA_BOUNDS.min, CAMERA_BOUNDS.max)
+      focusRaw.current = { position: pos.clone(), target: target.clone() }
       centerRef.current(pos, target)
       log('focus')
       flyTo(pos, target, 1.1, true)
@@ -224,6 +279,7 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
       const end = focusEnd.current
       before.current = null
       focusEnd.current = null
+      focusRaw.current = null
       // ученик сам повернул/приблизил камеру на крупном плане — оставляем его ракурс
       const moved = !!end && !!c && !flight.current && (camera.position.distanceTo(end.position) > 0.08 || c.target.distanceTo(end.target) > 0.08)
       if (userTook.current || moved) {
@@ -321,6 +377,13 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
     w.__labCam = {
       scene: () => scene,
       get: () => ({ position: r3(camera.position), target: controls.current ? r3(controls.current.target) : null }),
+      // предмет крупного плана (до сдвига в свободную часть экрана) на холсте, CSS px от левого верхнего угла холста
+      focusOnScreen: () => {
+        const raw = focusRaw.current
+        if (!raw) return null
+        const p = raw.target.clone().project(camera)
+        return [Math.round(((p.x + 1) / 2) * size.width), Math.round(((1 - p.y) / 2) * size.height)]
+      },
       set: (p: [number, number, number], t: [number, number, number]) => {
         flight.current = null
         camera.position.set(...p)
@@ -331,7 +394,7 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
     return () => {
       delete w.__labCam
     }
-  }, [camera, scene])
+  }, [camera, scene, size.width, size.height])
 
   return (
     <OrbitControls
