@@ -363,6 +363,17 @@ export const labAudio = {
    * Разблокировка после первого действия пользователя (политика автозапуска браузера).
    * Возвращает отписку для useEffect.
    */
+  /** Разблокировать сразу: вход в VR (нажатие кнопки / select контроллера — жест пользователя, а pointerdown в шлеме нет). */
+  unlockNow(): void {
+    const c = ensureCtx()
+    if (!c) return
+    void c.resume().catch(() => {})
+    if (!unlocked) {
+      unlocked = true
+      startAmbience()
+      notify()
+    }
+  },
   attachUnlock(): () => void {
     if (typeof window === 'undefined') return () => {}
     const unlock = () => {

@@ -57,6 +57,8 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
     ),
     equation: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl',
     kind: 'exchange',
+    // серная кислота: очки (§ 1.4)
+    gear: ['goggles'],
     grade: 7,
     page: 67,
     equipment: [
@@ -126,9 +128,9 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
           'Bo‘sh probirkani shtativga qo‘ying va kuzating.',
         ),
         observation: t(
-          'Белый осадок BaSO₄↓ оседает на дно, над ним — прозрачный раствор соляной кислоты HCl.',
-          'The white precipitate BaSO₄↓ settles to the bottom; above it is a clear solution of hydrochloric acid HCl.',
-          'Oq cho‘kma BaSO₄↓ tubga cho‘kadi, uning ustida — xlorid kislota HCl ning tiniq eritmasi.',
+          'Тяжёлый белый осадок BaSO₄↓ оседает на дно, над ним — прозрачный раствор соляной кислоты HCl: в кислоте BaSO₄ не растворяется.',
+          'The heavy white precipitate BaSO₄↓ settles to the bottom; above it is a clear solution of hydrochloric acid HCl: BaSO₄ does not dissolve in the acid.',
+          'Ogʻir oq choʻkma BaSO₄↓ tubga choʻkadi, uning ustida — xlorid kislota HCl ning tiniq eritmasi: BaSO₄ kislotada erimaydi.',
         ),
       },
     ],
@@ -146,6 +148,8 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
     kind: 'combustion',
     grade: 7,
     page: 67,
+    // пламя горелки: очки (§ 1.4)
+    gear: ['goggles'],
     equipment: [
       t('Газовая горелка (природный газ — метан CH₄)', 'Gas burner (natural gas is methane CH₄)', 'Gaz gorelkasi (tabiiy gaz — metan CH₄)'),
       t('Спички', 'Matches', 'Gugurt'),
@@ -239,6 +243,8 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
     kind: 'substitution',
     grade: 7,
     page: 67,
+    // кислота: очки (§ 1.4)
+    gear: ['goggles'],
     equipment: [
       t('Штатив для пробирок, пробирка', 'Test-tube rack, test tube', 'Probirkalar shtativi, probirka'),
       t('Гранулы цинка Zn, пинцет', 'Zinc granules Zn, tweezers', 'Rux granulalari Zn, pinset'),
@@ -321,6 +327,8 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
     kind: 'substitution',
     grade: 7,
     page: 115,
+    // кислота и пламя: очки (§ 1.4)
+    gear: ['goggles'],
     equipment: [
       t(
         'Пробирка с газоотводной трубкой (вместо аппарата Кирюшкина)',
@@ -428,9 +436,9 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
           'To‘nkarilgan holda vodorodli probirka og‘zini spirt lampasi alangasiga yaqinlashtiring.',
         ),
         observation: t(
-          'Глухой тихий хлопок — водород чистый. Громкий «лающий» хлопок означал бы смесь с воздухом — она взрывоопасна.',
-          'A quiet, dull pop: the hydrogen is pure. A loud “barking” pop would mean a mixture with air, which is explosive.',
-          'Bo‘g‘iq past ovoz — vodorod toza. Baland «akillagan» ovoz havo bilan aralashmani bildiradi — u portlovchi.',
+          'В первый раз — громкий «лающий» хлопок: в пробирке была смесь водорода с воздухом (она взрывоопасна). Пробирку снова наполняют водородом — теперь глухой тихий хлопок: водород чистый.',
+          'The first time there is a loud “barking” pop: the tube held a mixture of hydrogen and air (it is explosive). The tube is filled with hydrogen again, and now the pop is quiet and dull: the hydrogen is pure.',
+          'Birinchi marta — baland «akillagan» ovoz: probirkada vodorodning havo bilan aralashmasi bor edi (u portlovchi). Probirka yana vodorod bilan toʻldiriladi — endi boʻgʻiq past ovoz: vodorod toza.',
         ),
       },
       {
@@ -442,9 +450,9 @@ export const LAB_EXPERIMENTS: readonly LabExperimentDef[] = [
           'Gaz o‘tkazgich nay uchida vodorodni yoqing va alangaga sovuq shisha plastinkani tuting.',
         ),
         observation: t(
-          'Водород горит голубоватым пламенем, на стекле появляются капли воды: 2H₂ + O₂ → 2H₂O.',
-          'Hydrogen burns with a bluish flame and drops of water appear on the glass: 2H₂ + O₂ → 2H₂O.',
-          'Vodorod havorang alanga bilan yonadi, shishada suv tomchilari paydo bo‘ladi: 2H₂ + O₂ → 2H₂O.',
+          'Чистый водород горит почти бесцветным, бледно-голубым пламенем, на холодном стекле появляются капли воды: 2H₂ + O₂ → 2H₂O.',
+          'Pure hydrogen burns with an almost colourless, pale-blue flame, and drops of water appear on the cold glass: 2H₂ + O₂ → 2H₂O.',
+          'Toza vodorod deyarli rangsiz, och havorang alanga bilan yonadi, sovuq shishada suv tomchilari paydo boʻladi: 2H₂ + O₂ → 2H₂O.',
         ),
       },
     ],

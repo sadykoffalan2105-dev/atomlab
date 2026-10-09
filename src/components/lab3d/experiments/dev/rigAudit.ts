@@ -238,3 +238,32 @@ export function auditSelfTest(root: THREE.Object3D): { wall: boolean; float: boo
   root.remove(hose, floater)
   return { wall: found.some((f) => f.kind === 'wall' && f.what === 'шланг'), float: found.some((f) => f.kind === 'float') }
 }
+
+export interface RigOrientationIssue {
+  kind: 'orientation'
+  what: string
+  detail: string
+}
+
+/**
+ * Ориентация пробирок: группа с userData.labOrientation ('mouthUp' | 'mouthDown') и диапазоном прогресса
+ * labOrientationRange — локальная ось +Y группы (от дна к отверстию) в мире должна смотреть вверх или вниз.
+ * Приёмник газа легче воздуха (H₂, NH₃) — дном вверх; пробирка со смесью NH₄Cl + Ca(OH)₂ — отверстием чуть вниз.
+ */
+export function auditOrientation(root: THREE.Object3D, p: number): RigOrientationIssue[] {
+  const out: RigOrientationIssue[] = []
+  root.updateWorldMatrix(true, true)
+  const axis = new THREE.Vector3()
+  const q = new THREE.Quaternion()
+  root.traverse((o) => {
+    const u = o.userData as { labOrientation?: 'mouthUp' | 'mouthDown'; labOrientationRange?: readonly [number, number] }
+    if (!u.labOrientation) return
+    const r = u.labOrientationRange
+    if (r && (p < r[0] || p > r[1])) return
+    o.getWorldQuaternion(q)
+    axis.set(0, 1, 0).applyQuaternion(q)
+    const ok = u.labOrientation === 'mouthDown' ? axis.y < -0.05 : axis.y > 0.05
+    if (!ok) out.push({ kind: 'orientation', what: o.parent?.name || o.name || 'пробирка', detail: `ждём ${u.labOrientation}, ось Y = ${axis.y.toFixed(2)} при p = ${p.toFixed(2)}` })
+  })
+  return out
+}

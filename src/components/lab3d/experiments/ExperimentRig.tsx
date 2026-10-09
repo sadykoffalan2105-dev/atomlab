@@ -17,7 +17,9 @@ import { getLabExperiment, LAB_STEP_ACTIONS } from '../../../data/labWorks/labEx
 import { RigContext, type RigContextValue } from './rigCore'
 import { RIG_FOCUS, RIG_GESTURES, RIG_STEP_SECONDS } from './rigTargets'
 import { GestureGhost, ObsLabels } from './rigGuides'
-import { auditRig, auditSelfTest } from './dev/rigAudit'
+import { auditOrientation, auditRig, auditSelfTest } from './dev/rigAudit'
+import { labXr } from '../xr/labXrStore'
+import type { XrEventInfo } from '../xr/xrRayInput'
 import { Baso4Rig } from './rigs/Baso4Rig'
 import { Ch4BurnRig } from './rigs/Ch4BurnRig'
 import { H2PracticalRig } from './rigs/H2PracticalRig'
@@ -183,20 +185,24 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
     [def, play, total],
   )
 
-  /** Луч указателя → точка на плоскости жеста (локальные координаты установки). */
+  /** Мировой луч (мышь/палец или луч VR-контроллера) → точка на плоскости жеста (локальные координаты установки). */
+  const hitOnRay = useCallback((ray: THREE.Ray, sc: Scrub): THREE.Vector3 | null => {
+    const g = root.current
+    if (!g) return null
+    tmpInv.copy(g.matrixWorld).invert()
+    tmpRay.copy(ray).applyMatrix4(tmpInv)
+    tmpPlane.setFromNormalAndCoplanarPoint(sc.normal, sc.start)
+    return tmpRay.intersectPlane(tmpPlane, tmpHit)
+  }, [])
+  /** Экранная точка указателя → луч из камеры → точка на плоскости жеста. */
   const hitOnPlane = useCallback(
     (clientX: number, clientY: number, sc: Scrub): THREE.Vector3 | null => {
-      const g = root.current
-      if (!g) return null
       const r = gl.domElement.getBoundingClientRect()
       tmpNdc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1)
       tmpCaster.setFromCamera(tmpNdc, camera)
-      tmpInv.copy(g.matrixWorld).invert()
-      tmpRay.copy(tmpCaster.ray).applyMatrix4(tmpInv)
-      tmpPlane.setFromNormalAndCoplanarPoint(sc.normal, sc.start)
-      return tmpRay.intersectPlane(tmpPlane, tmpHit)
+      return hitOnRay(tmpCaster.ray, sc)
     },
-    [camera, gl],
+    [camera, gl, hitOnRay],
   )
 
   const beginGesture = useCallback(
@@ -219,6 +225,27 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
       const sc: Scrub = { step: s, target: name, start, normal, dir, len2, lead: gst.lead, k: 0 }
       scrub.current = sc
       setDragging(true)
+      // луч VR-контроллера (или его эмуляция): жест ведёт луч каждый кадр, конец — отпускание кнопки (selectend)
+      const xr = (e as unknown as { xr?: XrEventInfo }).xr
+      if (xr) {
+        let done = false
+        const end = (ok: boolean) => {
+          if (done) return
+          done = true
+          scrub.current = null
+          setDragging(false)
+          if (ok && stepRef.current === sc.step) play(sc.step)
+        }
+        xr.onFrame((ray) => {
+          if (done) return
+          const hit = hitOnRay(ray, sc)
+          if (!hit) return
+          sc.k = Math.max(0, Math.min(1, hit.sub(sc.start).dot(sc.dir) / sc.len2))
+          if (sc.k >= MAGNET) end(true)
+        })
+        xr.onEnd(() => end(sc.k >= RELEASE_OK))
+        return
+      }
       const ctl = controlsRef.current as unknown as { enabled?: boolean } | null
       if (ctl) ctl.enabled = false
       document.body.style.cursor = 'grabbing'
@@ -247,8 +274,13 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
       window.addEventListener('pointerup', onUp)
       window.addEventListener('pointercancel', onCancel)
     },
-    [camera, def, experimentId, hitOnPlane, play, total],
+    [camera, def, experimentId, hitOnPlane, hitOnRay, play, total],
   )
+
+  // VR-доска и наручный HUD (файлы xr/**) рисуют текущий опыт и шаг на canvas-текстуре — публикуем их в labXr
+  useEffect(() => {
+    labXr.set({ run: { experimentId, step, lang, quality } })
+  }, [experimentId, step, lang, quality])
 
   // Для автоматической проверки жестов (Playwright): …#/vr-lab?debugLab=1 — window.__labGesture() отдаёт экранные
   // точки начала и конца жеста текущего шага (CSS px), как их проходит палец ученика
@@ -289,6 +321,8 @@ function RigRunner({ experimentId, step, onAdvance, quality, lang }: ExperimentR
         if (v != null) p.current = v
       },
       audit: () => (root.current ? auditRig(root.current) : []),
+      // ориентация пробирок (userData.labOrientation в установках): приёмник лёгкого газа (H₂, NH₃) — дном вверх
+      orient: () => (root.current ? auditOrientation(root.current, p.current) : []),
       selfTest: () => (root.current ? auditSelfTest(root.current) : null),
       view: (pos: readonly number[], target: readonly number[]) =>
         labEvents.emit({ type: 'focus', position: toWorld([pos[0]!, pos[1]!, pos[2]!]), target: toWorld([target[0]!, target[1]!, target[2]!]) }),

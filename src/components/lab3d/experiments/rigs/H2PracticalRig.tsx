@@ -35,9 +35,18 @@ const level: PFn = (p) => LEVEL * ease(p, 0.42, 0.75)
 const bubbles: PFn = (p) => ease(p, 1.62, 1.85)
 const lampFlame: PFn = (p) => ease(p, 4.6, 4.8)
 const outletFlame: PFn = (p) => ease(p, 6.05, 6.25)
-const popFlash: PFn = (p) => hill(p, 5.5, 5.66, 0.3)
+/**
+ * Проверка на чистоту (Kimyo 7, с. 115–116) — две пробы: первая пробирка ещё с воздухом → громкий «лающий» хлопок
+ * (вспышка крупнее); пробирку снова надевают на трубку, набирают водород → вторая проба: глухой тихий хлопок.
+ */
+const POP1 = 5.31
+const POP2 = 5.85
+const popFlash: PFn = (p) => Math.max(hill(p, POP1 - 0.03, POP1 + 0.07, 0.3), 0.55 * hill(p, POP2 - 0.02, POP2 + 0.05, 0.3))
+/** Водород в приёмнике: набран → сгорел при 1-й пробе → набран снова → сгорел при 2-й. */
+const collectGas: PFn = (p) =>
+  ease(p, 3.62, 3.98) * (1 - ease(p, POP1 - 0.01, POP1 + 0.03)) + ease(p, 5.5, 5.6) * (1 - ease(p, POP2 - 0.01, POP2 + 0.03))
 
-/** Пробирка-приёмник C (начало — горлышко): в штативе → перевёрнута над трубкой → к пламени → обратно в штатив. */
+/** Пробирка-приёмник C (начало — горлышко): в штативе → перевёрнута над трубкой → к пламени (2 пробы) → обратно в штатив. */
 function collectPose(p: number, t: number) {
   const rest: V3 = [C_X, 0.012 + TUBE_H, RACK_Z]
   const lifted: V3 = [C_X, 0.32, RACK_Z]
@@ -48,17 +57,25 @@ function collectPose(p: number, t: number) {
   let pos = mixV(rest, lifted, ease(p, 3, 3.25))
   pos = mixV(pos, aboveOut, ease(p, 3.2, 3.45))
   pos = mixV(pos, atOut, ease(p, 3.45, 3.62))
-  // проверка на чистоту: вверх с трубки → к спиртовке
-  pos = mixV(pos, aboveOut, ease(p, 5, 5.12))
-  pos = mixV(pos, aboveLamp, ease(p, 5.1, 5.34))
-  pos = mixV(pos, atLamp, ease(p, 5.32, 5.48))
+  // 1-я проба: вверх с трубки → к спиртовке → «лающий» хлопок
+  pos = mixV(pos, aboveOut, ease(p, 5, 5.08))
+  pos = mixV(pos, aboveLamp, ease(p, 5.07, 5.2))
+  pos = mixV(pos, atLamp, ease(p, 5.19, 5.28))
+  // снова на трубку (горлышком вниз) — набрать водород
+  pos = mixV(pos, aboveLamp, ease(p, 5.36, 5.42))
+  pos = mixV(pos, aboveOut, ease(p, 5.41, 5.5))
+  pos = mixV(pos, atOut, ease(p, 5.49, 5.56))
+  // 2-я проба: глухой хлопок — водород чистый
+  pos = mixV(pos, aboveOut, ease(p, 5.62, 5.67))
+  pos = mixV(pos, aboveLamp, ease(p, 5.66, 5.76))
+  pos = mixV(pos, atLamp, ease(p, 5.75, 5.82))
   // обратно в штатив (уже снова горлышком вверх)
-  pos = mixV(pos, lifted, ease(p, 5.66, 5.86))
-  pos = mixV(pos, rest, ease(p, 5.86, 6))
-  const flip = ease(p, 3.22, 3.45) * (1 - ease(p, 5.68, 5.88))
-  const tiltToFlame = ease(p, 5.32, 5.48) * (1 - ease(p, 5.66, 5.75))
-  // хлопок: пробирка вздрагивает в руке
-  const shake = Math.sin(t * 90) * 0.0028 * hill(p, 5.5, 5.64, 0.2)
+  pos = mixV(pos, lifted, ease(p, 5.88, 5.95))
+  pos = mixV(pos, rest, ease(p, 5.94, 6))
+  const flip = ease(p, 3.22, 3.45) * (1 - ease(p, 5.87, 5.93))
+  const tiltToFlame = ease(p, 5.19, 5.28) * (1 - ease(p, 5.36, 5.42)) + ease(p, 5.75, 5.82) * (1 - ease(p, 5.87, 5.91))
+  // хлопок: пробирка вздрагивает в руке (после «лающего» — сильнее)
+  const shake = Math.sin(t * 90) * (0.0045 * hill(p, POP1, POP1 + 0.07, 0.2) + 0.0022 * hill(p, POP2, POP2 + 0.05, 0.2))
   return { pos: [pos[0] + shake, pos[1] + shake * 0.5, pos[2]] as V3, rot: [0, 0, Math.PI * flip - 0.3 * tiltToFlame + shake * 3] as V3 }
 }
 
@@ -66,7 +83,8 @@ export function H2PracticalRig() {
   const { quality } = useRig()
   const drops = useMemo(() => plateDropPoints(0.09, 0.06, -0.0022, quality === 'high' ? 70 : 30), [quality])
   useCrossing(1.62, () => playFizz(2.5))
-  useCrossing(5.52, () => playPop('dull'))
+  useCrossing(POP1, () => playPop('sharp'))
+  useCrossing(POP2, () => playPop('dull'))
   useCrossing(6.03, () => playPop('dull'))
   return (
     <group>
@@ -154,10 +172,11 @@ export function H2PracticalRig() {
         <TubeRack xs={[C_X, C_X + 0.04]} />
       </group>
       <Pose pose={collectPose}>
-        <group position={[0, -TUBE_H, 0]}>
+        {/* приёмник H₂ — дном вверх (H₂ легче воздуха): аудит сверяет ориентацию (dev/rigAudit, orient) */}
+        <group position={[0, -TUBE_H, 0]} userData={{ labOrientation: 'mouthDown', labOrientationRange: [3.62, 4.99] }}>
           <TestTube />
           {/* водород вытесняет воздух: граница газа опускается от дна к отверстию; после хлопка газа нет */}
-          <GasFill fill={(p) => ease(p, 3.62, 3.98) * (1 - ease(p, 5.5, 5.6))} length={TUBE_H - 0.012} />
+          <GasFill fill={collectGas} length={TUBE_H - 0.012} />
           <Target name="collect-tube" size={[0.045, 0.17, 0.045]} center={[0, 0.085, 0]} ring={false} hintY={0.2} />
         </group>
         <PopFlash flash={popFlash} size={0.026} />
@@ -188,7 +207,8 @@ export function H2PracticalRig() {
 
       {/* Пламя водорода у конца газоотводной трубки */}
       <group position={[OUT_X, OUT_TOP, Z0]}>
-        <Flame height={0.04} width={0.011} core="#e6f2ff" edge="#7fb0ff" intensity={outletFlame} alpha={0.6} seed={6.2} />
+        {/* чистый H₂ горит почти бесцветным, бледно-голубым пламенем (не жёлтым, как спиртовка) */}
+        <Flame height={0.04} width={0.011} core="#f2f8ff" edge="#a8c8ff" intensity={outletFlame} alpha={0.4} seed={6.2} />
         <PopFlash flash={(p) => hill(p, 6.0, 6.14, 0.3)} color="#cfe3ff" size={0.018} />
         <group position={[0, 0.02, 0]}>
           <FlameLight intensity={outletFlame} color="#a9c8ff" power={0.3} />

@@ -31,7 +31,8 @@ const C = {
   water: '#eef6ff',
   milk: '#ebe9e3', // Ca(OH)₂ — белая взвесь
   crimson: '#c8186e',
-  litRed: '#d2303f',
+  // лакмус в минеральной воде с CO₂ (слабая H₂CO₃) — красноватый, розово-красный, а не алый
+  litRed: '#d65a78',
   litViolet: '#7b4fb2',
   phenol: '#f4f6f8',
   litmus: '#6c56b8',

@@ -13,6 +13,8 @@ import { labEvents } from '../labEvents'
 import type { LabSceneBridge } from './labBridge'
 import { labCameraInsets } from './labCameraInsets'
 import { hoodSash } from './LabHood'
+import { labXr, useXrPresenting } from '../xr/labXrStore'
+import { useUiMode } from '../xr/uiModeBridge'
 import {
   CAMERA_BOUNDS,
   HOOD,
@@ -109,6 +111,8 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
   const scene = useThree((s) => s.scene)
   const size = useThree((s) => s.size)
   const flight = useRef<Flight | null>(null)
+  const xrPresenting = useXrPresenting()
+  const boardUi = useUiMode().mode === 'board'
   const portrait = size.width < size.height
   const boardPhone = view === 'board' && portrait
 
@@ -348,6 +352,12 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
   useFrame((_, dt) => {
     const c = controls.current
     if (!c) return
+    // в VR камерой управляет шлем (или эмуляция в xr/LabXrRoot): перелёты и ограничения не трогают камеру;
+    // после выхода поза вида восстанавливается командой uiCommand 'view' (viewNonce)
+    if (labXr.get().presenting) {
+      flight.current = null
+      return
+    }
     const f = flight.current
     // в вытяжке камера под планкой створки смотрит на риску горизонтально или чуть снизу (глаз на уровне мениска)
     c.maxPolarAngle = nearHoodOpening(f ? f.toP : camera.position) || nearHoodOpening(camera.position) ? MAX_POLAR_HOOD : MAX_POLAR
@@ -400,9 +410,11 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
     <OrbitControls
       ref={controls}
       makeDefault
+      enabled={!xrPresenting}
       enableDamping
-      dampingFactor={0.06}
-      rotateSpeed={0.55}
+      // электронная доска: палец на большом экране — поворот спокойнее, затухание быстрее
+      dampingFactor={boardUi ? 0.12 : 0.06}
+      rotateSpeed={boardUi ? 0.6 : 0.55}
       zoomSpeed={0.8}
       panSpeed={0.7}
       screenSpacePanning

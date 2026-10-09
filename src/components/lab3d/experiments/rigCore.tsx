@@ -12,6 +12,9 @@ import * as THREE from 'three'
 import { LAB_COLORS, type LabLang } from '../labContract'
 import type { RigGesture } from './rigTargets'
 import { labEvents } from '../labEvents'
+import { useXrPresenting } from '../xr/labXrStore'
+import { useUiMode } from '../xr/uiModeBridge'
+import { XrHintSprite } from '../xr/XrHintSprite'
 
 export type Quality = 'low' | 'high'
 
@@ -190,6 +193,11 @@ export function Target({
   const kind = active ? (gesture?.kind ?? 'tap') : 'tap'
   const c: V3 = center ?? [0, size[1] / 2, 0]
   const [hover, setHover] = useState(false)
+  const xr = useXrPresenting()
+  // электронная доска (крупный палец, стоят далеко): зона нажатия ×1,5, минимум 11 см; подсказка крупнее
+  const big = useUiMode().scale > 1
+  const zoneK = big ? 1.5 : 1
+  const zoneMin = big ? 0.11 : 0.07
   ensureHintCss()
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     // неактивная цель (гранула, уже лежащая в пробирке) не гасит нажатие — оно доходит до текущей цели за ней
@@ -221,19 +229,24 @@ export function Target({
         }}
         userData={{ labTarget: name }}
       >
-        <boxGeometry args={[Math.max(size[0], 0.07), Math.max(size[1], 0.07), Math.max(size[2], 0.07)]} />
+        <boxGeometry args={[Math.max(size[0] * zoneK, zoneMin), Math.max(size[1] * zoneK, zoneMin), Math.max(size[2] * zoneK, zoneMin)]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
       </mesh>
       {active && !dragging ? (
         <>
           <ActiveGlow size={size} center={c} ringR={Math.min(0.07, ringR ?? Math.max(size[0], size[2]) * 0.75)} ring={ring} />
-          {/* подпись прячется за непрозрачной мебелью (шкаф, вытяжка, доска), сквозь стекло — видна */}
-          <LabLabel position={[c[0], hintY ?? c[1] + size[1] / 2 + 0.03, c[2]]} center zIndexRange={[30, 10]}>
-            <div style={{ ...hintStyle, transform: hover ? 'scale(1.06)' : undefined }} data-lab3d-hint={name}>
-              <HandIcon />
-              {HINT[kind][lang]}
-            </div>
-          </LabLabel>
+          {xr ? (
+            // в шлеме DOM-подписи не видно — спрайт с текстом на canvas-текстуре
+            <XrHintSprite text={HINT[kind][lang]} position={[c[0], (hintY ?? c[1] + size[1] / 2 + 0.03) + 0.01, c[2]]} />
+          ) : (
+            /* подпись прячется за непрозрачной мебелью (шкаф, вытяжка, доска), сквозь стекло — видна */
+            <LabLabel position={[c[0], hintY ?? c[1] + size[1] / 2 + 0.03, c[2]]} center zIndexRange={[30, 10]}>
+              <div style={{ ...hintStyle, ...(big ? { fontSize: 14 * 1.35, padding: '8px 16px 8px 10px' } : null), transform: hover ? 'scale(1.06)' : undefined }} data-lab3d-hint={name}>
+                <HandIcon />
+                {HINT[kind][lang]}
+              </div>
+            </LabLabel>
+          )}
         </>
       ) : null}
     </group>

@@ -40,6 +40,8 @@ export const LAB_PRACTICAL_EXPERIMENTS: readonly LabExperimentDef[] = [
     kind: 'physical',
     grade: 7,
     page: 24,
+    // выпаривание на спиртовке: очки (горячие брызги)
+    gear: ['goggles'],
     equipment: [
       t('Лабораторный штатив с кольцом (2 шт.)', 'Laboratory stand with a ring (2)', 'Halqali laboratoriya shtativi (2 ta)'),
       t('Химический стакан (2 шт.), стеклянная палочка', 'Beakers (2), glass rod', 'Kimyoviy stakan (2 ta), shisha tayoqcha'),

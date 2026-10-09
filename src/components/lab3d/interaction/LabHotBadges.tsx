@@ -6,6 +6,7 @@ import { LabLabel } from '../scene/labOccluders'
 import { useEffect, useState, type CSSProperties } from 'react'
 import type { LabLang } from '../labContract'
 import { labHand } from './labHandStore'
+import { useXrPresenting } from '../xr/labXrStore'
 
 const HOT_LABEL: Readonly<Record<LabLang, string>> = { ru: 'Горячо', en: 'Hot', uz: 'Issiq' }
 
@@ -28,6 +29,7 @@ const sameList = (a: Hot, b: Hot) =>
 
 export function LabHotBadges({ lang }: { lang: LabLang }) {
   const [hot, setHot] = useState<Hot>([])
+  const xr = useXrPresenting()
   useEffect(() => {
     const tick = () => {
       const next = labHand.hotItems()
@@ -37,6 +39,8 @@ export function LabHotBadges({ lang }: { lang: LabLang }) {
     const t = window.setInterval(tick, 500)
     return () => window.clearInterval(t)
   }, [])
+  // в VR DOM-значки не видны — не монтируем
+  if (xr) return null
   return (
     <>
       {hot.map((h) => (
