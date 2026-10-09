@@ -27,6 +27,12 @@ export function reactorRouteFor(q: { mainReactionId?: string | null; left?: read
   return null
 }
 
+/** Путь для запуска синтеза в лаборатории: реагенты (как в реакторе) + главный продукт запуска. */
+export function routeForLabRun(left: readonly string[], productId: string | null | undefined): ReactorRouteId | null {
+  if (!productId || !left.length) return null
+  return REACTOR_ROUTES.find((x) => sameSet(x.left, left) && x.right.includes(productId))?.id ?? null
+}
+
 /** Другие пути получения того же вещества (для переключателя в показе). */
 export function siblingRoutes(id: ReactorRouteId): ReactorRouteId[] {
   const p = REACTOR_ROUTES.find((x) => x.id === id)?.product

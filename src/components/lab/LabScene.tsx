@@ -1,4 +1,5 @@
 import {
+  lazy,
   memo,
   Suspense,
   useCallback,
@@ -25,6 +26,11 @@ import { setCinemaActive } from '../../lab/cinemaActive'
 import { clo2StepStore } from '../../lab/cinema/scenes/clo2/clo2StepStore'
 import { InstantLabSynthesis } from './InstantLabSynthesis'
 import { getScientificSynthesisFx, hasScientificSynthesisFx } from '../../lab/scientificSynthesis/registry'
+import { routeForLabRun } from './formation/routes/routeIndex'
+import { getElementByZ } from '../../data/elements'
+
+/** «Как образуется» по пути реакции (CO₂: уголь, мрамор + HCl, обжиг) — своя сцена в лаборатории, грузится при запуске. */
+const RouteLabFx = lazy(() => import('./formation/routes/RouteLabFx'))
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { LabIdleCosmicBackdrop, LAB_IDLE_COSMIC_BG } from './LabIdleCosmicBackdrop'
@@ -714,7 +720,18 @@ function SceneContent({
       return false
     }
   }, [])
-  const sceneFxMatch = !forceStory && hasScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms)
+  // Путь получения с собственным показом «Как образуется» (реакции из routes/routeIndex) — важнее общей сцены.
+  const routeLabId = useMemo(
+    () =>
+      forceStory || !synthesis
+        ? null
+        : routeForLabRun(
+            synthesis.flyTerms.map((x) => x.compoundId ?? `${getElementByZ(x.z)?.symbol ?? ''}${x.diatomic ? '₂' : ''}`),
+            synthesis.product?.id,
+          ),
+    [forceStory, synthesis],
+  )
+  const sceneFxMatch = !forceStory && (routeLabId != null || hasScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms))
   // Реакции без своей сцены — «сюжет реакции» (scenes/story): частицы по коэффициентам, разрыв, перенос e⁻,
   // образование, итог. Уравнение — с экрана реакции (или из полёта «элементы → вещество»).
   const storyEquation = useMemo(() => {
@@ -2582,7 +2599,21 @@ function SceneContent({
             />
           ) : null}
           {synthActive && synthesis && instantSynthesis && showElementsCollapseFx ? (
-            ScientificFx ? (
+            routeLabId && scientificMicroworldActive ? (
+              <group name="lab-cinema-scene-root">
+                <Suspense fallback={null}>
+                  <RouteLabFx
+                    key={`route-${routeLabId}-${synthesis.runId}`}
+                    routeId={routeLabId}
+                    runId={synthesis.runId}
+                    lowPower={cinemaLowPower}
+                    onEmbryoReady={handleElementsCollapseEmbryoReady}
+                    onBirthReady={handleElementsCollapseBirthReady}
+                    onComplete={handleElementsCollapseComplete}
+                  />
+                </Suspense>
+              </group>
+            ) : ScientificFx ? (
               // Корень сцены урока-кино: сторож stage-guard считает чужим всё,
               // что рисуется в кадре мимо этой ветки.
               <group name="lab-cinema-scene-root">

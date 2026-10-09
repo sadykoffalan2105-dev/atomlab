@@ -97,6 +97,8 @@ import {
   type ReactorCatalogIntent,
 } from '../components/lab/ReactorCompoundCatalogPanel'
 import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
+import { RouteLabHost } from '../components/lab/formation/routes/RouteLabHost'
+import { routeLab } from '../components/lab/formation/routes/routeLabStore'
 import { compoundById } from '../data/compounds'
 import { labCompoundById } from '../data/labSpecies'
 import {
@@ -1161,6 +1163,11 @@ export function LaboratoryPage() {
         timer = window.setTimeout(guard, SCIENTIFIC_LESSON_RECHECK_MS)
         return
       }
+      // Показ «Как образуется» по пути реакции идёт сколько решает ученик (пауза, перемотка) — ждём его complete.
+      if (routeLab.get().id != null) {
+        timer = window.setTimeout(guard, SCIENTIFIC_LESSON_RECHECK_MS)
+        return
+      }
       const compound =
         lastRunProductRef.current ?? resolveCatalogProduct(compoundById, productId)
       if (compound) {
@@ -1591,6 +1598,8 @@ export function LaboratoryPage() {
         ) : null}
       </div>
 
+      {/* Панель этапов «Как образуется» во время показа в лаборатории (CO₂ тремя путями). */}
+      <RouteLabHost />
       {/* Вне canvasWrap: contain:layout + fixed-реактор → 0×0 WebGL / белый canvas. */}
       <SynthesisReactorPanel
         open={reactorOpen}
