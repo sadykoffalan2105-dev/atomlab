@@ -159,15 +159,19 @@
 :global([data-lab-board]) .bar,
 :global([data-lab-board]) .tip {
   min-height: 72px;
-  font-size: 1.15rem;
+  font-size: 18px;
 }
 :global([data-lab-board]) .label {
-  font-size: 1.2rem;
+  font-size: 19px;
 }
 :global([data-lab-board]) .btn,
 :global([data-lab-board]) .btnPrimary {
   min-height: 64px;
   min-width: 64px;
-  font-size: 1.1rem;
+  font-size: 18px;
   touch-action: manipulation;
+}
+/* полоса руки выше крупных чипов видов (64 px + отступы) */
+:global([data-lab-board]) .wrap {
+  bottom: 112px;
 }

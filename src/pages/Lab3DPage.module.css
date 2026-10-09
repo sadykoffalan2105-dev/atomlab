@@ -548,7 +548,7 @@
   min-height: 64px;
   min-width: 64px;
   padding: 0 26px;
-  font-size: 1.2rem;
+  font-size: 19px;
 }
 .wrap[data-lab-board] .panel {
   width: min(440px, 36vw);
@@ -564,24 +564,24 @@
   padding: 14px 20px;
 }
 .wrap[data-lab-board] .kicker {
-  font-size: 0.95rem;
+  font-size: 15px;
 }
 .wrap[data-lab-board] .headTitle {
-  font-size: 1.3rem;
+  font-size: 21px;
 }
 .wrap[data-lab-board] .toggle {
-  font-size: 1.5rem;
+  font-size: 24px;
 }
 .wrap[data-lab-board] .panelBody {
   gap: 14px;
 }
 .wrap[data-lab-board] .lead {
-  font-size: 1.05rem;
+  font-size: 17px;
 }
 .wrap[data-lab-board] .tab,
 .wrap[data-lab-board] .tabOn {
   min-height: 56px;
-  font-size: 1.05rem;
+  font-size: 17px;
 }
 .wrap[data-lab-board] .cards {
   grid-template-columns: 1fr 1fr;
@@ -592,26 +592,26 @@
   padding: 14px;
 }
 .wrap[data-lab-board] .badge {
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 .wrap[data-lab-board] .cardTitle {
-  font-size: 1.1rem;
+  font-size: 18px;
 }
 .wrap[data-lab-board] .eq {
-  font-size: 1.05rem;
+  font-size: 17px;
 }
 .wrap[data-lab-board] .stepCount {
-  font-size: 1rem;
+  font-size: 16px;
 }
 .wrap[data-lab-board] .progress {
   height: 10px;
 }
 .wrap[data-lab-board] .instruction {
-  font-size: 1.5rem;
+  font-size: 24px;
   line-height: 1.35;
 }
 .wrap[data-lab-board] .observation {
-  font-size: 1.2rem;
+  font-size: 19px;
   padding: 12px 14px;
 }
 .wrap[data-lab-board] .stepBtns {
@@ -620,21 +620,21 @@
 .wrap[data-lab-board] .btn,
 .wrap[data-lab-board] .btnPrimary {
   min-height: 72px;
-  font-size: 1.2rem;
+  font-size: 19px;
 }
 .wrap[data-lab-board] .hint {
-  font-size: 1rem;
+  font-size: 16px;
 }
 .wrap[data-lab-board] .back,
 .wrap[data-lab-board] .classic {
   display: inline-flex;
   align-items: center;
   min-height: 56px;
-  font-size: 1.05rem;
+  font-size: 17px;
 }
 .wrap[data-lab-board] .coach > summary {
   display: flex;
   align-items: center;
   min-height: 56px;
-  font-size: 1.05rem;
+  font-size: 17px;
 }

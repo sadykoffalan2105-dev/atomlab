@@ -78,7 +78,8 @@ const BOARD_AUDIT = `(() => {
   const small = []
   let minSide = 999
   for (const el of document.querySelectorAll('[class*=wrap] button, [class*=wrap] a, [class*=wrap] summary, [class*=wrap] input')) {
-    if (!vis(el)) continue
+    // доска внутри 3D-сцены (Html) масштабируется расстоянием камеры — её кнопки меряем отдельно, не здесь
+    if (!vis(el) || el.closest('[class*=_board_]')) continue
     const r = el.getBoundingClientRect()
     const side = Math.min(r.width, r.height)
     minSide = Math.min(minSide, side)
@@ -96,7 +97,7 @@ const BOARD_AUDIT = `(() => {
   const boxes = ['[class*=handBar]', '[class*=dock]', '[role=toolbar]', 'aside'].map((s) => { const e = document.querySelector(s); return e && vis(e) ? [s, e.getBoundingClientRect()] : null }).filter(Boolean)
   const overlaps = []
   for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) { const a = boxes[i][1], c = boxes[j][1]; if (a.left < c.right && c.left < a.right && a.top < c.bottom && c.top < a.bottom) overlaps.push(boxes[i][0] + ' × ' + boxes[j][0]) }
-  return { board: document.querySelector('[data-lab-board]') ? 1 : 0, minSide: Math.round(minSide), small: small.slice(0, 12), smallCount: small.length, instructionPx: insPx, instructionRem: Math.round((insPx / parseFloat(getComputedStyle(document.documentElement).fontSize)) * 100) / 100, lowContrast: lowC.slice(0, 10), lowCount: lowC.length, overlaps }
+  return { board: document.querySelector('[data-lab-board]') ? 1 : 0, minSide: Math.round(minSide), small: small.slice(0, 12), smallCount: small.length, instructionPx: insPx, instructionRemAt16: Math.round((insPx / 16) * 100) / 100, lowContrast: lowC.slice(0, 10), lowCount: lowC.length, overlaps }
 })()`
 if (only === 'all' || only === 'board') {
   for (const theme of ['light', 'dark']) {
