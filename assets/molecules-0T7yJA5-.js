@@ -1,1 +1,0 @@
-import{Mi as e}from"./rapier-vendor-gzP6eUli.js";var t=null,n=null;function r(){return t?Promise.resolve(t):(n??=e(()=>import(`./molecules-k4vxsees.js`).then(e=>(t=e.default,t)),[]),n)}function i(e){return t?.[e]}export{i as n,r as t};
