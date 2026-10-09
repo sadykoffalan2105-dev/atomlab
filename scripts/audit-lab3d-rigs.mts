@@ -27,6 +27,8 @@ type RigApi = {
   total: number
   setP: (v: number | null) => void
   audit: () => Issue[]
+  /** wall / table / float + orientation (userData.labOrientation: 'mouthUp' | 'mouthDown' в установках). */
+  orient?: () => Issue[]
   selfTest: () => { wall: boolean; float: boolean } | null
   view: (pos: number[], target: number[]) => void
 }
@@ -34,6 +36,7 @@ type RigApi = {
 fs.mkdirSync(OUT, { recursive: true })
 const browser = await chromium.launch({ args: ['--use-angle=d3d11'] })
 let bad = 0
+let orientChecked = 0
 for (const id of IDS) {
   if (only && id !== only) continue
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
@@ -55,6 +58,10 @@ for (const id of IDS) {
       const found = await page.evaluate(() => (window as unknown as { __labRig: RigApi }).__labRig.audit())
       const keep = found.filter((f) => Number.isInteger(ps) || f.kind !== 'float')
       for (const f of keep) lines.push(`  p=${ps}: ${f.kind} — ${f.what}: ${f.detail}`)
+      // ориентация: приёмник лёгкого газа — дном вверх, пробирка NH₄Cl + Ca(OH)₂ — отверстием чуть вниз
+      const orient = await page.evaluate(() => (window as unknown as { __labRig: RigApi }).__labRig.orient?.() ?? [])
+      for (const f of orient) lines.push(`  p=${ps}: ${f.kind} — ${f.what}: ${f.detail}`)
+      orientChecked++
       if (shots && Number.isInteger(ps)) {
         for (const [k, pos] of [
           ['a', [0.05, 0.36, 0.62]],
@@ -73,5 +80,6 @@ for (const id of IDS) {
   await page.close()
 }
 await browser.close()
+console.log(`ориентация пробирок проверена в ${orientChecked} точках прогресса`)
 console.log(bad ? `ИТОГО: ${bad} проблем` : 'ИТОГО: 0 проблем')
 process.exit(bad ? 1 : 0)

@@ -48,7 +48,7 @@ export function XrWristHud({ grip }: { grip: THREE.Object3D | null }) {
       m.lookAt(camera.position)
     } else {
       // эмуляция: слева внизу перед камерой
-      tmp.set(-0.13, -0.085, -0.34)
+      tmp.set(-0.2, -0.13, -0.55)
       camera.localToWorld(tmp)
       m.position.copy(tmp)
       m.quaternion.copy(camera.quaternion)

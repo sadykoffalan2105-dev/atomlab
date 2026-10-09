@@ -14,6 +14,9 @@ import { Match, Matchbox, SpiritLamp } from '../parts/fire'
 import { GlassPath, GlassRod, GripHand, LitmusStrip, Mortar, Pestle, PpeTray, Puffs, WaftHand } from '../parts/practicalware'
 import { useGearStep } from './useGearStep'
 
+/** Капли конденсата у отверстия — общий материал. */
+const DROP_MAT = new THREE.MeshStandardMaterial({ color: '#e9f5ff', transparent: true, opacity: 0.85, roughness: 0.02 })
+
 const Z = -0.06
 const PPE: V3 = [0.34, 0, 0.16]
 const MO: V3 = [0.06, 0, 0.15]
@@ -166,9 +169,9 @@ export function Nh3Rig() {
       {/* капли воды у отверстия (оно наклонено вниз — вода не стекает на горячее дно) */}
       <Pose pose={(p) => ({ pos: [M[0] - 0.012, M[1] - 0.006, Z], scale: ease(p, 5.75, 5.98) })}>
         {[0, 1, 2, 3, 4].map((i) => (
-          <mesh key={i} position={[-i * 0.006, (i % 2) * 0.002, (i % 3) * 0.003 - 0.003]}>
+          // один материал на все капли (перф: не пять одинаковых материалов)
+          <mesh key={i} position={[-i * 0.006, (i % 2) * 0.002, (i % 3) * 0.003 - 0.003]} material={DROP_MAT}>
             <sphereGeometry args={[0.0013 + (i % 2) * 0.0005, 8, 6]} />
-            <meshStandardMaterial color="#e9f5ff" transparent opacity={0.85} roughness={0.02} />
           </mesh>
         ))}
       </Pose>

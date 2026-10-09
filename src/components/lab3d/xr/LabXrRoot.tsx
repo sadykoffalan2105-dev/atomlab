@@ -13,7 +13,7 @@ import { getLabExperiment, isLabExperimentId } from '../../../data/labWorks/labE
 import { labXr, useXrState, type LabXrStand } from './labXrStore'
 import { XrRayInput, makePointer, type XrHand, type XrPointerState } from './xrRayInput'
 import { registerXrRenderer, xrEmulateRequested } from './xrSession'
-import { XR_STANDS, XR_STAND_ORDER, addSnapTurn, applyStand, emulatedCameraPose } from './xrLocomotion'
+import { XR_STANDS, XR_STAND_ORDER, addSnapTurn, applyStand, emuLook, emulatedCameraPose } from './xrLocomotion'
 import { XrBoardPanel } from './XrBoardPanel'
 import { XrWristHud } from './XrWristHud'
 
@@ -280,12 +280,20 @@ export function LabXrRoot() {
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerdown', down)
     window.addEventListener('pointerup', up)
-    el.addEventListener('wheel', wheel, { passive: true })
+    window.addEventListener('wheel', wheel, { passive: true })
+    // в шлеме DOM-доска (drei <Html>) не видна — в эмуляции тоже прячем её, видна VR-доска на canvas-текстуре
+    const host = el.parentElement
+    host?.setAttribute('data-xr-emulated', '')
+    const css = document.createElement('style')
+    css.textContent = '[data-xr-emulated] [data-lab3d-board]{visibility:hidden!important}'
+    document.head.appendChild(css)
     return () => {
       el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerdown', down)
       window.removeEventListener('pointerup', up)
-      el.removeEventListener('wheel', wheel)
+      window.removeEventListener('wheel', wheel)
+      host?.removeAttribute('data-xr-emulated')
+      css.remove()
     }
   }, [presenting, emulated, gl, camera, emu, emuNdc, caster, input])
 
@@ -297,6 +305,11 @@ export function LabXrRoot() {
     const off = labEvents.on('uiCommand', (e) => (w.__labXrLog as unknown[]).push({ cmd: e.cmd, view: e.view, experimentId: e.experimentId, quality: e.quality }))
     w.__labXr = {
       state: () => labXr.get(),
+      /** Эмуляция: повернуть «голову» (градусы) — например, посмотреть вниз на площадки. */
+      look: (yawDeg = 0, pitchDeg = 0) => {
+        emuLook.yaw = (yawDeg * Math.PI) / 180
+        emuLook.pitch = (pitchDeg * Math.PI) / 180
+      },
       teleport: (s: LabXrStand) => teleportRef.current(s),
       /** Нажать «курок» туда, куда сейчас смотрит луч эмуляции (или в экранную точку x, y). */
       select: (x?: number, y?: number) => {
@@ -342,6 +355,7 @@ export function LabXrRoot() {
     }
   }, [gl, scene, camera, emu, emuNdc, caster, input])
 
+  const warned = useRef(false)
   const tmpO = useMemo(() => new THREE.Vector3(), [])
   const tmpD = useMemo(() => new THREE.Vector3(), [])
   useFrame(() => {
@@ -369,7 +383,13 @@ export function LabXrRoot() {
       // луч из камеры через последнюю точку мыши (камера могла переехать)
       caster.setFromCamera(emuNdc, camera)
       emu.ptr.ray.copy(caster.ray)
-      input.update(emu.ptr, now)
+      try {
+        input.update(emu.ptr, now)
+      } catch (err) {
+        // ошибка луча не должна останавливать кадр (цикл R3F)
+        if (!warned.current) console.warn('[xr] луч', err)
+        warned.current = true
+      }
       return
     }
     if (!grips) return
@@ -381,7 +401,12 @@ export function LabXrRoot() {
       tmpD.set(0, 0, -1).transformDirection(ctl.matrixWorld)
       cs.ptr.ray.set(tmpO, tmpD)
       const prevHover = cs.ptr.hover
-      input.update(cs.ptr, now)
+      try {
+        input.update(cs.ptr, now)
+      } catch (err) {
+        if (!warned.current) console.warn('[xr] луч', err)
+        warned.current = true
+      }
       if (cs.ptr.hover && cs.ptr.hover !== prevHover) pulse(cs.source, 0.4, 40)
       // поворот рывком ±30° по стику (порог 0,7, повтор — после возврата в 0,3)
       const ax = cs.source.gamepad?.axes?.[2] ?? 0

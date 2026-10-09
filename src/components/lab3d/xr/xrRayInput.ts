@@ -125,9 +125,14 @@ export class XrRayInput {
   /** Первое попадание луча в видимый интерактивный меш. */
   cast(ray: THREE.Ray, now: number): THREE.Intersection[] {
     this.scan(now)
+    // спрайтам (подсказки) Raycaster нужна камера
+    this.caster.camera = this.camera()
     this.caster.ray.copy(ray)
-    const hits = this.caster.intersectObjects(this.list, false)
-    return hits.filter((h) => visibleChain(h.object))
+    const hits = this.caster.intersectObjects(this.list, false).filter((h) => visibleChain(h.object))
+    // цели установки важнее мебели: стоя у вытяжки, луч идёт к пробирке сквозь стекло створки (у створки свои
+    // обработчики) — в VR голова выше проёма, поэтому зоны нажатия целей (userData.labTarget) идут первыми
+    const isTarget = (h: THREE.Intersection) => !!(h.object.userData as { labTarget?: string }).labTarget
+    return [...hits.filter(isTarget), ...hits.filter((h) => !isTarget(h))]
   }
 
   private screen(point: THREE.Vector3): [number, number] {

@@ -72,6 +72,9 @@ export function applyStand(gl: THREE.WebGLRenderer, stand: LabXrStand): void {
 }
 
 const tmpTarget = new THREE.Vector3()
+const Y_AXIS = new THREE.Vector3(0, 1, 0)
+/** Эмуляция: дополнительный поворот головы (рад) — для проверок и кадров (window.__labXr.look). */
+export const emuLook = { yaw: 0, pitch: 0 }
 /** Эмуляция без шлема: камера на уровне глаз в точке стояния, взгляд вперёд и чуть вниз (на стол/доску). */
 export function emulatedCameraPose(camera: THREE.Camera, stand: LabXrStand): void {
   const s = XR_STANDS[stand]
@@ -82,5 +85,7 @@ export function emulatedCameraPose(camera: THREE.Camera, stand: LabXrStand): voi
   const look = stand === 'board' ? { d: 1.5, y: 1.55 } : stand === 'shelves' ? { d: 1.2, y: 1.25 } : { d: 0.95, y: 0.95 }
   tmpTarget.set(s.pos[0] + fwd.x * look.d, look.y, s.pos[2] + fwd.z * look.d)
   camera.lookAt(tmpTarget)
+  if (emuLook.yaw) camera.rotateOnWorldAxis(Y_AXIS, emuLook.yaw)
+  if (emuLook.pitch) camera.rotateX(emuLook.pitch)
   camera.updateMatrixWorld()
 }
