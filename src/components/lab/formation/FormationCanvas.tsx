@@ -10,8 +10,8 @@ import { SCHOOL_CATALOG_BG } from '../hero/SchoolCatalogCanvas'
 import { buildSchoolHeroModel, type CatalogShape } from '../hero/schoolHeroModel'
 import { FormationMoleculeView } from './FormationMoleculeView'
 import type { FormationClock } from './formationTimeline'
-import { formationScript } from '../../../chemistry/formationScripts'
 import { FormationClouds } from './FormationClouds'
+import { FormationPhaseScene } from './FormationPhaseScene'
 import { useCloudsOn } from './board/cloudsStore'
 import { FormationHud, type HudLayout } from './FormationHud'
 import { showcaseSceneFor } from './showcase/registry'
@@ -107,7 +107,6 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
   const plan = useMemo(() => formationPlan(shape.id), [shape.id])
   const story = useMemo(() => formationStoryFor(shape.id), [shape.id])
   const cloudsOn = useCloudsOn()
-  const ftype = useMemo(() => formationScript(shape.id)?.type ?? null, [shape.id])
   const layout = useRef<HudLayout>({ dx: 0, dy: 0 })
   const Scene = useMemo(() => showcaseSceneFor(shape.id), [shape.id])
   const cam = useRef<CamCtl>({ active: false, yaw: 0, pitch: 0.12, zoom: 1, userUntil: 0 })
@@ -135,10 +134,13 @@ export function FormationCanvas({ shape, clock, lowPower }: { shape: CatalogShap
                     <Scene model={model} plan={plan} story={story} clock={clock} cam={cam} lowPower={lowPower} />
                   </ShowcaseBounds>
                 </ShowcaseClock>
-              ) : null}
+              ) : (
+                /* итог «как в жизни»: копии молекул газа / жидкости, вода раствора — та же система координат */
+                <FormationPhaseScene model={model} story={story} clock={clock} lowPower={lowPower} />
+              )}
             </FormationMoleculeView>
             {/* Электронные облака — после вида атомов: читают ту же группу и те же часы (переключатель на доске). */}
-            {cloudsOn && !Scene ? <FormationClouds model={model} story={story} clock={clock} type={ftype} lowPower={lowPower} /> : null}
+            {cloudsOn && !Scene ? <FormationClouds model={model} story={story} clock={clock} lowPower={lowPower} /> : null}
             <OrbitControls enableZoom={false} enablePan={false} rotateSpeed={0.6} onStart={() => { cam.current.userUntil = performance.now() + 3000 }} />
           </Canvas>
         </CanvasErrorBoundary>

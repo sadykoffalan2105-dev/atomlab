@@ -86,7 +86,7 @@ export function co2CalcinationModel(): RouteModel {
   const rCa = rIon(ION_PM.Ca2)
   const dCO3 = pm(BOND_PM.CO_carbonate)
   const dCO2 = pm(BOND_PM.CO_co2)
-  const amp = (t: number) => (pm(3) + pm(9) * seg(t, H.t0, H.t0 + 3)) * (1 - seg(t, C.t0, C.t0 + 3.2))
+  const amp = (t: number) => (pm(1.5) + pm(2.5) * seg(t, H.t0, H.t0 + 3)) * (1 - seg(t, C.t0, C.t0 + 3.2))
 
   const particles: Particle[] = []
   const bonds: Bond[] = []
