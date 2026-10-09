@@ -33,7 +33,8 @@ export const RIG_STEP_SECONDS: Readonly<Record<LabExperimentId, readonly number[
   baso4: [1.4, 1.8, 3.2, 5.5],
   'ch4-burn': [1.2, 2.4, 4.2, 4.6, 1.4],
   'zn-hcl': [1.4, 2.6, 2.2, 6],
-  'h2-practical': [2.6, 2.2, 1.8, 4.2, 2.2, 2.8, 4.2],
+  // шаг 5 — две пробы на чистоту («лающий» хлопок, снова набрать H₂, глухой хлопок)
+  'h2-practical': [2.6, 2.2, 1.8, 4.2, 2.2, 4.4, 4.2],
   'salt-purify': [2.6, 3.4, 2.4, 2, 6.5, 3, 2.6, 7.5, 1.8],
   nh3: [1.6, 3, 2.6, 2.8, 2.2, 5.5, 2.4, 3, 4.8],
   halogens: [1.6, 3.6, 3.6, 3.6, 3.2, 3.4, 2.4],
@@ -96,7 +97,7 @@ export const RIG_GESTURES: Readonly<Record<LabExperimentId, readonly RigGesture[
     // снять колпачок спиртовки (дальше — спичка)
     swipe([0.3, 0.09, 0.06], [0.3, 0.17, 0.06], 0.4),
     // пробирку с водородом — отверстием к пламени
-    drag([-0.17, 0.3, -0.05], [0.3, 0.16, 0.06], 0.48),
+    drag([-0.17, 0.3, -0.05], [0.3, 0.16, 0.06], 0.28),
     // холодное стекло — над пламенем водорода
     drag([0.18, 0.01, 0.2], [-0.17, 0.2, -0.05], 0.8),
   ],
@@ -222,7 +223,8 @@ export const RIG_FOCUS: Readonly<Record<LabExperimentId, readonly RigFocus[]>> =
   'h2-practical': [
     { from: 1.55, to: 1.98, point: [-0.3, 0.1, -0.05], dist: 0.34 },
     { from: 3.6, to: 3.99, point: [-0.17, 0.27, -0.05], dist: 0.36 },
-    { from: 5.4, to: 5.85, point: [0.3, 0.13, 0.06], dist: 0.34 },
+    // обе пробы на чистоту: спиртовка и конец трубки в кадре
+    { from: 5.2, to: 5.92, point: [0.06, 0.2, 0], dist: 0.6 },
     { from: 6.6, to: 6.98, point: [-0.17, 0.2, -0.05], dist: 0.34 },
   ],
   'salt-purify': [
@@ -291,7 +293,8 @@ export const RIG_LABELS: Readonly<Record<LabExperimentId, readonly RigLabel[]>> 
   'h2-practical': [
     { at: 1.7, pos: [-0.25, 0.25, -0.05], text: L('газ H₂↑', 'gas H₂↑', 'gaz H₂↑') },
     { at: 3.7, pos: [-0.1, 0.36, -0.05], text: L('H₂ вытесняет воздух', 'H₂ pushes out the air', 'H₂ havoni siqib chiqaradi') },
-    { at: 5.52, pos: [0.3, 0.24, 0.06], text: L('глухой хлопок — водород чистый', 'dull pop — the hydrogen is pure', 'bo‘g‘iq qarsillash — vodorod toza') },
+    { at: 5.33, pos: [0.3, 0.31, 0.06], text: L('«лающий» хлопок — смесь с воздухом', '“barking” pop — mixed with air', '«akillagan» ovoz — havo bilan aralashma') },
+    { at: 5.87, pos: [0.3, 0.24, 0.06], text: L('глухой хлопок — водород чистый', 'dull pop — the hydrogen is pure', 'bo‘g‘iq qarsillash — vodorod toza') },
     { at: 6.85, pos: [-0.08, 0.27, -0.05], text: L('капли воды', 'water droplets', 'suv tomchilari') },
   ],
   'salt-purify': [

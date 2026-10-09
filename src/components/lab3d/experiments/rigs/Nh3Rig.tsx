@@ -154,7 +154,10 @@ export function Nh3Rig() {
 
       {/* Пробирка со смесью */}
       <Pose pose={reactorPose}>
-        <TestTube level={(p) => FILL * ease(p, 2.42, 2.76)} liquidColor="#f3f3ef" liquidOpacity={0.97} />
+        {/* в лапке — отверстием немного вниз (дно выше): конденсат не стекает на горячее дно (Kimyo 8, с. 169, рис. 23) */}
+        <group userData={{ labOrientation: 'mouthDown', labOrientationRange: [3.72, 9] }}>
+          <TestTube level={(p) => FILL * ease(p, 2.42, 2.76)} liquidColor="#f3f3ef" liquidOpacity={0.97} />
+        </group>
         <group position={[0, 0.1, 0]}>
           <TubeTag text="1/3" />
         </group>
@@ -183,7 +186,8 @@ export function Nh3Rig() {
 
       {/* Сухая пробирка вверх дном: аммиак заполняет её сверху вниз */}
       <Pose pose={collectPose}>
-        <group position={[0, -TUBE_H / 2, 0]}>
+        {/* приёмник NH₃ — дном вверх (M = 17 < 29): аудит сверяет ориентацию */}
+        <group position={[0, -TUBE_H / 2, 0]} userData={{ labOrientation: 'mouthDown', labOrientationRange: [4.92, 9] }}>
           <TestTube />
           <GasFill fill={nh3} length={TUBE_H - 0.012} />
           <Target name="collect-tube" size={[0.04, 0.16, 0.04]} center={[0, 0.075, 0]} ring={false} hintY={0.19} />

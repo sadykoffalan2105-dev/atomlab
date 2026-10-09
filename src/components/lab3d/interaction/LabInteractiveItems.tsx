@@ -21,6 +21,8 @@ import { BENCH_Y, LAB_ITEMS, TAKE_LABEL, itemSoundMaterial, type LabItemDef } fr
 import { currentWorkRect, freeSlot, itemXZ, labHand, useHand, type ItemZone } from './labHandStore'
 import { HeldHand, LabSafetyGear } from './LabSafetyGear'
 import css from './labInteraction.module.css'
+import { labXr } from '../xr/labXrStore'
+import type { XrEventInfo } from '../xr/xrRayInput'
 
 const tmpVel = new THREE.Vector3()
 const tmpAcc = new THREE.Vector3()
@@ -248,6 +250,27 @@ const InteractiveItem = memo(function InteractiveItem({ def, zone, needed, dragg
     const ndc = new THREE.Vector2()
     const p0 = itemXZ.get(def.id) ?? [def.home[0], def.home[2]]
     const off = e.ray.intersectPlane(plane, hit) ? [p0[0] - hit.x, p0[1] - hit.z] : [0, 0]
+    // луч VR-контроллера (или эмуляции): предмет ведёт пересечение луча с плоскостью стола, конец — selectend
+    const xr = (e as unknown as { xr?: XrEventInfo }).xr
+    if (xr) {
+      const start = hit.clone()
+      let movedXr = false
+      xr.onFrame((r) => {
+        if (!r.intersectPlane(plane, hit)) return
+        if (!movedXr && hit.distanceTo(start) < 0.02) return
+        if (!movedXr) {
+          movedXr = true
+          window.clearTimeout(clickTimer.current)
+          labHand.dragStart(def.id)
+        }
+        labHand.dragMove(def.id, hit.x + off[0], hit.z + off[1])
+      })
+      xr.onEnd(() => {
+        if (controls) controls.enabled = !labXr.get().presenting
+        if (movedXr) labHand.dragEnd(def.id)
+      })
+      return
+    }
     const sx = e.clientX
     const sy = e.clientY
     let moved = false

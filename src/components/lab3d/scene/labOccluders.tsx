@@ -8,6 +8,7 @@ import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useRef, type CSSProperties, type ReactNode } from 'react'
 import * as THREE from 'three'
+import { useXrPresenting } from '../xr/labXrStore'
 
 /** Корень комнаты; Lab3DCanvas подставляет сюда группу LabRoom. */
 export const labRoomOccluder: { current: THREE.Object3D | null } = { current: null }
@@ -66,11 +67,15 @@ export function LabLabel({ position, center, zIndexRange = [20, 0], style, child
       el.style.visibility = occ ? 'hidden' : 'visible'
     }
   })
+  // в VR DOM-подписи не видны (и только тратят кадр) — не монтируем; подсказки целей там — спрайты (xr/XrHintSprite)
+  const xr = useXrPresenting()
   return (
     <group ref={anchor} position={position as THREE.Vector3Tuple}>
-      <Html center={center} zIndexRange={zIndexRange} style={{ pointerEvents: 'none', ...style }}>
-        <div ref={box}>{children}</div>
-      </Html>
+      {xr ? null : (
+        <Html center={center} zIndexRange={zIndexRange} style={{ pointerEvents: 'none', ...style }}>
+          <div ref={box}>{children}</div>
+        </Html>
+      )}
     </group>
   )
 }

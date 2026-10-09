@@ -89,9 +89,9 @@ export const LAB_WORKS_EXPERIMENTS: readonly LabExperimentDef[] = [
         target: 'bottle-water',
         instruction: t('Медленно залейте оксид кальция водой.', 'Slowly pour water onto the calcium oxide.', 'Kalsiy oksidni sekin suv bilan quying.'),
         observation: t(
-          'Смесь разогревается, над пробиркой поднимается пар; образуется белый мутный раствор — гашёная известь Ca(OH)₂.',
-          'The mixture heats up and steam rises from the tube; a white cloudy liquid forms: slaked lime Ca(OH)₂.',
-          'Aralashma qiziydi, probirkadan bug‘ ko‘tariladi; oq loyqa eritma — so‘ndirilgan ohak Ca(OH)₂ hosil bo‘ladi.',
+          'Смесь сильно разогревается и шипит, над пробиркой поднимается пар; образуется белая мутная взвесь — известковое молоко, гашёная известь Ca(OH)₂.',
+          'The mixture gets very hot and hisses, steam rises from the tube; a white cloudy suspension forms: milk of lime, slaked lime Ca(OH)₂.',
+          'Aralashma kuchli qiziydi va vishillaydi, probirkadan bugʻ koʻtariladi; oq loyqa suspenziya — ohak suti, soʻndirilgan ohak Ca(OH)₂ hosil boʻladi.',
         ),
       },
       {
@@ -128,7 +128,11 @@ export const LAB_WORKS_EXPERIMENTS: readonly LabExperimentDef[] = [
         id: 'litmus-acid',
         target: 'litmus',
         instruction: t('Добавьте 1–2 капли лакмуса в пробирку 2 с минеральной водой.', 'Add 1–2 drops of litmus to tube 2 with mineral water.', 'Mineral suvli 2-probirkaga 1–2 tomchi lakmus qo‘shing.'),
-        observation: t('Лакмус стал красным — в растворе кислота.', 'The litmus turned red: the solution contains an acid.', 'Lakmus qizardi — eritmada kislota bor.'),
+        observation: t(
+          'Лакмус стал красноватым (розово-красным) — в растворе слабая угольная кислота H₂CO₃.',
+          'The litmus turned reddish (pinkish red): the solution contains the weak carbonic acid H₂CO₃.',
+          'Lakmus qizgʻish (pushti-qizil) tusga kirdi — eritmada kuchsiz karbonat kislota H₂CO₃ bor.',
+        ),
       },
       {
         id: 'litmus-water',
@@ -230,7 +234,11 @@ export const LAB_WORKS_EXPERIMENTS: readonly LabExperimentDef[] = [
         id: 'litmus',
         target: 'litmus',
         instruction: t('Выньте трубку и добавьте несколько капель синего лакмуса.', 'Take the tube out and add a few drops of blue litmus.', 'Nayni chiqaring va bir necha tomchi ko‘k lakmus qo‘shing.'),
-        observation: t('Лакмус краснеет — в растворе угольная кислота H₂CO₃.', 'The litmus turns red: the solution contains carbonic acid H₂CO₃.', 'Lakmus qizaradi — eritmada karbonat kislota H₂CO₃ bor.'),
+        observation: t(
+          'Лакмус краснеет — становится розово-красным: в растворе слабая угольная кислота, CO₂ + H₂O ⇄ H₂CO₃.',
+          'The litmus turns pinkish red: the solution contains the weak carbonic acid: CO₂ + H₂O ⇄ H₂CO₃.',
+          'Lakmus pushti-qizil tusga kiradi — eritmada kuchsiz karbonat kislota bor: CO₂ + H₂O ⇄ H₂CO₃.',
+        ),
       },
       {
         id: 'alkali',
