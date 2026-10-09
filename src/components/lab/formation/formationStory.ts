@@ -10,6 +10,10 @@ import { buildStoryHud } from './story/hud'
 import { buildRedoxDecomposition, type RedoxSceneInfo } from './story/redoxDecomposition'
 import { showcaseDur } from './showcase/durations'
 import { showcaseHud } from './showcase/texts/index'
+import { VIB_DEFAULT, type FinalPhase, type PhaseInfo, type StoryOrbitals, type VibSpec } from './story/phase'
+import { phaseRow } from './story/phase-data'
+import { buildStoryOrbitals } from './story/orbitals'
+import { buildPhaseHud } from './story/hud'
 
 export type { LatticeAtom, StoryLatticeKind } from './story/lattice'
 export type { RouteStage, RouteAtom, RouteStick, RouteElectron, RouteBadge, RouteShow } from './story/route'
@@ -135,6 +139,14 @@ export type FormationStory = {
   rNeutral: number[]
   /** окно смены радиуса атом → ион (этап перехода e⁻) */
   ionWin: [number, number]
+  /** (фазы 25 °C) итог «как в жизни»: газ / жидкость / раствор / кристалл (story/phase.ts, данные — story/phase-data.ts) */
+  finalPhase?: FinalPhase
+  /** (фазы 25 °C) копии молекул, раствор (H₃O⁺, вода), справочная решётка и честная подпись */
+  phaseInfo?: PhaseInfo
+  /** (фазы 25 °C) облака по атомам модели: уровень, s/p, гибридизация, неподелённые пары, роль (story/orbitals.ts) */
+  orbitals?: StoryOrbitals
+  /** (фазы 25 °C) нормы колебаний атомов (≤ VIB_LIMITS) */
+  vib?: VibSpec
 }
 
 /** Валентные электроны главных подгрупп (номер группы). */
@@ -169,7 +181,7 @@ const len = (a: V3) => Math.hypot(a[0], a[1], a[2])
 
 export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel, eq: FormationEquation | null): FormationStory {
   const redox = buildRedoxDecomposition(plan.compoundId, plan, model, (sv) => screenToModel(model, sv), (p) => modelToScreen(model, p))
-  if (redox) return redoxStory(plan, model, redox)
+  if (redox) return withPhase(plan, model, redoxStory(plan, model, redox))
   const n = model.atoms.length
   const crystal = model.kind === 'crystal'
   const ionic = plan.mode === 'ionic'
@@ -626,7 +638,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   const latticeWin: [number, number] = lat.kind === 'ionic' ? [latticeStage.t0 + 0.3, latticeStage.t0 + 0.75 * latticeStage.dur] : [fin.t0 + 0.2, fin.t0 + 2.2]
 
   const tr = st('transfer')
-  return withHud(plan.formula, {
+  return withPhase(plan, model, withHud(plan.formula, {
     compoundId: plan.compoundId,
     stages,
     total: t,
@@ -650,7 +662,23 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     atomEl: model.atoms.map((a) => a.el),
     rNeutral: model.atoms.map((_, i) => rNeutralOf(i)),
     ionWin: tr ? [tr.t0 + 0.45 * tr.dur, tr.t0 + tr.dur] : [Infinity, Infinity],
-  })
+  }))
+}
+
+/**
+ * Итог «как в жизни» при 25 °C (story/phase-data.ts): фаза, копии молекул / раствор / справочная решётка, облака по атомам
+ * (story/orbitals.ts), нормы колебаний и карточка фазы в HUD. Вне таблицы (не из 200) — фаза по виду решётки.
+ */
+function withPhase(plan: FormationPlan, model: SchoolHeroModel, s: FormationStory): FormationStory {
+  const row = phaseRow(plan.compoundId)
+  const phase: FinalPhase = row?.phase ?? (s.latticeKind === 'none' ? 'gas' : s.latticeKind)
+  const info: PhaseInfo = row?.info ?? { copies: phase === 'gas' ? 8 : 0, spacing: 2.6 }
+  s.finalPhase = phase
+  s.phaseInfo = info
+  s.orbitals = buildStoryOrbitals(plan, model)
+  s.vib = { ...VIB_DEFAULT }
+  s.hud = [...(s.hud ?? []), buildPhaseHud(s, plan.formula, phase, info)]
+  return s
 }
 
 /**
@@ -682,9 +710,10 @@ function redoxStory(plan: FormationPlan, model: SchoolHeroModel, r: NonNullable<
     reagentSticks: [],
     ghosts: [],
     electrons: [],
-    latticeAtoms: [],
+    // решётка продукта в «Итоге»: фрагмент по структурному типу (куприт Cu₂O, рутил MnO₂ …) растёт вокруг модели
+    latticeAtoms: lat.atoms,
     latticeKind: lat.kind,
-    latticeWin: [fin.t0, fin.t0],
+    latticeWin: [fin.t0 + 0.6, fin.t0 + 0.6 + 0.6 * fin.dur],
     type: formationScript(plan.compoundId)?.type ?? null,
     routeStage: r.route,
     ionLabelsFrom: fin.t0 + 0.3,
