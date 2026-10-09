@@ -121,7 +121,7 @@ export function co2CombustionModel(): RouteModel {
   ])
   const spin = (t: number) => 1.1 * seg(t, Re.t0 + 0.6, F.t0 + 1.5)
   // активный C: колебания при поджиге (до 10 пм), затем — центр молекулы
-  const cPos: PFn = (t) => add3(molC(t), jiggle(1, t, pm(10) * seg(t, I.t0, I.t0 + 2) * (1 - seg(t, A.t0 + 0.6, A.t0 + 1.4))))
+  const cPos: PFn = (t) => add3(molC(t), jiggle(1, t, pm(4) * seg(t, I.t0, I.t0 + 2) * (1 - seg(t, A.t0 + 0.6, A.t0 + 1.4))))
   // полу-расстояние C…O: до связи 0,46, на связи — 116 пм
   const halfX = (t: number) => 0.46 + (dCO - 0.46) * seg(t, Bo.t0 + 0.2, Bo.t0 + 1.6)
   // O₂ подлетает (ось поворачивается к горизонтали), рвётся; атомы O садятся по оси x вокруг C
@@ -154,7 +154,7 @@ export function co2CombustionModel(): RouteModel {
       el: 'C',
       label: '',
       r: () => rC,
-      pos: (t) => add3(p, jiggle(i + 3, t, pm(6) * seg(t, I.t0, I.t0 + 2) * (1 - seg(t, Re.t1, F.t0 + 1)))),
+      pos: (t) => add3(p, jiggle(i + 3, t, pm(3) * seg(t, I.t0, I.t0 + 2) * (1 - seg(t, Re.t1, F.t0 + 1)))),
       k: (t) => 1 - seg(t, tb, tb + 0.5),
       decor: true,
     })

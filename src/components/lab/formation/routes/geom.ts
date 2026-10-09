@@ -92,14 +92,17 @@ export function trackN(keys: readonly { t: number; v: number }[]): Fn {
   }
 }
 
-/** Детерминированный «шум» тепловых колебаний (без Math.random — перемотка даёт тот же кадр). */
+/** Предел амплитуды тепловых колебаний частиц сцены пути: 4 пм (как VIB_LIMITS.ampPm у «Как образуется»). */
+const JIGGLE_MAX = pm(4)
+/**
+ * Детерминированные тепловые колебания (без Math.random — перемотка даёт тот же кадр): та же форма, что vibOffset
+ * (motion.ts) — три синуса со сдвигом фаз 2,1 рад, фаза частицы — золотой угол·seed (соседи не в фазе), ω ≈ 7–8 рад/с
+ * (≈ 1,2 Гц) — медленное «дыхание», а не дрожь. Амплитуда ограничена 4 пм.
+ */
 export function jiggle(seed: number, t: number, amp: number): V3 {
-  const s = seed * 12.9898
-  return [
-    amp * Math.sin(t * 7.1 + s) * Math.cos(t * 2.3 + s * 0.7),
-    amp * Math.sin(t * 6.3 + s * 1.3) * Math.cos(t * 1.9 + s * 0.3),
-    amp * Math.sin(t * 6.8 + s * 2.1) * Math.cos(t * 2.1 + s * 1.1),
-  ]
+  const a = Math.min(Math.max(0, amp), JIGGLE_MAX)
+  const f = 2.39996 * seed
+  return [a * Math.sin(7.5 * t + f), a * Math.sin(8.3 * t + f + 2.1), a * Math.sin(6.7 * t + f + 4.2)]
 }
 
 /** Поворот точки p вокруг оси (единичной) через начало координат на угол a (рад). */

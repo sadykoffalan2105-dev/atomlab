@@ -52,7 +52,7 @@ export function Bubble({ pos, r, k }: { pos: PFn; r: number; k: Fn }) {
     if (!gr.visible) return
     const p = pos(t)
     gr.position.set(p[0], p[1], p[2])
-    gr.scale.setScalar(r * (0.6 + 0.4 * kk) * (1 + 0.03 * Math.sin(5 * t)))
+    gr.scale.setScalar(r * (0.6 + 0.4 * kk) * (1 + 0.015 * Math.sin(2.5 * t)))
     fill.opacity = 0.05 * kk
     rim.uniforms.uK!.value = 0.9 * kk
   })

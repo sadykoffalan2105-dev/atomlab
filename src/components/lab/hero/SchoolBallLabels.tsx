@@ -185,8 +185,9 @@ export function SchoolBallLabels({
         continue
       }
       const fs = Math.round(Math.max(11, Math.min(40, scratch.r[i]! * fontK(atoms[i]!.label))) * 2) / 2
-      const x = Math.round(scratch.x[i]! * 2) / 2
-      const y = Math.round(scratch.y[i]! * 2) / 2
+      // Дробные пиксели (translate3d + will-change): подпись идёт за шаром плавно, без «ступенек» по 0,5 px.
+      const x = Math.round(scratch.x[i]! * 100) / 100
+      const y = Math.round(scratch.y[i]! * 100) / 100
       if (!node.shown) {
         node.el.style.display = 'block'
         node.shown = true

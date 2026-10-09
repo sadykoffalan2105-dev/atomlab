@@ -15,8 +15,11 @@ import {
   schoolSphereGeometry,
   schoolStickGeometry,
 } from '../hero/schoolHeroStyle'
-import { atomPosAt, atomRadiusAt, clamp01, easeInOut, routeKeyAt, screenToModel, stageIndexAt, type FormationStory } from './formationStory'
+import { atomRadiusAt, clamp01, easeInOut, routeKeyAt, screenToModel, stageIndexAt, type FormationStory } from './formationStory'
 import type { FormationClock } from './formationTimeline'
+import { heatExpand, heatLevel, MOTION, smooth01, vibOffset } from './motion'
+import { acidDetach, phaseAtomPos, phaseExtent, phaseLayout } from './FormationPhaseScene'
+import { phaseOf } from './story/phase'
 
 /**
  * «Как образуется» в 3D карточки каталога — от и до (сценарий formationStory): исходные вещества (молекулы H₂, O₂ с
@@ -79,7 +82,13 @@ function routeQLabel(el: string, q: number, kind: 'ion' | 'ox' | undefined): str
 /** Частицы тепла (этап 'heat'): не больше 120, на слабых устройствах — 48. */
 const HEAT_N = 120
 const HEAT_N_LOW = 48
-const HEAT_AMP = 8 // pm: 0,08 Å — амплитуда тепловых колебаний к концу нагревания
+/**
+ * Амплитуда тепловых колебаний, пм (≤ VIB_LIMITS.ampPm = 4): медленное «дыхание» (≤ 1,5 Гц), а не дрожь.
+ * Само смещение — motion.ts (vibOffset), здесь — только сверка нормы.
+ */
+const HEAT_AMP_PM = 4
+if (import.meta.env?.DEV && HEAT_AMP_PM !== MOTION.ampPm) console.warn('[formation] HEAT_AMP_PM ≠ MOTION.ampPm')
+const _vo: V3 = [0, 0, 0]
 const hash = (i: number, k: number) => {
   const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453
   return x - Math.floor(x)
@@ -387,10 +396,12 @@ export function FormationMoleculeView({
     }
   }, [gl, routeQ])
   const isRedox = story.scenario === 'redoxDecomposition'
+  const phase = phaseOf(story)
+  const solidPhase = phase === 'ionic' || phase === 'molecular' || phase === 'chain'
+  const phaseL = useMemo(() => phaseLayout(story, model, lowPower), [story, model, lowPower])
   const centerRef = useRef<THREE.Group>(null)
   const center = useRef(new THREE.Vector3())
   const heatSt = story.stages.find((s) => s.key === 'heat') ?? null
-  const breakSt = story.stages.find((s) => s.key === 'break') ?? null
   const routeLive = useRef<V3[]>([])
   if (routeLive.current.length !== (story.routeStage?.atoms.length ?? 0)) routeLive.current = (story.routeStage?.atoms ?? []).map(() => [0, 0, 0] as V3)
 
@@ -405,16 +416,10 @@ export function FormationMoleculeView({
       while (n < steps.length && t >= steps[n]!.t) n++
       if (n !== stepN) setStepN(n)
     }
-    // Нагревание: амплитуда растёт к концу этапа, на разрыве затухает (0,08 Å максимум).
-    let heatA = 0
-    let heatF = 0
-    if (heatSt && t >= heatSt.t0) {
-      const u = clamp01((t - heatSt.t0) / Math.max(1e-6, heatSt.dur))
-      heatA = t < heatSt.t0 + heatSt.dur ? 0.25 + 0.75 * u : 1
-      heatF = 7 + 11 * u
-      const endHeat = heatSt.t0 + heatSt.dur
-      if (t >= endHeat) heatA *= breakSt && breakSt.t0 >= endHeat - 0.01 ? 1 - easeInOut((t - breakSt.t0) / Math.max(0.3, 0.7 * breakSt.dur)) : 1 - clamp01((t - endHeat) / 1.2)
-    }
+    // Нагревание (motion.ts): плавный разгон за весь этап, остывание за 1 с; в «Решётке»/«Итоге» — ноль.
+    // Видно не «дрожью», а тепловым расширением фрагмента (≈ 1,5 %) и медленными колебаниями ≤ 4 пм.
+    const heatA = heatSt ? heatLevel(story, t) : 0
+    const expand = heatA > 0 ? heatExpand(story, t) : 1
     if (c.playing && t >= finalT0) swayT.current += Math.min(0.1, Math.max(0, dt))
     if (t < finalT0) swayT.current = 0
     const { live } = anim
@@ -424,16 +429,28 @@ export function FormationMoleculeView({
     const keep = Math.max(1e-4, 1 - hide)
     labelOpacity.current = 1 - hide
     // Атомы.
-    for (let i = 0; i < live.length; i++) {
-      const L = atomPosAt(story, i, t, live[i]!)
-      if (heatA > 0.001) {
-        const amp = HEAT_AMP * K * heatA
-        L[0] += amp * Math.sin(heatF * t * 1.13 + i * 2.1)
-        L[1] += amp * Math.sin(heatF * t * 0.97 + i * 3.7 + 1)
-        L[2] += amp * Math.sin(heatF * t * 1.07 + i * 5.3 + 2)
+    for (let i = 0; i < live.length; i++) phaseAtomPos(story, model, i, t, live[i]!)
+    if (heatA > 0) {
+      // тепловое расширение от центроида + колебания (атомы модели видны не во всех сценариях нагрева)
+      let cx = 0
+      let cy = 0
+      let cz = 0
+      for (const L of live) ((cx += L[0]), (cy += L[1]), (cz += L[2]))
+      cx /= live.length || 1
+      cy /= live.length || 1
+      cz /= live.length || 1
+      for (let i = 0; i < live.length; i++) {
+        const L = live[i]!
+        vibOffset(story, i, t, _vo)
+        L[0] = cx + (L[0] - cx) * expand + _vo[0]
+        L[1] = cy + (L[1] - cy) * expand + _vo[1]
+        L[2] = cz + (L[2] - cz) * expand + _vo[2]
       }
+    }
+    for (let i = 0; i < live.length; i++) {
+      const L = live[i]!
       let pulse = 1
-      for (const st of steps) if (st.atom === i && t >= st.t && t < st.t + 0.6) pulse = 1 + 0.18 * Math.sin((Math.PI * (t - st.t)) / 0.6)
+      for (const st of steps) if (st.atom === i && t >= st.t && t < st.t + 0.6) pulse = 1 + 0.1 * Math.sin((Math.PI * (t - st.t)) / 0.6)
       _m.compose(_p.set(L[0], L[1], L[2]), _q.identity(), _s.setScalar(atomRadiusAt(story, i, t, model.atoms[i]!.r) * keep * pulse))
       res.atoms.setMatrixAt(i, _m)
     }
@@ -452,15 +469,31 @@ export function FormationMoleculeView({
     const route = story.routeStage
     const rl = routeLive.current
     if (route) {
-      route.atoms.forEach((a, i) => {
-        const P = routeKeyAt(a.keys, t, rl[i]!)
-        if (heatA > 0.001) {
-          // Нагревание: колеблются частицы сцены пути (они и есть исходное вещество до «Итога»).
-          const amp = HEAT_AMP * K * heatA
-          P[0] += amp * Math.sin(heatF * t * 1.13 + i * 2.1)
-          P[1] += amp * Math.sin(heatF * t * 0.97 + i * 3.7 + 1)
-          P[2] += amp * Math.sin(heatF * t * 1.07 + i * 5.3 + 2)
+      for (let i = 0; i < route.atoms.length; i++) routeKeyAt(route.atoms[i]!.keys, t, rl[i]!)
+      if (heatA > 0) {
+        // Нагревание: частицы сцены пути (исходное вещество до «Итога») — расширение от центроида видимых + колебания.
+        let cx = 0
+        let cy = 0
+        let cz = 0
+        let nv = 0
+        route.atoms.forEach((a, i) => {
+          if (t < a.tIn || t > a.tOut) return
+          cx += rl[i]![0]
+          cy += rl[i]![1]
+          cz += rl[i]![2]
+          nv++
+        })
+        if (nv) ((cx /= nv), (cy /= nv), (cz /= nv))
+        for (let i = 0; i < rl.length; i++) {
+          const P = rl[i]!
+          vibOffset(story, i, t, _vo)
+          P[0] = cx + (P[0] - cx) * expand + _vo[0]
+          P[1] = cy + (P[1] - cy) * expand + _vo[1]
+          P[2] = cz + (P[2] - cz) * expand + _vo[2]
         }
+      }
+      route.atoms.forEach((a, i) => {
+        const P = rl[i]!
         const sc = clamp01((t - a.tIn) / 0.5) * (1 - clamp01((t - a.tOut) / 0.4))
         _m.compose(_p.set(P[0], P[1], P[2]), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * sc)))
         res.routeAtoms.setMatrixAt(i, _m)
@@ -499,7 +532,8 @@ export function FormationMoleculeView({
       }
     }
     for (const s of story.sticks) {
-      const g = easeInOut((t - s.t0) / Math.max(1e-6, s.t1 - s.t0))
+      // раствор сильной кислоты: палочка H–A гаснет, пока H⁺ уходит к воде (H₃O⁺)
+      const g = easeInOut((t - s.t0) / Math.max(1e-6, s.t1 - s.t0)) * (1 - Math.max(acidDetach(story, model, s.a, t), acidDetach(story, model, s.b, t)))
       if (g <= 0.001) continue
       _a.set(...live[s.a]!)
       _b.set(...live[s.b]!)
@@ -596,7 +630,8 @@ export function FormationMoleculeView({
         const arr = (res.heat.geometry.getAttribute('position') as THREE.BufferAttribute).array as Float32Array
         const Rr = model.radius
         for (let i = 0; i < res.nH; i++) {
-          const ph = (t * (0.18 + 0.22 * hash(i, 1)) * (0.6 + heatF / 18) + hash(i, 2)) % 1
+          // скорость подъёма постоянна (без «чирпа»: множитель при t не меняется во времени)
+          const ph = (t * (0.18 + 0.22 * hash(i, 1)) * 0.9 + hash(i, 2)) % 1
           arr[i * 3] = (hash(i, 4) * 2 - 1) * 1.15 * Rr + 0.05 * Rr * Math.sin(3 * t + i)
           arr[i * 3 + 1] = (-1.1 + 2.3 * ph) * Rr
           arr[i * 3 + 2] = (hash(i, 5) * 2 - 1) * 0.6 * Rr
@@ -612,15 +647,17 @@ export function FormationMoleculeView({
     if (nL) {
       const [w0, w1] = story.latticeWin
       const fin = story.stages[story.stages.length - 1]!
-      // Ионная — растёт в «Решётке» и уходит в начале «Готово» (итог — модель карточки);
-      // молекулярная укладка / цепь — показывается в «Готово» и уходит в конце.
-      const fadeAt = story.latticeKind === 'ionic' ? finalT0 + 2.6 : fin.t0 + fin.dur - 1.6
+      // Итог «как в жизни»: у твёрдых веществ (ионные, молекулярные, цепные) фрагмент решётки НЕ уходит до конца показа;
+      // у прочих (если фрагмент вдруг есть) — как раньше: уходит в конце «Готово».
+      const fadeAt = solidPhase ? fin.t0 + fin.dur + 10 : fin.t0 + fin.dur - 1.6
       latO = clamp01((t - w0 + 0.2) / 0.8) * (1 - easeInOut((t - fadeAt) / 0.8))
+      // Ионы фрагмента в «Решётке» меньше (0,62 r) — видно расположение соседей; в «Готово» плавно до 0,9 r
+      // (ионы касаются — твёрдое тело).
+      const latK = story.latticeKind === 'ionic' ? 0.62 + 0.28 * smooth01((t - fin.t0) / 1.5) : 0.85
       if (latO > 0.01) {
         story.latticeAtoms.forEach((a, i) => {
           const g = easeInOut((t - (w0 + a.k * (w1 - w0))) / 0.7) * latO
-          // Ионы фрагмента меньше (0,62 r): видно расположение соседей, а не сплошная стена шаров; уходят — сжимаясь.
-          _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g * (story.latticeKind === 'ionic' ? 0.62 : 0.85))))
+          _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g * latK)))
           res.lattice.setMatrixAt(i, _m)
         })
         res.lattice.instanceMatrix.needsUpdate = true
@@ -672,12 +709,14 @@ export function FormationMoleculeView({
       const kk = 1
       for (const a of story.latticeAtoms) R = Math.max(R, model.radius + (Math.hypot(...a.pos) + a.r - model.radius) * kk)
     }
+    // Сцена фазы (копии молекул газа/жидкости, вода раствора) — в кадре целиком (не режется ближней плоскостью).
+    R = Math.max(R, phaseExtent(phaseL, t))
     const o = outer.current
     if (o) {
       const target = fitRadius / Math.max(1e-6, R)
-      // Плавный «зум» (без рывков при смене этапа).
+      // Плавный «зум»: экспонента по реальному шагу кадра (не зависит от FPS, без рывков при смене этапа).
       const cur = o.scale.x || target
-      o.scale.setScalar(cur + (target - cur) * Math.min(1, 6 * Math.max(0.016, dt)))
+      o.scale.setScalar(cur + (target - cur) * (1 - Math.exp(-6 * Math.min(Math.max(0, dt), 0.1))))
     }
     const a = turnA.current
     const bb = turnB.current
@@ -686,6 +725,10 @@ export function FormationMoleculeView({
       if (model.motion === 'orbit') {
         a.rotation.set(model.pitch, 0, 0)
         bb.rotation.set(0, model.yaw + stt * HERO_ORBIT_RAD_PER_SEC, 0)
+      } else if (solidPhase) {
+        // Твёрдое вещество: с «Готово» — медленный облёт (как у кристаллов), фрагмент виден со всех сторон.
+        a.rotation.set(0, model.yaw + stt * HERO_ORBIT_RAD_PER_SEC, 0)
+        bb.rotation.set(model.pitch, 0, 0)
       } else {
         a.rotation.set(0, model.yaw + SWAY_AMP * Math.sin((2 * Math.PI * stt) / SWAY_PERIOD), 0)
         bb.rotation.set(model.pitch, 0, 0)
