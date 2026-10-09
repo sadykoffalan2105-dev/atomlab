@@ -9,7 +9,7 @@
  *    DipoleArrow — стрелка диполя с «плюсом» у хвоста; Burst — вспышка + расходящееся кольцо (энергия связи);
  *  • Backdrop — фон showcase: глубокий градиент, виньетка, редкая «пыль» (drei Sparkles).
  */
-import { useMemo, useRef, type CSSProperties, type MutableRefObject, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type CSSProperties, type MutableRefObject, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html, Sparkles, Trail } from '@react-three/drei'
 import * as THREE from 'three'
@@ -203,14 +203,27 @@ export function Tag({ pos, text, k, tone = 'info', offset = [0, 0, 0] }: { pos: 
   const clock = useClockCtx()
   const bounds = useContext(BoundsCtx)
   const me = useMemo(() => ({ id: TAG_SEQ.n++ }), [])
+  // размер подписи (px) — обновляется наблюдателем, а не чтением offsetWidth в каждом кадре (без лишних перерасчётов вёрстки)
+  const box = useRef({ w: 120, h: 28 })
+  useEffect(() => {
+    const node = el.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      if (node.offsetWidth > 0) box.current = { w: node.offsetWidth, h: node.offsetHeight }
+    })
+    ro.observe(node)
+    return () => ro.disconnect()
+  }, [])
   // Подпись не уходит за край 3D-окна и не залезает под HUD-карточки (справа dx px / сверху dy px).
   const calc = useMemo(
     () => (o: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }) => {
       const v = new THREE.Vector3().setFromMatrixPosition(o.matrixWorld).project(camera)
       let x = ((v.x + 1) / 2) * size.width
       let y = ((1 - v.y) / 2) * size.height
-      const w = el.current?.offsetWidth ?? 120
-      const h = el.current?.offsetHeight ?? 28
+      // скрытая подпись место не занимает и не двигается — без замеров
+      if (!el.current || el.current.style.display === 'none') return [x, y]
+      const w = box.current.w
+      const h = box.current.h
       const b = bounds.current
       const m = 6
       const maxX = size.width - (b.dx > 0 ? b.dx + 8 : 0) - w / 2 - m
@@ -222,8 +235,6 @@ export function Tag({ pos, text, k, tone = 'info', offset = [0, 0, 0] }: { pos: 
       const now = performance.now()
       // чужие подписи этого кадра (свою прошлую позицию не считаем препятствием — иначе подпись «убегает» сама от себя)
       for (let i = PLACED.length - 1; i >= 0; i--) if (now - PLACED[i]!.at > 40 || PLACED[i]!.owner === me) PLACED.splice(i, 1)
-      // скрытая подпись место не занимает и никого не двигает
-      if (!el.current || el.current.style.display === 'none') return [x, y]
       // уступает только младшая подпись (создана позже): старшие стоят на месте — без «погони» друг за другом
       const hit = (px: number, py: number) => PLACED.some((r) => r.owner.id < me.id && Math.abs(r.x - px) < (r.w + w) / 2 + 4 && Math.abs(r.y - py) < (r.h + h) / 2 + 4)
       // направление выбирается один раз: вниз, если есть место, иначе вверх (без «качелей» вниз-вверх)

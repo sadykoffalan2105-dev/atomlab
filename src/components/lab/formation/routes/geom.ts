@@ -96,9 +96,9 @@ export function trackN(keys: readonly { t: number; v: number }[]): Fn {
 export function jiggle(seed: number, t: number, amp: number): V3 {
   const s = seed * 12.9898
   return [
-    amp * Math.sin(t * 23.1 + s) * Math.cos(t * 7.3 + s * 0.7),
-    amp * Math.sin(t * 19.7 + s * 1.3) * Math.cos(t * 5.9 + s * 0.3),
-    amp * Math.sin(t * 21.3 + s * 2.1) * Math.cos(t * 6.7 + s * 1.1),
+    amp * Math.sin(t * 7.1 + s) * Math.cos(t * 2.3 + s * 0.7),
+    amp * Math.sin(t * 6.3 + s * 1.3) * Math.cos(t * 1.9 + s * 0.3),
+    amp * Math.sin(t * 6.8 + s * 2.1) * Math.cos(t * 2.1 + s * 1.1),
   ]
 }
 

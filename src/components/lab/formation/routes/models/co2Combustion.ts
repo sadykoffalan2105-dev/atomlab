@@ -204,23 +204,32 @@ export function co2CombustionModel(): RouteModel {
   const eIn = (t: number) => seg(t, T.t0, T.t0 + 0.5)
   const eOut = (t: number) => 1 - seg(t, Bo.t0 + 1.8, Bo.t0 + 2.8)
   const pO = { a: oPos(-1), b: oPos(1) }
+  // Ровная раскладка: σ-пара — на оси связи (электрон C ближе к C, электрон O ближе к O; центр пары смещён к O),
+  // π-пара — над осью у C=Oa и под осью у C=Ob (вторая π — в перпендикулярной плоскости, наклонена к зрителю).
   const slot = (side: 'a' | 'b', kind: 's' | 'p', who: 'c' | 'o'): PFn => (t) => {
-    const base = lerp3(cPos(t), pO[side](t), who === 'c' ? 0.56 : 0.7)
-    // σ — на оси (чуть к камере), π — над осью у C=Oa и перед осью у C=Ob (две π взаимно перпендикулярны)
-    const off: V3 = kind === 's' ? [0, 0, 0.12] : side === 'a' ? [0, 0.16, 0.05] : [0, -0.05, 0.21]
+    const base = lerp3(cPos(t), pO[side](t), who === 'c' ? 0.5 : 0.75)
+    const off: V3 = kind === 's' ? [0, 0, 0.09] : side === 'a' ? [0, 0.15, 0.05] : [0, -0.11, 0.11]
     return add3(base, rotAxis(off, UP, spin(t)))
+  }
+  // до смещения: электроны на окружности вокруг своего атома (в плоскости экрана, чуть к зрителю)
+  const ring = (center: PFn, R: number, deg: number): PFn => (t) => {
+    const a = (deg * Math.PI) / 180
+    return add3(center(t), [R * Math.cos(a), R * Math.sin(a), 0.06])
+  }
+  const HOME: Record<'a' | 'b', { c: Record<'s' | 'p', number>; o: Record<'s' | 'p', number> }> = {
+    a: { c: { s: 180, p: 135 }, o: { s: 0, p: 45 } },
+    b: { c: { s: 0, p: -45 }, o: { s: 180, p: 225 } },
   }
   const moveWin = { a: [T.t0 + 1.2, T.t0 + 3.0], b: [T.t0 + 1.8, T.t0 + 3.6] } as const
   for (const side of ['a', 'b'] as const) {
-    const sg = side === 'a' ? -1 : 1
     for (const kind of ['s', 'p'] as const) {
-      const homeC: V3 = kind === 's' ? [sg * 0.17, 0.05, 0.1] : [sg * 0.08, 0.17, 0.08]
-      const homeO: V3 = kind === 's' ? [-sg * 0.16, 0.05, 0.1] : [-sg * 0.05, 0.17, 0.08]
       const [m0, m1] = moveWin[side]
+      const hC = ring(cPos, rC + 0.065, HOME[side].c[kind])
+      const hO = ring(pO[side], rO + 0.06, HOME[side].o[kind])
       const sC = slot(side, kind, 'c')
       const sO = slot(side, kind, 'o')
-      electrons.push({ id: `eC${side}${kind}`, tone: 'c', k: (t) => eIn(t) * eOut(t), pos: (t) => lerp3(add3(cPos(t), homeC), sC(t), seg(t, m0, m1)) })
-      electrons.push({ id: `eO${side}${kind}`, tone: 'o', k: (t) => eIn(t) * eOut(t), pos: (t) => lerp3(add3(pO[side](t), homeO), sO(t), seg(t, m0 + 0.2, m1)) })
+      electrons.push({ id: `eC${side}${kind}`, tone: 'c', k: (t) => eIn(t) * eOut(t), pos: (t) => lerp3(hC(t), sC(t), seg(t, m0, m1)) })
+      electrons.push({ id: `eO${side}${kind}`, tone: 'o', k: (t) => eIn(t) * eOut(t), pos: (t) => lerp3(hO(t), sO(t), seg(t, m0 + 0.15, m1)) })
     }
   }
 

@@ -24,6 +24,7 @@ const _b = new THREE.Vector3()
 const _ax = new THREE.Vector3()
 const _side = new THREE.Vector3()
 const _cam = new THREE.Vector3()
+const _camL = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
 const _w = new THREE.Vector3()
 const _f = new THREE.Vector3()
@@ -73,6 +74,9 @@ export function RouteAtoms({ model, lowPower }: { model: RouteModel; lowPower: b
     camera.getWorldPosition(_cam)
     const draw = (mesh: THREE.InstancedMesh | null, list: typeof real) => {
       if (!mesh) return
+      // камера — в координатах сетки: группа сцены может быть повёрнута и масштабирована (показ в лаборатории)
+      mesh.updateWorldMatrix(true, false)
+      const camLocal = mesh.worldToLocal(_camL.copy(_cam))
       let c = 0
       for (const b of list) {
         const g = clamp01(b.k(t))
@@ -91,7 +95,7 @@ export function RouteAtoms({ model, lowPower }: { model: RouteModel; lowPower: b
         _q.setFromUnitVectors(_up, _ax)
         // кратная связь — палочки рядом, в плоскости, обращённой к камере
         _side.copy(_a).add(_b).multiplyScalar(0.5)
-        _side.copy(_cam).sub(_side).cross(_ax).normalize()
+        _side.copy(camLocal).sub(_side).cross(_ax).normalize()
         for (let s = 0; s < b.n; s++) {
           _p.copy(_a).add(_b).multiplyScalar(0.5)
           if (b.n > 1) _p.addScaledVector(_side, (s - (b.n - 1) / 2) * STICK_STEP)

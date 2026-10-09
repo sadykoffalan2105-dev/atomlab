@@ -55,6 +55,14 @@ const inPlane = (c: V3, phi: number, a: number, b: number): V3 => [c[0] + a, c[1
 /** Квадратичная кривая Безье. */
 const bez = (s: V3, q: V3, e: V3, u: number): V3 => add3(add3(mul3(s, (1 - u) * (1 - u)), q, 2 * u * (1 - u)), e, u * u)
 
+/** Единичный перпендикуляр к отрезку a→b в плоскости экрана (z — к зрителю): пара электронов стоит поперёк пути. */
+const perpXY = (a: V3, b: V3): V3 => {
+  const dx = b[0] - a[0]
+  const dy = b[1] - a[1]
+  const l = Math.hypot(dx, dy)
+  return l < 1e-6 ? [0, 1, 0] : [-dy / l, dx / l, 0]
+}
+
 export function co2AcidModel(): RouteModel {
   const stages = buildStages(CO2_ACID_STAGES)
   const R = stages.W('reagents')
@@ -254,13 +262,17 @@ export function co2AcidModel(): RouteModel {
 
   // ── электроны ──
   const electrons: RouteElectron[] = []
-  const pair = (id: string, tone: RouteElectron['tone'], from: PFn, to: PFn, perp: V3, t0: number, m0: number, m1: number, t1: number) => {
+  const pair = (id: string, tone: RouteElectron['tone'], from: PFn, to: PFn, _perp: V3, t0: number, m0: number, m1: number, t1: number) => {
     for (const s of [-1, 1] as const) {
       electrons.push({
         id: `${id}${s}`,
         tone,
         k: (t) => seg(t, t0, t0 + 0.4) * (1 - seg(t, t1, t1 + 0.6)),
-        pos: (t) => add3(lerp3(from(t), to(t), seg(t, m0, m1)), perp, 0.045 * s),
+        pos: (t) => {
+          const a = from(t)
+          const b = to(t)
+          return add3(lerp3(a, b, seg(t, m0, m1)), perpXY(a, b), 0.038 * s)
+        },
       })
     }
   }

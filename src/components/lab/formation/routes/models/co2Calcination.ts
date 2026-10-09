@@ -63,6 +63,14 @@ export function caoSites(sx: -1 | 1, sz: -1 | 1): { ca: V3; o: V3 } {
   return even ? { ca: lo, o: hi } : { ca: hi, o: lo }
 }
 
+/** Единичный перпендикуляр к отрезку a→b в плоскости экрана (z — к зрителю): пара электронов стоит поперёк пути. */
+const perpXY = (a: V3, b: V3): V3 => {
+  const dx = b[0] - a[0]
+  const dy = b[1] - a[1]
+  const l = Math.hypot(dx, dy)
+  return l < 1e-6 ? [0, 1, 0] : [-dy / l, dx / l, 0]
+}
+
 export function co2CalcinationModel(): RouteModel {
   const stages = buildStages(CO2_CALCINATION_STAGES)
   const R = stages.W('reagents')
@@ -78,7 +86,7 @@ export function co2CalcinationModel(): RouteModel {
   const rCa = rIon(ION_PM.Ca2)
   const dCO3 = pm(BOND_PM.CO_carbonate)
   const dCO2 = pm(BOND_PM.CO_co2)
-  const amp = (t: number) => pm(4) + pm(10) * seg(t, H.t0, H.t0 + 3) - pm(9) * seg(t, C.t0, C.t1)
+  const amp = (t: number) => (pm(3) + pm(9) * seg(t, H.t0, H.t0 + 3)) * (1 - seg(t, C.t0, C.t0 + 3.2))
 
   const particles: Particle[] = []
   const bonds: Bond[] = []
@@ -167,7 +175,11 @@ export function co2CalcinationModel(): RouteModel {
             id: `${id}${sg}`,
             tone,
             k: (t) => seg(t, t0, t0 + 0.4) * (1 - seg(t, t1, t1 + 0.6)),
-            pos: (t) => add3(lerp3(from(t), to(t), seg(t, m0, m1)), [0.04 * sg, 0.03 * sg, 0]),
+            pos: (t) => {
+              const a = from(t)
+              const b = to(t)
+              return add3(lerp3(a, b, seg(t, m0, m1)), perpXY(a, b), 0.038 * sg)
+            },
           })
       }
       // пара связи C–O уходит к O (O²⁻)

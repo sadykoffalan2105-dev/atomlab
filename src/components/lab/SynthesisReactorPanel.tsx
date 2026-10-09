@@ -639,6 +639,15 @@ export function SynthesisReactorPanel({
       }),
     [mainReaction, leftTerms, productCompound, coProducts],
   )
+  // показ в лаборатории грузим заранее — без паузы на старте синтеза
+  useEffect(() => {
+    if (!routeId) return
+    const id = window.setTimeout(() => {
+      void import('./formation/routes/RouteLabFx')
+      void import('./formation/routes/RouteLabPanel')
+    }, 800)
+    return () => window.clearTimeout(id)
+  }, [routeId])
   /** Раскрытый раздел под уравнением (аккордеон: одновременно один). */
   const [openSection, setOpenSection] = useState<ReactorSection | null>(null)
   const sectionsId = useId()

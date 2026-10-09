@@ -71,9 +71,9 @@ export function Co2CombustionScene({ model, L, tags, lowPower }: RouteSceneProps
       <Tag pos={fixed([0.95, SHEET_Y + 0.1, 0.25])} text={tx('burn')} tone="heat" k={(t) => win(t, Re.t0 + 1.3, F.t0 + 0.4)} />
       <Tag pos={posOf(model, 'C', [0.42, 0.18, 0])} text={tx('gas')} k={(t) => win(t, Re.t0 + 2.0, F.t0 + 0.6)} />
       {/* финал: 180°, 116 пм, диполи гасят друг друга */}
-      <AngleArc v={pC} a={posOf(model, 'Oa')} b={posOf(model, 'Ob')} r={0.2} label={() => tx('angle')} k={(t) => win(t, F.t0 + 0.6, F.t1 + 1)} />
-      <DipoleArrow from={posOf(model, 'C', [0, 0.2, 0])} to={posOf(model, 'Oa', [0, 0.2, 0])} width={0.022} k={(t) => win(t, F.t0 + 1.6, F.t1 + 1)} />
-      <DipoleArrow from={posOf(model, 'C', [0, 0.2, 0])} to={posOf(model, 'Ob', [0, 0.2, 0])} width={0.022} k={(t) => win(t, F.t0 + 1.6, F.t1 + 1)} />
+      <AngleArc v={pC} a={posOf(model, 'Oa')} b={posOf(model, 'Ob')} r={0.27} label={() => tx('angle')} k={(t) => win(t, F.t0 + 0.6, F.t1 + 1)} />
+      <DipoleArrow from={midOf(model, 'C', 'Oa', [0, 0.21, 0], 0.18)} to={midOf(model, 'C', 'Oa', [0, 0.21, 0], 1.05)} width={0.02} k={(t) => win(t, F.t0 + 1.6, F.t1 + 1)} />
+      <DipoleArrow from={midOf(model, 'C', 'Ob', [0, 0.21, 0], 0.18)} to={midOf(model, 'C', 'Ob', [0, 0.21, 0], 1.05)} width={0.02} k={(t) => win(t, F.t0 + 1.6, F.t1 + 1)} />
       <Tag pos={posOf(model, 'C', [0, -0.52, 0])} text={tx('co2')} tone="key" k={(t) => win(t, F.t0 + 0.8, F.t1 + 1)} />
     </group>
   )
