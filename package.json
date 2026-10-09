@@ -120,6 +120,7 @@
     "verify:book-g10": "tsx scripts/verify-book-g10-ch1-2.mts && tsx scripts/verify-book-g10-ch2-3.mts",
     "test:formation-routes": "tsx scripts/test-formation-routes.mts",
     "test:formation-plan": "tsx scripts/test-formation-plan.mts",
+    "test:formation-motion": "tsx scripts/test-formation-motion.mts",
     "test:formation-teacher": "tsx scripts/test-formation-teacher.mts",
     "test:reactions200": "tsx scripts/test-reactions200.mts",
     "plan:reactions200": "tsx scripts/plan/select-reactions200.mts",

@@ -22,6 +22,12 @@
  *    нет Mn⁰ / Cu⁰ и сближения атомов из простых веществ; HUD с полуреакциями, балансом и проверкой. У этих веществ D / J / L
  *    (сценарий «из простых веществ») не применяются — их заменяет M.
  * «До» — прежний показ (4 шага: Состав → Заряды → Сборка 6–10 с → Готово, без электронов, исходных веществ и уравнения).
+ *  N фаза итога при 25 °C (story/phase-data.ts): газ / жидкость / раствор без фрагмента решётки, копии молекул и вода в норме,
+ *    кристаллы — с фрагментом (и 7 ОВР-веществ), кислоты-растворы — acidH на атомах H, облака и карточка фазы RU/EN/UZ;
+ *  O решётка по структурному типу: фрагмент из генератора, КЧ катиона и аниона = табличному, d(катион–анион) = модели ±2 %,
+ *    нет наложений (d ≥ 0,8·(r₁ + r₂));
+ *  P нормы колебаний (VIB_LIMITS) и непрерывность atomPosAt — scripts/test-formation-motion.mts.
+ *  N / O / P — scripts/audit-formation-phase.mts.
  * Запуск: npx tsx scripts/audit-formation-200.mts [--list]
  */
 import { CATALOG_TOP200_IDS } from '../src/data/catalog/catalogTop200'
@@ -34,8 +40,9 @@ import { formationScript } from '../src/chemistry/formationScripts'
 import { pmToScene } from '../src/lab/cinema/scenes/kit/cpkAtoms'
 import { redoxDecomposition, productAtoms, reagentAtoms } from '../src/chemistry/formationRedoxDecomposition'
 import { routeKeyAt, type FormationStory } from '../src/components/lab/formation/formationStory'
+import { auditPhases } from './audit-formation-phase.mts'
 
-type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
+type Cat = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P'
 const CATS: Record<Cat, string> = {
   A: 'план / 3D-модель не строятся',
   B: 'итог анимации ≠ модель карточки',
@@ -50,6 +57,9 @@ const CATS: Record<Cat, string> = {
   K: 'темп: e⁻ / пары / палочки',
   L: 'путь получения не показан в 3D',
   M: 'redox-decomposition: ОВР-разложение',
+  N: 'фаза 25 °C: газ/жидкость/раствор/кристалл',
+  O: 'решётка по структурному типу и КЧ',
+  P: 'нормы колебаний / непрерывность',
 }
 const mk = () => Object.fromEntries((Object.keys(CATS) as Cat[]).map((k) => [k, new Set<string>()])) as Record<Cat, Set<string>>
 const before: Record<Cat, Set<string>> = mk()
@@ -329,6 +339,15 @@ function redoxAudit(story: FormationStory, def: NonNullable<ReturnType<typeof re
   return out
 }
 
+// ── N / O / P: фаза 25 °C, решётка по структурному типу, нормы движения (scripts/audit-formation-phase.mts) ──
+const nop = await auditPhases()
+for (const k of ['N', 'O', 'P'] as const) {
+  for (const id of nop.before[k]) before[k].add(id)
+  for (const id of nop.after[k]) after[k].add(id)
+}
+notes.push(...nop.notes)
+if (nop.pSkipped) console.log('P: skip (нет motion.ts) — проверены vibOf и непрерывность atomPosAt')
+
 const N = CATALOG_TOP200_IDS.length
 console.log(`Аудит «Как образуется» — ${N} веществ`)
 console.log('Категория                                  | до  | после')
@@ -348,4 +367,5 @@ for (const id of CATALOG_TOP200_IDS) {
 }
 console.log(`Типы: ${JSON.stringify(byType)}; решётка: ${JSON.stringify(byLat)}; путь в 3D: ${JSON.stringify(byRoute)}`)
 if (process.argv.includes('--list') || fails > 0) for (const n of notes) console.log(`  ${n}`)
-console.log(fails === 0 ? 'ОК: проблем A–L (кроме I) нет' : `Проблем A–L: ${fails}`)
+for (const l of nop.summary) console.log(l)
+console.log(fails === 0 ? 'ОК: проблем A–P (кроме I) нет' : `Проблем A–P: ${fails}`)

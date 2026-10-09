@@ -4,6 +4,7 @@ import { isMetal } from '../../../chemistry/formationPlan'
 import { formationTexts, type FormationLocale } from '../../../chemistry/formationText'
 import { formationTeacherBoard, formationTeacherLines, formationTeacherSpecial, routeKindKey, routeKindLabel, type TeacherBoard } from '../../../chemistry/formationTeacher'
 import type { FormationStory, StageKey } from './formationStory'
+import { phaseOf, type FinalPhase } from './story/phase'
 
 /**
  * Подписи этапов «Как образуется» (RU / EN / UZ): заголовок, крупная строка и пояснение для каждого этапа сценария,
@@ -25,6 +26,17 @@ export type FormationStageTexts = {
 type Tri = readonly [string, string, string]
 const L3 = { ru: 0, en: 1, uz: 2 } as const
 const pick = (t: Tri, loc: FormationLocale) => t[L3[loc]]
+
+/** Одна фраза к этапу «Готово» — каким вещество бывает при 25 °C (story/phase.ts). */
+const PHASE_FINAL: Record<FinalPhase, Tri> = {
+  gas: ['При 25 °C это газ: молекулы далеко друг от друга и движутся свободно.', 'At 25 °C it is a gas: the molecules are far apart and move freely.', '25 °C da bu gaz: molekulalar bir-biridan uzoq va erkin harakatlanadi.'],
+  liquid: ['При 25 °C это жидкость: молекулы вплотную, но скользят друг относительно друга.', 'At 25 °C it is a liquid: the molecules are close together but slide past each other.', '25 °C da bu suyuqlik: molekulalar zich, lekin bir-biri ustida sirpanadi.'],
+  solution: ['Это вещество знают как раствор: молекулы распадаются на ионы среди молекул воды.', 'This substance is known as a solution: its molecules break into ions among water molecules.', 'Bu modda eritma holida uchraydi: molekulalari suv molekulalari orasida ionlarga ajraladi.'],
+  ionic: ['При 25 °C это ионный кристалл: каждый ион окружён ионами противоположного знака.', 'At 25 °C it is an ionic crystal: each ion is surrounded by ions of opposite charge.', '25 °C da bu ion kristall: har bir ion qarama-qarshi zaryadli ionlar bilan oʻralgan.'],
+  molecular: ['При 25 °C это молекулярный кристалл: молекулы в узлах решётки держатся слабо.', 'At 25 °C it is a molecular crystal: the molecules at the lattice sites are held weakly.', '25 °C da bu molekulyar kristall: panjara tugunlaridagi molekulalar kuchsiz bogʻlangan.'],
+  chain: ['При 25 °C это твёрдый полимер: звенья соединены в цепи или слои.', 'At 25 °C it is a solid polymer: the units are joined into chains or layers.', '25 °C da bu qattiq polimer: boʻgʻinlar zanjir yoki qatlamlarga birikkan.'],
+  network: ['При 25 °C это атомный кристалл: все атомы связаны в единый каркас, молекул нет.', 'At 25 °C it is a covalent crystal: all atoms are joined into one framework, there are no molecules.', '25 °C da bu atom kristall: barcha atomlar yagona karkasga bogʻlangan, molekula yoʻq.'],
+}
 
 const TITLES: Record<StageKey, Tri> = {
   reagents: ['Исходные вещества', 'Starting substances', 'Boshlangʻich moddalar'],
@@ -235,7 +247,7 @@ export function formationStageTexts(
         break
       case 'final':
         main = s4.main
-        sub = s4.sub
+        sub = [s4.sub, pick(PHASE_FINAL[phaseOf(story)], loc)].filter((x) => x && x.trim()).join(' ')
         break
       case 'heat': {
         // Окислительно-восстановительное разложение: нагревание исходного кристалла (4MnO₂ —t°→ …).
