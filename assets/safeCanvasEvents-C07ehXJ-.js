@@ -1,1 +1,0 @@
-import{m as e}from"./rapier-vendor-gzP6eUli.js";var t=t=>{let n=e(t),r=n.connect;return{...n,connect:e=>{e&&r?.(e)}}};export{t};

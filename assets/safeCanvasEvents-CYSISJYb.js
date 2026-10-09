@@ -1,0 +1,1 @@
+import{m as e}from"./rapier-vendor-CqaIEfxC.js";var t=t=>{let n=e(t),r=n.connect;return{...n,connect:e=>{e&&r?.(e)}}};export{t};

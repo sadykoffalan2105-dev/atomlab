@@ -1,0 +1,1 @@
+import{Ni as e}from"./rapier-vendor-CqaIEfxC.js";var t=null;function n(){return t??=e(()=>import(`./reactions-CaNLIIQi.js`).then(e=>e.default),[]).catch(e=>{throw t=null,e}),t}export{n as loadOrganicV2Reactions};
