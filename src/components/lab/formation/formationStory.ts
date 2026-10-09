@@ -10,6 +10,7 @@ import { buildStoryHud } from './story/hud'
 import { buildRedoxDecomposition, type RedoxSceneInfo } from './story/redoxDecomposition'
 import { showcaseDur } from './showcase/durations'
 import { showcaseHud } from './showcase/texts/index'
+import type { FinalPhase, PhaseInfo, StoryOrbitals, VibSpec } from './story/phase'
 
 export type { LatticeAtom, StoryLatticeKind } from './story/lattice'
 export type { RouteStage, RouteAtom, RouteStick, RouteElectron, RouteBadge, RouteShow } from './story/route'
@@ -135,6 +136,14 @@ export type FormationStory = {
   rNeutral: number[]
   /** окно смены радиуса атом → ион (этап перехода e⁻) */
   ionWin: [number, number]
+  /** (фазы 25 °C) итог «как в жизни»: газ / жидкость / раствор / кристалл (story/phase.ts, данные — story/phase-data.ts) */
+  finalPhase?: FinalPhase
+  /** (фазы 25 °C) копии молекул, раствор (H₃O⁺, вода), справочная решётка и честная подпись */
+  phaseInfo?: PhaseInfo
+  /** (фазы 25 °C) облака по атомам модели: уровень, s/p, гибридизация, неподелённые пары, роль (story/orbitals.ts) */
+  orbitals?: StoryOrbitals
+  /** (фазы 25 °C) нормы колебаний атомов (≤ VIB_LIMITS) */
+  vib?: VibSpec
 }
 
 /** Валентные электроны главных подгрупп (номер группы). */
