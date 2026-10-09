@@ -30,7 +30,7 @@ export function Bubbles({ level, rate, fromY = 0.008, spread = 0.75 }: { level: 
     () =>
       Array.from({ length: n }, (_, i) => {
         const size = 0.35 + Math.pow(rand(i, 5), 2.2) * 1.5
-        return { a: rand(i, 1) * Math.PI * 2, r: rand(i, 2), s: 0.55 + rand(i, 3) * 0.5 + size * 0.35, ph: rand(i, 4), size }
+        return { a: rand(i, 1) * Math.PI * 2, r: rand(i, 2), s: 0.55 + rand(i, 3) * 0.5 + size * 0.35, ph: rand(i, 4), size01: (size - 0.35) / 1.5 }
       }),
     [n],
   )
@@ -49,11 +49,13 @@ export function Bubbles({ level, rate, fromY = 0.008, spread = 0.75 }: { level: 
       // отрываются от поверхности металла медленно и ускоряются вверх
       const y = fromY + (0.35 * f * f + 0.65 * f) * span
       const rr = TUBE_R * 0.7 * spread * Math.sqrt(sd.r) * (1 - 0.3 * f)
-      const wob = Math.sin(t * 9 + i) * 0.0006 * f
-      tmp.position.set(Math.cos(sd.a) * rr + wob, Math.min(y, lv - 0.0008), Math.sin(sd.a) * rr)
-      // у поверхности пузырёк раздувается и лопается
-      const pop = f > 0.93 ? Math.max(0, 1 - (f - 0.93) / 0.07) * 1.5 : f > 0.86 ? 1 + (f - 0.86) * 7 : 1
-      const sc = on && lv > fromY + 0.004 ? (0.0008 + 0.001 * sd.size) * (0.55 + 0.6 * f) * pop : 0
+      // лёгкое боковое дрожание (пузырёк «виляет», поднимаясь)
+      const wobX = Math.sin(t * 9 + i) * 0.0006 * f
+      const wobZ = Math.sin(t * 13 + i * 1.7) * 0.0004 * f
+      tmp.position.set(Math.cos(sd.a) * rr + wobX, Math.min(y, lv - 0.0008), Math.sin(sd.a) * rr + wobZ)
+      // диаметр 1,2…2,2 мм (радиус 0,6…1,1 мм), к поверхности чуть растёт; в последние 8 % пути лопается
+      const pop = f > 0.92 ? Math.max(0, 1 - (f - 0.92) / 0.08) : 1
+      const sc = on && lv > fromY + 0.004 ? (0.0006 + 0.0005 * sd.size01) * (0.85 + 0.15 * f) * pop : 0
       tmp.scale.setScalar(Math.max(sc, 1e-6))
       tmp.updateMatrix()
       m.setMatrixAt(i, tmp.matrix)

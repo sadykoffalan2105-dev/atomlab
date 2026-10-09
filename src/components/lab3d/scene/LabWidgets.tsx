@@ -12,9 +12,18 @@ import { labHand, useHand } from '../interaction/labHandStore'
 import type { LabExperimentId, LabLang } from '../labContract'
 import { labEvents, type LabGearId } from '../labEvents'
 import type { LabViewId } from './labSceneLayout'
+import { useLabUiMode } from './labUiMode'
+import { chooseLabUiMode } from './labUiPrefs'
 import css from './LabWidgets.module.css'
 
 const GEAR: readonly LabGearId[] = ['goggles', 'gloves', 'coat']
+
+/** Подпись переключателя крупного интерфейса для интерактивной доски. */
+const BOARD_MODE: Readonly<Record<LabLang, { on: string; off: string }>> = {
+  ru: { on: 'Режим доски: вкл.', off: 'Режим доски (крупные кнопки)' },
+  en: { on: 'Board mode: on', off: 'Board mode (large buttons)' },
+  uz: { on: 'Doska rejimi: yoqilgan', off: 'Doska rejimi (katta tugmalar)' },
+}
 
 /** Иконки средств защиты (SVG, не эмодзи — одинаково на всех устройствах). */
 export function GearIcon({ gear, size = 22 }: { gear: LabGearId; size?: number }) {
@@ -116,6 +125,7 @@ export function LabWidgets({ experimentId, step, finished, lang, view, onView, v
   const audio = useSyncExternalStore(labAudio.subscribe, labAudio.getSnapshot, labAudio.getSnapshot)
   // Свёрнуто по умолчанию: в шапке уже видно время и что надето, а сцена (и предмет в руке справа) не закрыта
   const [open, setOpen] = useState(false)
+  const uiMode = useLabUiMode()
   const [sec, setSec] = useState<Record<string, boolean>>({ timer: true, journal: true, gear: !narrow, sound: false, map: false })
   const toggle = (k: string) => setSec((s) => ({ ...s, [k]: !s[k] }))
 
@@ -291,6 +301,17 @@ export function LabWidgets({ experimentId, step, finished, lang, view, onView, v
             <Section title={t('lab3d.scene.map')} icon={<MapIcon />} open={sec.map} onToggle={() => toggle('map')}>
               <MiniMap view={view} onView={onView} label={viewLabel} />
             </Section>
+
+            {/* Интерактивная доска: крупные кнопки и шрифт (запоминается) */}
+            <button
+              type="button"
+              className={css.boardToggle}
+              aria-pressed={uiMode.mode === 'board'}
+              onClick={() => chooseLabUiMode(uiMode.mode === 'board' ? 'normal' : 'board')}
+              data-lab3d-board-toggle=""
+            >
+              {uiMode.mode === 'board' ? BOARD_MODE[lang].on : BOARD_MODE[lang].off}
+            </button>
           </div>
         )}
       </div>

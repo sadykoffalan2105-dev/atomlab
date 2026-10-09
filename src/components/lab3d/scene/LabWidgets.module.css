@@ -47,7 +47,7 @@
 .miniTime {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: #2f7cf6;
+  color: #1f66d9;
 }
 
 .miniGear {
@@ -120,7 +120,7 @@
 
 .secIcon {
   display: inline-flex;
-  color: #2f7cf6;
+  color: #1f66d9;
 }
 
 .secTitle {
@@ -147,7 +147,7 @@
 }
 
 .timeRun {
-  color: #2f7cf6;
+  color: #1f66d9;
 }
 
 .btn,
@@ -163,7 +163,7 @@
 
 .btn {
   color: #fff;
-  background: #2f7cf6;
+  background: #1f66d9;
 }
 
 .btnGhost {
@@ -227,7 +227,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #2f7cf6;
+  color: #1f66d9;
   font: inherit;
   font-weight: 650;
   cursor: pointer;
@@ -263,7 +263,7 @@
 
 .jAct {
   background: rgba(47, 124, 246, 0.06);
-  border-left-color: #2f7cf6 !important;
+  border-left-color: #1f66d9 !important;
 }
 
 .jObs {
@@ -284,7 +284,7 @@
 
 .vol input {
   width: 100%;
-  accent-color: #2f7cf6;
+  accent-color: #1f66d9;
 }
 
 .check {
@@ -324,13 +324,12 @@
   stroke-width: 0.8;
 }
 
-.mapZone:hover .mapOff,
 .mapZone:focus-visible .mapOff {
   fill: #a9c6f6;
 }
 
 .mapOn {
-  fill: #2f7cf6;
+  fill: #1f66d9;
   stroke: #1d5fd0;
   stroke-width: 0.8;
 }
@@ -437,4 +436,67 @@
 
 .dock[hidden] {
   display: none;
+}
+
+@media (hover: hover) {
+  .mapZone:hover .mapOff {
+    fill: #a9c6f6;
+  }
+}
+
+/* Переключатель «Режим доски» */
+.boardToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(24, 32, 42, 0.12);
+  background: #fff;
+  color: #18202a;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.boardToggle[aria-pressed='true'] {
+  background: #1f66d9;
+  border-color: #1f66d9;
+  color: #fff;
+}
+
+/* ——— Режим электронной доски: шире, кнопки ≥ 56 px, шрифт крупнее ——— */
+:global([data-lab-board]) .dock {
+  width: 360px;
+  font-size: 18px;
+  max-height: calc(100% - 130px);
+}
+:global([data-lab-board]) .dockHead,
+:global([data-lab-board]) .secHead,
+:global([data-lab-board]) .btn,
+:global([data-lab-board]) .btnGhost,
+:global([data-lab-board]) .gearBtn,
+:global([data-lab-board]) .link,
+:global([data-lab-board]) .check,
+:global([data-lab-board]) .boardToggle {
+  min-height: 56px;
+  min-width: 56px;
+}
+:global([data-lab-board]) .link {
+  display: inline-flex;
+  align-items: center;
+}
+:global([data-lab-board]) .vol input {
+  min-height: 56px;
+}
+:global([data-lab-board]) .mapZone {
+  min-height: 56px;
+}
+:global([data-lab-board]) button,
+:global([data-lab-board]) label {
+  touch-action: manipulation;
 }

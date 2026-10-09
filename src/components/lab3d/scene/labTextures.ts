@@ -33,12 +33,12 @@ function rng(seed: number): () => number {
   }
 }
 
-/** Пол: светлая виниловая плитка 60 см (в текстуре 4×4 плитки = 2,4 м). */
+/** Пол: светлая виниловая плитка 30 см (в текстуре 8×8 плиток = 2,4 м); рельеф швов — floorReliefTextures. */
 export function floorTexture(): THREE.CanvasTexture {
   const S = 1024
   const [c, ctx] = makeCanvas(S, S)
   const r = rng(7)
-  const n = 4
+  const n = FLOOR_TILES
   const cell = S / n
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
@@ -451,4 +451,175 @@ export function benchTopTexture(): THREE.CanvasTexture {
   t.wrapT = THREE.RepeatWrapping
   t.repeat.set(3, 1.1)
   return t
+}
+
+/** Плиток пола на одну текстуру (2,4 м): 8 → плитка 30 см. */
+export const FLOOR_TILES = 8
+
+/**
+ * Карта нормалей из карты высот (канал R холста 0…255): разности по соседям (с переносом через край — текстура
+ * повторяется без шва). strength — крутизна рельефа. Данные линейные (не sRGB).
+ */
+export function heightToNormal(src: HTMLCanvasElement, strength = 1.2): THREE.CanvasTexture {
+  const w = src.width
+  const h = src.height
+  const sctx = src.getContext('2d')
+  if (!sctx) throw new Error('2d context')
+  const hd = sctx.getImageData(0, 0, w, h).data
+  const [c, ctx] = makeCanvas(w, h)
+  const out = ctx.createImageData(w, h)
+  const H = (x: number, y: number) => hd[(((y + h) % h) * w + ((x + w) % w)) * 4] / 255
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = (H(x + 1, y) - H(x - 1, y)) * strength
+      const dy = (H(x, y + 1) - H(x, y - 1)) * strength
+      const len = Math.hypot(dx, dy, 1)
+      const i = (y * w + x) * 4
+      out.data[i] = Math.round((-dx / len) * 127.5 + 127.5)
+      out.data[i + 1] = Math.round((dy / len) * 127.5 + 127.5)
+      out.data[i + 2] = Math.round((1 / len) * 127.5 + 127.5)
+      out.data[i + 3] = 255
+    }
+  }
+  ctx.putImageData(out, 0, 0)
+  const t = toTexture(c, false)
+  t.wrapS = THREE.RepeatWrapping
+  t.wrapT = THREE.RepeatWrapping
+  return t
+}
+
+/**
+ * Рельеф пола (та же раскладка, что у floorTexture): нормали — утопленные швы с фаской и лёгкая волнистость винила;
+ * шероховатость (канал G) — шов 0,8, плитка ≈ 0,35 (плитка даёт мягкий блик от окна, швы матовые).
+ */
+export function floorReliefTextures(): { normal: THREE.CanvasTexture; roughness: THREE.CanvasTexture } {
+  const S = 512
+  const n = FLOOR_TILES
+  const cell = S / n
+  const seam = 2
+  const r = rng(11)
+  const [hc, hctx] = makeCanvas(S, S)
+  hctx.fillStyle = 'rgb(200,200,200)'
+  hctx.fillRect(0, 0, S, S)
+  for (let k = 0; k < 900; k++) {
+    const v = 188 + Math.floor(r() * 24)
+    hctx.fillStyle = `rgba(${v},${v},${v},0.35)`
+    hctx.beginPath()
+    hctx.arc(r() * S, r() * S, 2 + r() * 6, 0, Math.PI * 2)
+    hctx.fill()
+  }
+  for (let i = 0; i <= n; i++) {
+    const p = i * cell
+    hctx.fillStyle = 'rgb(120,120,120)'
+    hctx.fillRect(p - seam - 1, 0, seam * 2 + 2, S)
+    hctx.fillRect(0, p - seam - 1, S, seam * 2 + 2)
+    hctx.fillStyle = 'rgb(40,40,40)'
+    hctx.fillRect(p - seam / 2, 0, seam, S)
+    hctx.fillRect(0, p - seam / 2, S, seam)
+  }
+  const normal = heightToNormal(hc, 1.2)
+  const [rc, rctx] = makeCanvas(S, S)
+  rctx.fillStyle = 'rgb(0,89,0)'
+  rctx.fillRect(0, 0, S, S)
+  for (let k = 0; k < 1400; k++) {
+    const g = 80 + Math.floor(r() * 26)
+    rctx.fillStyle = `rgba(0,${g},0,0.5)`
+    rctx.fillRect(r() * S, r() * S, 2 + r() * 5, 2 + r() * 5)
+  }
+  rctx.fillStyle = 'rgb(0,204,0)'
+  for (let i = 0; i <= n; i++) {
+    const p = i * cell
+    rctx.fillRect(p - seam, 0, seam * 2, S)
+    rctx.fillRect(0, p - seam, S, seam * 2)
+  }
+  const roughness = toTexture(rc, false)
+  roughness.wrapS = THREE.RepeatWrapping
+  roughness.wrapT = THREE.RepeatWrapping
+  return { normal, roughness }
+}
+
+/**
+ * Серый шум (линейный, повторяемый без шва): bumpMap стен, roughnessMap столешницы. lo…hi — диапазон 0…1.
+ */
+export function noiseTexture(seed: number, lo: number, hi: number, S = 256, blobs = 40, grains = 2200): THREE.CanvasTexture {
+  const [c, ctx] = makeCanvas(S, S)
+  const r = rng(seed)
+  const g = (v: number) => Math.round(255 * Math.min(1, Math.max(0, v)))
+  const mid = g((lo + hi) / 2)
+  ctx.fillStyle = `rgb(${mid},${mid},${mid})`
+  ctx.fillRect(0, 0, S, S)
+  for (let i = 0; i < blobs; i++) {
+    const x = r() * S
+    const y = r() * S
+    const rad = 10 + r() * S * 0.25
+    const v = g(lo + (hi - lo) * r())
+    // пятно у края дублируется с другой стороны — без шва при повторе
+    for (const ox of [-S, 0, S])
+      for (const oy of [-S, 0, S]) {
+        const gr = ctx.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad)
+        gr.addColorStop(0, `rgba(${v},${v},${v},0.5)`)
+        gr.addColorStop(1, `rgba(${v},${v},${v},0)`)
+        ctx.fillStyle = gr
+        ctx.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2)
+      }
+  }
+  for (let i = 0; i < grains; i++) {
+    const v = g(lo + (hi - lo) * r())
+    ctx.fillStyle = `rgba(${v},${v},${v},0.6)`
+    ctx.fillRect(r() * S, r() * S, 1 + Math.floor(r() * 2), 1 + Math.floor(r() * 2))
+  }
+  const t = toTexture(c, false)
+  t.wrapS = THREE.RepeatWrapping
+  t.wrapT = THREE.RepeatWrapping
+  return t
+}
+
+/** Циферблат настенных часов: 60 делений, цифры 12/3/6/9 (стрелки — отдельные бруски, неподвижны). */
+export function clockFaceTexture(): THREE.CanvasTexture {
+  const S = 256
+  const [c, ctx] = makeCanvas(S, S)
+  ctx.fillStyle = '#fbfbf8'
+  ctx.fillRect(0, 0, S, S)
+  ctx.translate(S / 2, S / 2)
+  ctx.strokeStyle = '#1f252c'
+  for (let i = 0; i < 60; i++) {
+    const big = i % 5 === 0
+    ctx.lineWidth = big ? 6 : 2
+    const a = (i / 60) * Math.PI * 2
+    const r0 = big ? 100 : 110
+    ctx.beginPath()
+    ctx.moveTo(Math.sin(a) * r0, -Math.cos(a) * r0)
+    ctx.lineTo(Math.sin(a) * 120, -Math.cos(a) * 120)
+    ctx.stroke()
+  }
+  ctx.fillStyle = '#1f252c'
+  ctx.font = `600 34px ${FONT}`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  const nums: ReadonlyArray<readonly [string, number, number]> = [['12', 0, -74], ['3', 76, 2], ['6', 0, 78], ['9', -76, 2]]
+  for (const [t, x, y] of nums) ctx.fillText(t, x, y)
+  return toTexture(c)
+}
+
+/** Альфа-маска светового столба: мягко гаснет к краям и к полу (линейная; alphaMap читает канал G). */
+export function lightShaftAlphaTexture(): THREE.CanvasTexture {
+  const W = 64
+  const H = 128
+  const [c, ctx] = makeCanvas(W, H)
+  const img = ctx.createImageData(W, H)
+  for (let y = 0; y < H; y++) {
+    const v = y / (H - 1) // 0 — у окна, 1 — у пола
+    const along = Math.min(1, v * 6) * Math.pow(1 - v, 1.4)
+    for (let x = 0; x < W; x++) {
+      const u = x / (W - 1)
+      const a = Math.round(255 * along * Math.pow(Math.sin(Math.PI * u), 0.8))
+      const i = (y * W + x) * 4
+      img.data[i] = a
+      img.data[i + 1] = a
+      img.data[i + 2] = a
+      img.data[i + 3] = 255
+    }
+  }
+  ctx.putImageData(img, 0, 0)
+  return toTexture(c, false)
 }

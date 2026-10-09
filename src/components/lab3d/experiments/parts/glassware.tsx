@@ -2,10 +2,11 @@
  * Лабораторная посуда и подставки в реальных размерах (м): пробирка Ø18 × 150 мм, химстакан 100 мл,
  * склянка с реактивом, штатив для пробирок, лабораторный штатив с лапкой, часовое стекло, стеклянная пластинка.
  */
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { LAB_COLORS, labGlassMaterial, labLiquidMaterial } from '../../labContract'
+import { LAB_COLORS, labGlassMaterial } from '../../labContract'
+import { labLiquid, shadeLiquidGeometry, tuneLabGlass } from '../../scene/labMaterials'
 import { useRig, type PFn, type Quality } from '../rigCore'
 
 const glassCache = new Map<Quality, THREE.MeshPhysicalMaterial>()
@@ -13,14 +14,8 @@ const glassCache = new Map<Quality, THREE.MeshPhysicalMaterial>()
 export function sharedGlass(q: Quality): THREE.MeshPhysicalMaterial {
   let m = glassCache.get(q)
   if (!m) {
-    m = labGlassMaterial(q)
-    if (q === 'low') {
-      m.opacity = 0.22
-      m.color.set('#eaf3fb')
-    } else {
-      m.color.set('#f6fbff')
-      m.roughness = 0.03
-    }
+    m = tuneLabGlass(labGlassMaterial(q), q)
+    m.color.set(q === 'low' ? '#eaf3fb' : '#f6fbff')
     glassCache.set(q, m)
   }
   return m
@@ -90,13 +85,25 @@ export function TestTube({
 }) {
   const { quality, p } = useRig()
   const glassGeo = useMemo(() => new THREE.LatheGeometry(tubeProfile(TUBE_R, TUBE_H, quality === 'high'), quality === 'high' ? 32 : 18), [quality])
-  const liqMat = useMemo(() => labLiquidMaterial(liquidColor, liquidOpacity), [liquidColor, liquidOpacity])
+  // Жидкость: градиент «гуще ко дну» и светлая поверхность — цветом вершин (одна программа на все пробирки)
+  const liqMat = useMemo(() => labLiquid(liquidColor, liquidOpacity, true), [liquidColor, liquidOpacity])
+  const hemiGeo = useMemo(() => shadeLiquidGeometry(new THREE.SphereGeometry(TUBE_R * 0.86, 20, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), 'bottom'), [])
+  const colGeo = useMemo(() => shadeLiquidGeometry(new THREE.CylinderGeometry(TUBE_R * 0.86, TUBE_R * 0.86, 1, 24), 'column'), [])
+  const menGeo = useMemo(() => shadeLiquidGeometry(new THREE.TorusGeometry(TUBE_R * 0.86 * 0.96, 0.0008, 6, 24), 'flat'), [])
   const base = useMemo(() => new THREE.Color(liquidColor), [liquidColor])
   const milk = useMemo(() => new THREE.Color('#dde3ea'), [])
   const hemi = useRef<THREE.Mesh>(null)
   const cyl = useRef<THREE.Mesh>(null)
   const men = useRef<THREE.Mesh>(null)
-  const ri = TUBE_R * 0.86
+  useEffect(
+    () => () => {
+      hemiGeo.dispose()
+      colGeo.dispose()
+      menGeo.dispose()
+      liqMat.dispose()
+    },
+    [hemiGeo, colGeo, menGeo, liqMat],
+  )
   useFrame(() => {
     const pv = p.current ?? 0
     const lv = level ? level(pv) : 0
@@ -115,21 +122,16 @@ export function TestTube({
     const c = cloud ? cloud(pv) : 0
     liqMat.color.copy(base).lerp(milk, c)
     liqMat.opacity = liquidOpacity + (0.94 - liquidOpacity) * c
-    liqMat.roughness = 0.08 + 0.6 * c
+    liqMat.roughness = 0.03 + 0.6 * c
   })
   return (
     <group>
       <mesh geometry={glassGeo} material={sharedGlass(quality)} renderOrder={3} />
       <mesh geometry={glassGeo} material={sharedGlassEdge()} renderOrder={4} />
-      <mesh ref={hemi} position={[0, TUBE_R, 0]} material={liqMat} renderOrder={2}>
-        <sphereGeometry args={[ri, 20, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2]} />
-      </mesh>
-      <mesh ref={cyl} material={liqMat} renderOrder={2}>
-        <cylinderGeometry args={[ri, ri, 1, 24]} />
-      </mesh>
-      <mesh ref={men} rotation={[Math.PI / 2, 0, 0]} material={liqMat} renderOrder={2}>
-        <torusGeometry args={[ri * 0.93, 0.0011, 6, 24]} />
-      </mesh>
+      <mesh ref={hemi} position={[0, TUBE_R, 0]} geometry={hemiGeo} material={liqMat} renderOrder={2} />
+      <mesh ref={cyl} geometry={colGeo} material={liqMat} renderOrder={2} />
+      {/* Мениск — тонкий валик у стенки (вода смачивает стекло); только на ПК */}
+      {quality === 'high' && <mesh ref={men} rotation={[Math.PI / 2, 0, 0]} geometry={menGeo} material={liqMat} renderOrder={2} />}
     </group>
   )
 }
@@ -219,7 +221,7 @@ export function ReagentBottle({ formula, name, level, color = '#e3f2ff' }: { for
     return new THREE.LatheGeometry(pts, quality === 'high' ? 36 : 20)
   }, [quality])
   const tex = useLabelTexture(formula, name)
-  const liq = useMemo(() => labLiquidMaterial(color, 0.5), [color])
+  const liq = useMemo(() => labLiquid(color, 0.5), [color])
   const liqRef = useRef<THREE.Mesh>(null)
   useFrame(() => {
     const m = liqRef.current

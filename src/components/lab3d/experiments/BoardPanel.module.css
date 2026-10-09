@@ -1081,3 +1081,17 @@
   scrollbar-width: thin;
   border-radius: 16px;
 }
+
+/* Режим электронной доски (атрибут data-lab-board у страницы — доска внутри Html того же дерева):
+   базовый шрифт ×1,15, все кнопки на доске ≥ 64 px, акцент темнее (белый текст — контраст ≥ 4,5:1) */
+:global([data-lab-board]) .board {
+  --accent: #1f66d9;
+  font-size: 23px;
+}
+:global([data-lab-board]) .chipBtn,
+:global([data-lab-board]) .navBtn,
+:global([data-lab-board]) .needBtn,
+:global([data-lab-board]) .smallBtn {
+  min-height: 64px;
+  min-width: 64px;
+}

@@ -3,12 +3,13 @@
  * мышь на компьютере, пальцы на телефоне/планшете/интерактивной доске. Опыты из Kimyo 7 (§ 2.12 и практическое § 5.2).
  * Состояние опыта (LabRunState) живёт здесь; ?exp=<id> в адресе выбирает опыт.
  */
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { labAudio } from '../components/lab3d/audio/labAudio'
 import { LAB_EXPERIMENTS } from '../components/lab3d/experiments'
 import { LabExtinguisherBar, LabHandBar } from '../components/lab3d/interaction/LabHandBar'
 import { labHand } from '../components/lab3d/interaction/labHandStore'
+import { labEvents } from '../components/lab3d/labEvents'
 import { isLabTaskId, type LabTaskId, type LabExperimentId, type LabLang, type LabReactionKind, type LabRunState } from '../components/lab3d/labContract'
 import { LAB_TASKS, getLabTask } from '../data/labTasks/labTasks'
 import { labTaskSession, useLabTaskSession } from '../components/lab3d/measure/labTaskSession'
@@ -18,6 +19,9 @@ import type { LearnTaskNumericProblem } from '../learn/learnTaskProblems'
 import { createLabSceneBridge } from '../components/lab3d/scene/labBridge'
 import { labCameraInsets } from '../components/lab3d/scene/labCameraInsets'
 import { LabWidgets } from '../components/lab3d/scene/LabWidgets'
+import { labUiMode, useLabUiMode } from '../components/lab3d/scene/labUiMode'
+import { resolveLabUiMode } from '../components/lab3d/scene/labUiPrefs'
+import { LabXrButton } from '../components/lab3d/xr/LabXrButton'
 import type { LabViewId } from '../components/lab3d/scene/labSceneLayout'
 import { detectVrLabQuality, webglSupported } from '../components/vrLab/vrLabPerformance'
 import { useT, type MessageKey } from '../i18n/useT'
@@ -71,6 +75,8 @@ const TASK_UI = {
   tasks: { ru: 'Задачи-опыты', en: 'Lab problems', uz: 'Masala-tajribalar' },
   back: { ru: 'Вернуться к задачам', en: 'Back to problems', uz: 'Masalalarga qaytish' },
   coach: { ru: 'Спросить учителя (ИИ) — без готового ответа', en: 'Ask the teacher (AI): no ready answers', uz: 'O‘qituvchidan so‘rash (SI) — tayyor javobsiz' },
+  fullscreen: { ru: 'Во весь экран', en: 'Full screen', uz: 'Toʻliq ekran' },
+  fullscreenExit: { ru: 'Выйти из полноэкранного режима', en: 'Exit full screen', uz: 'Toʻliq ekrandan chiqish' },
 } satisfies Record<string, Record<LabLang, string>>
 
 function isExperimentId(v: string | null): v is LabExperimentId {
@@ -98,6 +104,22 @@ function subscribeNarrow(cb: () => void): () => void {
   return () => mq?.removeEventListener('change', cb)
 }
 const isNarrowNow = () => (typeof window !== 'undefined' ? !!window.matchMedia?.(NARROW_QUERY).matches : false)
+
+/** Полноэкранный режим (интерактивная доска, проектор): есть ли он в браузере и включён ли сейчас. */
+function subscribeFullscreen(cb: () => void): () => void {
+  document.addEventListener('fullscreenchange', cb)
+  return () => document.removeEventListener('fullscreenchange', cb)
+}
+const isFullscreenNow = () => (typeof document !== 'undefined' ? !!document.fullscreenElement : false)
+const fullscreenAvailable = () => typeof document !== 'undefined' && !!document.fullscreenEnabled && !!document.documentElement.requestFullscreen
+function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => {})
+    else void document.documentElement.requestFullscreen?.().catch(() => {})
+  } catch {
+    /* браузер запретил — ничего не делаем */
+  }
+}
 
 export function Lab3DPage() {
   const { t, locale } = useT()
@@ -206,7 +228,16 @@ export function Lab3DPage() {
     }
   }, [])
   const [ready, setReady] = useState(false)
-  const quality = useMemo(resolveQuality, [])
+  // Качество — состояние: VR-часть может временно понизить его командой 'quality' (мобильный шлем)
+  const [quality, setQuality] = useState<'low' | 'high'>(resolveQuality)
+  // Режим электронной доски: ?board=1, ручной выбор в виджетах или большой сенсорный экран
+  useLayoutEffect(() => {
+    labUiMode.set(resolveLabUiMode())
+  }, [])
+  const uiMode = useLabUiMode()
+  const boardMode = uiMode.mode === 'board'
+  const fullscreen = useSyncExternalStore(subscribeFullscreen, isFullscreenNow, () => false)
+  const canFullscreen = useMemo(fullscreenAvailable, [])
   const hasWebgl = useMemo(() => webglSupported(), [])
   const bridge = useMemo(() => createLabSceneBridge(), [])
 
@@ -250,6 +281,22 @@ export function Lab3DPage() {
     setView(id)
     setViewNonce((n) => n + 1)
   }
+  // Команды интерфейсу от VR-доски/HUD: те же действия, что у кнопок панели (последние значения — через ref)
+  const commandRef = useRef({ skipStep, setStep, step: run.step, chooseView, selectExperiment })
+  commandRef.current = { skipStep, setStep, step: run.step, chooseView, selectExperiment }
+  useEffect(
+    () =>
+      labEvents.on('uiCommand', (e) => {
+        const c = commandRef.current
+        if (e.cmd === 'next') c.skipStep()
+        else if (e.cmd === 'back') c.setStep(c.step - 1)
+        else if (e.cmd === 'restart') c.setStep(0)
+        else if (e.cmd === 'view' && e.view) c.chooseView(e.view)
+        else if (e.cmd === 'select' && e.experimentId && isExperimentId(e.experimentId)) c.selectExperiment(e.experimentId)
+        else if (e.cmd === 'quality' && (e.quality === 'low' || e.quality === 'high')) setQuality(e.quality)
+      }),
+    [],
+  )
 
   const cardTitle = (id: LabExperimentId) => {
     const d = LAB_EXPERIMENTS.find((e) => e.id === id)
@@ -263,7 +310,7 @@ export function Lab3DPage() {
   const active = cardTitle(run.experimentId)
 
   return (
-    <div ref={wrapRef} className={styles.wrap}>
+    <div ref={wrapRef} className={styles.wrap} data-lab-board={boardMode ? '' : undefined} style={{ '--lab-ui': uiMode.scale } as CSSProperties}>
       <div className={styles.stage}>
         {hasWebgl ? (
           <Suspense
@@ -347,6 +394,20 @@ export function Lab3DPage() {
             </button>
           </span>
         )}
+        {canFullscreen && !narrow && (
+          <button
+            type="button"
+            className={fullscreen ? styles.chipActive : styles.chip}
+            aria-pressed={fullscreen}
+            aria-label={fullscreen ? TASK_UI.fullscreenExit[lang] : TASK_UI.fullscreen[lang]}
+            title={fullscreen ? TASK_UI.fullscreenExit[lang] : TASK_UI.fullscreen[lang]}
+            onClick={toggleFullscreen}
+            data-lab3d-fullscreen=""
+          >
+            <FullscreenIcon on={fullscreen} />
+          </button>
+        )}
+        <LabXrButton lang={lang} className={styles.xrBtn} />
       </div>
 
       {/* Панель опыта */}
@@ -471,5 +532,14 @@ export function Lab3DPage() {
         </div>
       </aside>
     </div>
+  )
+}
+
+/** Значок «во весь экран» / «выйти» (SVG — одинаково на всех устройствах). */
+function FullscreenIcon({ on }: { on: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {on ? <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" /> : <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />}
+    </svg>
   )
 }

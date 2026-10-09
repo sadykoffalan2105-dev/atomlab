@@ -9,7 +9,9 @@
   color: #18202a;
   --lab-glass: rgba(255, 255, 255, 0.78);
   --lab-border: rgba(24, 32, 42, 0.1);
-  --lab-accent: #2f7cf6;
+  /* #1f66d9: белый текст на акценте — контраст 5,3:1 (был #2f7cf6 — 3,9:1) */
+  --lab-accent: #1f66d9;
+  --lab-ui: 1;
   --lab-muted: #5a6573;
 }
 
@@ -101,8 +103,10 @@
   touch-action: manipulation;
 }
 
-.chip:hover {
-  background: rgba(47, 124, 246, 0.1);
+@media (hover: hover) {
+  .chip:hover {
+    background: rgba(31, 102, 217, 0.1);
+  }
 }
 
 .chipActive {
@@ -238,8 +242,10 @@
   touch-action: manipulation;
 }
 
-.card:hover {
-  border-color: rgba(47, 124, 246, 0.45);
+@media (hover: hover) {
+  .card:hover {
+    border-color: rgba(31, 102, 217, 0.45);
+  }
 }
 
 .cardActive {
@@ -465,8 +471,10 @@
   color: var(--lab-accent);
   text-decoration: none;
 }
-.back:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .back:hover {
+    text-decoration: underline;
+  }
 }
 .tabs {
   display: grid;
@@ -503,4 +511,130 @@
   font-size: 13px;
   font-weight: 650;
   color: #2457c5;
+}
+
+/* Кнопка VR (часть XR сама прячется, если шлема нет) — как чип вида */
+.xrBtn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 0;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: #23303e;
+  touch-action: manipulation;
+}
+
+/* ——— Режим электронной доски (?board=1, переключатель в «Приборах» или большой сенсорный экран) ———
+   Всё крупнее (--lab-ui = 1,6): касаемые цели ≥ 56 px, текст шага читается с 3 м, наведение не нужно. */
+.wrap[data-lab-board] button,
+.wrap[data-lab-board] a,
+.wrap[data-lab-board] summary {
+  touch-action: manipulation;
+}
+.wrap[data-lab-board] .views {
+  gap: 10px;
+  padding: 8px;
+  bottom: 20px;
+  max-width: calc(100% - 32px);
+}
+.wrap[data-lab-board] .chip,
+.wrap[data-lab-board] .chipActive,
+.wrap[data-lab-board] .xrBtn {
+  min-height: 64px;
+  min-width: 64px;
+  padding: 0 26px;
+  font-size: 1.2rem;
+}
+.wrap[data-lab-board] .panel {
+  width: min(440px, 36vw);
+  bottom: 112px;
+}
+@media (min-width: 1600px) {
+  .wrap[data-lab-board] .panel {
+    width: 480px;
+  }
+}
+.wrap[data-lab-board] .panelHead {
+  min-height: 72px;
+  padding: 14px 20px;
+}
+.wrap[data-lab-board] .kicker {
+  font-size: 0.95rem;
+}
+.wrap[data-lab-board] .headTitle {
+  font-size: 1.3rem;
+}
+.wrap[data-lab-board] .toggle {
+  font-size: 1.5rem;
+}
+.wrap[data-lab-board] .panelBody {
+  gap: 14px;
+}
+.wrap[data-lab-board] .lead {
+  font-size: 1.05rem;
+}
+.wrap[data-lab-board] .tab,
+.wrap[data-lab-board] .tabOn {
+  min-height: 56px;
+  font-size: 1.05rem;
+}
+.wrap[data-lab-board] .cards {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.wrap[data-lab-board] .card {
+  min-height: 120px;
+  padding: 14px;
+}
+.wrap[data-lab-board] .badge {
+  font-size: 0.9rem;
+}
+.wrap[data-lab-board] .cardTitle {
+  font-size: 1.1rem;
+}
+.wrap[data-lab-board] .eq {
+  font-size: 1.05rem;
+}
+.wrap[data-lab-board] .stepCount {
+  font-size: 1rem;
+}
+.wrap[data-lab-board] .progress {
+  height: 10px;
+}
+.wrap[data-lab-board] .instruction {
+  font-size: 1.5rem;
+  line-height: 1.35;
+}
+.wrap[data-lab-board] .observation {
+  font-size: 1.2rem;
+  padding: 12px 14px;
+}
+.wrap[data-lab-board] .stepBtns {
+  gap: 10px;
+}
+.wrap[data-lab-board] .btn,
+.wrap[data-lab-board] .btnPrimary {
+  min-height: 72px;
+  font-size: 1.2rem;
+}
+.wrap[data-lab-board] .hint {
+  font-size: 1rem;
+}
+.wrap[data-lab-board] .back,
+.wrap[data-lab-board] .classic {
+  display: inline-flex;
+  align-items: center;
+  min-height: 56px;
+  font-size: 1.05rem;
+}
+.wrap[data-lab-board] .coach > summary {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  font-size: 1.05rem;
 }
