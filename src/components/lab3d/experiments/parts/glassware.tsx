@@ -100,9 +100,9 @@ export function TestTube({
       hemiGeo.dispose()
       colGeo.dispose()
       menGeo.dispose()
-      liqMat.dispose()
+      // материал жидкости не освобождаем здесь: RenderGate может ещё ждать готовности его программы (compileAsync)
     },
-    [hemiGeo, colGeo, menGeo, liqMat],
+    [hemiGeo, colGeo, menGeo],
   )
   useFrame(() => {
     const pv = p.current ?? 0

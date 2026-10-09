@@ -17,7 +17,7 @@ import { ContactShadows } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useHand } from '../interaction/labHandStore'
-import { useXrPresenting } from '../xr/labXrStore'
+import { labXr, useXrPresenting } from '../xr/labXrStore'
 
 /** Кто рисует кадр вместо gl.render (постобработка); null — обычный gl.render(scene, camera). */
 type LabFrameRenderer = (dt: number) => void
@@ -167,6 +167,7 @@ export function LabPerfProbe() {
         gl: unknown
         scene: unknown
         programs: () => { name: string; key: string; used: number }[]
+        xr: (presenting: boolean) => void
       }
     }
     w.__labPerf = {
@@ -188,6 +189,8 @@ export function LabPerfProbe() {
         dpr: gl.getPixelRatio(),
         fx: frameRenderer ? 1 : 0,
       }),
+      // Проверка без шлема: «как в VR» — постобработка и контактные тени выключаются
+      xr: (presenting: boolean) => labXr.set({ presenting }),
     }
     return () => {
       delete w.__labPerf
