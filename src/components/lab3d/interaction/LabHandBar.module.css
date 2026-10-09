@@ -79,8 +79,10 @@
   color: #23303e;
 }
 
-.btn:hover {
-  background: #f1f5fa;
+@media (hover: hover) {
+  .btn:hover {
+    background: #f1f5fa;
+  }
 }
 
 .btnPrimary {
@@ -89,8 +91,10 @@
   color: #fff;
 }
 
-.btnPrimary:hover {
-  background: #198553;
+@media (hover: hover) {
+  .btnPrimary:hover {
+    background: #198553;
+  }
 }
 
 @keyframes rise {
@@ -149,4 +153,25 @@
 .pressed {
   transform: translateY(1px) scale(0.97);
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Режим электронной доски: полоса руки 72 px, кнопки ≥ 64 px, текст крупнее */
+:global([data-lab-board]) .bar,
+:global([data-lab-board]) .tip {
+  min-height: 72px;
+  font-size: 18px;
+}
+:global([data-lab-board]) .label {
+  font-size: 19px;
+}
+:global([data-lab-board]) .btn,
+:global([data-lab-board]) .btnPrimary {
+  min-height: 64px;
+  min-width: 64px;
+  font-size: 18px;
+  touch-action: manipulation;
+}
+/* полоса руки выше крупных чипов видов (64 px + отступы) */
+:global([data-lab-board]) .wrap {
+  bottom: 112px;
 }

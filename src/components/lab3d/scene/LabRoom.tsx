@@ -15,7 +15,10 @@ import { BENCH, COUNTER, HOOD, ROOM, SINK_X } from './labSceneLayout'
 import type { LabMaterials } from './labMaterials'
 import {
   ceilingTexture,
+  clockFaceTexture,
+  floorReliefTextures,
   floorTexture,
+  lightShaftAlphaTexture,
   periodicPosterTexture,
   safetyPosterTexture,
   signTexture,
@@ -88,7 +91,7 @@ function useDisposable<T extends { dispose: () => void }>(make: () => T, deps: r
   return value
 }
 
-export function LabRoom({ mats, lang }: Props) {
+export function LabRoom({ mats, lang, quality }: Props) {
   const [posterHover, setPosterHover] = useState(false)
   useCursor(posterHover)
   const floorMap = useDisposable(() => {
@@ -105,10 +108,33 @@ export function LabRoom({ mats, lang }: Props) {
   const safetyMap = useDisposable(() => safetyPosterTexture(lang), [lang])
   const periodicMap = useDisposable(() => periodicPosterTexture(), [])
 
-  const floorMat = useDisposable(
-    () => new THREE.MeshStandardMaterial({ map: floorMap, roughness: 0.42, metalness: 0, envMapIntensity: 0.7 }),
-    [floorMap],
+  // Рельеф плитки: нормали швов и шероховатость (шов матовый, плитка с мягким бликом окна)
+  const floorRelief = useMemo(() => {
+    const r = floorReliefTextures()
+    for (const t of [r.normal, r.roughness]) t.repeat.copy(floorMap.repeat)
+    return r
+  }, [floorMap])
+  useEffect(
+    () => () => {
+      floorRelief.normal.dispose()
+      floorRelief.roughness.dispose()
+    },
+    [floorRelief],
   )
+  const floorMat = useDisposable(
+    () =>
+      new THREE.MeshStandardMaterial({
+        map: floorMap,
+        normalMap: floorRelief.normal,
+        normalScale: new THREE.Vector2(0.35, 0.35),
+        roughnessMap: floorRelief.roughness,
+        roughness: 1,
+        metalness: 0,
+        envMapIntensity: 0.7,
+      }),
+    [floorMap, floorRelief],
+  )
+  const clockMap = useDisposable(() => clockFaceTexture(), [])
   const ceilMat = useDisposable(() => new THREE.MeshStandardMaterial({ map: ceilMap, roughness: 0.95 }), [ceilMap])
 
   const halfW = ROOM.w / 2
@@ -132,7 +158,7 @@ export function LabRoom({ mats, lang }: Props) {
       <mesh position={[halfW, ROOM.h / 2, MID_Z]} rotation-y={-Math.PI / 2} material={mats.wall} receiveShadow>
         <planeGeometry args={[DEPTH, ROOM.h]} />
       </mesh>
-      <LeftWallWithWindow mats={mats} viewMap={viewMap} />
+      <LeftWallWithWindow mats={mats} viewMap={viewMap} quality={quality} />
 
       {/* Мягкая акустическая панель за доской — светлый акцент передней стены */}
       <mesh position={[0, 1.66, ROOM.frontZ + 0.004]}>
@@ -211,6 +237,10 @@ export function LabRoom({ mats, lang }: Props) {
         <mesh position-z={0.021} material={mats.darkMetal}>
           <torusGeometry args={[0.16, 0.012, 8, 40]} />
         </mesh>
+        <mesh position-z={0.0205}>
+          <circleGeometry args={[0.152, 40]} />
+          <meshStandardMaterial map={clockMap} roughness={0.5} />
+        </mesh>
         <mesh position={[-0.035, 0.035, 0.024]} rotation-z={Math.PI / 4} material={mats.blackPlastic}>
           <boxGeometry args={[0.012, 0.1, 0.004]} />
         </mesh>
@@ -232,7 +262,79 @@ export function LabRoom({ mats, lang }: Props) {
   )
 }
 
-function LeftWallWithWindow({ mats, viewMap }: { mats: LabMaterials; viewMap: THREE.Texture }) {
+/** Радиатор под окном: 14 секций (склеиваются StaticBatch в один вызов вместе с белым пластиком). */
+function Radiator({ mats, position }: { mats: LabMaterials; position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {Array.from({ length: 14 }, (_, i) => (
+        <mesh key={i} position-z={(i - 6.5) * 0.085} material={mats.whitePlastic} receiveShadow>
+          <boxGeometry args={[0.07, 0.52, 0.05]} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+/** Направление солнца (как у directionalLight в Lab3DCanvas: из (−5,2; 4,4; 1,6) в (0; 0,9; −0,2)). */
+const SUN_DIR = new THREE.Vector3(5.2, -3.5, -1.8)
+
+/**
+ * Световой столб: две плоскости от проёма окна к полу вдоль лучей солнца, мягко гаснут к краям и к полу.
+ * Без теней и света — только лёгкая «дымка» в луче (opacity 0,06 / 0,04), не пишет глубину.
+ */
+function LightShafts() {
+  const alpha = useMemo(() => lightShaftAlphaTexture(), [])
+  const mats = useMemo(
+    () =>
+      [0.06, 0.04].map(
+        (opacity) =>
+          new THREE.MeshBasicMaterial({
+            color: '#fff6e0',
+            alphaMap: alpha,
+            transparent: true,
+            opacity,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+            toneMapped: false,
+          }),
+      ),
+    [alpha],
+  )
+  const geos = useMemo(() => {
+    const x = -ROOM.w / 2 + 0.02
+    const d = SUN_DIR
+    // каждая плоскость: вертикальная линия в проёме окна и её продолжение по лучу до пола
+    return [WIN.z0 + 0.35 * (WIN.z1 - WIN.z0), WIN.z0 + 0.7 * (WIN.z1 - WIN.z0)].map((z) => {
+      const a = new THREE.Vector3(x, WIN.y1 - 0.1, z)
+      const b = new THREE.Vector3(x, WIN.y0 + 0.05, z)
+      const a2 = a.clone().addScaledVector(d, a.y / -d.y)
+      const b2 = b.clone().addScaledVector(d, b.y / -d.y)
+      const g = new THREE.BufferGeometry()
+      // u — поперёк луча (верх → низ проёма), v — вдоль луча (1 у окна, 0 у пола)
+      g.setAttribute('position', new THREE.Float32BufferAttribute([...a.toArray(), ...b.toArray(), ...b2.toArray(), ...a2.toArray()], 3))
+      g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 1, 0, 0, 0], 2))
+      g.setIndex([0, 1, 2, 0, 2, 3])
+      return g
+    })
+  }, [])
+  useEffect(
+    () => () => {
+      alpha.dispose()
+      mats.forEach((m) => m.dispose())
+      geos.forEach((g) => g.dispose())
+    },
+    [alpha, mats, geos],
+  )
+  return (
+    <group userData={{ noBatch: true }}>
+      {geos.map((g, i) => (
+        <mesh key={i} geometry={g} material={mats[i]} renderOrder={6} raycast={() => null} />
+      ))}
+    </group>
+  )
+}
+
+function LeftWallWithWindow({ mats, viewMap, quality }: { mats: LabMaterials; viewMap: THREE.Texture; quality: 'low' | 'high' }) {
   const x = -ROOM.w / 2
   const below = WIN.y0
   const above = ROOM.h - WIN.y1
@@ -289,13 +391,9 @@ function LeftWallWithWindow({ mats, viewMap }: { mats: LabMaterials; viewMap: TH
         <meshBasicMaterial map={viewMap} toneMapped={false} color={new THREE.Color(1.12, 1.12, 1.12)} />
       </mesh>
       {/* Радиатор под окном */}
-      <group position={[x + 0.06, 0.45, winMidZ]}>
-        {Array.from({ length: 14 }, (_, i) => (
-          <mesh key={i} position-z={(i - 6.5) * 0.085} material={mats.whitePlastic}>
-            <boxGeometry args={[0.07, 0.52, 0.05]} />
-          </mesh>
-        ))}
-      </group>
+      <Radiator mats={mats} position={[x + 0.06, 0.45, winMidZ]} />
+      {/* Световой столб из окна (только ПК): две полупрозрачные плоскости по направлению солнца */}
+      {quality === 'high' && <LightShafts />}
     </group>
   )
 }
@@ -395,7 +493,9 @@ function StudentBench({ mats, lang }: { mats: LabMaterials; lang: LabLang }) {
         receiveShadow
       />
       {/* Полая тумба с открывающимися дверцами — внутри посуда (interaction/LabCabinets) */}
-      <BenchCabinet mats={mats} lang={lang} />
+      <group userData={{ noBatch: true }}>
+        <BenchCabinet mats={mats} lang={lang} />
+      </group>
       {/* Газовые краны у задней кромки стола */}
       {[-1.0, 1.0].map((x) => (
         <group key={x} position={[x, BENCH.topY, BENCH.centerZ - BENCH.d / 2 + 0.07]}>
@@ -582,8 +682,11 @@ function SinkCounter({ mats }: { mats: LabMaterials }) {
         <planeGeometry args={[w, 0.5]} />
       </mesh>
       {/* Навесной шкаф со стеклянными дверцами (посуда) */}
-      <WallCabinet mats={mats} />
-      <SinkDrop mats={mats} x={SINK_X} topY={top + 0.235} z={sinkZ - 0.06} bottomY={top - 0.19} />
+      {/* Дверцы шкафа и капля из крана двигаются — их не склеиваем с неподвижной геометрией */}
+      <group userData={{ noBatch: true }}>
+        <WallCabinet mats={mats} />
+        <SinkDrop mats={mats} x={SINK_X} topY={top + 0.235} z={sinkZ - 0.06} bottomY={top - 0.19} />
+      </group>
       {/* Настенные полки для реактивов */}
       {SHELF_BOARD_Y.map((y) => (
         <group key={y}>

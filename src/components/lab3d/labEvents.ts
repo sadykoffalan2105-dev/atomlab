@@ -69,6 +69,8 @@ export type LabEvent =
    * с измерением выполнен; журнал сцены, доска и учитель записывают. text — готовая строка «m(Zn) = 26,03 г».
    */
   | { readonly type: 'measure'; readonly taskId: string; readonly key: string; readonly label: string; readonly value: number; readonly text: string }
+  /** Команда интерфейсу от VR-доски/HUD (B публикует, Lab3DPage исполняет). */
+  | { readonly type: 'uiCommand'; readonly cmd: 'next' | 'back' | 'restart' | 'view' | 'select' | 'quality'; readonly view?: 'desk' | 'board' | 'shelves' | 'hood' | 'cabinets'; readonly experimentId?: string; readonly quality?: 'low' | 'high' }
 
 type Handler<T extends LabEvent['type']> = (e: Extract<LabEvent, { type: T }>) => void
 

@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { labAudio } from '../audio/labAudio'
 import * as THREE from 'three'
+import { StaticBatch } from '../scene/labStaticBatch'
 import type { LabLang } from '../labContract'
 import type { LabMaterials } from '../scene/labMaterials'
 import { BENCH, ROOM } from '../scene/labSceneLayout'
@@ -180,13 +181,8 @@ function Door({
       {[h * 0.38, -h * 0.38].map((y) => (
         <group key={y} position={[0, y, -0.004]}>
           <mesh material={mats.chrome}>
-            <cylinderGeometry args={[0.0045, 0.0045, 0.05, 10]} />
+            <capsuleGeometry args={[0.0045, 0.052, 3, 10]} />
           </mesh>
-          {[0.026, -0.026].map((cy) => (
-            <mesh key={cy} position-y={cy} material={mats.chrome}>
-              <sphereGeometry args={[0.0045, 8, 4]} />
-            </mesh>
-          ))}
           <mesh position={[-hinge * 0.014, 0, -0.0045]} material={mats.chrome}>
             <boxGeometry args={[0.024, 0.044, 0.0015]} />
           </mesh>
@@ -266,6 +262,7 @@ function Drawer({ id, open, w, h, depth, mats, kind }: { id: string; open: boole
   const [hover, setHover] = useState(false)
   useCursor(hover, 'grab', 'auto')
   const ph = useRef({ z: 0, v: 0, drag: false, open, first: true })
+  const box = useRef<THREE.Group>(null)
   const at = (): [number, number, number] => {
     const g = ref.current
     if (!g) return [0, 0.8, 0.4]
@@ -296,6 +293,7 @@ function Drawer({ id, open, w, h, depth, mats, kind }: { id: string; open: boole
       p.v = -p.v * 0.1
     }
     g.position.z = p.z
+    if (box.current) box.current.visible = p.z > 0.002 || p.drag
   })
   const drag = useDragGesture(
     (_dx, dy, dt) => {
@@ -338,7 +336,7 @@ function Drawer({ id, open, w, h, depth, mats, kind }: { id: string; open: boole
         </group>
       </group>
       {/* Короб ящика: дно, боковины, задняя стенка (виден, когда выдвинут) */}
-      <group position-z={-0.009}>
+      <group ref={box} position-z={-0.009} visible={false}>
         <mesh position={[0, -h / 2 + 0.012, -inner / 2]} material={mats.whitePlastic}>
           <boxGeometry args={[w - 0.03, 0.008, inner]} />
         </mesh>
@@ -404,6 +402,7 @@ export function BenchCabinet({ mats, lang = 'ru' }: { mats: LabMaterials; lang?:
   const t = 0.018
   return (
     <group>
+      <StaticBatch deps={[mats]}>
       {/* Цоколь */}
       <mesh position={[0, 0.05, cz]} material={mats.plinth}>
         <boxGeometry args={[c.width - 0.06, 0.1, c.depth - 0.1]} />
@@ -428,6 +427,7 @@ export function BenchCabinet({ mats, lang = 'ru' }: { mats: LabMaterials; lang?:
       <mesh position={[0, topY - c.drawerH / 2, cz]} material={mats.benchBody}>
         <boxGeometry args={[c.width, c.drawerH, c.depth]} />
       </mesh>
+      </StaticBatch>
       {Array.from({ length: c.doors }, (_, i) => {
         const x = benchDoorX(i)
         const hinge: -1 | 1 = i < 2 ? -1 : 1
@@ -480,15 +480,17 @@ function CabinetGlow({ open, w, h, position }: { open: boolean; w: number; h: nu
     [strip, wash],
   )
   const k = useRef(0)
+  const root = useRef<THREE.Group>(null)
   useFrame((_, dt) => {
     const goal = open ? 1 : 0
     if (k.current === goal) return
     k.current = goal > k.current ? Math.min(goal, k.current + dt * 3) : Math.max(goal, k.current - dt * 4)
     strip.opacity = k.current
     wash.opacity = k.current * 0.22
+    if (root.current) root.current.visible = k.current > 0
   })
   return (
-    <group position={position}>
+    <group ref={root} position={position} visible={false}>
       <mesh position={[0, h / 2 - 0.012, 0.05]} rotation-x={Math.PI / 2} material={strip}>
         <planeGeometry args={[w - 0.06, 0.012]} />
       </mesh>

@@ -9,11 +9,45 @@
  *  • ContactShadowBake — мягкие контактные тени «запекаются» на несколько кадров после изменений,
  *    а не перерисовывают всю сцену каждый кадр.
  *  • LabPerfProbe — для замеров (…#/vr-lab?debugPerf=1): window.__labPerf.info().
+ *  • setLabFrameRenderer — постобработка (EffectComposer) регистрирует свой «нарисовать кадр»; RenderGate остаётся
+ *    единственным, кто рисует, и вызывает его вместо gl.render. Две просадки кадров подряд (PerformanceMonitor)
+ *    выключают постобработку до конца сессии (useLabFxAllowed).
  */
 import { ContactShadows } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useHand } from '../interaction/labHandStore'
+import { labXr, useXrPresenting } from '../xr/labXrStore'
+
+/** Кто рисует кадр вместо gl.render (постобработка); null — обычный gl.render(scene, camera). */
+type LabFrameRenderer = (dt: number) => void
+let frameRenderer: LabFrameRenderer | null = null
+export function setLabFrameRenderer(fn: LabFrameRenderer | null): void {
+  frameRenderer = fn
+}
+export const hasLabFrameRenderer = (): boolean => frameRenderer !== null
+
+/** Разрешена ли постобработка: после двух просадок кадров подряд — нет (до конца сессии). */
+let fxAllowed = true
+let declines = 0
+const fxListeners = new Set<() => void>()
+export function noteLabPerfDecline(): void {
+  // пока собираются шейдеры (заставка, смена опыта) кадры и так редкие — это не просадка
+  if (gateBusy) return
+  declines += 1
+  if (declines >= 2 && fxAllowed) {
+    fxAllowed = false
+    for (const l of fxListeners) l()
+  }
+}
+export function noteLabPerfIncline(): void {
+  declines = 0
+}
+const subFx = (cb: () => void) => {
+  fxListeners.add(cb)
+  return () => fxListeners.delete(cb)
+}
+export const useLabFxAllowed = (): boolean => useSyncExternalStore(subFx, () => fxAllowed, () => fxAllowed)
 
 /** Идёт ли сборка шейдеров (пока да — никакие проходы рендера, включая контактные тени, не запускаются). */
 let gateBusy = true
@@ -71,8 +105,11 @@ export function RenderGate({ compileKey, onFirstReady }: { compileKey: string; o
     }
   }, [compileKey, gl, scene, camera])
   // Приоритет 1: рисуем сами (R3F больше не рисует автоматически) — пропускаем кадры, пока идёт сборка
-  useFrame((s) => {
-    if (!busy.current) s.gl.render(s.scene, s.camera)
+  useFrame((s, dt) => {
+    if (!busy.current) {
+      if (frameRenderer) frameRenderer(dt)
+      else s.gl.render(s.scene, s.camera)
+    }
     else {
       // Кадр не рисуем, но матрицы обновляем — нажатия (raycast) попадают в предметы и во время сборки
       s.scene.updateMatrixWorld()
@@ -98,21 +135,39 @@ export function ContactShadowBake({
   // Не пересоздаём компонент ключом: drei не освобождает буферы при размонтировании (утечка видеопамяти).
   // Пока собираются шейдеры — не рисуем (иначе отдельный проход теней синхронно соберёт программы и «заморозит» кадр)
   const busy = useGateBusy()
-  const active = (rest.opacity ?? 1) > 0 && !busy
+  // В VR контактные тени не перерисовываются (каждый проход — ещё один рендер сцены на оба глаза)
+  const xr = useXrPresenting()
+  const active = (rest.opacity ?? 1) > 0 && !busy && !xr
   return <ContactShadows frames={active ? 45 : 0} {...rest} />
 }
+
+const debugPerfOn = () => typeof window !== 'undefined' && /[?&]debugPerf=1/.test(window.location.hash)
 
 export function LabPerfProbe() {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
+  // Замер: счётчики рендера складываются за весь кадр (сцена + постобработка + тени), сбрасываются в начале кадра
+  const debug = useRef(debugPerfOn())
+  useFrame(() => {
+    if (debug.current) gl.info.reset()
+  }, -100)
   useEffect(() => {
-    if (typeof window === 'undefined' || !/[?&]debugPerf=1/.test(window.location.hash)) return
+    if (!debug.current) return
+    const prevAutoReset = gl.info.autoReset
+    gl.info.autoReset = false
+    return () => {
+      gl.info.autoReset = prevAutoReset
+    }
+  }, [gl])
+  useEffect(() => {
+    if (!debugPerfOn()) return
     const w = window as unknown as {
       __labPerf?: {
         info: () => Record<string, number>
         gl: unknown
         scene: unknown
         programs: () => { name: string; key: string; used: number }[]
+        xr: (presenting: boolean) => void
       }
     }
     w.__labPerf = {
@@ -132,7 +187,10 @@ export function LabPerfProbe() {
         calls: gl.info.render.calls,
         triangles: gl.info.render.triangles,
         dpr: gl.getPixelRatio(),
+        fx: frameRenderer ? 1 : 0,
       }),
+      // Проверка без шлема: «как в VR» — постобработка и контактные тени выключаются
+      xr: (presenting: boolean) => labXr.set({ presenting }),
     }
     return () => {
       delete w.__labPerf
