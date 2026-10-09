@@ -27,9 +27,9 @@ const N_GAS: Tri = [
   'Modelda gaz molekulalari haqiqatdagidan yaqinroq: aslida ular bir-biridan ~10 marta uzoqroq',
 ]
 const N_LIQ: Tri = [
-  'Жидкость: молекулы почти вплотную и всё время меняют соседей',
-  'Liquid: the molecules almost touch and keep changing neighbours',
-  'Suyuqlik: molekulalar deyarli zich joylashgan va qoʻshnilarini doim almashtiradi',
+  'Порядок только ближний: соседи всё время меняются, поэтому жидкость течёт',
+  'Only short-range order: neighbours keep changing, so the liquid flows',
+  'Faqat yaqin tartib: qoʻshnilar doim almashadi, shuning uchun suyuqlik oqadi',
 ]
 const N_SCHEMA: Tri = [
   'Схема формульных единиц: соотношение ионов верное, настоящая решётка сложнее (упрощено)',
