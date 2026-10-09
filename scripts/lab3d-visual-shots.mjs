@@ -84,7 +84,7 @@ const BOARD_AUDIT = `(() => {
     minSide = Math.min(minSide, side)
     if (side < 56) small.push((el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 30) + ' ' + Math.round(r.width) + '×' + Math.round(r.height))
   }
-  const ins = document.querySelector('[class*=instruction]')
+  const ins = document.querySelector('aside [class*=instruction]')
   const insPx = ins ? parseFloat(getComputedStyle(ins).fontSize) : 0
   const lowC = []
   for (const el of document.querySelectorAll('[class*=wrap] [class*=instruction], [class*=wrap] [class*=observation], [class*=wrap] [class*=chip], [class*=wrap] [class*=btn], [class*=wrap] [class*=cardTitle], [class*=wrap] [class*=eq], [class*=wrap] [class*=stepCount], [class*=wrap] [class*=headTitle]')) {

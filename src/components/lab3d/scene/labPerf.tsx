@@ -32,6 +32,8 @@ let fxAllowed = true
 let declines = 0
 const fxListeners = new Set<() => void>()
 export function noteLabPerfDecline(): void {
+  // пока собираются шейдеры (заставка, смена опыта) кадры и так редкие — это не просадка
+  if (gateBusy) return
   declines += 1
   if (declines >= 2 && fxAllowed) {
     fxAllowed = false

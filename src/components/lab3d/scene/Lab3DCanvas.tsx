@@ -2,13 +2,15 @@
  * Холст новой светлой лаборатории: свет (окружение из Lightformer — без сети, «солнце» из окна, мягкие тени на ПК),
  * комната, оборудование, электронная доска, установка опыта на рабочем месте, камера.
  * Всё, что может «подвиснуть» (Suspense), — в своей Suspense внутри Canvas, чтобы не прятать холст целиком.
- * Тональная компрессия AgX (белые стены остаются белыми, пламя не выгорает; ?tm=aces — прежняя ACES для сравнения).
- * Постобработка только на ПК (high): мягкое свечение ярких мест, лёгкая виньетка, SMAA; ?fx=0 — без неё,
+ * Тональная компрессия ACES 0,94 (сравнение кадров: AgX 1,05 делает белые стены и цветные растворы серее —
+ * «серое молоко»; ?tm=agx — AgX для сравнения).
+ * Постобработка только на ПК (high): мягкое свечение ярких мест, лёгкая виньетка, сглаживание MSAA ×4 в буфере
+ * постобработки (SMAA не нужен и стоил бы ещё 3 программы шейдеров сверх бюджета 58); ?fx=0 — без неё,
  * в VR и после двух просадок кадров подряд — тоже без неё. Рисует кадр по-прежнему только RenderGate (labPerf).
  */
 import { Environment, Lightformer, PerformanceMonitor, useCursor } from '@react-three/drei'
 import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
-import { Bloom, EffectComposer, SMAA, ToneMapping, Vignette } from '@react-three/postprocessing'
+import { Bloom, EffectComposer, ToneMapping, Vignette } from '@react-three/postprocessing'
 import { ToneMappingMode, type EffectComposer as EffectComposerImpl } from 'postprocessing'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
@@ -50,8 +52,8 @@ function hashParam(name: string): string | null {
     return null
   }
 }
-/** Тональная компрессия: AgX 1,05 (по умолчанию) или прежняя ACES 0,94 (?tm=aces) — для сравнения кадров. */
-const TONE_ACES = hashParam('tm') === 'aces'
+/** Тональная компрессия: ACES 0,94 (по умолчанию) или AgX 1,05 (?tm=agx) — для сравнения кадров. */
+const TONE_ACES = hashParam('tm') !== 'agx'
 const TONE_MAPPING = TONE_ACES ? THREE.ACESFilmicToneMapping : THREE.AgXToneMapping
 const TONE_EXPOSURE = TONE_ACES ? 0.94 : 1.05
 /** ?fx=0 — без постобработки. */
@@ -64,7 +66,7 @@ function sunShadowSize(gl: THREE.WebGLRenderer): number {
 
 /**
  * Постобработка: EffectComposer не рисует сам (enabled=false — его useFrame пустой), а регистрирует «нарисовать кадр»
- * в RenderGate. Свечение — только у очень ярких мест (пламя, блики), виньетка едва заметна, SMAA сглаживает края.
+ * в RenderGate. Свечение — только у очень ярких мест (пламя, блики), виньетка едва заметна, края сглаживает MSAA ×4.
  */
 function LabPostFx() {
   const composer = useRef<EffectComposerImpl>(null)
@@ -74,7 +76,11 @@ function LabPostFx() {
     const c = composer.current
     if (!c) return
     setLabFrameRenderer((dt) => c.render(dt))
-    return () => setLabFrameRenderer(null)
+    return () => {
+      setLabFrameRenderer(null)
+      // @react-three/postprocessing не освобождает буферы и шейдеры составителя при размонтировании
+      c.dispose()
+    }
   }, [])
   // Плотность пикселей сменилась (PerformanceMonitor) — буферы постобработки под новый размер
   useEffect(() => {
@@ -85,7 +91,6 @@ function LabPostFx() {
       <Bloom mipmapBlur intensity={0.35} luminanceThreshold={0.85} luminanceSmoothing={0.2} />
       <Vignette offset={0.25} darkness={0.35} />
       <ToneMapping mode={TONE_ACES ? ToneMappingMode.ACES_FILMIC : ToneMappingMode.AGX} />
-      <SMAA />
     </EffectComposer>
   )
 }
