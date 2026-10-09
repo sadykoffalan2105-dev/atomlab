@@ -99,6 +99,7 @@ import {
 import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
 import { RouteLabHost } from '../components/lab/formation/routes/RouteLabHost'
 import { routeLab } from '../components/lab/formation/routes/routeLabStore'
+import { routeProductForLabRun } from '../components/lab/formation/routes/routeIndex'
 import { compoundById } from '../data/compounds'
 import { labCompoundById } from '../data/labSpecies'
 import {
@@ -1057,7 +1058,14 @@ export function LaboratoryPage() {
       return
     }
 
-    const { payload } = prepared
+    // Пути получения CO₂ с собственным показом «Как образуется»: итог в лаборатории — CO₂ (то, ради чего путь),
+    // а не второй продукт (CaCl₂ в растворе, CaO), который реактор выбрал главным.
+    const routeProduct = routeProductForLabRun(
+      prepared.payload.flyTerms.map((x) => x.compoundId ?? `${getElementByZ(x.z)?.symbol ?? ''}${x.diatomic ? '₂' : ''}`),
+      prepared.payload.productId,
+    )
+    const routeCompound = routeProduct && routeProduct !== prepared.payload.productId ? compoundById[routeProduct] : undefined
+    const payload = routeCompound ? { ...prepared.payload, productId: routeCompound.id, compound: routeCompound } : prepared.payload
     resetEditBurst()
     setLaboratorySynthesisView('reactor')
     synthesisCompletingRef.current = false

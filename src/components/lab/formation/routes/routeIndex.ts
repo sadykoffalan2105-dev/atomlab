@@ -33,6 +33,12 @@ export function routeForLabRun(left: readonly string[], productId: string | null
   return REACTOR_ROUTES.find((x) => sameSet(x.left, left) && x.right.includes(productId))?.id ?? null
 }
 
+/** Вещество, ради которого показан путь (CO₂), — итог в лаборатории после показа; null — пути нет. */
+export function routeProductForLabRun(left: readonly string[], productId: string | null | undefined): string | null {
+  const id = routeForLabRun(left, productId)
+  return id ? (REACTOR_ROUTES.find((x) => x.id === id)?.product ?? null) : null
+}
+
 /** Другие пути получения того же вещества (для переключателя в показе). */
 export function siblingRoutes(id: ReactorRouteId): ReactorRouteId[] {
   const p = REACTOR_ROUTES.find((x) => x.id === id)?.product
