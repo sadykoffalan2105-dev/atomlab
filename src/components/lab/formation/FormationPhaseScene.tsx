@@ -123,11 +123,12 @@ function buildLayout(story: FormationStory, model: SchoolHeroModel, lowPower: bo
         dir = CUBO[k]!
         R = spacing * D
       } else {
-        // сфера Фибоначчи: равномерно по направлениям
+        // сфера Фибоначчи (равномерно по направлениям), сжатая по оси взгляда (×0,45 в координатах экрана):
+        // копии не встают прямо перед / за центральной молекулой и не заслоняют её
         const y = 1 - (2 * (k + 0.5)) / n
         const rr = Math.sqrt(Math.max(0, 1 - y * y))
         const th = k * 2.39996 + 0.7
-        dir = [rr * Math.cos(th), y, rr * Math.sin(th)]
+        dir = norm(screenToModel(model, norm([rr * Math.cos(th), y, 0.45 * rr * Math.sin(th)])))
         R = (spacing / 2.6) * (2.2 + 1.2 * hash(k, 1)) * Rm
       }
       const u1 = hash(k, 2)
