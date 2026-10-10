@@ -46,6 +46,8 @@ export interface BrainMeta {
   route: string
   moderated: boolean
   lang: 'ru' | 'en' | 'uz'
+  /** почему ответил запасной путь, хотя LLM была (first_token_timeout, cjk…) — поле сверх контракта v1 */
+  reason?: string
 }
 
 export interface BrainStudentModel {
@@ -101,9 +103,15 @@ const CACHE_MS = 20_000
 /** Мозг недоступен: перепроверяем не чаще раза в 5 с (быстрый запасной путь). */
 const OFFLINE_RECHECK_MS = 5_000
 const POLL_MS = 30_000
-/** Нет ни одного байта ответа /chat — сервер завис. */
+/** Нет ни одного байта ответа /chat — сервер завис (заголовки и «сердцебиение» сервер шлёт сразу). */
 const FIRST_BYTE_TIMEOUT_MS = 6_000
-/** Пауза между событиями потока (холодный старт модели Ollama бывает долгим). */
+/**
+ * Ждём первый кусок ответа столько же, сколько сервер ждёт первый токен модели (config.timeouts.firstTokenMs = 45 с)
+ * + запас на поиск и запасной путь сервера: процессор этого ПК читает подсказку 7b до 20–40 с. Пока ждём —
+ * сервер шлёт «сердцебиение» (SSE-комментарии), UI показывает «Думаю…»; сердцебиение этот срок НЕ продлевает.
+ */
+export const FIRST_DELTA_TIMEOUT_MS = 50_000
+/** Пауза между событиями потока после первого куска (модель пишет ~10 ток/с). */
 const IDLE_TIMEOUT_MS = 45_000
 const TOTAL_TIMEOUT_MS = 180_000
 const MAX_MESSAGES = 12
@@ -384,7 +392,8 @@ export async function streamChat(opts: StreamChatOptions): Promise<BrainDone | n
     const decoder = new TextDecoder()
     let buffer = ''
     for (;;) {
-      arm(gotDelta || meta ? IDLE_TIMEOUT_MS : FIRST_BYTE_TIMEOUT_MS * 4)
+      // до первого куска — общий срок от начала запроса (сердцебиение его не продлевает), после — пауза между событиями
+      arm(gotDelta ? IDLE_TIMEOUT_MS : Math.max(1_000, FIRST_DELTA_TIMEOUT_MS - (Date.now() - t0)))
       if (Date.now() - t0 > TOTAL_TIMEOUT_MS) {
         void reader.cancel().catch(() => undefined)
         return partial()

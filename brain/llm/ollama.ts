@@ -5,6 +5,7 @@
  * Появилась — следующий опрос включает LLM без перезапуска сервера.
  */
 import type { BrainConfig } from '../config.ts'
+import { PERSONA } from '../persona/systemPrompt.ts'
 
 export type LlmMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
@@ -21,6 +22,10 @@ export type ChatStreamOptions = {
   model: string
   messages: LlmMessage[]
   temperature: number
+  /** узкий отбор токенов (меньше срывов на чужие языки); не задано — из config.sampling */
+  topK?: number
+  topP?: number
+  repeatPenalty?: number
   numPredict: number
   numCtx: number
   firstTokenMs: number
@@ -30,7 +35,16 @@ export type ChatStreamOptions = {
   onToken: (text: string) => boolean | void
 }
 
-export type ChatStreamResult = { text: string; stopped: 'done' | 'first_token_timeout' | 'total_timeout' | 'client_abort' | 'limit' | 'error'; error?: string }
+export type ChatStreamResult = {
+  text: string
+  stopped: 'done' | 'first_token_timeout' | 'total_timeout' | 'client_abort' | 'limit' | 'error'
+  error?: string
+  /** мс до первого токена модели (замер для журнала и eval) */
+  firstMs?: number
+  /** сколько токенов подсказки модель реально прочитала (после кеша префикса) и за сколько мс */
+  promptTokens?: number
+  promptMs?: number
+}
 
 export interface LlmClient {
   status(): LlmStatus
@@ -64,6 +78,7 @@ export class OllamaClient implements LlmClient {
   private st: LlmStatus = { available: false, chatModel: null, fastModel: null, embedModel: null, checkedAt: 0 }
   private timer: NodeJS.Timeout | null = null
   private warmed = new Set<string>()
+  private keepTimer: NodeJS.Timeout | null = null
 
   constructor(cfg: BrainConfig) {
     this.cfg = cfg
@@ -86,6 +101,8 @@ export class OllamaClient implements LlmClient {
   stop(): void {
     if (this.timer) clearInterval(this.timer)
     this.timer = null
+    if (this.keepTimer) clearInterval(this.keepTimer)
+    this.keepTimer = null
   }
 
   async refresh(): Promise<LlmStatus> {
@@ -104,6 +121,7 @@ export class OllamaClient implements LlmClient {
       this.st = { available: !!chatModel, chatModel, fastModel, embedModel, checkedAt: Date.now() }
       if (this.st.available && !was) console.log(`[brain] Ollama: модели ${chatModel}${fastModel !== chatModel ? ` / ${fastModel}` : ''}${embedModel ? `, эмбеддинги ${embedModel}` : ''}`)
       if (chatModel) this.warm(chatModel)
+      if (fastModel && fastModel !== chatModel) this.warm(fastModel)
     } catch (err) {
       if (this.st.available) console.log('[brain] Ollama недоступна — запасной путь')
       this.st = { available: false, chatModel: null, fastModel: null, embedModel: null, checkedAt: Date.now(), error: (err as Error).message }
@@ -114,14 +132,46 @@ export class OllamaClient implements LlmClient {
   }
 
   /** Подгрузить модель в память заранее, чтобы первый ответ ученику не ждал загрузки. */
+  /**
+   * Прогрев: та же num_ctx, что у ответов (иначе Ollama перезагрузит модель), и русская персона — её KV-кеш
+   * остаётся в слоте, и первый вопрос ученика не перечитывает системную часть. Пока сервер работает,
+   * keep_alive продлевается раз в keepAliveRefreshMs (пустой запрос: модель не считает, только остаётся в памяти).
+   */
   private warm(model: string): void {
     if (this.warmed.has(model)) return
     this.warmed.add(model)
+    const t0 = performance.now()
     fetch(`${this.baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, messages: [{ role: 'user', content: 'ok' }], stream: false, keep_alive: '30m', options: { num_predict: 1 } }),
-    }).catch(() => this.warmed.delete(model))
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: PERSONA.ru },
+          { role: 'user', content: 'Привет' },
+        ],
+        stream: false,
+        keep_alive: this.cfg.keepAlive,
+        options: { num_predict: 1, num_ctx: this.cfg.numCtx },
+      }),
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        console.log(`[brain] прогрев ${model}: ${Math.round(performance.now() - t0)} мс (персона в кеше, keep_alive ${this.cfg.keepAlive})`)
+      })
+      .catch(() => this.warmed.delete(model))
+    if (!this.keepTimer && this.cfg.keepAliveRefreshMs > 0) {
+      this.keepTimer = setInterval(() => {
+        for (const m of this.warmed) {
+          fetch(`${this.baseUrl}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: m, messages: [], keep_alive: this.cfg.keepAlive, options: { num_ctx: this.cfg.numCtx } }),
+          }).catch(() => {})
+        }
+      }, this.cfg.keepAliveRefreshMs)
+      this.keepTimer.unref?.()
+    }
   }
 
   async chatStream(o: ChatStreamOptions): Promise<ChatStreamResult> {
@@ -129,6 +179,11 @@ export class OllamaClient implements LlmClient {
     const unlink = linkSignal(o.signal, ac)
     let text = ''
     let gotToken = false
+    const t0 = performance.now()
+    let firstMs: number | undefined
+    const stats = (): Pick<ChatStreamResult, 'firstMs' | 'promptTokens' | 'promptMs'> => ({ firstMs, promptTokens, promptMs })
+    let promptTokens: number | undefined
+    let promptMs: number | undefined
     const first = setTimeout(() => {
       if (!gotToken) ac.abort('first_token_timeout')
     }, o.firstTokenMs)
@@ -146,8 +201,15 @@ export class OllamaClient implements LlmClient {
           model: o.model,
           messages: o.messages,
           stream: true,
-          keep_alive: '30m',
-          options: { temperature: o.temperature, num_ctx: o.numCtx, num_predict: o.numPredict },
+          keep_alive: this.cfg.keepAlive,
+          options: {
+            temperature: o.temperature,
+            top_k: o.topK ?? this.cfg.sampling.topK,
+            top_p: o.topP ?? this.cfg.sampling.topP,
+            repeat_penalty: o.repeatPenalty ?? this.cfg.sampling.repeatPenalty,
+            num_ctx: o.numCtx,
+            num_predict: o.numPredict,
+          },
         }),
       })
       if (!res.ok || !res.body) return { text, stopped: 'error', error: `HTTP ${res.status}` }
@@ -163,30 +225,35 @@ export class OllamaClient implements LlmClient {
           const line = buf.slice(0, nl).trim()
           buf = buf.slice(nl + 1)
           if (!line) continue
-          let j: { message?: { content?: string }; done?: boolean; error?: string }
+          let j: { message?: { content?: string }; done?: boolean; error?: string; prompt_eval_count?: number; prompt_eval_duration?: number }
           try {
             j = JSON.parse(line)
           } catch {
             continue
           }
-          if (j.error) return { text, stopped: 'error', error: j.error }
+          if (j.error) return { text, stopped: 'error', error: j.error, ...stats() }
           const piece = j.message?.content ?? ''
           if (piece) {
+            if (!gotToken) firstMs = Math.round(performance.now() - t0)
             gotToken = true
             text += piece
             if (o.onToken(piece) === false) {
               ac.abort('limit')
               await reader.cancel().catch(() => {})
-              return { text, stopped: 'limit' }
+              return { text, stopped: 'limit', ...stats() }
             }
           }
-          if (j.done) return { text, stopped: 'done' }
+          if (j.done) {
+            promptTokens = j.prompt_eval_count
+            promptMs = typeof j.prompt_eval_duration === 'number' ? Math.round(j.prompt_eval_duration / 1e6) : undefined
+            return { text, stopped: 'done', ...stats() }
+          }
         }
       }
-      return { text, stopped: 'done' }
+      return { text, stopped: 'done', ...stats() }
     } catch (err) {
-      if (ac.signal.aborted) return { text, stopped: reason() }
-      return { text, stopped: 'error', error: (err as Error).message }
+      if (ac.signal.aborted) return { text, stopped: reason(), ...stats() }
+      return { text, stopped: 'error', error: (err as Error).message, ...stats() }
     } finally {
       clearTimeout(first)
       clearTimeout(total)
@@ -207,7 +274,7 @@ export class OllamaClient implements LlmClient {
           model: o.model,
           messages: o.messages,
           stream: false,
-          keep_alive: '30m',
+          keep_alive: this.cfg.keepAlive,
           options: { temperature: o.temperature ?? 0, num_predict: o.numPredict ?? 400, num_ctx: this.cfg.numCtx },
         }),
       })
@@ -233,7 +300,7 @@ export class OllamaClient implements LlmClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: ac.signal,
-        body: JSON.stringify({ model, input: texts, keep_alive: '30m' }),
+        body: JSON.stringify({ model, input: texts, keep_alive: this.cfg.keepAlive }),
       })
       if (!res.ok) return null
       const j = (await res.json()) as { embeddings?: number[][] }

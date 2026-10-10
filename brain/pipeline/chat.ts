@@ -11,7 +11,7 @@ import type { Journal } from '../kb/journal.ts'
 import type { Knowledge } from '../kb/shards.ts'
 import { appendLine, ulid } from '../kb/storage.ts'
 import type { LlmClient, LlmMessage } from '../llm/ollama.ts'
-import { buildSystemPrompt } from '../persona/systemPrompt.ts'
+import { buildSystemPrompt, buildUserTurn } from '../persona/systemPrompt.ts'
 import { adaptationForPrompt } from '../student/adapt.ts'
 import type { StudentStore } from '../student/events.ts'
 import { detectErrorTags, snapshot, type StudentSnapshot } from '../student/model.ts'
@@ -22,7 +22,7 @@ import { llmAnswer, llmClassify } from './llm.ts'
 import { ASK_CHEM, moderate, R2 } from './moderation.ts'
 import { cmpForm, detectLang, GIBBERISH_REPLY, normalizeInput, type Lang } from './normalize.ts'
 import { isOwnerRuleQuestion, R1 } from './ownerRule.ts'
-import { DANGER_REPLY, ensureToolNumbers, isDangerousRequest, scrubR3, splitSentences } from './postcheck.ts'
+import { DANGER_REPLY, ensureToolNumbers, isDangerousRequest, scrubR3, splitSentences, wordCount } from './postcheck.ts'
 import { retrieve, type RetrievalResult } from './retrieve.ts'
 import { checkStudentNumbers, runTools, type ToolResult } from './tools.ts'
 
@@ -38,8 +38,12 @@ export type ChatRequest = {
 }
 
 export type Route = string
-export type MetaEvent = { turnId: string; intent: Intent; route: Route; moderated: boolean; lang: Lang }
+/** reason — почему ответил запасной путь, когда LLM была (first_token_timeout, cjk, lang_mismatch, error…); поле сверх контракта v1. */
+export type MetaEvent = { turnId: string; intent: Intent; route: Route; moderated: boolean; lang: Lang; reason?: string }
 export type DoneEvent = {
+  /** итоговый маршрут (= meta.route) и причина подмены — поля сверх контракта v1, клиент их не требует */
+  route?: Route
+  reason?: string
   text: string
   source: 'llm' | 'tool' | 'local' | 'rule'
   citations: string[]
@@ -140,12 +144,17 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   const events = deps.students.events(studentId)
 
   let metaSent = false
+  let metaRoute = ''
   let routePrefix = ''
   let moderated = false
+  let reason: string | undefined
+  /** замеры LLM для журнала (первый токен, токены подсказки после кеша, попытки, CJK) */
+  let llmStats: Record<string, unknown> | undefined
   const sendMeta = (intent: Intent, route: string) => {
     if (metaSent) return
     metaSent = true
-    sink.meta({ turnId, intent, route: routePrefix + route, moderated, lang })
+    metaRoute = routePrefix + route
+    sink.meta({ turnId, intent, route: metaRoute, moderated, lang, ...(reason ? { reason } : {}) })
   }
   const finish = (o: {
     text: string
@@ -165,6 +174,8 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     if (!o.streamed) streamText(o.text, sink)
     const snap = o.snap ?? snapshot(events, req.context.gradeId, req.student?.mood, norm.text, o.tags ?? [])
     const done: DoneEvent = {
+      route: metaRoute,
+      ...(reason ? { reason } : {}),
       text: o.text,
       source: o.source,
       citations: (o.citations ?? []).slice(0, 3),
@@ -185,7 +196,9 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
           q: lastUser,
           a: o.text,
           intent: o.intent,
-          route: routePrefix + o.route,
+          route: metaRoute,
+          ...(reason ? { reason } : {}),
+          ...(llmStats ? { llm: llmStats } : {}),
           source: o.source,
           confidence: done.confidence,
           ms: done.ms,
@@ -245,7 +258,8 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   // намерение (+ быстрый LLM для спорных случаев)
   const guess = classifyIntent(text, cmp)
   let intent: Intent = guess.intent
-  if (guess.ambiguous && deps.llm?.status().available) {
+  // в живом голосе не тратим секунды на уточнение (и не сбиваем кеш быстрой модели) — хватает эвристики
+  if (guess.ambiguous && mode !== 'live' && deps.llm?.status().available) {
     const label = await llmClassify(deps.llm, config, text, signal)
     if (label) intent = label
   }
@@ -273,13 +287,22 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   const retrieval = await retrieve(text, lang, req.context, wantEnc, { kb, journal: deps.journal, embeds: deps.embeds, llm: deps.llm, config }, signal)
   if (intent === 'chemistry' && !tools.length && !hasChemVocabulary(text) && retrieval.confR < 0.3) intent = 'offtopic'
 
-  // 7) LLM или запасной путь
+  // 7) LLM или запасной путь. meta уходит, когда маршрут известен честно: с первым куском текста модели
+  // (route=llm) или в момент подмены запасным путём (route=fallback + reason). Пока модель думает,
+  // сервер держит соединение «сердцебиением» (brain/server.ts), клиент показывает «Думаю…».
   const llmOn = !!deps.llm?.status().available
   const toolOnly = tools.length > 0 && (intent === 'calc' || intent === 'homework')
-  const plannedRoute = llmOn ? 'llm' : toolOnly ? 'tool' : 'fallback'
-  sendMeta(intent, plannedRoute)
   const lead = prefix ? `${prefix}\n\n${greeting}` : greeting
-  if (lead) sink.delta(lead)
+  let leadSent = false
+  const openStream = (route: string, why?: string) => {
+    if (why) reason = why
+    sendMeta(intent, route)
+    if (lead && !leadSent) {
+      leadSent = true
+      sink.delta(lead)
+    }
+  }
+  if (!llmOn) openStream(toolOnly ? 'tool' : 'fallback', toolOnly ? undefined : 'llm_unavailable')
   const tagsArr = [...tags]
   const fbInput = () => ({
     text,
@@ -299,9 +322,13 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   })
 
   if (llmOn && deps.llm) {
-    const history: LlmMessage[] = req.messages.map((m, i) => ({ role: m.role, content: i === req.messages.length - 1 ? text : m.content }))
+    // история — коротко (последние реплики, каждая обрезана): длинная история стоит секунд чтения подсказки
+    const pc = config.prompt
+    const past = req.messages.slice(0, -1).slice(-pc.historyMessages)
+    const history: LlmMessage[] = past.map((m) => ({ role: m.role, content: m.content.length > pc.historyChars ? m.content.slice(0, pc.historyChars) + '…' : m.content }))
     const reasoned = !tools.length && retrieval.confR < config.thresholds.medium
-    const system = buildSystemPrompt({
+    const live = mode === 'live'
+    const userTurn = buildUserTurn({
       lang,
       mode,
       detail,
@@ -309,15 +336,46 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       sectionTitle: req.context.sectionTitle,
       chapterId: req.context.chapterId,
       sectionId: req.context.sectionId,
-      knowledge: retrieval.items,
+      knowledge: promptKnowledge(retrieval, text),
       tools,
-      studentBlock: adaptationForPrompt(snap, lang),
+      // только действенные указания (короче/проще/успокой); строка «уровень 3/5, темп normal» — лишние токены
+      studentBlock: live ? '' : adaptationForPrompt(snap, lang).split('\n').slice(1).join('\n'),
       reasoned,
-      facts: referenceFacts(text, lang, kb, qtype),
+      facts: referenceFacts(text, lang, kb, qtype).slice(0, live ? 1 : 3),
+      question: text,
+      maxItems: live ? pc.liveItems : pc.chatItems,
+      maxChars: live ? pc.liveChars : pc.chatChars,
     })
-    const ans = await llmAnswer({ llm: deps.llm, config, lang, mode, detail, intent, system, history, wordLimit, signal, onDelta: (d) => sink.delta(d) })
-    if (signal?.aborted) return finish({ text: lead + ans.text, intent, route: 'llm', source: 'llm', confidence: 0, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
-    if (ans.ok) {
+    history.push({ role: 'user', content: userTurn })
+    const system = buildSystemPrompt(lang)
+    const ans = await llmAnswer({
+      llm: deps.llm,
+      config,
+      lang,
+      mode,
+      detail,
+      intent,
+      system,
+      history,
+      wordLimit,
+      signal,
+      onDelta: (d) => {
+        openStream('llm')
+        sink.delta(d)
+      },
+    })
+    const varChars = userTurn.length + history.slice(0, -1).reduce((n, m) => n + m.content.length, 0)
+    llmStats = { model: ans.model, stopped: ans.stopped, firstMs: ans.firstMs, promptTokens: ans.promptTokens, promptMs: ans.promptMs, attempts: ans.attempts, cjk: ans.cjk || undefined, varChars, retrievalMs: retrieval.ms }
+    if (!deps.noJournal || process.env.BRAIN_LOG_LLM === '1')
+      console.log(`[brain] llm ${ans.model} ${mode}: ${ans.stopped}, первый токен ${ans.firstMs ?? '—'} мс, подсказка ${ans.promptTokens ?? '—'} ток/${ans.promptMs ?? '—'} мс, переменная часть ${varChars} симв., поиск ${Math.round(retrieval.ms)} мс${ans.cjk ? ', CJK' : ''}`)
+    if (signal?.aborted) {
+      if (!metaSent) openStream('fallback', 'client_abort')
+      return finish({ text: lead + ans.text, intent, route: ans.text ? 'llm' : 'fallback', source: ans.text ? 'llm' : 'local', confidence: 0, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
+    }
+    const citations = () => [...(tools.length ? ['[ATOMLAB: расчёт]'] : []), ...relevantCitations(retrieval, text)].filter((c, i, a) => a.indexOf(c) === i)
+    if (ans.ok || ans.text) {
+      // ответ модели (возможно, оборванный по времени или на CJK) — договариваем недостающее из запасного пути
+      openStream('llm')
       let body = ans.text
       const fixed = ensureToolNumbers(body, tools, lang)
       if (fixed !== body) {
@@ -328,33 +386,26 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
         sink.delta('\n' + hwNote)
         body += '\n' + hwNote
       }
-      if (ans.stopped === 'total_timeout') {
-        // договорить из запасного пути только недостающее
+      const short = wordCount(body) < 25
+      if (!ans.ok || ans.stopped === 'total_timeout' || (ans.stopped === 'cjk' && short)) {
+        reason = `llm_${ans.stopped}+fallback_tail`
         const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, cmp) : composeFallback(fbInput())
         const have = splitSentences(body).map((s) => new Set(analyzeTerms(s)))
-        const extra = splitSentences(fb.text).filter((s) => {
+        const extra = splitSentences(scrubR3(fb.text, lang)).filter((s) => {
           const t = new Set(analyzeTerms(s))
           return !have.some((h) => jaccard(h, t) > 0.5)
         })
         if (extra.length) {
-          const add = ' ' + extra.join(' ')
+          const add = ' ' + extra.slice(0, 3).join(' ')
           sink.delta(add)
           body += add
         }
-      }
-      const citations = [...(tools.length ? ['[ATOMLAB: расчёт]'] : []), ...retrieval.items.slice(0, 3).map((c) => c.citation)].filter((c, i, a) => a.indexOf(c) === i)
+      } else if (ans.stopped === 'cjk') reason = 'llm_cjk_trimmed'
       const conf = tools.length ? 0.95 : Math.max(retrieval.confR, reasoned ? 0.3 : retrieval.confR)
-      return finish({ text: lead + body, intent, route: 'llm', source: 'llm', citations, confidence: conf, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
+      return finish({ text: lead + body, intent, route: 'llm', source: 'llm', citations: citations(), confidence: conf, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
     }
-    // LLM не ответила (таймаут первого токена, ошибка, язык) → запасной путь
-    if (ans.text) {
-      const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, cmp) : composeFallback(fbInput())
-      const have = splitSentences(ans.text).map((s) => new Set(analyzeTerms(s)))
-      const extra = splitSentences(fb.text).filter((s) => !have.some((h) => jaccard(h, new Set(analyzeTerms(s))) > 0.5))
-      const add = extra.length ? ' ' + extra.join(' ') : ''
-      if (add) sink.delta(add)
-      return finish({ text: lead + ans.text + add, intent, route: 'fallback', source: 'local', citations: fb.citations, confidence: fb.confidence, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
-    }
+    // модель не сказала ни слова (таймаут первого токена, ошибка, CJK сразу, не тот язык) → честно: запасной путь + причина
+    openStream(toolOnly ? 'tool' : 'fallback', `llm_${ans.stopped}`)
   }
 
   // запасной путь
@@ -364,4 +415,28 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   streamText(body, sink)
   const source: DoneEvent['source'] = toolOnly ? 'tool' : 'local'
   return finish({ text: lead + body, intent, route: toolOnly ? 'tool' : 'fallback', source, citations: fb.citations, confidence: fb.confidence, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
+}
+
+/** Термы вопроса, по которым проверяем, что найденный фрагмент вообще о нём. */
+function overlap(question: string, c: { title: string; text: string }): number {
+  const q = new Set(analyzeTerms(question))
+  if (!q.size) return 0
+  const t = new Set(analyzeTerms(`${c.title} ${c.text.slice(0, 600)}`))
+  let n = 0
+  for (const w of q) if (t.has(w)) n++
+  return n / q.size
+}
+
+/** В подсказку — только фрагменты, которые пересекаются с вопросом по смыслу (иначе модель «цитирует не к месту»). */
+function promptKnowledge(r: RetrievalResult, question: string) {
+  const items = r.items.filter((c) => overlap(question, c) >= 0.25)
+  return items.length ? items : r.items.slice(0, 1)
+}
+
+/** Цитаты к ответу модели — только из фрагментов по теме вопроса. */
+function relevantCitations(r: RetrievalResult, question: string): string[] {
+  return r.items
+    .filter((c) => overlap(question, c) >= 0.34)
+    .slice(0, 3)
+    .map((c) => c.citation)
 }
