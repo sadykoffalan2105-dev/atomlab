@@ -11,17 +11,17 @@ export const OWNER_RULE_TEXT =
 
 /* ru: сравнение ∧ «органическ…» (не «неорганическ…») ∧ «неорганическ…» */
 const RU_COMPARE =
-  /(разниц|разн(ая|ые|ое|ятся|ица)|отлич|различ|сравн|(?<!\p{L})vs(?!\p{L})|versus|против|похож|общего|общее|(?<!\p{L})чем(?!\p{L}).+(?<!\p{L})от(?!\p{L}))/u
+  /(разниц|разн(ая|ые|ое|ятся|ица)|отлич|различ|сравн|одно\s+и\s+то\s+же|то\s+же\s+самое|одинаков|тождеств|(?<!\p{L})vs(?!\p{L})|versus|против|похож|общего|общее|(?<!\p{L})чем(?!\p{L}).+(?<!\p{L})от(?!\p{L}))/u
 const RU_ORGANIC = /(?<!\p{L})органи(ческ|к)/u
 const RU_INORGANIC = /(неоргани(ческ|к)|анорганич)/u
 
 /* uz (латиница и кириллица) */
-const UZ_COMPARE = /(farq|solishtir|nima\s+bilan|o'xsha|фарқ|фарк|солиштир|нима\s+билан)/u
+const UZ_COMPARE = /(farq|solishtir|nima\s+bilan|o'xsha|ajral|tafovut|bir\s+xil|фарқ|фарк|солиштир|нима\s+билан)/u
 const UZ_ORGANIC = /(?<!\p{L})(organik|органик)/u
 const UZ_INORGANIC = /(noorganik|anorganik|ноорганик|анорганик)/u
 
 /* en */
-const EN_COMPARE = /(differ|compar|(?<!\p{L})vs(?!\p{L})|versus|between|distinguish|contrast|unlike|similar)/u
+const EN_COMPARE = /(differ|compar|(?<!\p{L})vs(?!\p{L})|versus|between|distinguish|distinct|separat|contrast|unlike|similar|the\s+same)/u
 const EN_ORGANIC = /(?<!\p{L})organic/u
 const EN_INORGANIC = /inorganic/u
 

@@ -518,7 +518,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.teacherUi.sources': 'Manbalar',
   'learn.teacherUi.brainLocalAi': 'Mahalliy miya',
   'learn.teacherUi.brainOnline': 'Mahalliy miya: ulangan',
-  'learn.teacherUi.brainOfflineShort': 'Mahalliy baza (miya ishga tushmagan)',
+  'learn.teacherUi.brainOfflineShort': 'Mahalliy miya: topilmadi',
   'learn.teacherUi.brainOffline': 'Miya ishga tushmagan — bilimlar bazasi javob beradi',
   'learn.teacherUi.brainChecking': 'Mahalliy miya tekshirilmoqda…',
   'learn.teacherUi.brainHint': 'npm run brain:start buyrugʻini ishga tushiring',

@@ -278,8 +278,8 @@ export function composeEncyclopediaAnswer(
     // версии на языке ученика нет: фраза на его языке + цитата по-русски с пометкой
     const intro =
       lang === 'en'
-        ? `There is no English article for this in our offline library, so here is the Russian Wikipedia entry (in Russian):`
-        : `Bu mavzu bo‘yicha o‘zbekcha maqola oflayn kutubxonamizda yo‘q, shuning uchun rus Vikipediyasidan keltiraman (rus tilida):`
+        ? `Here is what the Russian Wikipedia says (quoted in Russian):`
+        : `Rus Vikipediyasi bu haqda shunday yozadi (rus tilida keltiraman):`
     text = `${intro} «${body.join(' ')}» ${hookWithName}\n\n${citation}`
   }
   void query

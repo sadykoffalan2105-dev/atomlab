@@ -63,7 +63,7 @@ export function BrainChip({
 }
 
 /**
- * Индикатор локального мозга: «Локальный мозг: подключён» / «Локальная база (мозг не запущен)»;
+ * Индикатор локального мозга: «Локальный мозг: подключён» / «Локальный мозг: не найден»;
  * подсказка — как запустить мозг (`npm run brain:start`). Проверка /health ≤ 800 мс, опрос раз в 30 с.
  */
 export function BrainStatusChip({ compact = false, className }: { compact?: boolean; className?: string }) {

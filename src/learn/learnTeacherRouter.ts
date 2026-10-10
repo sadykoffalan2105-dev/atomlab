@@ -154,6 +154,21 @@ function isShortFactualFaqQuery(query: string): boolean {
   )
 }
 
+/**
+ * Карточка FAQ — о предмете вопроса: её ключ — слово вопроса (с окончанием), а не часть другого слова
+ * («хром» в «хромодинамике» — не дихромат калия).
+ */
+function faqOnSubject(query: string, keywords: readonly string[]): boolean {
+  const q = query.toLowerCase().replace(/ё/g, 'е')
+  const words = q.split(/[^\p{L}\p{N}+]+/u).filter(Boolean)
+  return keywords.some((kw) => {
+    const k = kw.toLowerCase().replace(/ё/g, 'е').trim()
+    if (!k) return false
+    if (/\s/.test(k)) return q.includes(k)
+    return words.some((w) => w.startsWith(k) && w.length - k.length <= 4)
+  })
+}
+
 /* ------------------------------------------------------------ предмет вопроса и главная тема ответа */
 
 /** Вопрос-определение: «что такое…», «кто такой…», «расскажи про…» — у него есть один предмет. */
@@ -555,7 +570,8 @@ async function routeLocal(
   if (local.confident) return local
 
   // 2) Готовая карточка FAQ для короткого фактического вопроса.
-  const faq = isShortFactualFaqQuery(q) ? matchFaqEntry(q.toLowerCase()) : null
+  const faqHit = isShortFactualFaqQuery(q) ? matchFaqEntry(q.toLowerCase()) : null
+  const faq = faqHit && faqOnSubject(q, faqHit.keywords) ? faqHit : null
   // Карточка FAQ — тоже живым голосом (ветка local уже озвучена внутри composeLocalTeacherReply).
   if (faq) return { text: speakLikeHuman(pickFaqText(faq, ctx.locale), { lang: ctx.locale, kind: 'fact', seed: messages.length, query: q, mood: detectMood(q) }), source: 'faq', citations: [] }
 

@@ -303,24 +303,16 @@ export function matchFaqEntry(query: string): FaqEntry | null {
 export function offlineNeedsApiMessage(locale: boolean | 'ru' | 'en' | 'uz'): string {
   const lang = typeof locale === 'boolean' ? (locale ? 'ru' : 'en') : locale
   if (lang === 'uz') {
-    return `Bu savolga **oflayn bazada** tayyor javob yo‘q.
+    return `Keling, asoslardan boshlab tahlil qilamiz: har qanday kimyoviy savol atom tuzilishi, davriy qonun, kimyoviy bogʻ tabiati va massa, zaryad hamda energiyaning saqlanish qonunlariga borib taqaladi.
 
-Sinab ko‘ring:
-• savolni boshqacha yozing (kislotalar, tuzlar, OVR, mol, pH…);
-• o‘qituvchi panelida **Ollama** ni yoqing (kompyuterda bepul, docs/TEACHER_AI.md);
-• keyinroq — \`VITE_LEARN_CHAT_URL\` orqali o‘z serveringiz.
-
-Hozir tipik mavzular va joriy § konspekti mavjud.`
+Aniq nima qiziqtiradi — tarkibimi, xossalarimi yoki olinishimi? Savolni bitta modda yoki reaksiya bilan yozsangiz (kislotalar, tuzlar, OVR, mol, pH…), aniqroq tushuntiraman.`
   }
   if (lang === 'en') {
-    return `No offline match for this question. Rephrase (acids, salts, redox, mole, pH…), enable **Ollama** in the teacher panel, or set \`VITE_LEARN_CHAT_URL\` for your server.`
+    return `Let us reason from the fundamentals: any chemistry question comes down to atomic structure, the periodic law, the nature of the chemical bond and the conservation of mass, charge and energy.
+
+Tell me what exactly interests you — composition, properties or preparation? Name one substance or reaction (acids, salts, redox, mole, pH…) and I will explain it more precisely.`
   }
-  return `По этому вопросу в **офлайн-базе** нет готового ответа.
+  return `Разберём от основ: любой химический вопрос сводится к строению атома, периодическому закону, природе химической связи и законам сохранения массы, заряда и энергии.
 
-Попробуйте:
-• переформулировать (кислоты, соли, ОВР, моль, pH…);
-• включить **Ollama** в панели учителя (бесплатно на вашем ПК, см. docs/TEACHER_AI.md);
-• позже — свой сервер через \`VITE_LEARN_CHAT_URL\`.
-
-Сейчас доступны типовые темы и конспект текущего §.`
+Уточни, что именно интересует — состав, свойства или получение? Назови одно вещество или реакцию (кислоты, соли, ОВР, моль, pH…) — объясню точнее.`
 }

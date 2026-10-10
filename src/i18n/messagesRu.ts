@@ -515,7 +515,7 @@ export const messagesRu = {
   'learn.teacherUi.sources': 'Источники',
   'learn.teacherUi.brainLocalAi': 'Локальный мозг',
   'learn.teacherUi.brainOnline': 'Локальный мозг: подключён',
-  'learn.teacherUi.brainOfflineShort': 'Локальная база (мозг не запущен)',
+  'learn.teacherUi.brainOfflineShort': 'Локальный мозг: не найден',
   'learn.teacherUi.brainOffline': 'Мозг не запущен — отвечает база знаний',
   'learn.teacherUi.brainChecking': 'Проверяю локальный мозг…',
   'learn.teacherUi.brainHint': 'Запустите npm run brain:start',
