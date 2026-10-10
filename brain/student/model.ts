@@ -31,7 +31,7 @@ export function textMood(text: string): Mood | null {
   if (ub(/(не понимаю|не понял|не поняла|непонятно|запутал|сложно|что\?{2,}|tushunmadim|tushunarsiz|qiyin|i don'?t (get|understand)|confus|lost me)/).test(t)) return 'confused'
   if (ub(/(устал|устала|нет сил|хочу спать|charchadim|uxlagim|tired|exhausted|sleepy)/).test(t)) return 'tired'
   if (ub(/(скучно|надоело|неинтересно|zerikdim|zerikarli|boring|bored)/).test(t)) return 'bored'
-  if (ub(/(боюсь|страшно|контрольн\[а-яёa-z]*|экзамен\[а-яёa-z]* завтра|паник|волнуюсь|не успею|qoʻrqaman|qo'rqaman|imtihon ertaga|stress|panic|exam tomorrow|worried)/).test(t)) return 'stressed'
+  if (ub(/(боюсь|страшно|контрольн[а-яё]*|экзамен[а-яё]* завтра|паник|волнуюсь|не успею|qoʻrqaman|qo'rqaman|imtihon ertaga|stress|panic|exam tomorrow|worried)/).test(t)) return 'stressed'
   if ((text.match(/!/g) ?? []).length >= 3 || (text.length >= 12 && text === text.toUpperCase() && /[A-ZА-Я]{6,}/.test(text))) return 'stressed'
   if (ub(/(ура|класс|круто|понятно!|теперь понял|zo'r|ajoyib|tushundim|awesome|got it now|cool)/).test(t)) return 'happy'
   return null
@@ -41,14 +41,14 @@ export function textMood(text: string): Mood | null {
 export function detectErrorTags(text: string, kb: Knowledge): string[] {
   const t = text.toLowerCase().replace(/ё/g, 'е')
   const tags = new Set<string>()
-  if (ub(/масс\[а-яёa-z]*[а-яёa-z]*(=|равн\[а-яёa-z]*|получил\[а-яёa-z]*)[а-яёa-z]*[а-яёa-z]+[.,]?[а-яёa-z]*[а-яёa-z]*моль/).test(t) || ub(/(количеств\[а-яёa-z]* веществ\[а-яёa-z]*|[а-яёa-z]n)[а-яёa-z]*(=|равн\[а-яёa-z]*)[а-яёa-z]*[а-яёa-z]+[.,]?[а-яёa-z]*[а-яёa-z]*(г|грамм\[а-яёa-z]*)[а-яёa-z]/).test(t)) tags.add('mass_mole')
-  if (ub(/[а-яёa-z]mass[а-яёa-z]*(=|is)[а-яёa-z]*[а-яёa-z]+(\.[а-яёa-z]+)?[а-яёa-z]*mol[а-яёa-z]/).test(t) || ub(/[а-яёa-z]massa[а-яёa-z]*=[а-яёa-z]*[а-яёa-z]+[.,]?[а-яёa-z]*[а-яёa-z]*mol[а-яёa-z]/).test(t)) tags.add('mass_mole')
-  if (ub(/атом\[а-яёa-z]*[а-яёa-z]+(воды|кислоты|соли|сахара|углекислого|h2o|co2|nacl)/).test(t) || ub(/молекул\[а-яёa-z]*[а-яёa-z]+(натрия|калия|железа|меди|цинка|алюминия|магния|кальция|nacl|поваренной соли|хлорида натрия)/).test(t)) tags.add('atom_molecule')
+  if (ub(/масс[а-яё]*\s*(=|равн[а-яё]*|получил[а-яё]*)\s*\d+[.,]?\d*\s*моль/).test(t) || ub(/(количеств[а-яё]* веществ[а-яё]*|\bn)\s*(=|равн[а-яё]*)\s*\d+[.,]?\d*\s*(г|грамм[а-яё]*)\b/).test(t)) tags.add('mass_mole')
+  if (ub(/\bmass\w*\s*(=|is)\s*\d+(\.\d+)?\s*mol\b/).test(t) || ub(/\bmassa\w*\s*=\s*\d+[.,]?\d*\s*mol\b/).test(t)) tags.add('mass_mole')
+  if (ub(/атом[а-яё]*\s+(воды|кислоты|соли|сахара|углекислого|h2o|co2|nacl)/).test(t) || ub(/молекул[а-яё]*\s+(натрия|калия|железа|меди|цинка|алюминия|магния|кальция|nacl|поваренной соли|хлорида натрия)/).test(t)) tags.add('atom_molecule')
   if (ub(/(atom of water|water atom|molecule of (sodium|iron|copper)|suv atomi|natriy molekulasi|temir molekulasi)/).test(t)) tags.add('atom_molecule')
-  if (ub(/валентност\[а-яёa-z]*[^.?!]{0,30}[+−-][а-яёa-z]?[а-яёa-z]/).test(t) || ub(/степен\[а-яёa-z]* окислени\[а-яёa-z]*[^.?!]{0,25}[а-яёa-z](i{1,3}|iv|vi{0,3})[а-яёa-z]/).test(t)) tags.add('valence_oxidation')
-  if (ub(/valentlik\[а-яёa-z]*[^.?!]{0,30}[+−-][а-яёa-z]?[а-яёa-z]/).test(t) || ub(/valenc[ey][^.?!]{0,30}[+−-][а-яёa-z]?[а-яёa-z]/).test(t)) tags.add('valence_oxidation')
-  if (ub(/молярн\[а-яёa-z]* масс\[а-яёa-z]*[^.?!]{0,25}[а-яёa-z]+[.,]?[а-яёa-z]*[а-яёa-z]*(г|грамм\[а-яёa-z]*)(?![а-яёa-z]*\/)[а-яёa-z]/).test(t) || ub(/объ[её]м\[а-яёa-z]*[^.?!]{0,20}[а-яёa-z]+[.,]?[а-яёa-z]*[а-яёa-z]*(г|кг)[а-яёa-z]/).test(t)) tags.add('units')
-  if (ub(/molar mass[^.?!]{0,25}[а-яёa-z]+(\.[а-яёa-z]+)?[а-яёa-z]*g[а-яёa-z](?![а-яёa-z]*\/)/).test(t) || ub(/molyar massa[^.?!]{0,25}[а-яёa-z]+[.,]?[а-яёa-z]*[а-яёa-z]*g[а-яёa-z](?![а-яёa-z]*\/)/).test(t)) tags.add('units')
+  if (ub(/валентност[а-яё]*[^.?!]{0,30}[+−-]\s?\d\b/).test(t) || ub(/степен[а-яё]* окислени[а-яё]*[^.?!]{0,25}\b(i{1,3}|iv|vi{0,3})\b/).test(t)) tags.add('valence_oxidation')
+  if (ub(/valentlik\w*[^.?!]{0,30}[+−-]\s?\d\b/).test(t) || ub(/valenc[ey][^.?!]{0,30}[+−-]\s?\d\b/).test(t)) tags.add('valence_oxidation')
+  if (ub(/молярн[а-яё]* масс[а-яё]*[^.?!]{0,25}\d+[.,]?\d*\s*(г|грамм[а-яё]*)(?!\s*\/)\b/).test(t) || ub(/объ[её]м[а-яё]*[^.?!]{0,20}\d+[.,]?\d*\s*(г|кг)\b/).test(t)) tags.add('units')
+  if (ub(/molar mass[^.?!]{0,25}\d+(\.\d+)?\s*g\b(?!\s*\/)/).test(t) || ub(/molyar massa[^.?!]{0,25}\d+[.,]?\d*\s*g\b(?!\s*\/)/).test(t)) tags.add('units')
   // номенклатура: название вещества рядом с «чужой» формулой из тех же элементов
   const named = findSubstances(text, kb)
   if (named.length) {

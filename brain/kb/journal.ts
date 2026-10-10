@@ -103,6 +103,30 @@ export class Journal {
     return this
   }
 
+  /** Чтение журнала порциями с отдачей управления (сервер отвечает на /health, пока база грузится). */
+  async loadAsync(every = 3000): Promise<this> {
+    if (!fs.existsSync(this.file)) return this
+    const raw = fs.readFileSync(this.file, 'utf8')
+    let start = 0
+    let n = 0
+    while (start < raw.length) {
+      let end = raw.indexOf('\n', start)
+      if (end < 0) end = raw.length
+      const s = raw.slice(start, end).trim()
+      start = end + 1
+      if (!s) continue
+      this.lines++
+      try {
+        this.remember(JSON.parse(s) as JournalRecord)
+      } catch {
+        /* битая строка: пропускаем, журнал не трогаем */
+      }
+      if (++n % every === 0) await new Promise((res) => setImmediate(res))
+    }
+    this.bytes = Buffer.byteLength(raw, 'utf8')
+    return this
+  }
+
   private remember(r: JournalRecord): void {
     if (!r || typeof r.id !== 'string') return
     if (!Array.isArray(r.tags)) r.tags = []
