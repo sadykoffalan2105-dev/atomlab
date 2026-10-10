@@ -308,7 +308,7 @@ export function buildStoryEnv(story: ReactionStory, lay: StoryLayout, opts: { lo
         by += a.y / block.length
         bz += a.z / block.length
       }
-      const keepR = Math.max(c.rho + 0.9, 1.7)
+      const keepR = Math.max(c.rho + 0.55, 1.35)
       const pts = block
         .map((a, q) => ({ el: a.el, x: (a.x - bx) * s, y: (a.y - by) * s, z: (a.z - bz) * s, r: rs[q]!, k: a.k }))
         .filter((a) => Math.hypot(a.x, a.y) <= keepR)
@@ -316,7 +316,7 @@ export function buildStoryEnv(story: ReactionStory, lay: StoryLayout, opts: { lo
       let zMax = -Infinity
       for (const a of pts) zMax = Math.max(zMax, a.z + a.r)
       const dz = c.zFront - 0.06 - zMax
-      const cap = Math.min(opts.lowPower ? 28 : 64, capTotal - parts.length)
+      const cap = Math.min(opts.lowPower ? 24 : 48, capTotal - parts.length)
       const sorted = pts.sort((a, b) => a.k - b.k || Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y)).slice(0, Math.max(0, cap))
       const kMax = Math.max(1e-6, ...sorted.map((a) => Math.hypot(a.x, a.y)))
       for (const a of sorted) {
