@@ -20,6 +20,7 @@ import type { FormationClock } from './formationTimeline'
 import { heatExpand, heatLevel, MOTION, smooth01, vibOffset } from './motion'
 import { acidDetach, phaseAtomPos, phaseExtent, phaseLayout } from './FormationPhaseScene'
 import { phaseOf } from './story/phase'
+import { drawElectrons } from './view/electronsDraw'
 
 /**
  * «Как образуется» в 3D карточки каталога — от и до (сценарий formationStory): исходные вещества (молекулы H₂, O₂ с
@@ -41,12 +42,9 @@ const _b = new THREE.Vector3()
 const _ax = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
 const _c = new THREE.Color()
-const _rp: V3 = [0, 0, 0]
 const _cT = new THREE.Vector3()
 
 const E_LONE = new THREE.Color('#facc15')
-const E_PAIR = new THREE.Color('#22d3ee')
-const E_MOVE = new THREE.Color('#fb923c')
 const LAT_BG = new THREE.Color('#0b1020')
 
 /** src: 'route' — индексы атомов сцены пути (routeStage.atoms), иначе — атомы модели. */
@@ -560,68 +558,7 @@ export function FormationMoleculeView({
     res.sticks.count = k
     res.sticks.instanceMatrix.needsUpdate = true
     // Электроны.
-    const eR = story.eR
-    story.electrons.forEach((e, i) => {
-      const appear = clamp01((t - e.tIn) / 0.4)
-      const vanish = 1 - clamp01((t - e.tOut) / 0.5)
-      let sc = eR * appear * vanish
-      const H = live[e.home]!
-      let x = H[0] + e.homeOff[0]
-      let y = H[1] + e.homeOff[1]
-      let z = H[2] + e.homeOff[2]
-      let col = e.kind === 'pair' && e.move && t >= e.move.t1 ? E_PAIR : E_LONE
-      if (e.move && t >= e.move.t0) {
-        const u = easeInOut((t - e.move.t0) / Math.max(1e-6, e.move.t1 - e.move.t0))
-        let tx: number, ty: number, tz: number
-        if (e.move.toAtom != null) {
-          const T = live[e.move.toAtom]!
-          const o = e.move.toOff!
-          tx = T[0] + o[0]
-          ty = T[1] + o[1]
-          tz = T[2] + o[2]
-        } else {
-          const bd = e.move.bond!
-          const A = live[bd.a]!
-          const B = live[bd.b]!
-          _ax.set(B[0] - A[0], B[1] - A[1], B[2] - A[2])
-          const L = _ax.length() || 1
-          _ax.divideScalar(L)
-          tx = (A[0] + B[0]) / 2 + _ax.x * bd.sign * 1.5 * eR
-          ty = (A[1] + B[1]) / 2 + _ax.y * bd.sign * 1.5 * eR
-          tz = (A[2] + B[2]) / 2 + _ax.z * bd.sign * 1.5 * eR
-          const sd = anim.sides.get(bd.k)
-          if (sd && bd.n > 1) {
-            const off = (bd.slot - (bd.n - 1) / 2) * stepD
-            tx += sd.x * off
-            ty += sd.y * off
-            tz += sd.z * off
-          }
-        }
-        const lift = Math.sin(Math.PI * u) * (e.kind === 'transfer' ? 0.18 : 0.06) * anim.maxD
-        x = x + (tx - x) * u + anim.up.x * lift
-        y = y + (ty - y) * u + anim.up.y * lift
-        z = z + (tz - z) * u + anim.up.z * lift
-        if (u > 0 && u < 1) {
-          col = E_MOVE
-          sc *= 1.35
-        } else if (e.kind === 'pair') col = E_PAIR
-      }
-      _m.compose(_p.set(x, y, z), _q.identity(), _s.setScalar(Math.max(1e-5, sc)))
-      res.electrons.setMatrixAt(i, _m)
-      res.electrons.setColorAt(i, col)
-    })
-    if (route) {
-      const base = story.electrons.length
-      route.electrons.forEach((e, j) => {
-        const sc = eR * 1.15 * clamp01((t - e.tIn) / 0.4) * (1 - clamp01((t - e.tOut) / 0.4))
-        const P = routeKeyAt(e.keys, t, _rp)
-        _m.compose(_p.set(P[0], P[1], P[2]), _q.identity(), _s.setScalar(Math.max(1e-5, sc)))
-        res.electrons.setMatrixAt(base + j, _m)
-        res.electrons.setColorAt(base + j, t > e.keys[1]![0] && t < e.keys[e.keys.length - 1]![0] ? E_MOVE : E_LONE)
-      })
-    }
-    res.electrons.instanceMatrix.needsUpdate = true
-    if (res.electrons.instanceColor) res.electrons.instanceColor.needsUpdate = true
+    drawElectrons({ story, model, mesh: res.electrons, live, t })
     // Частицы тепла: поднимаются (экранные координаты внешней группы), видны вместе с колебаниями.
     if (res.nH > 0) {
       const vis = heatA
