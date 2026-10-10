@@ -5,9 +5,10 @@
   --line: #e2e8ef;
   --paper: #ffffff;
   --bg: #f4f7fb;
-  --accent: #2f7cf6;
-  --exchange: #1f9d55;
-  --combustion: #e0452f;
+  /* белый текст на этих заливках (чипы типов, «Далее») — контраст ≥ 4,5 : 1 (npm run check:contrast) */
+  --accent: #1f66d9;
+  --exchange: #15803d;
+  --combustion: #c2341f;
   --substitution: #7b4fe0;
   box-sizing: border-box;
   width: 1280px;
@@ -173,6 +174,8 @@
 }
 .title {
   grid-area: title;
+  /* глобальный h2 берёт цвет темы (ночью светлый) — доска всегда светлая */
+  color: var(--ink);
   margin: 2px 0 0;
   font-size: 28px;
   font-weight: 700;
@@ -393,7 +396,7 @@
   border-color: var(--accent);
   background: var(--accent);
   color: #fff !important;
-  box-shadow: 0 8px 20px rgba(47, 124, 246, 0.28);
+  box-shadow: 0 8px 20px rgba(31, 102, 217, 0.28);
 }
 .navBtn:active:not(:disabled),
 .navBtnPrimary:active {
@@ -829,15 +832,15 @@
 }
 .card[data-kind='physical'],
 .kind[data-kind='physical'] {
-  --kc: #8a6fd1;
+  --kc: #6f50c4;
 }
 .card[data-kind='combination'],
 .kind[data-kind='combination'] {
-  --kc: #1f9e8f;
+  --kc: #0f766e;
 }
 .card[data-kind='decomposition'],
 .kind[data-kind='decomposition'] {
-  --kc: #d0573d;
+  --kc: #b5442b;
 }
 
 /* ── Таймер и отметки времени шагов ── */
@@ -902,7 +905,7 @@
   padding: 0 18px;
   border: 0;
   border-radius: 12px;
-  background: #f29b38;
+  background: #b45309;
   color: #ffffff !important;
   font-weight: 700 !important;
   font-size: 16px !important;
