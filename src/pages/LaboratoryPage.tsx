@@ -154,7 +154,8 @@ function writeReactorClearance(px: number | null): void {
   if (!clearanceRule) {
     if (px == null) return
     const first = (cls: string | undefined) => (cls ? `.${cls.split(' ')[0]}` : null)
-    const sel = [first(styles.panelFabReactorOpen), first(sidePanelStyles.panelOpenCompact), first(mechPanelStyles.panel)]
+    // [data-lab-show-panel] — панели этапов показа «Как образуется»: низ панели не ниже верха реактора
+    const sel = [first(styles.panelFabReactorOpen), first(sidePanelStyles.panelOpenCompact), first(mechPanelStyles.panel), '[data-lab-show-panel]']
       .filter(Boolean)
       .join(', ')
     const el = document.createElement('style')

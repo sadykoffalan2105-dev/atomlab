@@ -29,6 +29,7 @@ export type FormationLabState = {
 const clockRef: MutableRefObject<FormationClock> = { current: { t: 0, playing: true } }
 let state: FormationLabState = { id: null, mode: 'preview', stages: null, total: 0, t: 0, step: 0, playing: true, speed: 1, free: null, canvasTop: 0 }
 const subs = new Set<() => void>()
+const rectSubs = new Set<() => void>()
 const emit = () => subs.forEach((f) => f())
 const set = (patch: Partial<FormationLabState>) => {
   state = { ...state, ...patch }
@@ -57,6 +58,14 @@ export const formationLab = {
     if (!a && !r) return
     formationLab.rects[key] = r
     formationLab.rects.rev++
+    rectSubs.forEach((f) => f())
+  },
+  /** Подписка на смену прямоугольников реактора / кнопки (клапан панели этапов). */
+  onRects(f: () => void) {
+    rectSubs.add(f)
+    return () => {
+      rectSubs.delete(f)
+    }
   },
   /** сколько места HUD-карточки занимают в свободной части (px): dx — справа, dy — сверху */
   hudLayout: { current: { dx: 0, dy: 0 } } as MutableRefObject<{ dx: number; dy: number }>,

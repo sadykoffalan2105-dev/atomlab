@@ -326,7 +326,7 @@ function ShowingRunContent({ kind, template }: { kind: string; template: string 
   const f = useFormationLab()
   const r = useRouteLab()
   let k = 0
-  let n = 0
+  let n: number
   if (kind === 'route-synth' && r.stages) {
     const list = r.stages.list
     n = list.length
