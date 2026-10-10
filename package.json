@@ -125,6 +125,7 @@
     "test:reactions200": "tsx scripts/test-reactions200.mts",
     "plan:reactions200": "tsx scripts/plan/select-reactions200.mts",
     "test:reaction-story": "tsx scripts/test-reaction-story.mts",
+    "test:story-motion": "tsx scripts/test-story-motion.mts",
     "teacher:intent-data": "tsx scripts/teacher-ml/intent-dataset.mts",
     "teacher:intent-train": "tsx scripts/teacher-ml/train-intent.mts",
     "test:teacher-intent": "tsx scripts/test-teacher-intent.mts",
