@@ -4,9 +4,7 @@
  * Путь выбирается по наименьшей задержке и по тому, что можно прервать сразу:
  *   1) Electron IPC neural TTS (десктоп-приложение);
  *   2) Microsoft Edge — neural-голос через Read-Aloud WebSocket;
- *   3) системный speechSynthesis с лучшим голосом локали (Online (Natural) / Google / …);
- *   4) Puter TTS — только если ученик сам подключил «умный ИИ» и уже вошёл, а
- *      системного голоса для языка нет.
+ *   3) системный speechSynthesis с лучшим голосом локали (Online (Natural) / Google / …).
  * Для neural-путей следующая фраза синтезируется заранее (prefetch), пока звучит
  * текущая. Если neural-путь не ответил — переходим на системный голос до конца сессии.
  *
@@ -15,7 +13,7 @@
  */
 import type { AssistantLang } from '../brainTypes'
 
-export type LiveTtsPath = 'electron' | 'edge' | 'browser' | 'puter' | 'silent'
+export type LiveTtsPath = 'electron' | 'edge' | 'browser' | 'silent'
 
 export type NeuralAudio = { audioBase64: string; mimeType: string }
 
@@ -24,7 +22,6 @@ export interface LiveTtsEnvironment {
   edge: boolean
   browserSupported: boolean
   browserVoices: number
-  puterSignedIn: boolean
 }
 
 /** Чистый выбор пути озвучки (покрыт тестом). */
@@ -32,7 +29,6 @@ export function chooseLiveTtsPath(env: LiveTtsEnvironment): LiveTtsPath {
   if (env.desktop) return 'electron'
   if (env.edge) return 'edge'
   if (env.browserSupported && env.browserVoices > 0) return 'browser'
-  if (env.puterSignedIn) return 'puter'
   if (env.browserSupported) return 'browser'
   return 'silent'
 }
@@ -44,7 +40,7 @@ export interface LiveSpeechBackend {
   environment(lang: AssistantLang): LiveTtsEnvironment | null
   /** Подготовка текста к речи (формулы словами, ударения…). */
   prepare(text: string, lang: AssistantLang): string
-  synthesize(path: 'electron' | 'edge' | 'puter', text: string, lang: AssistantLang, signal: AbortSignal): Promise<NeuralAudio | null>
+  synthesize(path: 'electron' | 'edge', text: string, lang: AssistantLang, signal: AbortSignal): Promise<NeuralAudio | null>
   play(audio: NeuralAudio, signal: AbortSignal): Promise<void>
   speakBrowser(text: string, lang: AssistantLang, onStart: () => void): { done: Promise<unknown>; cancel: () => void }
   /** Захватить общий «канал речи» приложения; вернуть проверку «канал всё ещё наш». */
@@ -238,7 +234,7 @@ class UtteranceImpl implements LiveUtterance {
     const item = this.items[index]
     if (!item || item.audio) return
     const path = this.out.getPath()
-    if (path !== 'electron' && path !== 'edge' && path !== 'puter') return
+    if (path !== 'electron' && path !== 'edge') return
     item.audio = this.backend.synthesize(path, item.prepared, this.o.lang, this.abort.signal).catch(() => null)
   }
 
@@ -297,7 +293,7 @@ class UtteranceImpl implements LiveUtterance {
       this.markStart(index, item.raw)
       return
     }
-    if ((path === 'electron' || path === 'edge' || path === 'puter') && item.audio) {
+    if ((path === 'electron' || path === 'edge') && item.audio) {
       const timeoutMs = this.o.neuralTimeoutMs ?? 4_500
       const t0 = now()
       const audio = await Promise.race([
@@ -345,7 +341,6 @@ export function createDomLiveSpeechBackend(): LiveSpeechBackend {
     playback: typeof import('../../learnSpeechPlayback')
     browser: typeof import('../../learnSpeechBrowser')
     tts: typeof import('../../learnTeacherTtsClient')
-    puter: typeof import('../../learnPuterTts')
     exclusive: typeof import('../../learnSpeechExclusive')
   }
   let mods: Mods | null = null
@@ -354,10 +349,9 @@ export function createDomLiveSpeechBackend(): LiveSpeechBackend {
     import('../../learnSpeechPlayback'),
     import('../../learnSpeechBrowser'),
     import('../../learnTeacherTtsClient'),
-    import('../../learnPuterTts'),
     import('../../learnSpeechExclusive'),
-  ]).then(([text, playback, browser, tts, puter, exclusive]) => {
-    mods = { text, playback, browser, tts, puter, exclusive }
+  ]).then(([text, playback, browser, tts, exclusive]) => {
+    mods = { text, playback, browser, tts, exclusive }
     return mods
   })
   const ready = async (): Promise<Mods> => mods ?? loading
@@ -370,14 +364,13 @@ export function createDomLiveSpeechBackend(): LiveSpeechBackend {
     },
     environment(lang) {
       if (!mods) return null
-      const { browser, tts, puter } = mods
+      const { browser, tts } = mods
       const voice = browser.getBestBrowserVoice(lang)
       return {
         desktop: tts.isDesktopTeacherTtsAvailable(),
         edge: tts.isMicrosoftEdgeBrowser(),
         browserSupported: browser.isBrowserSpeechSupported(),
         browserVoices: voice ? 1 : 0,
-        puterSignedIn: puter.isSmartAiOptedIn() && puter.isPuterSignedInSync(),
       }
     },
     prepare(text, lang) {
@@ -387,8 +380,7 @@ export function createDomLiveSpeechBackend(): LiveSpeechBackend {
     async synthesize(path, text, lang, signal) {
       const m = await ready()
       if (path === 'electron') return m.tts.fetchViaDesktopElectron(text, lang, signal, 6_000)
-      if (path === 'edge') return m.tts.fetchViaBrowserEdge(text, lang, signal, undefined, 6_000)
-      return m.tts.fetchViaPuter(text, lang, signal)
+      return m.tts.fetchViaBrowserEdge(text, lang, signal, undefined, 6_000)
     },
     async play(audio, signal) {
       const m = await ready()

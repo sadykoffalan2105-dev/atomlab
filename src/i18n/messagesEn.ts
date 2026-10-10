@@ -516,16 +516,23 @@ export const messagesEn: Record<MessageKey, string> = {
 
   /* AI teacher: lesson chat and live lesson ("video call") */
   'learn.teacherUi.sources': 'Sources',
-  'learn.teacherUi.brainSmart': 'Smart AI',
+  'learn.teacherUi.brainLocalAi': 'Local brain',
+  'learn.teacherUi.brainOnline': 'Local brain: connected',
+  'learn.teacherUi.brainOfflineShort': 'Local knowledge base (brain not running)',
+  'learn.teacherUi.brainOffline': 'The brain is not running — the knowledge base answers',
+  'learn.teacherUi.brainChecking': 'Checking the local brain…',
+  'learn.teacherUi.brainHint': 'Run npm run brain:start',
+  'learn.teacherUi.brainLevel': 'Brain: level {level} of 5',
+  'learn.teacherUi.brainPace': 'Pace',
+  'learn.teacherUi.brainPaceSlow': 'slow',
+  'learn.teacherUi.brainPaceNormal': 'normal',
+  'learn.teacherUi.brainPaceFast': 'fast',
+  'learn.teacherUi.brainErrors': 'Typical mistakes',
+  'learn.teacherUi.moderation.notice': 'Please keep it polite — profanity is not allowed in this chat.',
+  'learn.teacherUi.rule.orgInorg': 'Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией',
   'learn.teacherUi.brainLocal': 'Local knowledge base',
   'learn.teacherUi.brainServer': 'Teacher server',
   'learn.teacherUi.brainAnswers': 'Answering: {brain}',
-  'learn.teacherUi.smartConnect': 'Connect smart AI (free)',
-  'learn.teacherUi.smartConnecting': 'Connecting…',
-  'learn.teacherUi.smartExplain':
-    'Broader, livelier answers. Free via Puter — just sign in; otherwise the local knowledge base answers.',
-  'learn.teacherUi.smartError': 'Could not connect. Allow the Puter pop-up window and try again.',
-  'learn.teacherUi.smartToggle': 'Smart AI (Puter, free)',
   'learn.teacherUi.settings': 'Teacher settings',
   'learn.teacherUi.chatMode': 'Answer style',
   'learn.teacherUi.quickPrompts': 'Quick questions',
@@ -613,7 +620,6 @@ export const messagesEn: Record<MessageKey, string> = {
     'Speech recognition is not available in this browser. Open the lesson in Chrome or Edge — or type: the teacher still answers by voice.',
   'learn.teacherUi.sttLanguage':
     'The browser cannot recognise speech in this language. Type instead, or open the lesson in Chrome or Edge.',
-  'learn.teacherUi.smartDisconnect': 'Disconnect smart AI',
   'learn.teacherUi.brainLocalShort': 'Knowledge base',
   'learn.teacherUi.scrollLatest': 'Jump to latest message',
 

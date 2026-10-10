@@ -1,13 +1,12 @@
 import type { LearnTtsLocale } from './learnTtsCore'
 import { isPlausibleSpeechAudio } from './learnSpeechValidate'
 import { synthesizeEdgeNeuralSpeechBrowser } from './learnEdgeTtsBrowser'
-import { synthesizePuterSpeech, warmupPuterFromUserGesture } from './learnPuterTts'
 import { isAtomlabDesktop } from '../electronBridge.types'
 import type { TeacherTtsProsodyMode } from './learnTeacherVoiceProfile'
 
 export type TeacherTtsLocale = LearnTtsLocale
 
-export type NeuralTtsSource = 'edge-browser' | 'edge-server' | 'edge-desktop' | 'puter'
+export type NeuralTtsSource = 'edge-browser' | 'edge-server' | 'edge-desktop'
 
 export type NeuralTtsResult = {
   audioBase64: string
@@ -128,21 +127,6 @@ export async function fetchViaBrowserEdge(
     )
     if (!entry || signal.aborted || !isPlausibleSpeechAudio(entry.audioBase64, chunk)) return null
     return { ...entry, source: 'edge-browser' }
-  } catch {
-    return null
-  }
-}
-
-export async function fetchViaPuter(
-  chunk: string,
-  locale: TeacherTtsLocale,
-  signal: AbortSignal,
-): Promise<NeuralTtsResult | null> {
-  if (signal.aborted) return null
-  try {
-    const entry = await synthesizePuterSpeech(chunk, locale, signal)
-    if (!entry || signal.aborted || !isPlausibleSpeechAudio(entry.audioBase64, chunk)) return null
-    return { ...entry, source: 'puter' }
   } catch {
     return null
   }
@@ -276,8 +260,6 @@ export function primeTeacherVoiceOnUserGesture(): void {
     desktopPrimed = true
     void window.atomlabDesktop.synthesizeTeacherTts('Готов.', 'ru')
   }
-  // Только прогрев скрипта, если «умный ИИ» уже включён; окно входа не открываем.
-  warmupPuterFromUserGesture()
 }
 
 export async function fetchTeacherTtsChunk(
@@ -302,9 +284,6 @@ export async function fetchTeacherTtsChunk(
 
   const browserEdge = await fetchViaBrowserEdge(chunk, locale, signal, prosodyMode)
   if (browserEdge) return browserEdge
-
-  const puter = await fetchViaPuter(chunk, locale, signal)
-  if (puter) return puter
 
   const server = await fetchViaServers(ordered, chunk, locale, signal)
   if (server) {

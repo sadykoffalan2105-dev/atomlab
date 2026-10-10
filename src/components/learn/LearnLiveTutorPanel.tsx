@@ -10,7 +10,7 @@ import {
 import { createPortal } from 'react-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { getActiveStudent } from '../../learn/learnClassRosterStorage'
-import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
+import { checkHealth } from '../../learn/brain/remote/brainClient'
 import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import { isSpeechRecognitionSupported } from '../../learn/learnSpeech'
 import { getVoiceStatus, subscribeVoiceStatus, voiceStatusMessageKey } from '../../learn/brain/speech/voiceStatus'
@@ -21,7 +21,7 @@ import { prewarmLiveTeacher } from '../../learn/brain/dualMode'
 import type { TutorMode } from '../../learn/brain'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { IconClose, IconMic } from './LearnAiIcons'
-import { BrainChip, SmartAiCta } from './teacher/TeacherChips'
+import { BrainStatusChip } from './teacher/TeacherChips'
 import { TeacherAvatar, type AvatarState } from './teacher/TeacherAvatar'
 import { LiveCaptions } from './teacher/LiveCaptions'
 import { LiveTranscript, type QueuedTurn } from './teacher/LiveTranscript'
@@ -36,7 +36,6 @@ import {
   IconWifiOff,
 } from './teacher/TeacherIcons'
 import { EMOTION_LABEL, ENGAGEMENT_LABEL, ENGAGEMENT_TONE, PACE_HINT, labelLocale } from './teacher/liveTutorLabels'
-import { isSmartAiOptedIn, useSmartAi } from './teacher/smartAiStore'
 import styles from './teacher/LiveTutor.module.css'
 
 type Props = {
@@ -117,7 +116,6 @@ function LiveTutorSession({
     start: startCamera,
     stop: stopCamera,
   } = useOralExamMedia(cameraOn)
-  const smartAi = useSmartAi()
   const online = useSyncExternalStore(subscribeOnline, readOnline, readOnlineServer)
   const [videoNode, setVideoNode] = useState<HTMLVideoElement | null>(null)
   const [flashUntil, setFlashUntil] = useState<number | null>(null)
@@ -293,7 +291,6 @@ function LiveTutorSession({
   const fused = state.fused
   const loc = labelLocale(locale)
   const cameraLive = cameraOn && cameraStatus === 'active'
-  const brain = smartAi.connected ? 'smart' : 'local'
   const speakingMessageId = state.aiSpeaking ? (state.speakingMessageId ?? lastTeacher?.id ?? null) : null
 
   return (
@@ -310,14 +307,7 @@ function LiveTutorSession({
         </div>
 
         <div className={styles.topMeta}>
-          <BrainChip brain={brain} />
-          {!smartAi.connected ? (
-            <SmartAiCta layout="inline" className={styles.topCta} />
-          ) : (
-            <button type="button" className={styles.topLink} onClick={smartAi.disconnect}>
-              {t('learn.teacherUi.smartDisconnect')}
-            </button>
-          )}
+          <BrainStatusChip />
           <div className={styles.segmented} role="radiogroup" aria-label={t('learn.teacherUi.modeAria')}>
             {(['training', 'exam'] as const).map((m) => (
               <button
@@ -784,7 +774,7 @@ function LiveTutorOverlay({
             speechSupported={speechSupported}
             online={online}
             onStart={(voice) => {
-              if (isSmartAiOptedIn()) warmupPuterFromUserGesture()
+              void checkHealth(true)
               setWithVoice(voice)
               setPhase('session')
             }}

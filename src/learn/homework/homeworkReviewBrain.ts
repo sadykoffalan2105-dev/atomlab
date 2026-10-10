@@ -149,7 +149,7 @@ export function reviewHomeworkLocal(input: HomeworkScanInput): HomeworkReviewRep
 }
 
 /**
- * Полная проверка: локальный мозг + попытка усилить вердикт через teacher_service / Puter.
+ * Полная проверка: локальный мозг + попытка усилить вердикт через teacher_service.
  */
 export async function reviewHomework(input: HomeworkScanInput): Promise<HomeworkReviewReport> {
   const base = reviewHomeworkLocal(input)

@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react'
 import { useT } from '../../../i18n/useT'
 import type { TutorMode } from '../../../learn/brain'
 import { IconMic } from '../LearnAiIcons'
-import { SmartAiCta } from './TeacherChips'
+import { BrainStatusChip } from './TeacherChips'
 import { TeacherAvatar } from './TeacherAvatar'
 import { IconKeyboardSmall, IconShield, IconVideo, IconWifiOff } from './TeacherIcons'
 import styles from './LiveTutor.module.css'
@@ -126,7 +126,7 @@ export function LiveTutorLobby({
           </p>
         ) : null}
 
-        <SmartAiCta className={styles.lobbyCta} />
+        <BrainStatusChip className={styles.lobbyCta} />
 
         <div className={styles.lobbyActions}>
           <button

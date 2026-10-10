@@ -13,20 +13,13 @@
  *   speakingMessageId + spokenSentenceIndex — какое сообщение и какая фраза звучат;
  *   interruptedAt       — время последнего перебивания (для вспышки «Перебили»);
  *   metrics             — задержки последнего хода (мс);  ttsPath — путь озвучки;
- *   smartAi             — «умный ИИ» подключён (Puter), иначе ответы из локальной базы.
+ *   brain               — локальный мозг: 'checking' | 'online' | 'offline' (offline — отвечает локальная база).
  * Действия: start, stop, sendText, askAnother, nextTopic, setMode, interrupt, setMicMuted,
- *   checkHomework, connectSmartAi (из обработчика клика!), subscribeMicLevel.
+ *   checkHomework, subscribeMicLevel.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LearnSpeechController } from '../../learnSpeech'
-import {
-  connectSmartAi as connectSmartAiImpl,
-  getSmartAiState,
-  isSmartAiConnected,
-  subscribeSmartAi,
-  warmSmartAi,
-  type SmartAiState,
-} from '../../learnPuterChat'
+import { checkHealth, getBrainStatus, subscribeBrainStatus, type BrainStatus } from '../remote/brainClient'
 import { preloadTeacherKnowledge } from '../../teacherKnowledge'
 import type { FusedContext, ReasoningStepSnapshot } from '../brainTypes'
 import type { DialogTurn } from '../voice/interruptionController'
@@ -103,7 +96,8 @@ export interface DualModeTeacherState {
   interruptedAt: number | null
   metrics: LiveTurnMetrics | null
   ttsPath: LiveTtsPath | null
-  smartAi: SmartAiState
+  /** Локальный мозг (сервер на ПК учителя): online — отвечает он, иначе локальная база. */
+  brain: BrainStatus
   /**
    * Распознавание речи недоступно до конца сессии ('not-allowed' | 'service-not-allowed' |
    * 'language-not-supported'): UI предлагает писать текстом. null — всё в порядке.
@@ -136,7 +130,7 @@ const INITIAL: DualModeTeacherState = {
   interruptedAt: null,
   metrics: null,
   ttsPath: null,
-  smartAi: 'off',
+  brain: 'checking',
   sttError: null,
 }
 
@@ -194,7 +188,7 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
   const [state, setState] = useState<DualModeTeacherState>({
     ...INITIAL,
     mode: options.initialMode ?? 'training',
-    smartAi: getSmartAiState(),
+    brain: getBrainStatus(),
   })
 
   const teacherRef = useRef<TeacherIntelligence | null>(null)
@@ -258,7 +252,7 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     controllerRef.current = controller
 
     prewarmLiveTeacher({ gradeId: opts.gradeId, chapterId: opts.chapterId, lang: opts.lang })
-    warmSmartAi()
+    void checkHealth(true)
 
     const teacher = new TeacherIntelligence({
       lang: opts.lang,
@@ -345,7 +339,7 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
       messages: [],
       partial: '',
       queued: [],
-      smartAi: getSmartAiState(),
+      brain: getBrainStatus(),
       sttError: null,
     })
 
@@ -368,8 +362,8 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     teacherRef.current.attachVision(options.videoEl)
   }, [options.videoEl])
 
-  // «Умный ИИ» подключили/отключили — показываем в UI.
-  useEffect(() => subscribeSmartAi((smartAi) => patch({ smartAi })), [patch])
+  // Локальный мозг запустили/остановили — показываем в UI (опрос /health раз в 30 с).
+  useEffect(() => subscribeBrainStatus(() => patch({ brain: getBrainStatus() })), [patch])
 
   const setMode = useCallback(async (mode: TutorMode) => {
     await teacherRef.current?.setMode(mode)
@@ -452,13 +446,6 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     [patch],
   )
 
-  /** Подключить «умный ИИ» (Puter). ВЫЗЫВАТЬ ИЗ ОБРАБОТЧИКА КЛИКА. */
-  const connectSmartAi = useCallback(async () => {
-    const ok = await connectSmartAiImpl()
-    patch({ smartAi: getSmartAiState() })
-    return ok
-  }, [patch])
-
   /** Подписка на уровень микрофона (RMS 0..1). Возвращает отписку. */
   const subscribeMicLevel = useCallback((listener: (rms: number) => void) => {
     const set = micLevelListenersRef.current
@@ -482,8 +469,6 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     setMicMuted,
     interrupt,
     holdToTalk,
-    connectSmartAi,
-    isSmartAiConnected,
     subscribeMicLevel,
   }
 }
