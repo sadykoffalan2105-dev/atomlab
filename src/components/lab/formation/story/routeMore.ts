@@ -320,16 +320,31 @@ export function buildMoreScene(k: SceneKit, script: FormationScript, plan: Forma
     if (/NH₄NO₃ → N₂O/.test(route)) {
       const l = k.bl('N', 'H')
       const na = k.A('N', [[0, -2.2, 0], [2.6, -2.2, 0], [4.6, -1.0, 0]])
+      // H уходят к «своим» O и собирают воду с настоящей геометрией: O–H = 1 b, угол H–O–H 104,5°, раскрыв — к NH₄⁺
+      // (влево-наружу), откуда H приходят: ни один H не пролетает сквозь шар O (раньше садились на 0,57 b от O).
+      // H сверху (i = 0, 3) — к дальнему H воды, H сбоку (i = 1, 2) — к ближнему.
+      const wO: [number, number][] = [
+        [0.9, 1.5],
+        [0.9, -1.6],
+      ]
+      const wH = (i: number, dy = 0): [number, number] => {
+        const w = wO[i < 2 ? 0 : 1]!
+        const up = i < 2 ? 1 : -1
+        const far = i === 0 || i === 3
+        const a = (180 - up * 45 + (far ? -up : up) * 52) * deg
+        return [w[0] + Math.cos(a), w[1] + dy + Math.sin(a)]
+      }
       const hs = TET.map((d, i) => {
-        const h = k.A('H', [[0, -2.2 + d[0] * l, d[1] * l, d[2] * l], [2.8, -2.2 + d[0] * l, d[1] * l, d[2] * l], [4.4, i < 2 ? 0.5 + 0.8 * i : 0.5 + 0.8 * (i - 2), i < 2 ? 1.9 : -2.0], [6.2, i < 2 ? 0.5 + 0.8 * i : 0.5 + 0.8 * (i - 2), i < 2 ? 2.9 : -3.0]])
+        const dy = i < 2 ? 1.0 : -1.0
+        const h = k.A('H', [[0, -2.2 + d[0] * l, d[1] * l, d[2] * l], [2.8, -2.2 + d[0] * l, d[1] * l, d[2] * l], [4.4, ...wH(i)], [6.2, ...wH(i, dy)]])
         k.S(na, h, -1, -1, 3.2)
         return h
       })
       const lo = k.bl('N', 'O')
       const nb = k.A('N', [[0, 1.6, 0], [2.6, 1.6, 0], [4.6, 0.15, 0]])
       const oR = k.A('O', [[0, 1.6 + lo, 0], [4.6, 0.15 + lo, 0]])
-      const oU = k.A('O', [[0, 1.6 + lo * Math.cos(120 * deg), lo * Math.sin(120 * deg)], [2.8, 1.6 + lo * Math.cos(120 * deg), lo * Math.sin(120 * deg)], [4.4, 0.9, 1.5], [6.2, 0.9, 2.5]])
-      const oD = k.A('O', [[0, 1.6 + lo * Math.cos(240 * deg), -lo * Math.sin(120 * deg)], [2.8, 1.6 + lo * Math.cos(240 * deg), -lo * Math.sin(120 * deg)], [4.4, 0.9, -1.6], [6.2, 0.9, -2.6]])
+      const oU = k.A('O', [[0, 1.6 + lo * Math.cos(120 * deg), lo * Math.sin(120 * deg)], [2.8, 1.6 + lo * Math.cos(120 * deg), lo * Math.sin(120 * deg)], [4.4, ...wO[0]!], [6.2, wO[0]![0], wO[0]![1] + 1.0]])
+      const oD = k.A('O', [[0, 1.6 + lo * Math.cos(240 * deg), -lo * Math.sin(120 * deg)], [2.8, 1.6 + lo * Math.cos(240 * deg), -lo * Math.sin(120 * deg)], [4.4, ...wO[1]!], [6.2, wO[1]![0], wO[1]![1] - 1.0]])
       k.S(nb, oR, -1, -1)
       k.S(nb, oU, -1, -1, 3.2)
       k.S(nb, oD, -1, -1, 3.2)
@@ -433,7 +448,10 @@ export function buildMoreScene(k: SceneKit, script: FormationScript, plan: Forma
       const ow = k.A('O', [[0, xL - 1.0 + l, 0.15], [2.0, xL + l * 0.92, 0.3], [3.4, xL + l * 0.92, 0.6], [4.4, -0.5, 1.0, 2.4], [6.2, -0.5, 1.6, 3.8]])
       const hw = k.A('H', [[0, xL - 1.0 + l + 0.4, 1.05], [2.0, xL + l * 0.92 + 0.3, 1.2], [3.4, xL + l * 0.92 + 0.3, 1.5], [4.4, -1.1, 1.6, 2.4], [6.2, -1.1, 2.2, 3.8]])
       const ob = k.A('O', [[0, xR + 1.0 - l, -0.3], [2.0, xR - l * 0.92, -0.6], [3.6, xR - l * 0.92, -0.6], [4.6, 0, -0.35]])
-      const hb = k.A('H', [[0, xR + 1.0 - l - 0.3, -1.25], [2.0, xR - l * 0.92 - 0.2, -1.55], [3.0, 0.2, -0.9], [3.6, xL + l * 0.92 + 0.85, -0.2], [4.4, 0.1, 1.6, 2.4], [6.2, 0.1, 2.2, 3.8]])
+      // H правой OH (у мостикового O) не проходит сквозь этот O: после разрыва O–H (2,8 с) огибает его справа и чуть
+      // к зрителю (≥ 1 b от центра O), поднимается правее-выше O и собирает воду снаружи, у O левой частицы.
+      const obx = xR - l * 0.92
+      const hb = k.A('H', [[0, xR + 1.0 - l - 0.3, -1.25], [2.0, obx - 0.2, -1.55], [2.8, obx - 0.2, -1.55], [3.2, obx + 0.75, -1.0, 0.5], [3.6, obx + 0.45, 0.15, 0.45], [4.4, 0.1, 1.6, 2.4], [6.2, 0.1, 2.2, 3.8]])
       k.S(left, ow, -1, -1, 3.6)
       k.S(ow, hw, -1, -1)
       k.S(right, ob, -1, -1)
@@ -772,7 +790,8 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
   if (mw && !/O₂/.test(route)) {
     const M = mw[2]!
     const v = /^(Li|Na|K)$/.test(M) ? 1 : 2
-    const metals = v === 1 ? [k.A(M, [[0, -2.0, 1.1]]), k.A(M, [[0, -2.0, -1.1]])] : [k.A(M, [[0, -2.0, 0]])]
+    // два атома K (r = 1,3 b): между центрами 2,8 b ≥ 1,06·2r — шары не врезаются друг в друга
+    const metals = v === 1 ? [k.A(M, [[0, -2.2, 1.4]]), k.A(M, [[0, -2.2, -1.4]])] : [k.A(M, [[0, -2.0, 0]])]
     const ws = [1.1, -1.1].map((y, i) => {
       const w = water(k, [[0.4, 2.4, y], [2.2, 1.2, y], [6.2, 1.9, y * 1.6]], 180 + (i ? 30 : -30))
       return w
@@ -791,7 +810,7 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
     for (let j = 0; j < 2; j++) {
       const m = metals[v === 1 ? j : 0]!
       void m
-      eFly(k, [-1.6, v === 1 ? (j ? -1.1 : 1.1) : (j ? -0.2 : 0.2)], [0.35, j ? -1.0 : 1.0], 0.6, 2.2 + 0.5 * j, 3.2 + 0.5 * j)
+      eFly(k, [-1.6, v === 1 ? (j ? -1.4 : 1.4) : (j ? -0.2 : 0.2)], [0.35, j ? -1.0 : 1.0], 0.6, 2.2 + 0.5 * j, 3.2 + 0.5 * j)
     }
     k.S(hs[0]!, hs[1]!, 4.6, 5.2)
     for (const m of metals) k.L(`${ox(M, 0)} → ${ion(M, v)}`, [m], 3.6, E)
@@ -818,7 +837,8 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
       const cx = sx * 2.4
       if (src === 'Fe') return { x: k.A('Fe', [[0, cx, -0.4]]), all: [] as number[] }
       if (src === 'BaO') {
-        const ba = k.A('Ba', [[0, cx + sx * 1.3, -1.4]])
+        // Ba (r = 1,37 b) у своего O (0,42 b): 1,91 b ≥ 1,06·Σr — шары касаются, не врезаются
+        const ba = k.A('Ba', [[0, cx + sx * 1.45, -1.55]])
         const o = k.A('O', [[0, cx, -0.3]])
         k.L(ion('Ba', 2), [ba], 0.3, E)
         return { x: o, all: [o] }
@@ -948,10 +968,12 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
     const oa = k.A('O', [[0, -l / 2, 0], [3.2, -l / 2, 0], [4.8, -1.2, 0]])
     const ob = k.A('O', [[0, l / 2, 0], [3.2, l / 2, 0], [4.8, 1.2, 0]])
     k.S(oa, ob, -1, -1, 3.6)
-    const ms = [-1, 1].map((sx) => k.A(M, [[0.4, sx * 3.2, 1.0], [2.0, sx * 2.6, 0.6], [4.8, sx * 2.5, 0.4]]))
+    // K–O в конце 1,88b ≥ 1,06·Σr (шары не врезаются); точка — с поверхности M к поверхности O, дугой (z 0,45b)
+    const ms = [-1, 1].map((sx) => k.A(M, [[0.4, sx * 3.4, 1.0], [2.0, sx * 3.2, 0.6], [4.8, sx * 3.05, 0.35]]))
+    const rM = 1.298 // r(K) в долях b (Na меньше — точка лишь дальше от шара)
     ms.forEach((m, i) => {
       const sx = i ? 1 : -1
-      eFly(k, [sx * 2.2, 0.6], [sx * (l / 2 + 0.3), 0.3], 0.6, 2.2 + 0.5 * i, 3.2 + 0.5 * i)
+      eFly(k, [sx * (3.2 - rM - 0.3), 0.6], [sx * (3.05 - rM - 0.3), 0.35], 0.6, 2.2 + 0.5 * i, 3.2 + 0.5 * i, 0.45)
       k.L(`${ox(M, 0)} → ${ion(M, 1)}`, [m], 3.4 + 0.5 * i, E)
       k.L(`${M}⁰`, [m], 0.3, 3.2 + 0.5 * i)
     })
@@ -982,7 +1004,8 @@ function redoxScene(k: SceneKit, script: FormationScript, plan: FormationPlan): 
     )
   }
   if (/CaO \+ 3C/.test(route)) {
-    const ca = k.A('Ca', [[0, -2.6, -0.6]])
+    // Ca (r = 1,12 b) у O²⁻ (0,42 b): 1,65 b ≥ 1,06·Σr
+    const ca = k.A('Ca', [[0, -2.85, -0.6]])
     const o = k.A('O', [[0, -1.2, -0.6], [3.0, -1.2, -0.6], [4.6, -0.6, 1.6], [6.2, -0.6, 3.0]])
     const c0 = k.A('C', [[0.4, -0.8, 2.4], [2.6, -1.2, 0.6], [4.6, -0.6 + 1.1, 1.6], [6.2, 0.5, 3.0]])
     k.S(o, c0, 3.0, 3.6)

@@ -51,6 +51,76 @@ export type RouteStage = {
 export const ROUTE_DUR = 7
 
 /** Положение по ключам (линейно со сглаживанием между ключами). */
+/** запас «точка вне шара» сцены пути (≥ 0,5 радиуса точки 1,15·eR при eR ≤ 0,034) */
+const ROUTE_E_CLEAR = 0.025
+
+/**
+ * Точки сцены пути — всегда снаружи шаров: если точка хоть в один момент (шаг 1/30 с, видимость шара r·sc) заходит в шар,
+ * вся её траектория поднимается к зрителю (ẑ_m) на наименьшее λ: |p + λẑ − c| ≥ r·sc + запас (решение квадратного уравнения).
+ */
+function liftRouteElectrons(atoms: RouteAtom[], electrons: RouteElectron[], z: V3): void {
+  const P: V3 = [0, 0, 0]
+  const C: V3 = [0, 0, 0]
+  for (const e of electrons) {
+    let lift = 0
+    for (let pass = 0; pass < 4; pass++) {
+      let need = 0
+      for (let t = e.tIn; t <= e.tOut + 0.4; t += 1 / 30) {
+        routeKeyAt(e.keys, t, P)
+        for (let q = 0; q < 3; q++) P[q] += z[q]! * lift
+        for (const a of atoms) {
+          const sc = Math.min(1, Math.max(0, (t - a.tIn) / 0.5)) * (1 - Math.min(1, Math.max(0, (t - a.tOut) / 0.4)))
+          if (sc <= 0) continue
+          routeKeyAt(a.keys, t, C)
+          const R = a.r * sc + ROUTE_E_CLEAR
+          const v: V3 = [P[0] - C[0], P[1] - C[1], P[2] - C[2]]
+          const dd = v[0] * v[0] + v[1] * v[1] + v[2] * v[2]
+          if (dd >= R * R) continue
+          const bq = v[0] * z[0] + v[1] * z[1] + v[2] * z[2]
+          need = Math.max(need, -bq + Math.sqrt(Math.max(0, bq * bq - (dd - R * R))))
+        }
+      }
+      if (need <= 1e-6) break
+      lift += need + 1e-3
+    }
+    if (lift > 0) e.keys = e.keys.map(([t, p]) => [t, [p[0] + z[0] * lift, p[1] + z[1] * lift, p[2] + z[2] * lift]] as RouteKey)
+  }
+}
+
+/** Видимость шара сцены пути в момент t (как во FormationMoleculeView и тестах): появление 0,5 с, исчезновение 0,4 с. */
+export function routeAtomVis(a: Pick<RouteAtom, 'tIn' | 'tOut'>, t: number): number {
+  return Math.min(1, Math.max(0, (t - a.tIn) / 0.5)) * (1 - Math.min(1, Math.max(0, (t - a.tOut) / 0.4)))
+}
+
+/**
+ * Пост-проверка сцены пути (п. 9): шаг 1/30 с по всему этапу; шары с видимостью sc > 0,2 и без палочки между ними
+ * (палочка — с t0 − 0,05 до tOut + 0,45) не пересекаются: d ≥ r_a·sc_a + r_b·sc_b. Возвращает нарушения (пусто — чисто).
+ */
+export function routeOverlaps(st: Pick<RouteStage, 't0' | 'dur' | 'atoms' | 'sticks'>, max = 12): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const P = st.atoms.map(() => [0, 0, 0] as V3)
+  for (let t = st.t0; t <= st.t0 + st.dur + 1e-9; t += 1 / 30) {
+    const sc = st.atoms.map((a) => routeAtomVis(a, t))
+    st.atoms.forEach((a, i) => routeKeyAt(a.keys, t, P[i]!))
+    const stick = new Set<string>()
+    for (const s of st.sticks) if (t > s.t0 - 0.05 && t < s.tOut + 0.45) stick.add(`${Math.min(s.a, s.b)}:${Math.max(s.a, s.b)}`)
+    for (let i = 0; i < P.length; i++) {
+      if (sc[i]! <= 0.2) continue
+      for (let j = i + 1; j < P.length; j++) {
+        if (sc[j]! <= 0.2 || stick.has(`${i}:${j}`)) continue
+        const need = st.atoms[i]!.r * sc[i]! + st.atoms[j]!.r * sc[j]!
+        const d = Math.hypot(P[i]![0] - P[j]![0], P[i]![1] - P[j]![1], P[i]![2] - P[j]![2])
+        if (d >= need - 1e-9 || seen.has(`${i}:${j}`)) continue
+        seen.add(`${i}:${j}`)
+        out.push(`t=${(t - st.t0).toFixed(2)}: ${st.atoms[i]!.el}#${i}–${st.atoms[j]!.el}#${j} перекрытие ${(((need - d) / need) * 100).toFixed(0)} %`)
+        if (out.length >= max) return out
+      }
+    }
+  }
+  return out
+}
+
 export function routeKeyAt(keys: RouteKey[], t: number, out: V3): V3 {
   const k0 = keys[0]!
   if (t <= k0[0] || keys.length === 1) {
@@ -331,14 +401,18 @@ export function buildRouteStage(
     const an = [...anions].sort((a, b2) => spOf(b2).charge - spOf(a).charge)[0]!
     const ct = scaleTpl(unitTpl(model, cu.atoms), kR)
     const at = scaleTpl(unitTpl(model, an.atoms), kR)
-    const dd = Math.max(ct.ext + at.ext, 1.2 * b)
+    // ионы продукта в конце — вплотную, но с зазором 2 % (Ag⁺ и O²⁻ у Ag₂O не врезаются даже на шаге счёта)
+    const dd = Math.max(1.02 * (ct.ext + at.ext), 1.2 * b)
     const ci = placeTpl(c, ct, [[T + 0.8, [-3.3 * b, 0.9 * b, 0]], [T + 3.4, [-0.5 * dd, 0, 0]]])
     const ai = placeTpl(c, at, [[T + 0.8, [3.3 * b, -0.9 * b, 0]], [T + 3.4, [0.5 * dd, 0, 0]]])
     const spec = spectatorsOf(route, script.formula)
     if (spec) {
-      // «зрители» — в стороне от пути ионов продукта (не задевают их при сближении)
-      const sc = atom(c, spec.cat[0], [[T + 0.8, [3.4 * b, 2.6 * b, 0]], [T + 3.6, [2.6 * b, 2.6 * b, 0]]])
-      const sa = atom(c, spec.an[0], [[T + 0.8, [-3.4 * b, -2.6 * b, 0]], [T + 3.6, [-2.6 * b, -2.6 * b, 0]]])
+      // «зрители» — в стороне от пути ионов продукта (не задевают их при сближении): зритель-катион справа сверху,
+      // над путём аниона продукта (y ≤ 0), зритель-анион слева снизу — под путём катиона продукта (y ≥ 0).
+      // Высота — с запасом 6 % от «шар частицы продукта + шар зрителя» (крупные Br⁻ / I⁻ / Cr₂O₇²⁻ рядом с K⁺).
+      const yS = Math.max(2.6 * b, 1.06 * (at.ext + c.rOf(spec.cat[0])) + 0.05 * b, 1.06 * (ct.ext + c.rOf(spec.an[0])) + 0.05 * b)
+      const sc = atom(c, spec.cat[0], [[T + 0.8, [3.4 * b, yS, 0]], [T + 3.6, [2.6 * b, yS, 0]]])
+      const sa = atom(c, spec.an[0], [[T + 0.8, [-3.4 * b, -yS, 0]], [T + 3.6, [-2.6 * b, -yS, 0]]])
       c.badges.push({ text: spec.cat[1], atoms: [sc], from: T + 0.3, to: end }, { text: spec.an[1], atoms: [sa], from: T + 0.3, to: end })
     }
     c.badges.push({ text: spOf(cu).formula, atoms: ci, from: T + 0.3, to: T + 3.4 }, { text: spOf(an).formula, atoms: ai, from: T + 0.3, to: T + 3.4 }, { text: `${script.formula}`, atoms: [...ci, ...ai], from: T + 3.7, to: end })
@@ -446,8 +520,15 @@ export function buildRouteStage(
     a.keys = a.keys.map(([t, p]) => [t, toModel(p)] as RouteKey)
   }
   for (const e of c.electrons) e.keys = e.keys.map(([t, p]) => [t, toModel(p)] as RouteKey)
+  liftRouteElectrons(c.atoms, c.electrons, toModel([0, 0, 1]))
   const tx = more ?? TEXT[show as Exclude<RouteShow, MoreShow>]
-  return { kind: rk, show, equation: route, title: tx.title, text: tx.text, t0: T, dur: D, atoms: c.atoms, sticks: c.sticks, electrons: c.electrons, badges: c.badges }
+  const stage: RouteStage = { kind: rk, show, equation: route, title: tx.title, text: tx.text, t0: T, dur: D, atoms: c.atoms, sticks: c.sticks, electrons: c.electrons, badges: c.badges }
+  // Пост-проверка (только dev; в тестах — test-formation-electrons кат. 4 и test-formation-routes): шары сцены не налезают.
+  if ((import.meta as { env?: { DEV?: boolean } }).env?.DEV) {
+    const bad = routeOverlaps(stage, 4)
+    if (bad.length) console.warn(`[formation] сцена пути «${show}» (${route}): шары налезают — ${bad.join('; ')}`)
+  }
+  return stage
 }
 
 function scaleTpl(t: ReturnType<typeof unitTpl>, k: number): ReturnType<typeof unitTpl> {
