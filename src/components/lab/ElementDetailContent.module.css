@@ -1077,29 +1077,11 @@
 
 /* Правая колонка: природа, применение, добыча */
 
-/* Полоска «В природе» — чужой компонент: переопределяем только масштаб и цвета. */
+/* Полоска «В природе» — чужой компонент: рамку фото и подпись источника он задаёт сам,
+   здесь только отступы и типографика текста. */
 .naturePanel > section {
   gap: clamp(14px, 1.3vw, 20px);
-  align-items: flex-start;
   margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-}
-
-.naturePanel > section > div:first-child {
-  width: clamp(112px, 9vw, 148px);
-  height: clamp(112px, 9vw, 148px);
-  border-radius: var(--lt-radius);
-  border: 1px solid var(--lt-border-strong);
-  box-shadow: var(--lt-shadow);
-}
-
-.naturePanel > section > div:first-child > div {
-  font-family: var(--lt-font-display);
-  font-size: 40px;
-  color: var(--lt-text-2);
 }
 
 .naturePanel > section > div:last-child {
@@ -1256,10 +1238,5 @@
 
   .factGrid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .naturePanel > section > div:first-child {
-    width: 88px;
-    height: 88px;
   }
 }
