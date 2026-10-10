@@ -61,7 +61,7 @@ const U = {
 type Quantity = { value: number; unit: 'g' | 'kg' | 'mg' | 'mol' | 'l' | 'ml' | 'm3' | 'pct' | 'M' | 'K' | 'C' | 'Pa' | 'kPa' | 'MPa' | 'atm' | 'mmHg' | 'bar'; index: number; after: string }
 
 const UNIT_RE =
-  /(\d+(?:[.,]\d+)?(?:\s*[·x×*]\s*10\s*\^?\s*[-−]?\d+|\s*[·x×*]\s*10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)\s*(кг|kg|мг|mg|г(?:р(?:амм\p{L}*)?)?|g(?:ramm?s?)?|gramm|моль\s*\/\s*л|mol\s*\/\s*l|моль|молей|mol(?:e|es)?|мл|ml|м3|м³|m3|m³|л(?:итр\p{L}*)?|l(?:itr\p{L}*|iters?|itres?)?|%|процент\p{L}*|foiz|percent|м(?=\s|$|[,.;)])|M(?=\s|$|[,.;)])|моль\/л|mol\/l|°\s*c|°\s*с|°|градус\p{L}*|k(?=\s|$|[,.;)])|к(?=\s|$|[,.;)])|кельвин\p{L}*|kelvin|кпа|kpa|мпа|mpa|па|pa|атм|atm|мм\s*рт\.?\s*ст\.?|mmhg|бар|bar)(?![\p{L}])/giu
+  /(\d+(?:[.,]\d+)?(?:\s*[·x×*]\s*10\s*\^?\s*[-−]?\d+|\s*[·x×*]\s*10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)\s*(кг|kg|мг|mg|г(?:р(?:амм\p{L}*)?)?|g(?:ramm?s?)?|gramm|моль|молей|mol(?:e|es)?|мл|ml|м3|м³|m3|m³|л(?:итр\p{L}*)?|l(?:itr\p{L}*|iters?|itres?)?|%|процент\p{L}*|foiz|percent|м(?=\s|$|[,.;)])|M(?=\s|$|[,.;)])|моль\/л|mol\/l|°\s*c|°\s*с|°|градус\p{L}*|k(?=\s|$|[,.;)])|к(?=\s|$|[,.;)])|кельвин\p{L}*|kelvin|кпа|kpa|мпа|mpa|па|pa|атм|atm|мм\s*рт\.?\s*ст\.?|mmhg|бар|bar)(?![\p{L}])/giu
 
 function parseValue(s: string): number {
   const t = s.replace(/\s+/g, '').replace(',', '.').replace('−', '-')
@@ -85,7 +85,7 @@ export function quantities(text: string): Quantity[] {
     if (/^(кг|kg)$/.test(u)) unit = 'kg'
     else if (/^(мг|mg)$/.test(u)) unit = 'mg'
     else if (/^(г|гр|грамм|g|gram|grams|gramm)/.test(u) && !/^(градус)/.test(u)) unit = 'g'
-    else if (/^(моль\/л|mol\/l)$/.test(u) || m[2] === 'M') unit = 'M' // u уже без пробелов
+    else if (/^(моль\/л|mol\/l)$/.test(u) || m[2] === 'M') unit = 'M'
     else if (/^(моль|молей|mol)/.test(u)) unit = 'mol'
     else if (/^(мл|ml)$/.test(u)) unit = 'ml'
     else if (/^(м3|м³|m3|m³)$/.test(u)) unit = 'm3'
@@ -246,8 +246,7 @@ export function extractEquation(text: string): string | null {
   const toks = t.split(/\s+/)
   const arrowAt = toks.findIndex((x) => /^(→|->|⟶|⇄|⇌|=)$/.test(x))
   if (arrowAt < 0) return null
-  // «Balance», «Uravnyay» — слова, а не формулы: в формуле после заглавной не бывает двух строчных подряд
-  const isPart = (x: string) => x === '+' || (/^\d*[A-Z(\[][A-Za-z0-9₀-₉()[\]·*⁺⁻⁰¹²³⁴⁵⁶⁷⁸⁹^+-]*[↑↓]?[.,;:!?]?$/.test(x) && !/[a-z]{2}/.test(x)) || x === '?' || x === '…' || x === '...'
+  const isPart = (x: string) => x === '+' || /^\d*[A-Z(\[][A-Za-z0-9₀-₉()[\]·*⁺⁻⁰¹²³⁴⁵⁶⁷⁸⁹^+-]*[↑↓]?[.,;:!?]?$/.test(x) || x === '?' || x === '…' || x === '...'
   let a = arrowAt - 1
   while (a >= 0 && isPart(toks[a]!)) a--
   let b = arrowAt + 1

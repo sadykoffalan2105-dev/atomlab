@@ -63,14 +63,10 @@ function words(text: string): { w: string; i: number }[] {
   return out
 }
 
-/** Хвост после общей основы должен быть похож на окончание («ы», «ами», «ого»), а не на другой корень («кисло|род» ≠ «кисло|та»). */
-const RU_ENDING = /^[аеёиоуыэюяйьмхвг]{0,3}$/
-
 function ruMatch(a: string, b: string): boolean {
   let p = 0
   while (p < a.length && p < b.length && a[p] === b[p]) p++
-  if (p < Math.max(3, Math.max(a.length, b.length) - 3)) return false
-  return RU_ENDING.test(a.slice(p)) && RU_ENDING.test(b.slice(p))
+  return p >= Math.max(3, Math.max(a.length, b.length) - 3)
 }
 
 function latMatch(textWord: string, nameWord: string): boolean {

@@ -518,7 +518,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.teacherUi.sources': 'Sources',
   'learn.teacherUi.brainLocalAi': 'Local brain',
   'learn.teacherUi.brainOnline': 'Local brain: connected',
-  'learn.teacherUi.brainOfflineShort': 'Local knowledge base (brain not running)',
+  'learn.teacherUi.brainOfflineShort': 'Local brain: not found',
   'learn.teacherUi.brainOffline': 'The brain is not running — the knowledge base answers',
   'learn.teacherUi.brainChecking': 'Checking the local brain…',
   'learn.teacherUi.brainHint': 'Run npm run brain:start',

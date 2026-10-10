@@ -23,7 +23,6 @@ Format: direct answer in the first sentence, then the explanation; by default 60
 
 const H = {
   ctx: { ru: 'КОНТЕКСТ УРОКА', uz: 'DARS KONTEKSTI', en: 'LESSON CONTEXT' },
-  facts: { ru: 'СПРАВОЧНИК ATOMLAB (проверенные определения и данные — опирайся в первую очередь)', uz: 'ATOMLAB MAʼLUMOTNOMASI (tekshirilgan taʼriflar va maʼlumotlar — birinchi navbatda shularga tayan)', en: 'ATOMLAB REFERENCE (verified definitions and data — rely on these first)' },
   know: { ru: 'ЗНАНИЯ (опирайся на них; если их мало — рассуждай от законов)', uz: 'BILIMLAR (ularga tayan; kam boʻlsa — qonunlardan mulohaza qil)', en: 'KNOWLEDGE (rely on it; if thin, reason from the laws)' },
   student: { ru: 'УЧЕНИК', uz: 'OʻQUVCHI', en: 'STUDENT' },
   exact: { ru: 'ВЫЧИСЛЕНО ТОЧНО (эти числа и уравнения не менять)', uz: 'VERILGAN ANIQ HISOB (bu sonlar va tenglamalarni oʻzgartirma)', en: 'CALCULATED EXACTLY (do not change these numbers or equations)' },
@@ -46,15 +45,12 @@ export type PromptInput = {
   tools: ToolResult[]
   studentBlock: string
   reasoned: boolean
-  /** точные справочные факты ATOMLAB (понятия, вещества, элементы) на языке вопроса */
-  facts?: string[]
 }
 
 export function buildSystemPrompt(p: PromptInput): string {
   const parts = [PERSONA[p.lang]]
   const ctx = [p.gradeId ? `${p.lang === 'ru' ? 'класс' : p.lang === 'uz' ? 'sinf' : 'grade'}: ${p.gradeId.replace('g', '')}` : '', p.sectionTitle ? `${p.lang === 'ru' ? 'тема' : p.lang === 'uz' ? 'mavzu' : 'topic'}: ${p.sectionTitle}` : '', `mode: ${p.mode}, detail: ${p.detail}`].filter(Boolean)
   parts.push(`${H.ctx[p.lang]}: ${ctx.join('; ')}`)
-  if (p.facts?.length) parts.push(`${H.facts[p.lang]}:\n${p.facts.map((f) => `• ${f}`).join('\n')}`)
   if (p.knowledge.length) {
     const lines = p.knowledge.map((k, i) => `[${i + 1}] ${k.citation} ${k.title}: ${k.text.replace(/\s+/g, ' ').slice(0, 900)}`)
     parts.push(`${H.know[p.lang]}:\n${lines.join('\n')}`)

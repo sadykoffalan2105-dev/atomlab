@@ -48,15 +48,6 @@ function pick<T>(list: readonly T[], seed: number): T {
   return list[Math.abs(seed) % list.length]!
 }
 
-const WANTS_NUMBER = /((как(ая|ой|ое|ова|ов)|сколько|назови|точн\p{L}*)[^?.!]{0,40}(температур|масс|вес|год|плотност|объ[её]м|заряд|давлени)|сколько вес|qancha|necha|what is the (exact )?(mass|temperature|year|density)|how much does)/iu
-const NUMBER_NOTE: Record<Lang, string> = {
-  ru: 'Честно: точного числа здесь назвать нельзя — для этого объекта в научных справочниках нет измеренного значения, а придумывать цифры я не буду. Такие величины определяют только измерением для конкретного чистого вещества и сверяют со справочником.',
-  uz: 'Ochigʻi: bu yerda aniq son aytib boʻlmaydi — bu obyekt uchun ilmiy maʼlumotnomalarda oʻlchangan qiymat yoʻq, men esa raqam oʻylab topmayman. Bunday kattaliklar faqat aniq toza modda uchun oʻlchab topiladi va maʼlumotnoma bilan solishtiriladi.',
-  en: 'Honestly, no exact number can be given here — there is no measured value for this object in scientific references, and I will not invent one. Such quantities are found only by measuring a specific pure substance and checking against reference data.',
-}
-
-const LIVE_DATA = /(погод|прогноз|новост|курс (доллар|валют|сум)|сч[её]т матча|который час|сегодняшн|ob-?havo|yangilik|valyuta kursi|weather|forecast|news|exchange rate|stock price|what time is it)/iu
-
 const LOGIC: Record<Lang, string> = { ru: 'Логика от законов: ', uz: 'Qonunlardan mantiq: ', en: 'Reasoning from the laws: ' }
 
 const MICRO: Record<QType | 'calc', Record<Lang, string[]>> = {
@@ -226,7 +217,7 @@ function firstSentence(t: string): string {
 export function substanceFacts(s: QaSubstance, lang: Lang, qtype: QType): string {
   const cls = CLS[s.cls]?.[LI(lang)] ?? CLS.other![LI(lang)]
   const fam = s.fam ? (lang === 'ru' ? s.fam.ru : lang === 'uz' ? s.fam.uz : s.fam.en) : ''
-  const name = (lang === 'ru' ? s.ru : lang === 'uz' ? s.uz : s.en) || s.ru || s.f
+  const name = lang === 'ru' ? s.ru : lang === 'uz' ? s.uz : s.en
   const M = fmt(s.M, lang)
   let out = T(lang, `${name} (${s.f}) — ${cls}${fam ? ` (${fam.toLowerCase()})` : ''}; M = ${M} г/моль.`, `${name} (${s.f}) — ${cls}${fam ? ` (${fam.toLowerCase()})` : ''}; M = ${M} g/mol.`, `${name} (${s.f}) is ${cls}${fam ? ` (${fam.toLowerCase()})` : ''}; M = ${M} g/mol.`)
   if (lang === 'ru' && s.d) out += ' ' + firstSentence(s.d)
@@ -234,44 +225,14 @@ export function substanceFacts(s: QaSubstance, lang: Lang, qtype: QType): string
   return out
 }
 
-const REACT_Q = /(реаги|взаимодейст|будет,?\s+если|опуст|добав|реакци|react|reaksiya|taʼsirlash|ta'sirlash)/iu
-const DIATOMIC = new Set(['H', 'O', 'N', 'F', 'Cl', 'Br', 'I'])
-
-/** Уравнение из qaBank, где среди исходных веществ есть все названные вещества/элементы (≥ 2). */
-function reactionBetween(subs: QaSubstance[], els: QaElement[], kb: Knowledge): string | null {
-  const want = [...subs.map((s) => s.fa), ...els.map((e) => (DIATOMIC.has(e.s) ? `${e.s}2` : e.s))].filter((x, i, a) => a.indexOf(x) === i)
-  if (want.length < 2) return null
-  const hit = kb.qa.reactions.find((r) => want.every((w) => r.r.includes(w)))
-  return hit?.eq ?? null
-}
-
 function obtainEquations(s: QaSubstance, kb: Knowledge): string[] {
   const out: string[] = []
   if (s.rec) for (const r of s.rec.split(/;\s*/)) if (r.trim()) out.push(r.trim().replace(/\s=\s/, ' → '))
-  // лабораторные способы чаще всего — разложение (KMnO₄, H₂O₂, KClO₃ → O₂): их первыми
-  const rank = (t: string) => (t === 'decomposition' ? 0 : t === 'substitution' ? 1 : 2)
-  const cands = kb.qa.reactions.filter((r) => r.p.includes(s.fa)).sort((a, b) => rank(a.t) - rank(b.t))
-  for (const r of cands) {
+  for (const r of kb.qa.reactions) {
     if (out.length >= 3) break
-    if (!out.includes(r.eq)) out.push(r.eq)
+    if (r.p.includes(s.fa) && !out.includes(r.eq)) out.push(r.eq)
   }
   return out.slice(0, 2)
-}
-
-/**
- * Точные справочные факты для промпта LLM (блок «СПРАВОЧНИК ATOMLAB»): определение и «закон» понятия,
- * карточка вещества (M из qaBank), карточка элемента — на языке вопроса. До 4 строк.
- */
-export function referenceFacts(text: string, lang: Lang, kb: Knowledge, qtype: QType): string[] {
-  const out: string[] = []
-  for (const c of findConcepts(text).slice(0, 2)) out.push(`${c.def[lang]} ${c.law[lang]}`)
-  const formulaSubs = findFormulas(text, lang !== 'en')
-    .map((f) => kb.substanceByFormula.get(f.ascii) ?? null)
-    .filter((x): x is QaSubstance => !!x)
-  const subs = [...formulaSubs, ...findSubstances(text, kb).map((x) => x.item).filter((s) => !formulaSubs.includes(s))]
-  for (const s of subs.slice(0, 2)) out.push(substanceFacts(s, lang, qtype))
-  for (const e of findElements(text, kb).slice(0, 1)) out.push(elementFacts(e.item, lang, false))
-  return out.slice(0, 4)
 }
 
 // ---------------------------------------------------------------- сборка
@@ -315,9 +276,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     .filter((x): x is QaSubstance => !!x)
   const named = findSubstances(inp.text, kb).map((x) => x.item)
   const substances = [...formulaSubs, ...named.filter((s) => !formulaSubs.includes(s))].filter((s) => Object.keys(s.comp).length > 1 || !elements.some((e) => e.s === s.fa.replace(/\d+$/, '')))
-  // вопрос о точном числе (температура, масса, год…), а вещества/элемента/расчёта нет — числа из чужих текстов не цитируем
-  const numberTrap = WANTS_NUMBER.test(inp.cmp) && !tools.length && !substances.length && !elements.length
-  const sents = (lang === 'ru' ? sentencesFrom(items) : []).filter((x) => !numberTrap || !/\d/.test(x.s))
+  const sents = lang === 'ru' ? sentencesFrom(items) : []
   const qTerms = r?.queryTerms ?? new Set(analyzeTerms(inp.text, { query: true }))
   const primary: Concept | undefined = concepts[0]
   const lines: string[] = []
@@ -339,13 +298,8 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   }
 
   if (!lines.length) {
-    // 2) тезис: «почему натрий реагирует с водой» — сначала само уравнение из учебника
-    const rxEq = REACT_Q.test(inp.cmp) ? reactionBetween(substances, elements, kb) : null
-    if (rxEq) {
-      lines.push(T(lang, `Реакция из учебника: ${rxEq}.`, `Darslikdagi reaksiya: ${rxEq}.`, `Textbook reaction: ${rxEq}.`))
-      cite('[ATOMLAB: реакции учебника]')
-      confidence = Math.max(confidence, 0.75)
-    } else if (primary && !(qtype === 'who' && elements.length)) {
+    // 2) тезис
+    if (primary && !(qtype === 'who' && elements.length)) {
       lines.push(primary.def[lang])
       logic = primary.law[lang]
       conceptId = primary.id
@@ -391,10 +345,8 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     if (haveThesis && items[0] && (r?.confR ?? 0) >= inp.thresholds.medium) cite(items[0].citation)
 
     // 4) логика по типу вопроса
-    // «как получить кислород» — элемент назван, а получают простое вещество (O₂)
-    const howSub = substances[0] ?? (elements[0] ? (kb.substanceByFormula.get(DIATOMIC.has(elements[0].s) ? `${elements[0].s}2` : elements[0].s) ?? null) : null)
-    if (qtype === 'how' && howSub) {
-      const eqs = obtainEquations(howSub, kb)
+    if (qtype === 'how' && substances.length) {
+      const eqs = obtainEquations(substances[0]!, kb)
       if (eqs.length) {
         logic = T(lang, `например, ${eqs.join('; ')}. Атомов каждого элемента слева и справа поровну — закон сохранения массы.`, `masalan, ${eqs.join('; ')}. Har bir element atomlari chapda va oʻngda teng — massaning saqlanish qonuni.`, `for example, ${eqs.join('; ')}. Each element has the same number of atoms on both sides — conservation of mass.`)
         cite(`[ATOMLAB: реакции учебника]`)
@@ -431,10 +383,6 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   }
 
   // 6) сборка, длина, адаптация
-  if (numberTrap) {
-    lines.unshift(NUMBER_NOTE[lang])
-    confidence = Math.min(confidence, inp.thresholds.medium - 0.01)
-  }
   let out = lines.slice(0, Math.max(1, style.maxSentences - 1))
   if (inp.mode === 'live') out = out.slice(0, 2)
   let text = style.prefix + out.join(lines[0]?.endsWith(':') ? '\n' : ' ')
@@ -450,26 +398,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
 }
 
 /** Вопрос не про химию: коротко и честно (энциклопедия, если нашлась) + возврат к химии. */
-export function offtopicReply(lang: Lang, retrieval: RetrievalResult | null, seed: number, cmp = ''): FallbackOutput {
-  // свежие данные (погода, новости, курсы, счёт матча) — честно: интернета у мозга нет; мост к химии по теме
-  if (LIVE_DATA.test(cmp)) {
-    const weather = /(погод|дожд|снег|гроз|ob-?havo|yomg|weather|rain|snow|storm)/iu.test(cmp)
-    return {
-      text:
-        T(
-          lang,
-          'Свежих данных — прогнозов, новостей, курсов — у меня нет: я работаю на вашем компьютере без интернета, поэтому гадать не буду; загляните в приложение погоды или новостей.',
-          'Yangi maʼlumotlar — ob-havo, yangiliklar, kurslar — menda yoʻq: men kompyuteringizda internetsiz ishlayman, shuning uchun taxmin qilmayman; ob-havo yoki yangiliklar ilovasiga qarang.',
-          'I have no live data — forecasts, news or exchange rates: I run on your computer without the internet, so I will not guess; please check a weather or news app.',
-        ) +
-        '\n' +
-        (weather
-          ? T(lang, 'Зато могу объяснить химию погоды: почему перед грозой пахнет озоном (O₃) и откуда берутся кислотные дожди. Рассказать?', 'Lekin ob-havo kimyosini tushuntira olaman: momaqaldiroq oldidan nega ozon (O₃) hidi keladi va kislotali yomgʻirlar qayerdan paydo boʻladi. Aytib beraymi?', 'But I can explain the chemistry of weather: why it smells of ozone (O₃) before a storm and where acid rain comes from. Shall I?')
-          : T(lang, 'А вот химию за этим могу разобрать — спросите, из каких веществ это состоит или какие реакции тут идут.', 'Lekin buning ortidagi kimyoni tahlil qila olaman — u qanday moddalardan iborat yoki qanday reaksiyalar borishini soʻrang.', 'But I can unpack the chemistry behind it — ask what it is made of or which reactions are involved.')),
-      citations: [],
-      confidence: 0.3,
-    }
-  }
+export function offtopicReply(lang: Lang, retrieval: RetrievalResult | null, seed: number): FallbackOutput {
   const enc = retrieval?.items.find((c) => c.type === 'encyclopedia' && (c.lang === lang || lang === 'ru'))
   const bridge = pick(
     [

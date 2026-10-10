@@ -422,7 +422,7 @@ function fakeBackend(env: Partial<LiveTtsEnvironment>, opts: { synthMs?: number;
   let active: (() => void) | null = null
   const backend: LiveSpeechBackend = {
     ready: async () => undefined,
-    environment: () => ({ desktop: false, edge: false, browserSupported: true, browserVoices: 1, puterSignedIn: false, ...env }),
+    environment: () => ({ desktop: false, edge: false, browserSupported: true, browserVoices: 1, ...env }),
     prepare: (t) => t,
     synthesize: (_path, text, _lang, signal) => {
       log.synth.push(text)
@@ -470,14 +470,13 @@ function fakeBackend(env: Partial<LiveTtsEnvironment>, opts: { synthMs?: number;
   return { backend, log }
 }
 
-await test('path choice: electron > edge > browser voice > puter (signed in) > silent', () => {
-  const base: LiveTtsEnvironment = { desktop: false, edge: false, browserSupported: true, browserVoices: 1, puterSignedIn: true }
+await test('path choice: electron > edge > browser voice > silent (облачной озвучки больше нет)', () => {
+  const base: LiveTtsEnvironment = { desktop: false, edge: false, browserSupported: true, browserVoices: 1 }
   assert.equal(chooseLiveTtsPath({ ...base, desktop: true, edge: true }), 'electron')
   assert.equal(chooseLiveTtsPath({ ...base, edge: true }), 'edge')
   assert.equal(chooseLiveTtsPath(base), 'browser')
-  assert.equal(chooseLiveTtsPath({ ...base, browserVoices: 0 }), 'puter')
-  assert.equal(chooseLiveTtsPath({ ...base, browserVoices: 0, puterSignedIn: false }), 'browser')
-  assert.equal(chooseLiveTtsPath({ ...base, browserSupported: false, browserVoices: 0, puterSignedIn: false }), 'silent')
+  assert.equal(chooseLiveTtsPath({ ...base, browserVoices: 0 }), 'browser')
+  assert.equal(chooseLiveTtsPath({ ...base, browserSupported: false, browserVoices: 0 }), 'silent')
 })
 
 await test('neural path prefetches the next sentence and cancels instantly', async () => {
@@ -839,12 +838,12 @@ await test('RU "почему": cause first; "пример": example present; "п
   assert.ok(countWords(more.text) <= 160)
 })
 
-await test('nothing relevant retrieved → honest "no answer" with a related topic, no facts made up', () => {
-  const none = composeLocalAnswer({ query: 'Кто выиграл чемпионат мира по футболу?', hits: [], lang: 'ru', topicHint: 'Оксиды', suggestSmartAi: true })
+await test('nothing relevant retrieved → honest reasoning with a related topic, no "not in my base", no facts made up', () => {
+  const none = composeLocalAnswer({ query: 'Кто выиграл чемпионат мира по футболу?', hits: [], lang: 'ru', topicHint: 'Оксиды' })
   assert.equal(none.confident, false)
-  assert.ok(/нет/.test(none.text) && /выдумывать/.test(none.text), none.text)
-  assert.ok(/Оксиды/.test(none.text))
-  assert.ok(/умный ИИ/.test(none.text))
+  // требование владельца: почти никогда не «нет в базе», без «умного ИИ»; честно и без выдуманных фактов
+  assert.ok(!/в моей базе нет|нет в (моей )?базе|не знаю|умн(ый|ого) ИИ/i.test(none.text), none.text)
+  assert.ok(/Оксиды/.test(none.text), none.text)
   const unrelated = composeLocalAnswer({ query: 'Кто выиграл чемпионат мира по футболу?', hits: OXIDE_HITS, lang: 'ru' })
   assert.equal(unrelated.confident, false, unrelated.text)
   assert.ok(!unrelated.text.includes('кислород'), 'must not read unrelated facts as an answer')
@@ -1171,7 +1170,7 @@ await test('follow-up по карточке: «подробнее» не пов�
 })
 
 await test('без выдумок: вопрос вне программы карточкой не отвечается', () => {
-  const none = composeLocalAnswer({ query: 'Кто выиграл чемпионат мира по футболу?', hits: [], lang: 'ru', topicHint: 'Оксиды', suggestSmartAi: true })
+  const none = composeLocalAnswer({ query: 'Кто выиграл чемпионат мира по футболу?', hits: [], lang: 'ru', topicHint: 'Оксиды' })
   assert.equal(none.confident, false, none.text)
   const bio = composeLocalAnswer({ query: 'Что такое митохондрия?', hits: [], lang: 'ru' })
   assert.equal(bio.confident, false, bio.text)

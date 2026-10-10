@@ -66,10 +66,7 @@ export function scrubR3(text: string, lang: Lang): string {
       if (/puter|ии/i.test(m[0])) rest = rest.replace(new RegExp(re.source, 'gi'), '').replace(/\s{2,}/g, ' ')
       else rest = rest.slice((m.index ?? 0) + m[0].length)
     }
-    // «не знаю точно, но думаю, что…» → «думаю, что…»: связки и оговорки снимаются, пока снимаются
-    const LEAD = /^[\s,;:—–-]*(но|однако|наверняка|точно|ответ|for sure|exactly|but|however|lekin|ammo|aniq)(?![\p{L}])[\s,;:—–-]*/iu
-    for (let guard = 0; guard < 4 && LEAD.test(rest); guard++) rest = rest.replace(LEAD, '')
-    rest = rest.replace(/^[\s,;:—–-]+/, '').trim()
+    rest = rest.replace(/^[\s,;:—–-]*(но|однако|but|however|lekin|ammo|точно|exactly|aniq)?[\s,;:—–-]*/i, '').trim()
     if (rest.split(/\s+/).filter(Boolean).length >= 3) out.push(REASON_PREFIX[lang] + rest.charAt(0).toLowerCase() + rest.slice(1))
   }
   return out.join(' ').replace(/\s{2,}/g, ' ').trim()
@@ -180,8 +177,7 @@ export class StreamGate {
     const ss = splitSentences(this.buf)
     if (!ss.length) return
     const complete = final ? ss : ss.slice(0, -1)
-    // splitSentences обрезает пробелы по краям: пробел в конце буфера — граница слова, его нельзя терять («the logic» + «is»)
-    const lastRaw = final ? '' : ss[ss.length - 1]! + (/[ \t]$/.test(this.buf) ? ' ' : '')
+    const lastRaw = final ? '' : ss[ss.length - 1]!
     for (const s of complete) {
       const body = scrubR3(s.trim(), this.lang)
       if (!body) continue

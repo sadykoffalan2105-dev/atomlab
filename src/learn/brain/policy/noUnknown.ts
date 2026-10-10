@@ -165,13 +165,18 @@ export function reasonFromBasics(lang: PolicyLang, nearTopics: readonly string[]
     const term = (opts.keyTerm ?? '').trim()
     core = term ? (lang === 'en' ? `“${term}”: ${GENERIC.en}` : `«${capitalize(term)}»: ${GENERIC[lang]}`) : GENERIC[lang]
   }
-  const near = [
-    ...new Set(
-      nearTopics
-        .map((t) => t.replace(/[*_`«»"]/g, '').replace(/\s+/g, ' ').trim())
-        .filter((t) => t.length >= 3 && t.length <= 60 && !probe.includes(foldForPolicy(t))),
-    ),
-  ].slice(0, 2)
+  // Темы-дубли («Энергетические подуровни: главное» и «Энергетические подуровни») — одна.
+  const near: string[] = []
+  const seen: string[] = []
+  for (const raw of nearTopics) {
+    const t = raw.replace(/[*_`«»"]/g, '').replace(/\s+/g, ' ').trim()
+    if (t.length < 3 || t.length > 60 || probe.includes(foldForPolicy(t))) continue
+    const base = foldForPolicy(t.split(/[:—(]/)[0]!.trim())
+    if (seen.some((s) => s.startsWith(base) || base.startsWith(s))) continue
+    seen.push(base)
+    near.push(t)
+    if (near.length >= 2) break
+  }
   const parts = [`${LEAD[lang]}: ${core}.`]
   if (near.length) parts.push(`${NEAR[lang]}: ${near.join(', ')}.`)
   parts.push(ASK[lang])

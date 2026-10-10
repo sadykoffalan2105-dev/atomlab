@@ -28,14 +28,7 @@ export function checkOrigin(origin: string | undefined): string | null | false {
   return false
 }
 
-export type Brain = {
-  deps: BrainDeps
-  startedAt: number
-  ollama: OllamaClient | null
-  /** Пока знания грузятся (быстрый старт сервера) — промис; /chat ждёт его, /health отвечает сразу. */
-  ready?: Promise<void>
-  loading?: boolean
-}
+export type Brain = { deps: BrainDeps; startedAt: number; ollama: OllamaClient | null }
 
 /** Собрать зависимости: конфиг, знания, журнал, векторы, ученики, клиент Ollama (llm: null — без LLM). */
 export function createBrain(opts: { llm?: LlmClient | null; config?: BrainConfig } = {}): Brain {
@@ -48,35 +41,6 @@ export function createBrain(opts: { llm?: LlmClient | null; config?: BrainConfig
   const llm = opts.llm === undefined ? ollama : opts.llm
   const deps: BrainDeps = { kb, journal, embeds, llm, students: new StudentStore(), config }
   return { deps, startedAt: Date.now(), ollama }
-}
-
-/**
- * Быстрый старт: пустые хранилища сразу (сервер слушает порт за секунды), знания и журнал догружаются
- * порциями в фоне; brain.ready завершается, когда загружены шарды, журнал, векторы и индекс BM25 журнала.
- */
-export function createBrainLazy(opts: { llm?: LlmClient | null; config?: BrainConfig; log?: (s: string) => void } = {}): Brain {
-  const config = opts.config ?? loadConfig()
-  const log = opts.log ?? (() => {})
-  const kb = new Knowledge()
-  const journal = new Journal()
-  const embeds = new EmbedStore(config.embedModel)
-  const ollama = opts.llm === undefined ? new OllamaClient(config) : null
-  const llm = opts.llm === undefined ? ollama : opts.llm
-  const deps: BrainDeps = { kb, journal, embeds, llm, students: new StudentStore(), config }
-  const brain: Brain = { deps, startedAt: Date.now(), ollama, loading: true }
-  brain.ready = (async () => {
-    const t0 = performance.now()
-    await kb.loadAsync()
-    setElementWords(kb.qa.elements.flatMap((e) => [e.s, e.ru, e.en, e.uz]))
-    await journal.loadAsync()
-    embeds.load()
-    const idx = await journal.buildIndex({ yieldEvery: 1000 })
-    brain.loading = false
-    log(
-      `[brain] знания загружены за ${Math.round(performance.now() - t0)} мс: шарды ${kb.docCount} · журнал ${journal.lines} строк (индекс: из кеша ${idx.cached}, добавлено ${idx.added}) · векторы ${embeds.size}`,
-    )
-  })()
-  return brain
 }
 
 function json(res: http.ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
@@ -113,7 +77,6 @@ export function healthBody(brain: Brain) {
     llm: { available: !!st?.available, chatModel: st?.chatModel ?? null, fastModel: st?.fastModel ?? null, embedModel: st?.embedModel ?? null },
     kb: { docs: brain.deps.kb.docCount + brain.deps.journal.searchableCount(), journalLines: brain.deps.journal.lines, embedded: brain.deps.embeds?.size ?? 0 },
     uptimeMs: Date.now() - brain.startedAt,
-    ...(brain.loading ? { loading: true } : {}),
   }
 }
 
@@ -152,8 +115,6 @@ export function createServer(brain: Brain): http.Server {
         }
         const v = validateAppend(body)
         if (typeof v === 'string') return json(res, 400, { ok: false, error: { code: 'bad_request', message: v } }, cors)
-        // дописываем только после загрузки журнала: иначе счётчик строк и проверка дубликатов были бы неполными
-        if (brain.ready) await brain.ready
         const { record, line } = deps.journal.append(v)
         return json(res, 200, { ok: true, id: record.id, line, ...(record.kind === 'dup' ? { dup: true, ref: record.meta.ref } : {}) }, cors)
       }
@@ -166,7 +127,6 @@ export function createServer(brain: Brain): http.Server {
         }
         const chat = validateChatRequest(body)
         if (typeof chat === 'string') return json(res, 400, { ok: false, error: { code: 'bad_request', message: chat } }, cors)
-        if (brain.ready) await brain.ready
         const ac = new AbortController()
         res.on('close', () => {
           if (!res.writableEnded) ac.abort()
@@ -201,21 +161,18 @@ export function createServer(brain: Brain): http.Server {
 
 export async function main(): Promise<void> {
   const t0 = performance.now()
-  const brain = createBrainLazy({ log: (s) => console.log(s) })
+  const brain = createBrain()
   const server = createServer(brain)
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(PORT, '127.0.0.1', () => resolve())
   })
   brain.ollama?.start()
-  console.log(`[brain] ${SERVICE} ${VERSION} слушает http://127.0.0.1:${PORT} за ${Math.round(performance.now() - t0)} мс · данные: ${DATA_DIR} · Ollama: ${brain.deps.config.ollamaUrl} (опрос каждые ${Math.round(brain.deps.config.pollMs / 1000)} с)`)
-  await brain.ready
-  const st = await (brain.ollama?.refresh() ?? Promise.resolve(null))
   console.log(
-    st?.available
-      ? `[brain] atomlab-brain http://127.0.0.1:${PORT}, llm: ${st.chatModel}${st.fastModel && st.fastModel !== st.chatModel ? ` (fast: ${st.fastModel})` : ''}, embed: ${st.embedModel ?? '—'}, kb: ${healthBody(brain).kb.docs} docs`
-      : `[brain] atomlab-brain http://127.0.0.1:${PORT}, llm: нет (запасной путь: поиск + расчёты + шаблоны), kb: ${healthBody(brain).kb.docs} docs`,
+    `[brain] ${SERVICE} ${VERSION} слушает http://127.0.0.1:${PORT} за ${Math.round(performance.now() - t0)} мс · данные: ${DATA_DIR} · шарды: ${brain.deps.kb.docCount} · журнал: ${brain.deps.journal.lines} строк · векторы: ${brain.deps.embeds?.size ?? 0}`,
   )
+  const idx = await brain.deps.journal.buildIndex()
+  console.log(`[brain] индекс журнала готов: из кеша ${idx.cached}, добавлено ${idx.added}, ${idx.ms} мс`)
   const stop = () => {
     brain.ollama?.stop()
     server.close()

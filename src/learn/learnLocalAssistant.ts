@@ -480,15 +480,15 @@ function generateLocalLearnReplyRaw(
   if (expert) return expert
 
   if (sectionBlock.length > 80 && locale === 'ru') {
-    return `**${ctx.sectionTitle}** (офлайн-режим)\n\n${sectionBlock.slice(0, 900)}\n\nУточните вопрос или включите Ollama (бесплатно на ПК).`
+    return `**${ctx.sectionTitle}** (офлайн-режим)\n\n${sectionBlock.slice(0, 900)}\n\nУточните, что именно интересует в этом параграфе, — разберём от основ.`
   }
 
   if (sectionBlock.length > 80 && locale === 'en') {
-    return `**${ctx.sectionTitle}** (offline)\n\nOpen Theory slides for this paragraph, or enable Ollama for a full English explanation.`
+    return `**${ctx.sectionTitle}** (offline)\n\nOpen the Theory slides for this paragraph or tell me what exactly interests you — we will reason it through from the fundamentals.`
   }
 
   if (sectionBlock.length > 80 && locale === 'uz') {
-    return `**${ctx.sectionTitle}** (oflayn)\n\n«Nazariya» slaydlarini oching yoki Ollama ni yoqing — to‘liq o‘zbekcha tushuntirish uchun.`
+    return `**${ctx.sectionTitle}** (oflayn)\n\n«Nazariya» slaydlarini oching yoki aniq nima qiziqtirishini yozing — asoslardan boshlab tahlil qilamiz.`
   }
 
   return offlineNeedsApiMessage(locale)
