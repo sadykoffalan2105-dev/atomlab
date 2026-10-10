@@ -14,9 +14,8 @@
   padding: 14px 16px 12px;
   border-radius: 18px;
   border: 1px solid rgba(125, 211, 252, 0.24);
-  background: rgba(10, 15, 29, 0.86);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* Без backdrop-filter: размытие поверх живого WebGL-холста пересчитывается каждый кадр (−5…10 fps). */
+  background: rgba(10, 15, 29, 0.93);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
   color: #e6edf7;
   color-scheme: dark;
@@ -76,6 +75,13 @@
 }
 
 /* Карточки HUD всегда поверх сцены (и на телефоне): в лаборатории под 3D нет «полосы» как в окне каталога. */
+/* Стекло карточек без размытия (см. панель) — фон плотнее. */
+.hudHost [data-hud-card] {
+  background: rgba(12, 17, 33, 0.84);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .hudHost > [data-formation-hud] {
   position: absolute;
   top: 10px;

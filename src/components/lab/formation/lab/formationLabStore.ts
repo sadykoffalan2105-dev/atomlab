@@ -134,6 +134,18 @@ export const formationLab = {
   get: () => state,
 }
 
+/** Всё состояние (панель показа: время, этап — обновляется ~10 раз в секунду). */
 export function useFormationLab(): FormationLabState {
   return useSyncExternalStore(formationLab.subscribe, formationLab.get, formationLab.get)
+}
+
+const getId = () => state.id
+const getPreviewId = () => (state.mode === 'preview' ? state.id : null)
+/** Только id показа: страница, сцена и реактор не перерисовываются от хода времени показа. */
+export function useFormationLabId(): string | null {
+  return useSyncExternalStore(formationLab.subscribe, getId, getId)
+}
+/** id показа по кнопке реактора (preview), иначе null. */
+export function useFormationLabPreviewId(): string | null {
+  return useSyncExternalStore(formationLab.subscribe, getPreviewId, getPreviewId)
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { formationEquation } from '../../../chemistry/formationEquation'
 import { formationPlan } from '../../../chemistry/formationPlan'
 import { formationTexts, type FormationLocale } from '../../../chemistry/formationText'
@@ -7,6 +7,9 @@ import { formationStoryFor } from './formationStory'
 import { FORMATION_SPEEDS, type FormationControl } from './useFormation'
 import { FormationBoard } from './board/FormationBoard'
 import styles from './FormationPanel.module.css'
+
+/** Доска перерисовывается только при смене этапа / вещества — не 10 раз в секунду вместе с ползунком времени. */
+const BoardMemo = memo(FormationBoard)
 
 function toFormationLocale(locale: string): FormationLocale {
   return locale === 'en' ? 'en' : locale === 'uz' ? 'uz' : 'ru'
@@ -91,7 +94,7 @@ export function FormationCaptions({
       </p>
       <p className={styles.main}>{s.main}</p>
       <p className={styles.sub}>{s.sub}</p>
-      <FormationBoard compoundId={compoundId} plan={plan} stage={story.stages[i]?.key ?? 'final'} loc={loc} refText={s.ref} />
+      <BoardMemo compoundId={compoundId} plan={plan} stage={story.stages[i]?.key ?? 'final'} loc={loc} refText={s.ref} />
       <div className={styles.eqBox} data-formation-equation="">
         <span className={styles.eqLead}>{texts.equation.lead}:</span>
         <span className={styles.eqText}>{texts.equation.text}</span>

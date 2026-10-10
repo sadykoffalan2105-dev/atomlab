@@ -101,7 +101,7 @@ import { RouteLabHost } from '../components/lab/formation/routes/RouteLabHost'
 import { routeLab } from '../components/lab/formation/routes/routeLabStore'
 import { routeProductForLabRun } from '../components/lab/formation/routes/routeIndex'
 import { FormationLabHost } from '../components/lab/formation/lab/FormationLabHost'
-import { formationLab, useFormationLab } from '../components/lab/formation/lab/formationLabStore'
+import { formationLab, useFormationLabId } from '../components/lab/formation/lab/formationLabStore'
 import { compoundById } from '../data/compounds'
 import { labCompoundById } from '../data/labSpecies'
 import {
@@ -1430,7 +1430,7 @@ export function LaboratoryPage() {
    */
   const mountSynthProductHud = ((synthRunActive && lastRunProduct != null) || showSettledSynthesisView)
   // Пока идёт показ «Как образуется» v2, карточка героя не просвечивает под панелью этапов (она на том же месте).
-  const formationLabOpen = useFormationLab().id != null
+  const formationLabOpen = useFormationLabId() != null
   const showSynthProductHud = mountSynthProductHud && !clo2LessonActive && !formationLabOpen
   const productForHud =
     synthRunActive && lastRunProduct != null

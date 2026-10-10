@@ -34,7 +34,7 @@ const RouteLabFx = lazy(() => import('./formation/routes/RouteLabFx'))
 /** «Как образуется» v2 (200 веществ каталога) на большой сцене лаборатории: по кнопке реактора или при синтезе по уравнению образования. */
 const FormationLabFx = lazy(() => import('./formation/lab/FormationLabFx'))
 import { formationForLabRun, labTermFormula } from './formation/lab/formationLabIndex'
-import { useFormationLab } from './formation/lab/formationLabStore'
+import { useFormationLabPreviewId } from './formation/lab/formationLabStore'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { LabIdleCosmicBackdrop, LAB_IDLE_COSMIC_BG } from './LabIdleCosmicBackdrop'
@@ -765,9 +765,8 @@ function SceneContent({
     : null
   void collapseRev
   // Показ «Как образуется» по кнопке реактора (без синтеза): шары реактора скрыты, модель — на всю свободную сцену.
-  const formationLabState = useFormationLab()
-  const formationPreviewId =
-    reactorViewOpen && !synthActive && formationLabState.mode === 'preview' ? formationLabState.id : null
+  const formationLabPreviewId = useFormationLabPreviewId()
+  const formationPreviewId = reactorViewOpen && !synthActive ? formationLabPreviewId : null
   // Флаг для Bohr-моделей: пока идёт урок-кино, ни один чужой атом не рисуется.
   const cinemaOwnsScreen = scientificMicroworldActive || formationPreviewId != null
   useEffect(() => {

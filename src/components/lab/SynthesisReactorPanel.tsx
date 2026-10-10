@@ -34,7 +34,7 @@ import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
 import { reactorRouteFor } from './formation/routes/routeIndex'
 import { formationLabProductFor } from './formation/lab/formationLabIndex'
-import { formationLab, useFormationLab } from './formation/lab/formationLabStore'
+import { formationLab, useFormationLabId } from './formation/lab/formationLabStore'
 
 /** «Как образуется» для реакций с собственным показом пути (CO₂ тремя способами) — грузится по клику. */
 const RouteFormationModal = lazy(() => import('./formation/routes/RouteFormationModal'))
@@ -656,8 +656,8 @@ export function SynthesisReactorPanel({
     () => (routeId ? null : formationLabProductFor(productCompound?.id, coProducts.map((x) => x.compoundId))),
     [routeId, productCompound, coProducts],
   )
-  const formationLabState = useFormationLab()
-  const formationShowing = formationLabState.id != null && formationLabState.id === formationId
+  const formationLabId = useFormationLabId()
+  const formationShowing = formationLabId != null && formationLabId === formationId
   // Реакция сменилась / реактор закрыт — показ по кнопке закрывается; уход со страницы — тоже.
   useEffect(() => {
     const cur = formationLab.get()
@@ -666,7 +666,7 @@ export function SynthesisReactorPanel({
   useEffect(() => () => formationLab.closePreview(), [])
   // Телефон: на время показа реактор сворачивается (иначе 3D-сцене остаётся полоска между панелью этапов и доком);
   // после показа — как было.
-  const formationAny = formationLabState.id != null
+  const formationAny = formationLabId != null
   const autoCollapsedRef = useRef(false)
   useEffect(() => {
     const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
