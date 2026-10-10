@@ -6,6 +6,9 @@ import type { SceneLocale } from '../kit/sceneKit'
 import { naclHaloTexture, naclSphereGeometry, NACL_RIM, withNaclRim } from '../nacl/naclLatticeView'
 import type { SchoolRuntimeOptions, SchoolRuntimeScene, SchoolRuntimeStatus } from '../school/schoolRuntime'
 import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, STORY_LAYER_BRIGHT, type StoryLayout } from './storyLayout'
+import { STORY_FX_HZ, storyPulse, storyVibOffset, storyVibWindow } from './storyMotion'
+import { buildStoryPairs, pairsVisibility, type StoryPairs } from './storyPairs'
+import { buildStoryEnv, envDrift, type StoryEnv } from './storyPhase'
 
 /**
  * СЦЕНА «СЮЖЕТ РЕАКЦИИ» — анимация после синтеза для реакций без своей школьной сцены (интерфейс
@@ -25,11 +28,25 @@ import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, STORY_LAYER_BR
  * Огромные реакции (lay.compact): у члена читается одна лицевая копия, остальные — тёмная стопка позади; подписи,
  * чипы, свечение ролей и вспышки — только у лицевых копий, e⁻ летят волной «×n» от стопки к стопке.
  * Производительность: атомы, палочки, электроны — три InstancedMesh; ноль аллокаций в update.
+ *
+ * v2 (как «Как образуется» v2): без тряски — тепловые колебания только на «Исходных» (≤ 4 пм, ≤ 1,5 Гц, плавный
+ * разгон, затухание за 1 с на разрыве; storyMotion.ts), прочие пульсы ≤ 1,5 Гц, в «Итоге» — неподвижно;
+ * электронные пары и облака-лепестки у участников связей на «Разрыве / Переносе e⁻ / Образовании» (storyPairs.ts:
+ * σ на оси, π сбоку, неподелённые пары наружу; лепестки — один InstancedMesh, один аддитивный материал, без
+ * источников света); «Итог» как в жизни при 25 °C (storyPhase.ts): кристалл — фрагмент решётки своего типа позади
+ * продукта, газ — молекулы расходятся и поднимаются, жидкость — плотно, раствор — частицы среди молекул воды.
  */
 
 const BG = new THREE.Color('#0a0b10')
 const MATTE = { roughness: 0.84, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.4, specularIntensity: 0.16 } as const
 const ELECTRON_COLOR = new THREE.Color(0x9ee4ff)
+/** облака-лепестки (аддитивно: тусклее цвет — прозрачнее) */
+const PETAL_COLOR = new THREE.Color(0x6fb8ff)
+const PETAL_GAIN = 0.32
+/** окружение итога темнее продукта (глубина) */
+const ENV_DIM = 0.78
+/** электрон пары */
+const PAIR_E_R = 0.032
 const DONOR_COLOR = new THREE.Color(0xff9a3c)
 const ACCEPTOR_COLOR = new THREE.Color(0x4fb2ff)
 const KEPT_COLOR = new THREE.Color(0xb48cff)
@@ -124,6 +141,21 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private readonly _a = new THREE.Vector3()
   private readonly _b = new THREE.Vector3()
   private readonly _up = new THREE.Vector3(0, 1, 0)
+  private readonly _off = new Float32Array(3)
+
+  /** окно тепловых колебаний (только «Исходные») */
+  private readonly vibWin: ReturnType<typeof storyVibWindow>
+  /** «Итог» как в жизни: окружение продукта (решётка / газ / жидкость / вода) */
+  private readonly env: StoryEnv
+  private readonly envAtoms: THREE.InstancedMesh
+  private readonly envSticks: THREE.InstancedMesh
+  private readonly envPos: Float32Array
+  private readonly envBox: { w: number; h: number; cx: number; cy: number }
+  /** электронные пары и облака-лепестки */
+  private readonly pairs: StoryPairs
+  private readonly pairDots: THREE.InstancedMesh
+  private readonly petalMat: THREE.MeshBasicMaterial
+  private readonly petals: THREE.InstancedMesh
 
   constructor(story: ReactionStory, opts: SchoolRuntimeOptions = {}) {
     this.story = story
@@ -295,6 +327,53 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.labels.push({ id: 'half', kind: 'glassHalf', pos: new THREE.Vector3(lay.extentL.cx, lay.extentL.cy + lay.extentL.h / 2 - 1.02, 0.4), opacity: 0, text: this.halfTexts.n })
     }
 
+    // ——— v2: колебания, пары и облака, окружение итога ———
+    this.vibWin = storyVibWindow(lay.steps, lay.breakFrom)
+    this.pairs = buildStoryPairs(story, lay, { lowPower: opts.lowPower })
+    const dotCount = Math.max(1, (this.pairs.lone.length + this.pairs.bond.length) * 2)
+    this.pairDots = new THREE.InstancedMesh(sphere, this.eMat, dotCount)
+    this.pairDots.name = 'reaction-story-pair-electrons'
+    this.pairDots.frustumCulled = false
+    this.pairDots.renderOrder = 8
+    this.root.add(this.pairDots)
+    this.petalMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false, fog: false, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })
+    const sigmaCount = this.pairs.bond.filter((b) => b.kind === 'sigma').length
+    const petalCount = Math.max(1, this.pairs.lone.length + sigmaCount * 2 + (this.pairs.bond.length - sigmaCount))
+    this.petals = new THREE.InstancedMesh(sphere, this.petalMat, petalCount)
+    this.petals.name = 'reaction-story-petals'
+    this.petals.frustumCulled = false
+    this.petals.renderOrder = 7
+    for (let k = 0; k < petalCount; k++) this.petals.setColorAt(k, this._tail.setRGB(0, 0, 0))
+    this.root.add(this.petals)
+
+    this.env = buildStoryEnv(story, lay, { lowPower: opts.lowPower })
+    const ne = this.env.particles.length
+    this.envPos = new Float32Array(Math.max(1, ne) * 3)
+    this.envAtoms = new THREE.InstancedMesh(sphere, this.atomMat, Math.max(1, ne))
+    this.envAtoms.name = 'reaction-story-env-atoms'
+    this.envAtoms.frustumCulled = false
+    this.env.particles.forEach((q, k) => this.envAtoms.setColorAt(k, schoolAtomColor(q.el, this._c).multiplyScalar(ENV_DIM)))
+    this.root.add(this.envAtoms)
+    this.envSticks = new THREE.InstancedMesh(this.stickGeo, this.stickMat, Math.max(1, this.env.bonds.length))
+    this.envSticks.name = 'reaction-story-env-bonds'
+    this.envSticks.frustumCulled = false
+    for (let k = 0; k < this.env.bonds.length; k++) this.envSticks.setColorAt(k, this._c.setRGB(ENV_DIM, ENV_DIM, ENV_DIM))
+    this.root.add(this.envSticks)
+    // кадр итога: продукт + его окружение (не шире 1,35× кадра продукта)
+    const R0 = lay.extentR
+    const eb = this.env.box
+    if (eb) {
+      const x0 = Math.min(R0.cx - R0.w / 2, eb.minX - 0.3)
+      const x1 = Math.max(R0.cx + R0.w / 2, eb.maxX + 0.3)
+      const y0 = Math.min(R0.cy - R0.h / 2, eb.minY - 0.3)
+      const y1 = Math.max(R0.cy + R0.h / 2, eb.maxY + 0.3)
+      const w = Math.min(x1 - x0, R0.w * 1.35)
+      const h = Math.min(y1 - y0, R0.h * 1.35)
+      const cx = Math.min(Math.max((x0 + x1) / 2, R0.cx - (w - R0.w) / 2), R0.cx + (w - R0.w) / 2)
+      const cy = Math.min(Math.max((y0 + y1) / 2, R0.cy - (h - R0.h) / 2), R0.cy + (h - R0.h) / 2)
+      this.envBox = { w, h, cx, cy }
+    } else this.envBox = { w: R0.w, h: R0.h, cx: R0.cx, cy: R0.cy }
+
     this.apply(0)
   }
 
@@ -359,13 +438,21 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
 
   extentAt(t: number, out: { w: number; h: number; cx: number; cy: number }): { w: number; h: number; cx: number; cy: number } {
     // исходные и перенос e⁻ — свой кадр, итог — свой: камера плавно наезжает на продукт во время образования
+    // в «Итоге» кадр плавно расширяется на окружение продукта (решётка, молекулы газа, вода)
     const a = this.lay.extentL
     const b = this.lay.extentR
     const u = smooth(this.lay.formFrom + 0.2, this.lay.formTo, t)
-    out.w = a.w + (b.w - a.w) * u
-    out.h = a.h + (b.h - a.h) * u
-    out.cx = a.cx + (b.cx - a.cx) * u
-    out.cy = a.cy + (b.cy - a.cy) * u
+    const res = this.lay.steps.find((s) => s.id === 'result')
+    const v = res ? smooth(res.from, res.from + 1.2, t) : 0
+    const e = this.envBox
+    const bw = b.w + (e.w - b.w) * v
+    const bh = b.h + (e.h - b.h) * v
+    const bx = b.cx + (e.cx - b.cx) * v
+    const by = b.cy + (e.cy - b.cy) * v
+    out.w = a.w + (bw - a.w) * u
+    out.h = a.h + (bh - a.h) * u
+    out.cx = a.cx + (bx - a.cx) * u
+    out.cy = a.cy + (by - a.cy) * u
     return out
   }
 
@@ -450,6 +537,11 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     this.eMesh.dispose()
     this.tailMat.dispose()
     this.tailMesh.dispose()
+    this.pairDots.dispose()
+    this.petalMat.dispose()
+    this.petals.dispose()
+    this.envAtoms.dispose()
+    this.envSticks.dispose()
     for (const m of this.haloMats) m.dispose()
     for (const m of this.glowMats) m.dispose()
     for (const f of this.bondFlashes) f.mat.dispose()
@@ -530,14 +622,17 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
 
     // ——— атомы ———
     const P = this.pos
-    const sway = 1 - smooth(lay.breakFrom - 0.4, lay.breakFrom, t) + smooth(lay.fateTo, lay.fateTo + 0.6, t)
     this._q.identity()
+    const off = this._off
     const R = this.rad
     for (let i = 0; i < n; i++) {
       storyAtomPos(lay, i, t, P, i * 3)
       R[i] = storyAtomRadius(lay, i, t)
-      // лёгкое «дыхание» частиц на исходных и итоге (детерминированно по времени сюжета)
-      P[i * 3 + 1] = P[i * 3 + 1]! + Math.sin(t * 1.6 + i * 0.9) * 0.018 * sway
+      // тепловые колебания только на «Исходных»: ≤ 4 пм, ≤ 1,5 Гц, плавный разгон, затухание на разрыве (storyMotion)
+      storyVibOffset(this.vibWin, i, t, off, 0)
+      P[i * 3] = P[i * 3]! + off[0]!
+      P[i * 3 + 1] = P[i * 3 + 1]! + off[1]!
+      P[i * 3 + 2] = P[i * 3 + 2]! + off[2]!
       const r = R[i]! * (0.6 + 0.4 * appear) * this.layerVis(i, t)
       this._v.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]!)
       this._s.set(r, r, r)
@@ -620,7 +715,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const vis = pre * post * fade
       const flying = smooth(e.t0, e.t0 + 0.08, t) * (1 - smooth(e.t1 - 0.03, e.t1 + 0.12, t))
       this.arcPoint(e.from, e.to, u, this._v)
-      const er = 0.088 * pre * post * (1 + 0.14 * Math.min(4, e.n - 1)) * (1 + 0.12 * Math.sin(t * 17 + k))
+      const er = 0.088 * pre * post * (1 + 0.14 * Math.min(4, e.n - 1)) * storyPulse(STORY_FX_HZ.electronPulse, t, k, 0.06)
       this._s.set(er, er, er)
       this._m.compose(this._v, this._q.identity(), this._s)
       this.eMesh.setMatrixAt(k, this._m)
@@ -703,7 +798,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       // донор ярок, пока отдаёт, и притухает после отдачи; акцептор разгорается, когда к нему прибывают e⁻
       const fin = Number.isFinite(tf)
       const phase = this.roleOf[i]! > 0 ? (fin ? 1 - 0.55 * smooth(tf, tf + 0.5, t) : 1) : fin ? 0.4 + 0.6 * smooth(tf - 0.3, tf + 0.1, t) : 1
-      const a = (0.62 * roleOn * phase * (0.86 + 0.14 * Math.sin(t * 3.4 + i)) + 0.55 * pulse * roleOn) * fade
+      const a = (0.62 * roleOn * phase * (0.86 + 0.14 * (storyPulse(STORY_FX_HZ.roleGlow, t, i, 1) - 1)) + 0.55 * pulse * roleOn) * fade
       sp.visible = a > 0.01
       if (!sp.visible) continue
       sp.position.set(P[i * 3]!, P[i * 3 + 1]!, P[i * 3 + 2]! + R[i]! * 0.35)
@@ -743,7 +838,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       g.sprite.position.set(x, y, z - 0.2)
       const sc = rr * 2.7
       g.sprite.scale.set(sc, sc, sc)
-      g.mat.opacity = 0.42 * keptOn * fade * (0.88 + 0.12 * Math.sin(t * 2.6))
+      g.mat.opacity = 0.42 * keptOn * fade * (0.88 + 0.12 * (storyPulse(STORY_FX_HZ.keptGlow, t, 0, 1) - 1))
     }
 
     // ——— подписи ———
@@ -833,9 +928,193 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const mid = e0 ? (e0.t0 + e0.t1) / 2 : Infinity
       H.text = t < lay.eOn + 0.2 ? this.halfTexts.n : t < mid ? this.halfTexts.o : t < lay.eLastArrive + 0.35 ? this.halfTexts.r : this.halfTexts.n
     }
+    this.applyPairs(t, fade)
+    this.applyEnv(t, fade)
     void stepId
     void stepFrom
   }
+
+  /** Обнулить экземпляр (спрятать): масштаб 0 в точке p. */
+  private hideAt(mesh: THREE.InstancedMesh, k: number, p: THREE.Vector3): void {
+    this._s.set(0, 0, 0)
+    this._m.compose(p, this._q.identity(), this._s)
+    mesh.setMatrixAt(k, this._m)
+  }
+
+  /** Электронные пары и облака-лепестки (σ на оси, π сбоку, неподелённые пары наружу). */
+  private applyPairs(t: number, fade: number): void {
+    const lay = this.lay
+    const pr = this.pairs
+    const P = this.pos
+    const R = this.rad
+    const all = pairsVisibility(pr, t) * fade
+    const has = pr.lone.length + pr.bond.length > 0
+    this.pairDots.visible = has && all > 0.004
+    this.petals.visible = this.pairDots.visible
+    if (!this.pairDots.visible) return
+    let d = 0
+    let pt = 0
+    const dot = (x: number, y: number, z: number, r: number) => {
+      this._v.set(x, y, z)
+      this._s.set(r, r, r)
+      this._m.compose(this._v, this._q.identity(), this._s)
+      this.pairDots.setMatrixAt(d++, this._m)
+    }
+    // лепесток: центр, ось, полудлина вдоль и поперёк, яркость (аддитивно — цвет экземпляра)
+    const petal = (cx: number, cy: number, cz: number, ux: number, uy: number, uz: number, along: number, across: number, b: number) => {
+      this._v.set(cx, cy, cz)
+      this._w.set(ux, uy, uz)
+      if (this._w.lengthSq() < 1e-8) this._w.set(0, 1, 0)
+      this._w.normalize()
+      this._q.setFromUnitVectors(this._up, this._w)
+      this._s.set(across, along, across)
+      this._m.compose(this._v, this._q, this._s)
+      this.petals.setMatrixAt(pt, this._m)
+      this.petals.setColorAt(pt++, this._tail.copy(PETAL_COLOR).multiplyScalar(PETAL_GAIN * b))
+    }
+    const hidePetal = () => {
+      this.hideAt(this.petals, pt, this._a)
+      this.petals.setColorAt(pt++, this._tail.setRGB(0, 0, 0))
+    }
+    // неподелённые пары
+    for (const lp of pr.lone) {
+      const i = lp.atom
+      const left = lp.t0 <= pr.on + 1e-6
+      const v = all * (left ? 1 - smooth(lp.t1 - 0.25, lp.t1 + 0.05, t) : smooth(lp.t0 - 0.05, lp.t0 + 0.3, t)) * this.layerVis(i, t)
+      const r = R[i]!
+      const x = P[i * 3]!
+      const y = P[i * 3 + 1]!
+      const z = P[i * 3 + 2]!
+      if (v < 0.01) {
+        this._a.set(x, y, z)
+        this.hideAt(this.pairDots, d++, this._a)
+        this.hideAt(this.pairDots, d++, this._a)
+        hidePetal()
+        continue
+      }
+      // пара — два e⁻ рядом, поперёк направления лепестка
+      let px = lp.dy
+      let py = -lp.dx
+      const pl = Math.hypot(px, py)
+      if (pl < 1e-4) {
+        px = 1
+        py = 0
+      } else {
+        px /= pl
+        py /= pl
+      }
+      const k = r + 0.1
+      const sep = 0.042
+      const er = PAIR_E_R * (0.5 + 0.5 * v)
+      dot(x + lp.dx * k + px * sep, y + lp.dy * k + py * sep, z + lp.dz * k, er)
+      dot(x + lp.dx * k - px * sep, y + lp.dy * k - py * sep, z + lp.dz * k, er)
+      petal(x + lp.dx * (r + 0.07), y + lp.dy * (r + 0.07), z + lp.dz * (r + 0.07), lp.dx, lp.dy, lp.dz, 0.17, 0.115, v)
+    }
+    // общие пары: σ — на оси (два e⁻ поперёк оси, перед палочкой), π — сбоку (вдоль связи)
+    for (const bp of pr.bond) {
+      const s = lay.sticks[bp.stick]!
+      const alpha = s.kind === 'broken' ? 1 - smooth(s.t0, s.t1, t) : smooth(s.t0, s.t1, t)
+      const v = all * alpha * Math.min(this.layerVis(s.a, t), this.layerVis(s.b, t))
+      this._a.set(P[s.a * 3]!, P[s.a * 3 + 1]!, P[s.a * 3 + 2]!)
+      this._b.set(P[s.b * 3]!, P[s.b * 3 + 1]!, P[s.b * 3 + 2]!)
+      const len = this._a.distanceTo(this._b)
+      if (v < 0.01 || len < 1e-4) {
+        this.hideAt(this.pairDots, d++, this._a)
+        this.hideAt(this.pairDots, d++, this._a)
+        hidePetal()
+        if (bp.kind === 'sigma') hidePetal()
+        continue
+      }
+      const ux = (this._b.x - this._a.x) / len
+      const uy = (this._b.y - this._a.y) / len
+      const uz = (this._b.z - this._a.z) / len
+      let wx = -uy
+      let wy = ux
+      const wl = Math.hypot(wx, wy)
+      if (wl < 1e-4) {
+        wx = 0
+        wy = 1
+      } else {
+        wx /= wl
+        wy /= wl
+      }
+      const mx = (this._a.x + this._b.x) / 2
+      const my = (this._a.y + this._b.y) / 2
+      const mz = (this._a.z + this._b.z) / 2
+      const er = PAIR_E_R * (0.5 + 0.5 * v)
+      if (bp.kind === 'sigma') {
+        dot(mx + wx * 0.045, my + wy * 0.045, mz + 0.07, er)
+        dot(mx - wx * 0.045, my - wy * 0.045, mz + 0.07, er)
+        const ra = R[s.a]!
+        const rb = R[s.b]!
+        const ax = this._a.x
+        const ay = this._a.y
+        const az = this._a.z
+        const bx = this._b.x
+        const by = this._b.y
+        const bz = this._b.z
+        petal(ax + ux * ra * 0.8, ay + uy * ra * 0.8, az + uz * ra * 0.8, ux, uy, uz, ra * 0.62, ra * 0.42, v)
+        petal(bx - ux * rb * 0.8, by - uy * rb * 0.8, bz - uz * rb * 0.8, -ux, -uy, -uz, rb * 0.62, rb * 0.42, v)
+      } else {
+        const o = bp.side * 0.2
+        dot(mx + wx * o + ux * 0.045, my + wy * o + uy * 0.045, mz + 0.03, er)
+        dot(mx + wx * o - ux * 0.045, my + wy * o - uy * 0.045, mz + 0.03, er)
+        petal(mx + wx * o, my + wy * o, mz, ux, uy, uz, Math.min(0.32, len * 0.3), 0.085, v)
+      }
+    }
+    this.pairDots.instanceMatrix.needsUpdate = true
+    this.petals.instanceMatrix.needsUpdate = true
+    if (this.petals.instanceColor) this.petals.instanceColor.needsUpdate = true
+  }
+
+  /** «Итог» как в жизни: частицы окружения появляются слоями от продукта; газ плавно расходится вверх. */
+  private applyEnv(t: number, fade: number): void {
+    const env = this.env
+    const ps = env.particles
+    if (!ps.length) {
+      this.envAtoms.visible = false
+      this.envSticks.visible = false
+      return
+    }
+    const dr = envDrift(env, t)
+    const E = this.envPos
+    let any = false
+    for (let k = 0; k < ps.length; k++) {
+      const q = ps[k]!
+      const g = smooth(q.t0, q.t0 + 0.45, t)
+      E[k * 3] = q.x + q.vx * dr
+      E[k * 3 + 1] = q.y + q.vy * dr
+      E[k * 3 + 2] = q.z + q.vz * dr
+      const r = q.r * g
+      if (g > 0) any = true
+      this._v.set(E[k * 3]!, E[k * 3 + 1]!, E[k * 3 + 2]!)
+      this._s.set(r, r, r)
+      this._m.compose(this._v, this._q.identity(), this._s)
+      this.envAtoms.setMatrixAt(k, this._m)
+    }
+    this.envAtoms.instanceMatrix.needsUpdate = true
+    this.envAtoms.visible = any && fade > 0.002
+    for (let k = 0; k < env.bonds.length; k++) {
+      const b = env.bonds[k]!
+      const g = Math.min(smooth(ps[b.a]!.t0 + 0.2, ps[b.a]!.t0 + 0.6, t), smooth(ps[b.b]!.t0 + 0.2, ps[b.b]!.t0 + 0.6, t))
+      this._a.set(E[b.a * 3]!, E[b.a * 3 + 1]!, E[b.a * 3 + 2]!)
+      this._b.set(E[b.b * 3]!, E[b.b * 3 + 1]!, E[b.b * 3 + 2]!)
+      const len = this._a.distanceTo(this._b)
+      if (g < 0.01 || len < 1e-4) {
+        this.hideAt(this.envSticks, k, this._a)
+        continue
+      }
+      this._v.subVectors(this._b, this._a).divideScalar(len)
+      this._q.setFromUnitVectors(this._up, this._v)
+      this._v.addVectors(this._a, this._b).multiplyScalar(0.5)
+      this._s.set(STICK_R * 0.9 * g, len, STICK_R * 0.9 * g)
+      this._m.compose(this._v, this._q, this._s)
+      this.envSticks.setMatrixAt(k, this._m)
+    }
+    this.envSticks.instanceMatrix.needsUpdate = true
+    this.envSticks.visible = any && env.bonds.length > 0 && fade > 0.002
+  }
+
 
   /** Яркость атома по слою стопки в момент t (лицевая копия — 1). */
   private layerBright(i: number, t: number): number {

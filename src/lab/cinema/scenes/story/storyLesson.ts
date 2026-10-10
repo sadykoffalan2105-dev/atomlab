@@ -1,6 +1,7 @@
 import type { ReactionStory, StoryLocale, StoryStepId } from '../../../../chemistry/reactionStory'
 import type { ReactorEquationTerm } from '../../../../chemistry/reactorEquationBalance'
 import { buildReactionStory } from '../../../../chemistry/reactionStory'
+import { storyPhaseLines } from './storyPhaseInfo'
 import { getElementByZ } from '../../../../data/elements'
 import { labCompoundById } from '../../../../data/labSpecies'
 import type { CompoundDef } from '../../../../types/chemistry'
@@ -51,6 +52,13 @@ export function storyLessonText(locale: StoryLocale) {
   for (const id of STORY_STEP_IDS) {
     const t = s?.text[locale][id]
     steps[id] = { title: t?.title ?? '', body: t?.body ?? '', equation: t?.equation ?? '', speak: t?.title ?? '' }
+  }
+  // «Итог» как в жизни: фаза и решётка каждого продукта при 25 °C (storyPhase) — одной строкой после текста шага
+  if (s && steps.result) {
+    const [head, ...rest] = storyPhaseLines(s, locale)
+    const note = rest.length > s.terms.filter((x) => x.side === 'right').length ? rest.pop() : undefined
+    const phase = `${head} ${rest.join('; ')}.${note ? ` ${note}.` : ''}`
+    steps.result = { ...steps.result, body: steps.result.body ? `${steps.result.body} ${phase}` : phase }
   }
   const lg = LEGEND[locale]
   return {
