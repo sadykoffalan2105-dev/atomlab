@@ -49,8 +49,15 @@ interface LabelProps {
   readonly children: ReactNode
 }
 
+/**
+ * Нижняя граница z-index подписей: холст лежит на z-index 10 над HTML-доской (LabBoard, occlude="blending"),
+ * поэтому подпись ниже 11 спряталась бы под холстом. Диапазон подписи сдвигается вверх, порядок «ближе — выше» сохраняется.
+ */
+export const LABEL_Z_MIN = 11
+
 /** drei <Html> без pointer-событий, который прячется за непрозрачной мебелью комнаты. */
-export function LabLabel({ position, center, zIndexRange = [20, 0], style, children }: LabelProps) {
+export function LabLabel({ position, center, zIndexRange = [30, LABEL_Z_MIN], style, children }: LabelProps) {
+  const zr: [number, number] = [Math.max(zIndexRange[0], LABEL_Z_MIN + 1), Math.max(zIndexRange[1], LABEL_Z_MIN)]
   const anchor = useRef<THREE.Group>(null)
   const box = useRef<HTMLDivElement>(null)
   const tick = useRef(Math.floor(Math.random() * 4))
@@ -72,7 +79,7 @@ export function LabLabel({ position, center, zIndexRange = [20, 0], style, child
   return (
     <group ref={anchor} position={position as THREE.Vector3Tuple}>
       {xr ? null : (
-        <Html center={center} zIndexRange={zIndexRange} style={{ pointerEvents: 'none', ...style }}>
+        <Html center={center} zIndexRange={zr} style={{ pointerEvents: 'none', ...style }}>
           <div ref={box}>{children}</div>
         </Html>
       )}

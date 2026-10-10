@@ -14,7 +14,7 @@ import { labAudio } from '../audio/labAudio'
 import { labEvents, type LabGearId, type LabItemId } from '../labEvents'
 import type { LabLang, LabText } from '../labContract'
 import type { LabSceneBridge } from '../scene/labBridge'
-import { LabLabel } from '../scene/labOccluders'
+import { LABEL_Z_MIN, LabLabel } from '../scene/labOccluders'
 import type { LabMaterials } from '../scene/labMaterials'
 import { LabItemModel } from './LabItemModels'
 import { BENCH_Y, LAB_ITEMS, TAKE_LABEL, itemSoundMaterial, type LabItemDef } from './labItems'
@@ -458,7 +458,7 @@ function LabHints() {
   return (
     <>
       {hints.map((h) => (
-        <Html key={h.key} position={h.at as unknown as THREE.Vector3Tuple} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+        <Html key={h.key} position={h.at as unknown as THREE.Vector3Tuple} zIndexRange={[30, LABEL_Z_MIN]} style={{ pointerEvents: 'none' }}>
           <div className={css.hint}>{h.text}</div>
         </Html>
       ))}

@@ -170,7 +170,7 @@
 }
 
 .optionOn .optionIcon {
-  background: var(--lt-primary);
+  background: var(--lt-primary-fill, var(--lt-primary));
   color: #fff;
 }
 
