@@ -349,6 +349,9 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bridge, boardPhone, camera, size.height])
 
+  // Приоритет −1 (как у OrbitControls, подписанных раньше): перелёт и ограничения камеры применяются ДО того, как
+  // drei <Html> (приоритет 0) ставит HTML-доску по камере. Иначе доска отставала от рамки на кадр — при перелётах
+  // и упоре камеры в границы комнаты HTML «отлетал» от рамки на десятки пикселей.
   useFrame((_, dt) => {
     const c = controls.current
     if (!c) return
@@ -377,7 +380,7 @@ export function LabCameraRig({ view, viewNonce, bridge, leftInsetPx = 0 }: Props
     camera.position.clamp(CAMERA_BOUNDS.min, CAMERA_BOUNDS.max)
     keepCameraOutOfFurniture(camera.position, sashLift())
     c.target.clamp(TARGET_BOUNDS.min, TARGET_BOUNDS.max)
-  })
+  }, -1)
 
   // Для автоматических проверок: …#/vr-lab?debugLab=1 — window.__labCam.get() / set(позиция, цель)
   useEffect(() => {

@@ -14,14 +14,14 @@
  */
 import { Html, RoundedBox } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type * as THREE from 'three'
 import { BOARD_CENTER, BOARD_PX, BOARD_SIZE, type BoardPanelProps } from '../labContract'
 import { labXr } from '../xr/labXrStore'
 import { BoardPanel } from '../experiments'
 import type { LabMaterials } from './labMaterials'
 import type { LabSceneBridge } from './labBridge'
-import { probeBoard } from './labBoardProbe'
+import { markBoard, probeBoard, type BoardMark } from './labBoardProbe'
 
 const DISTANCE_FACTOR = (BOARD_SIZE.w * 400) / BOARD_PX.w
 /** Диапазон z-index HTML доски; холст — ровно посередине (как у drei для occlude="blending"), доска — ниже него. */
@@ -36,31 +36,40 @@ interface Props {
 }
 
 export function LabBoard({ mats, panel, bridge }: Props) {
-  const rootRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  // HTML drei монтирует отдельным React-корнем позже LabBoard: в эффекте LabBoard rootRef ещё пуст, и слушатели
+  // касаний не вешались вовсе — протяжка по доске уходила OrbitControls и крутила камеру («доска отлетает»).
+  // Корень доски — в состоянии: эффект ниже срабатывает, когда он действительно появился.
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null)
+  const setRoot = useCallback((el: HTMLDivElement | null) => {
+    rootRef.current = el
+    setRootEl(el)
+  }, [])
   const groupRef = useRef<THREE.Group>(null)
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
-  const scene = useThree((s) => s.scene)
 
-  // Для автоматических проверок (…#/vr-lab?debugLab=1): window.__labBoard.probe() — расхождение HTML-доски с рамкой
-  // и точки экрана, закрытые мебелью; hide(true) прячет HTML-доску (кадр «без доски» для сравнения пикселей)
+  // Для автоматических проверок (…#/vr-lab?debugLab=1): window.__labBoard.probe() — расхождение HTML-доски с рамкой;
+  // mark('invert' | 'paint' | null) — кадры для проверки «доска не видна сквозь стены» (см. labBoardProbe.ts)
   useEffect(() => {
     if (typeof window === 'undefined' || !/[?&]debug(Lab|Cam)=1/.test(window.location.hash)) return
     const w = window as unknown as { __labBoard?: unknown }
     w.__labBoard = {
-      probe: (nx?: number, ny?: number) => {
+      probe: () => {
         const group = groupRef.current
         const root = rootRef.current
-        return group && root ? probeBoard({ group, root, camera, scene, canvas: gl.domElement, nx, ny }) : null
+        return group && root ? probeBoard({ group, root, camera, canvas: gl.domElement }) : null
       },
-      hide: (on: boolean) => {
-        if (rootRef.current) rootRef.current.style.visibility = on ? 'hidden' : ''
+      mark: (mode: BoardMark) => {
+        const group = groupRef.current
+        const root = rootRef.current
+        return group && root ? markBoard(group, root, mode) : 0
       },
     }
     return () => {
       delete w.__labBoard
     }
-  }, [camera, scene, gl])
+  }, [camera, gl])
 
   // Холст над доской: без этого доска просвечивает сквозь стены и шкафы (см. шапку файла)
   useFrame(() => {
@@ -92,7 +101,7 @@ export function LabBoard({ mats, panel, bridge }: Props) {
   }, [gl])
 
   useEffect(() => {
-    const el = rootRef.current
+    const el = rootEl
     if (!el) return
     let start: { x: number; y: number; id: number } | null = null
     let lastX = 0
@@ -117,6 +126,8 @@ export function LabBoard({ mats, panel, bridge }: Props) {
     const onUp = (e: PointerEvent) => {
       if (start && e.pointerId === start.id) start = null
     }
+    // колесо над доской листает её списки, а не приближает камеру (OrbitControls глушил прокрутку и двигал вид)
+    const onWheel = (e: WheelEvent) => e.stopPropagation()
     const onClickCapture = (e: MouseEvent) => {
       if (panned) {
         e.stopPropagation()
@@ -125,18 +136,20 @@ export function LabBoard({ mats, panel, bridge }: Props) {
       }
     }
     el.addEventListener('pointerdown', onDown)
+    el.addEventListener('wheel', onWheel)
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', onUp)
     el.addEventListener('click', onClickCapture, true)
     return () => {
       el.removeEventListener('pointerdown', onDown)
+      el.removeEventListener('wheel', onWheel)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
       el.removeEventListener('click', onClickCapture, true)
     }
-  }, [bridge])
+  }, [bridge, rootEl])
 
   const frameW = BOARD_SIZE.w + 0.07
   const frameH = BOARD_SIZE.h + 0.07
@@ -172,7 +185,7 @@ export function LabBoard({ mats, panel, bridge }: Props) {
         style={{ width: BOARD_PX.w, height: BOARD_PX.h }}
       >
         <div
-          ref={rootRef}
+          ref={setRoot}
           style={{ width: BOARD_PX.w, height: BOARD_PX.h, overflow: 'hidden', touchAction: 'none', background: '#ffffff' }}
         >
           <BoardPanel {...panel} />

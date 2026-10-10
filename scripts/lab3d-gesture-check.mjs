@@ -22,7 +22,7 @@ const b = await chromium.launch({ args: ['--use-angle=d3d11'] })
 const MAX_DRIFT = 4
 /** Расхождение HTML-доски с рамкой, px (null — доска не в кадре/щупа нет). Камера могла ещё «доезжать» — второй замер. */
 async function boardDrift(page) {
-  const get = () => page.evaluate(() => window.__labBoard?.probe?.(2, 2)?.drift ?? null)
+  const get = () => page.evaluate(() => window.__labBoard?.probe?.()?.drift ?? null)
   let d = await get()
   if (d != null && d > MAX_DRIFT) {
     await sleep(700)

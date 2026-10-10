@@ -2,52 +2,31 @@
  * Отладочный «щуп» доски (только …#/vr-lab?debugLab=1 → window.__labBoard): для автоматических проверок жалоб
  * «доска отлетает при действиях» и «доска видна сквозь стену/шкаф».
  *  • drift — насколько HTML-доска (getBoundingClientRect корня) разошлась с рамкой экрана, спроецированной камерой, px;
- *  • pts — сетка точек экрана доски: occluded = луч от камеры до точки сначала упирается в непрозрачную мебель/стену.
- *    Там пиксель кадра не должен меняться, если спрятать HTML-доску (проверка — scripts/lab3d-board-check.mjs).
+ *  • markBoard — режимы кадра для сравнения пикселей (scripts/lab3d-board-check.mjs): 'invert' — HTML-доска
+ *    в негативе (где она реально видна, пиксели меняются); 'paint' — HTML спрятана, а плоскость-«дыра» drei
+ *    (occlude="blending") закрашена пурпурным с проверкой глубины — пурпур ровно там, где доска должна быть видна.
+ *    Пиксель, который меняется от негатива, но не пурпурный в 'paint', — доска видна сквозь стену/мебель.
  */
 import * as THREE from 'three'
 import { BOARD_SIZE } from '../labContract'
-
-export interface BoardProbePoint {
-  readonly x: number
-  readonly y: number
-  readonly occluded: boolean
-}
 
 export interface BoardProbe {
   /** Наибольшее расхождение краёв HTML-доски и спроецированной рамки, CSS px; null — угол доски за камерой. */
   readonly drift: number | null
   readonly dom: readonly [number, number, number, number]
   readonly proj: readonly [number, number, number, number] | null
-  readonly pts: readonly BoardProbePoint[]
 }
 
 interface ProbeArgs {
   readonly group: THREE.Object3D
   readonly root: HTMLElement
   readonly camera: THREE.Camera
-  readonly scene: THREE.Scene
   readonly canvas: HTMLCanvasElement
-  readonly nx?: number
-  readonly ny?: number
 }
 
 const round = (v: number) => Math.round(v * 10) / 10
 
-function hiddenInTree(o: THREE.Object3D | null): boolean {
-  for (let e = o; e; e = e.parent) if (!e.visible) return true
-  return false
-}
-
-function isOpaque(o: THREE.Object3D): boolean | null {
-  const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
-  if (!m) return null
-  const list = Array.isArray(m) ? m : [m]
-  if (list.every((x) => !x.visible || x.colorWrite === false)) return null
-  return list.some((x) => x.visible && !(x.transparent && x.opacity < 0.9) && !(x as THREE.MeshPhysicalMaterial).transmission)
-}
-
-export function probeBoard({ group, root, camera, scene, canvas, nx = 9, ny = 5 }: ProbeArgs): BoardProbe {
+export function probeBoard({ group, root, camera, canvas }: ProbeArgs): BoardProbe {
   group.updateWorldMatrix(true, true)
   camera.updateMatrixWorld()
   const cr = canvas.getBoundingClientRect()
@@ -76,39 +55,37 @@ export function probeBoard({ group, root, camera, scene, canvas, nx = 9, ny = 5 
     drift = round(Math.max(...dom.map((v, i) => Math.abs(v - proj![i]))))
   }
 
-  const camPos = camera.getWorldPosition(new THREE.Vector3())
-  const ray = new THREE.Raycaster()
-  const near = (camera as THREE.PerspectiveCamera).near ?? 0.05
-  const pts: BoardProbePoint[] = []
-  for (let i = 0; i < nx; i++) {
-    for (let j = 0; j < ny; j++) {
-      // отступ от краёв экрана — рамка доски не в счёт
-      const P = local(-hw + ((i + 0.5) / nx) * 2 * hw, -hh + ((j + 0.5) / ny) * 2 * hh)
-      const s = toScreen(P)
-      if (s.z <= -1 || s.z >= 1 || s.x < cr.left + 2 || s.y < cr.top + 2 || s.x > cr.right - 2 || s.y > cr.bottom - 2) continue
-      const dir = P.clone().sub(camPos)
-      const dist = dir.length()
-      ray.set(camPos, dir.normalize())
-      ray.near = near
-      ray.far = dist - 0.012
-      let occluded = false
-      let unsure = false
-      for (const h of ray.intersectObjects(scene.children, true)) {
-        // линии и точки ловятся лучом с допуском в целый метр — преграда только сетка
-        if (!(h.object as THREE.Mesh).isMesh || hiddenInTree(h.object)) continue
-        // сама доска (корпус, экран, плоскость-«дыра» drei) — не преграда
-        let own = false
-        for (let e: THREE.Object3D | null = h.object; e; e = e.parent) if (e === group) own = true
-        if (own) continue
-        const op = isOpaque(h.object)
-        if (op === null) continue
-        if (op) occluded = true
-        else unsure = true // стекло: что за ним видно — зависит от смешивания, точку не считаем
-        break
-      }
-      if (unsure) continue
-      pts.push({ x: Math.round(s.x), y: Math.round(s.y), occluded })
+  return { drift, dom, proj }
+}
+
+const PAINT = new THREE.MeshBasicMaterial({ color: '#ff00ff', side: THREE.DoubleSide, toneMapped: false })
+const saved = new WeakMap<THREE.Mesh, THREE.Material | THREE.Material[]>()
+
+/** Плоскость-«дыра» drei <Html occlude="blending">: шейдер пишет прозрачный пиксель (0,0,0,0). */
+function holeMeshes(group: THREE.Object3D): THREE.Mesh[] {
+  const out: THREE.Mesh[] = []
+  group.traverse((o) => {
+    const m = o as THREE.Mesh
+    const mat = (saved.get(m) ?? m.material) as THREE.ShaderMaterial | undefined
+    if (m.isMesh && mat && (mat as THREE.ShaderMaterial).isShaderMaterial && /vec4\(0\.0, 0\.0, 0\.0, 0\.0\)/.test(mat.fragmentShader)) out.push(m)
+  })
+  return out
+}
+
+export type BoardMark = 'invert' | 'paint' | null
+
+export function markBoard(group: THREE.Object3D, root: HTMLElement, mode: BoardMark): number {
+  root.style.filter = mode === 'invert' ? 'invert(1)' : ''
+  root.style.visibility = mode === 'paint' ? 'hidden' : ''
+  const holes = holeMeshes(group)
+  for (const m of holes) {
+    if (mode === 'paint') {
+      if (!saved.has(m)) saved.set(m, m.material)
+      m.material = PAINT
+    } else if (saved.has(m)) {
+      m.material = saved.get(m)!
+      saved.delete(m)
     }
   }
-  return { drift, dom, proj, pts }
+  return holes.length
 }
