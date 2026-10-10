@@ -33,6 +33,8 @@ import { ReactorAtomLedger, ReactorLedgerComment, useAtomLedger } from './Reacto
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
 import { reactorRouteFor } from './formation/routes/routeIndex'
+import { formationLabProductFor } from './formation/lab/formationLabIndex'
+import { formationLab, useFormationLabId } from './formation/lab/formationLabStore'
 
 /** «Как образуется» для реакций с собственным показом пути (CO₂ тремя способами) — грузится по клику. */
 const RouteFormationModal = lazy(() => import('./formation/routes/RouteFormationModal'))
@@ -648,6 +650,43 @@ export function SynthesisReactorPanel({
     }, 800)
     return () => window.clearTimeout(id)
   }, [routeId])
+  // «Как образуется» v2 на сцене лаборатории: продукт реакции (главный, затем остальные) из 200 веществ каталога.
+  // У путей CO₂ — свой показ (routeId), поэтому v2 для них не предлагаем.
+  const formationId = useMemo(
+    () => (routeId ? null : formationLabProductFor(productCompound?.id, coProducts.map((x) => x.compoundId))),
+    [routeId, productCompound, coProducts],
+  )
+  const formationLabId = useFormationLabId()
+  const formationShowing = formationLabId != null && formationLabId === formationId
+  // Реакция сменилась / реактор закрыт — показ по кнопке закрывается; уход со страницы — тоже.
+  useEffect(() => {
+    const cur = formationLab.get()
+    if (cur.id != null && cur.mode === 'preview' && (!open || cur.id !== formationId)) formationLab.closePreview()
+  }, [open, formationId])
+  useEffect(() => () => formationLab.closePreview(), [])
+  // Телефон: на время показа реактор сворачивается (иначе 3D-сцене остаётся полоска между панелью этапов и доком);
+  // после показа — как было.
+  const formationAny = formationLabId != null
+  const autoCollapsedRef = useRef(false)
+  useEffect(() => {
+    const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
+    if (formationAny && phone) {
+      autoCollapsedRef.current = true
+      setCollapsed(true)
+    } else if (!formationAny && autoCollapsedRef.current) {
+      autoCollapsedRef.current = false
+      setCollapsed(false)
+    }
+  }, [formationAny])
+  // 3D показа грузим заранее — без паузы на нажатии
+  useEffect(() => {
+    if (!formationId) return
+    const id = window.setTimeout(() => {
+      void import('./formation/lab/FormationLabFx')
+      void import('./formation/lab/FormationLabPanel')
+    }, 900)
+    return () => window.clearTimeout(id)
+  }, [formationId])
   /** Раскрытый раздел под уравнением (аккордеон: одновременно один). */
   const [openSection, setOpenSection] = useState<ReactorSection | null>(null)
   const sectionsId = useId()
@@ -859,6 +898,19 @@ export function SynthesisReactorPanel({
               data-reactor-how-forms={routeId}
             >
               <span aria-hidden>▶</span>
+              <span>{t('reactor.howForms')}</span>
+            </button>
+          ) : formationId ? (
+            <button
+              type="button"
+              className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent}`}
+              onClick={() => (formationShowing ? formationLab.close() : formationLab.open(formationId, 'preview'))}
+              title={t('reactor.howFormsTitle')}
+              aria-pressed={formationShowing}
+              data-reactor-how-forms={formationId}
+              data-reactor-formation={formationId}
+            >
+              <span aria-hidden>{formationShowing ? '■' : '▶'}</span>
               <span>{t('reactor.howForms')}</span>
             </button>
           ) : null}
@@ -1391,6 +1443,7 @@ export function SynthesisReactorPanel({
         <button
           type="button"
           className={panelStyles.reactorReopenFab}
+          data-lab-reactor-fab=""
           onClick={() => setCollapsed(false)}
           aria-label={t('reactor.showPanel')}
           title={t('reactor.showPanel')}

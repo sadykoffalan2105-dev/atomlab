@@ -1,0 +1,141 @@
+/* Показ «Как образуется» v2 в лаборатории: панель этапов (тёмное стекло — сцена реактора тёмная в обеих темах). */
+
+.panel {
+  position: fixed;
+  z-index: 60;
+  top: 132px;
+  right: 16px;
+  width: min(400px, calc(100vw - 32px));
+  max-height: calc(100dvh - 132px - 330px);
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  /* Без backdrop-filter: размытие поверх живого WebGL-холста пересчитывается каждый кадр (−5…10 fps). */
+  background: rgba(10, 15, 29, 0.93);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  color: #e6edf7;
+  color-scheme: dark;
+  --lt-text: #f1f5f9;
+  --lt-text-2: #cbd5e1;
+  --lt-text-3: #94a3b8;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+}
+
+.close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin: -4px -4px 0 0;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  border-color: rgba(125, 211, 252, 0.7);
+}
+
+.close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.6);
+}
+
+.title {
+  margin: 0;
+  color: #f1f6ff;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.formula {
+  color: #fde68a;
+}
+
+/* HUD-карточки: слой над свободной частью 3D-сцены (между панелями), сами карточки — справа сверху. */
+.hudHost {
+  position: fixed;
+  z-index: 55;
+  pointer-events: none;
+}
+
+/* Карточки HUD всегда поверх сцены (и на телефоне): в лаборатории под 3D нет «полосы» как в окне каталога. */
+/* Стекло карточек без размытия (см. панель) — фон плотнее. */
+.hudHost [data-hud-card] {
+  background: rgba(12, 17, 33, 0.84);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.hudHost > [data-formation-hud] {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: max-content;
+  min-height: 0;
+  max-width: min(60%, 440px);
+  max-height: calc(100% - 20px);
+  padding: 0;
+}
+
+@media (max-width: 760px) {
+  .panel {
+    top: 64px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 40dvh;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  .head {
+    margin-bottom: 6px;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  /* HUD на телефоне компактнее: модели остаётся больше места. */
+  .hudHost [data-hud-card] {
+    padding: 6px 10px 7px;
+    border-radius: 12px;
+  }
+
+  .hudHost [data-hud-card] p,
+  .hudHost [data-hud-card] span {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  /* Телефон: только этапы, текст этапа и управление — объяснения и уравнение в карточке вещества каталога. */
+  .panel [data-formation-board],
+  .panel [data-formation-equation] {
+    display: none;
+  }
+
+  .hudHost > [data-formation-hud] {
+    top: 6px;
+    right: 6px;
+    left: 6px;
+    width: auto;
+    max-width: none;
+    align-items: flex-end;
+  }
+}
