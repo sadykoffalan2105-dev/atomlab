@@ -199,7 +199,8 @@
   min-height: 0;
   border-radius: 14px;
   border: 1px solid var(--lt-border);
-  background: color-mix(in srgb, var(--lt-surface) 78%, transparent);
+  /* плотнее: под панелью «студия» урока — серо-голубая днём, мелкий текст списка на ней терял контраст */
+  background: color-mix(in srgb, var(--lt-surface) 94%, transparent);
   overflow: hidden;
 }
 
@@ -270,7 +271,7 @@
   padding: 0 7px;
   border-radius: var(--lt-radius-pill);
   background: color-mix(in srgb, var(--lt-text) 8%, transparent);
-  color: var(--lt-text-3);
+  color: var(--lt-text-2);
   font-family: var(--lt-font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -364,7 +365,7 @@
   font-family: var(--lt-font-mono);
   font-size: 11px;
   font-weight: 700;
-  color: var(--lt-text-mute);
+  color: var(--lt-text-3);
   font-variant-numeric: tabular-nums;
 }
 
@@ -589,7 +590,7 @@
 }
 
 .itemGrade {
-  color: var(--lt-text-mute);
+  color: var(--lt-text-3);
   overflow: hidden;
   text-overflow: ellipsis;
 }

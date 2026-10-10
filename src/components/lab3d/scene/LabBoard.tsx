@@ -50,15 +50,15 @@ export function LabBoard({ mats, panel, bridge }: Props) {
   })
 
   // Обёртки drei (overflow:hidden) не прокручиваются: иначе HTML-доска съезжает с рамки
+  // (HTML drei рисует отдельным React-корнем, поэтому корень доски ищем в момент прокрутки, а не при монтировании)
   useEffect(() => {
-    const root = rootRef.current
     const host = gl.domElement.parentElement?.parentElement
-    if (!root || !host) return
-    const chain = new Set<Element>()
-    for (let e: Element | null = root; e && e !== host.parentElement; e = e.parentElement) chain.add(e)
+    if (!host) return
     const onScroll = (e: Event) => {
       const t = e.target
-      if (!(t instanceof Element) || !chain.has(t)) return
+      const root = rootRef.current
+      // только корень доски и обёртки над ним; списки внутри доски листаются как обычно
+      if (!root || !(t instanceof Element) || !t.contains(root)) return
       if (t.scrollTop) t.scrollTop = 0
       if (t.scrollLeft) t.scrollLeft = 0
     }
