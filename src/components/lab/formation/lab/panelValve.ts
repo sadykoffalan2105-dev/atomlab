@@ -24,7 +24,11 @@ export function attachPanelValve(el: HTMLElement, onRect: (r: DOMRect | null) =>
       r = el.getBoundingClientRect()
       if (r.right > W - GAP) el.style.right = `${GAP}px`
       const phone = W <= 760
-      const rt = formationLab.rects.reactor
+      // реактор — прямо из DOM (клапан не в кадре): прямоугольник наблюдателя мог устареть на анимации дока
+      const reactorEl = document.querySelector<HTMLElement>('[data-lab-reactor][data-open="true"]')
+      const live = reactorEl && reactorEl.getAttribute('data-collapsed') !== 'true' ? reactorEl.getBoundingClientRect() : null
+      if (live) formationLab.setRect('reactor', live)
+      const rt = live ?? formationLab.rects.reactor
       const limit = !phone && rt && rt.height > 0 && rt.top > r.top ? rt.top - GAP : H - GAP
       r = el.getBoundingClientRect()
       if (r.bottom > limit) el.style.maxHeight = `${Math.max(120, Math.floor(limit - r.top))}px`
@@ -36,10 +40,16 @@ export function attachPanelValve(el: HTMLElement, onRect: (r: DOMRect | null) =>
   run()
   const ro = new ResizeObserver(run)
   ro.observe(el)
+  const reactor = document.querySelector<HTMLElement>('[data-lab-reactor]')
+  if (reactor) {
+    ro.observe(reactor)
+    reactor.addEventListener('transitionend', run)
+  }
   window.addEventListener('resize', run)
   const off = formationLab.onRects(run)
   return () => {
     ro.disconnect()
+    reactor?.removeEventListener('transitionend', run)
     window.removeEventListener('resize', run)
     off()
     onRect(null)

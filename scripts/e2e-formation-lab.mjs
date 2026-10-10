@@ -71,7 +71,11 @@ async function up(url, attempts) {
 }
 
 async function ensureServer() {
-  if (args.base || (await up(BASE, 2))) return
+  if (await up(BASE, 4)) return
+  if (args.base) {
+    if (!(await up(BASE, 60))) throw new Error(`нет сервера на ${BASE}`)
+    return
+  }
   server = spawn('npx', ['vite', 'preview', '--port', PORT, '--strictPort'], { shell: true, stdio: 'ignore' })
   if (!(await up(BASE, 120))) throw new Error(`preview не поднялся на ${BASE}`)
 }
@@ -79,6 +83,8 @@ async function ensureServer() {
 /** Сторож в странице: кадры, длинные задачи, инварианты «один показ» (строкой — page.evaluate). */
 const PROBE = `(() => {
   if (window.__fl) return
+  // видимость с учётом предков: в слоте героя есть одноимённая вложенная группа
+  window.__effVis = (o) => { for (let x = o; x; x = x.parent) if (!x.visible) return false; return true }
   const fl = { frames: [], long: [], viol: [], maxPanels: 0, maxGroups: 0, heroLeak: 0, sampling: false, last: 0 }
   window.__fl = fl
   try {
@@ -94,8 +100,8 @@ const PROBE = `(() => {
       let groups = 0
       let heroVisible = null
       sc.traverse((o) => {
-        if ((o.name === 'formation-lab-fx' || o.name === 'route-lab-fx') && o.visible && o.scale.x > 1e-3) groups++
-        if (o.name === 'lab-product-hero-root') heroVisible = o.visible
+        if ((o.name === 'formation-lab-fx' || o.name === 'route-lab-fx') && window.__effVis(o) && o.scale.x > 1e-3) groups++
+        if (o.name === 'lab-product-hero-root') heroVisible = heroVisible === true || window.__effVis(o)
       })
       fl.maxGroups = Math.max(fl.maxGroups, groups)
       const live = window.__showDirector && window.__showDirector.kind !== 'none'
@@ -248,7 +254,7 @@ async function runOne(page, vp, s) {
     const f = window.__fl; f.watch = false
     let hero = null, groups = 0
     const sc = window.__atomlabPerf && window.__atomlabPerf.scene
-    if (sc) sc.traverse((o) => { if (o.name === 'lab-product-hero-root') hero = o.visible; if ((o.name === 'formation-lab-fx' || o.name === 'route-lab-fx') && o.visible) groups++ })
+    if (sc) sc.traverse((o) => { if (o.name === 'lab-product-hero-root') hero = hero === true || window.__effVis(o); if ((o.name === 'formation-lab-fx' || o.name === 'route-lab-fx') && window.__effVis(o) && o.scale.x > 1e-3) groups++ })
     return { maxPanels: f.maxPanels, maxGroups: f.maxGroups, heroLeak: f.heroLeak, hero, groups, scene: !!sc, kind: window.__showDirector ? window.__showDirector.kind : null,
       showing: !!document.querySelector('[data-run-showing]') }
   })()`)

@@ -11,6 +11,7 @@
   width: min(400px, calc(100vw - 32px));
   max-width: calc(100vw - 32px);
   min-height: 0;
+  box-sizing: border-box;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
