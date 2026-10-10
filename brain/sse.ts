@@ -19,11 +19,18 @@ export function sseSend(res: ServerResponse, event: string, data: unknown): void
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 }
 
+/** SSE-комментарий («: текст») — клиенты его пропускают; держит соединение живым, пока модель думает. */
+export function sseComment(res: ServerResponse, text: string): void {
+  if (res.writableEnded || res.destroyed) return
+  res.write(`: ${text}\n\n`)
+}
+
 /** Разбор SSE-потока на стороне клиента (eval, smoke). */
 export function parseSse(raw: string): { event: string; data: unknown }[] {
   const out: { event: string; data: unknown }[] = []
   for (const block of raw.split(/\n\n/)) {
     if (!block.trim()) continue
+    if (block.split('\n').every((l) => !l.trim() || l.startsWith(':'))) continue
     let event = 'message'
     const data: string[] = []
     for (const line of block.split('\n')) {

@@ -23,7 +23,7 @@ import {
 } from '../policy'
 import { routeTeacherReply } from '../../learnTeacherRouter'
 import type { LearnLocalAssistantContext } from '../../learnLocalAssistant'
-import { BRAIN_URL, checkHealth, getBrainStatus, getBrainStudent, markBrainOffline, parseSseBuffer, streamChat } from './brainClient'
+import { BRAIN_URL, checkHealth, FIRST_DELTA_TIMEOUT_MS, getBrainStatus, getBrainStudent, markBrainOffline, parseSseBuffer, streamChat } from './brainClient'
 
 setMemoryProfileBackend()
 setDialogBackend('memory')
@@ -306,6 +306,20 @@ console.log('[client] /health, SSE')
   await checkHealth(true)
   const part = await streamChat({ messages: ask('что такое электролиз'), context: { gradeId: 'g8', mode: 'chat', detail: 'brief' }, lang: 'ru' })
   check('stream: break after delta → partial text', !!part?.partial && /Электролиз/.test(part.text), part?.text ?? 'null')
+
+  // модель долго читает подсказку: сервер шлёт «сердцебиение» (SSE-комментарии), meta приходит вместе с первым куском
+  // (честный маршрут) — клиент ждёт и не падает в запасной путь; комментарии не превращаются в текст
+  const hb = Array.from({ length: 6 }, () => ': hb\n\n')
+  brainHandler = async (url) =>
+    url === '/health'
+      ? json(HEALTH_OK)
+      : sseResponse([': thinking\n\n', ...hb, ...brainReply(['Катализатор ускоряет реакцию.'], {})], { delayMs: 40 })
+  await checkHealth(true)
+  let metaSeen: { route?: string } | null = null
+  const slow = await streamChat({ messages: ask('что такое катализатор'), context: { gradeId: 'g9', mode: 'chat', detail: 'brief' }, lang: 'ru', onMeta: (m) => (metaSeen = m) })
+  check('stream: heartbeat before first delta → answer, not fallback', slow?.text === 'Катализатор ускоряет реакцию.' && !slow.partial && (metaSeen as { route?: string } | null)?.route === 'llm', slow?.text ?? 'null')
+  check('sse: comment-only blocks carry no data', parseSseBuffer(': hb\n\n: hb\n\n').events.every((e) => e.event === 'message' && e.data === ''))
+  check('stream: first-delta wait ≈ server first-token timeout (≥ 45 s)', FIRST_DELTA_TIMEOUT_MS >= 45_000 && FIRST_DELTA_TIMEOUT_MS <= 60_000, String(FIRST_DELTA_TIMEOUT_MS))
 
   // ошибка сервера 500 → null
   brainHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : json({ error: 'internal' }, 500))

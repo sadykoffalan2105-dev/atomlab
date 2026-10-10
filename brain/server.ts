@@ -15,7 +15,7 @@ import { Knowledge } from './kb/shards.ts'
 import { OllamaClient, type LlmClient } from './llm/ollama.ts'
 import { runChat, validateChatRequest, type BrainDeps } from './pipeline/chat.ts'
 import { setElementWords } from './pipeline/normalize.ts'
-import { sseHeaders, sseSend } from './sse.ts'
+import { sseComment, sseHeaders, sseSend } from './sse.ts'
 import { StudentStore } from './student/events.ts'
 
 const ALLOWED_ORIGIN = 'https://sadykoffalan2105-dev.github.io'
@@ -62,7 +62,8 @@ export function createBrainLazy(opts: { llm?: LlmClient | null; config?: BrainCo
   const embeds = new EmbedStore(config.embedModel)
   const ollama = opts.llm === undefined ? new OllamaClient(config) : null
   const llm = opts.llm === undefined ? ollama : opts.llm
-  const deps: BrainDeps = { kb, journal, embeds, llm, students: new StudentStore(), config }
+  // BRAIN_NO_DIALOG_LOG=1 — замеры/eval на втором экземпляре: не дописывать диалоги и события учеников в журнал владельца
+  const deps: BrainDeps = { kb, journal, embeds, llm, students: new StudentStore(), config, noJournal: process.env.BRAIN_NO_DIALOG_LOG === '1' }
   const brain: Brain = { deps, startedAt: Date.now(), ollama, loading: true }
   brain.ready = (async () => {
     const t0 = performance.now()
@@ -172,6 +173,10 @@ export function createServer(brain: Brain): http.Server {
           if (!res.writableEnded) ac.abort()
         })
         sseHeaders(res, cors)
+        // «сердцебиение»: SSE-комментарий сразу и каждые 5 с, пока модель читает подсказку (до 45 с) —
+        // соединение живое, клиент показывает «Думаю…» и не уходит в запасной путь раньше времени
+        sseComment(res, 'thinking')
+        const hb = setInterval(() => sseComment(res, 'hb'), 5000)
         try {
           await runChat(
             chat,
@@ -187,6 +192,8 @@ export function createServer(brain: Brain): http.Server {
         } catch (err) {
           console.error('[brain] /chat:', err)
           sseSend(res, 'error', { code: 'internal', message: (err as Error).message })
+        } finally {
+          clearInterval(hb)
         }
         return res.end()
       }
@@ -207,7 +214,7 @@ export async function main(): Promise<void> {
     server.once('error', reject)
     server.listen(PORT, '127.0.0.1', () => resolve())
   })
-  brain.ollama?.start()
+  brain.ollama?.start() // первый опрос /api/tags сразу прогревает чат- и быструю модели (персона в кеше)
   console.log(`[brain] ${SERVICE} ${VERSION} слушает http://127.0.0.1:${PORT} за ${Math.round(performance.now() - t0)} мс · данные: ${DATA_DIR} · Ollama: ${brain.deps.config.ollamaUrl} (опрос каждые ${Math.round(brain.deps.config.pollMs / 1000)} с)`)
   await brain.ready
   const st = await (brain.ollama?.refresh() ?? Promise.resolve(null))

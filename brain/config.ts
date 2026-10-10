@@ -24,6 +24,8 @@ export function defaultDataDir(): string {
 export const DATA_DIR = path.resolve(process.env.BRAIN_DATA_DIR || defaultDataDir())
 
 export type BrainConfig = {
+  /** Версия схемы умолчаний: старый config.json (без неё) мигрируется в памяти — см. CONFIG_MIGRATIONS. */
+  configVersion: number
   ollamaUrl: string
   /** Модели для ответов — по порядку предпочтения (первая найденная в /api/tags). */
   chatModels: string[]
@@ -38,10 +40,19 @@ export type BrainConfig = {
   numPredict: { brief: number; more: number; live: number }
   wordLimits: { brief: number; more: number; live: number }
   temperature: { chat: number; calc: number }
+  /** Отбор токенов: узкий top-k/top-p и лёгкий штраф повторов — меньше срывов qwen на китайский и зацикливаний. */
+  sampling: { topK: number; topP: number; repeatPenalty: number }
+  /** Одно окно для всех вызовов модели: другое num_ctx заставляет Ollama перезагрузить модель и теряет кеш префикса. */
   numCtx: number
+  /** Сколько Ollama держит модели в памяти после запроса; сервер продлевает его, пока работает (keepAliveRefreshMs). */
+  keepAlive: string
+  keepAliveRefreshMs: number
+  /** Бюджет подсказки: найденное и история идут в конец (после неизменной персоны) и ограничены. */
+  prompt: { chatItems: number; chatChars: number; liveItems: number; liveChars: number; historyMessages: number; historyChars: number }
 }
 
 export const DEFAULT_CONFIG: BrainConfig = {
+  configVersion: 2,
   ollamaUrl: 'http://127.0.0.1:11434',
   chatModels: ['qwen2.5:7b-instruct', 'qwen2.5:7b', 'qwen2.5:14b-instruct', 'qwen2.5:3b-instruct'],
   fastModels: ['qwen2.5:3b-instruct', 'qwen2.5:3b', 'qwen2.5:1.5b-instruct'],
@@ -49,11 +60,66 @@ export const DEFAULT_CONFIG: BrainConfig = {
   pollMs: 60_000,
   thresholds: { high: 0.55, medium: 0.35, schoolMin: 6 },
   hybrid: { wBm: 0.55, wVec: 0.45, mmrLambda: 0.7, topK: 6, maxChars: 5000, vecPool: 200 },
-  timeouts: { firstTokenMs: 4000, liveFirstTokenMs: 2500, totalMs: 60_000, classifyMs: 1500, embedMs: 1500, translateMs: 15_000 },
-  numPredict: { brief: 350, more: 800, live: 220 },
+  // Под Snapdragon X Elite / 16 ГБ без GPU (замер 11.10): qwen2.5 7b читает подсказку ~25–50 ток/с, пишет ~10 ток/с;
+  // 3b — ~95 ток/с и ~20 ток/с. Первый токен чата после прогрева 5–15 с; 45 с — запас на холодную модель и длинную историю.
+  timeouts: { firstTokenMs: 45_000, liveFirstTokenMs: 8000, totalMs: 120_000, classifyMs: 2500, embedMs: 1500, translateMs: 30_000 },
+  numPredict: { brief: 300, more: 700, live: 140 },
   wordLimits: { brief: 150, more: 300, live: 70 },
-  temperature: { chat: 0.3, calc: 0.1 },
-  numCtx: 8192,
+  temperature: { chat: 0.2, calc: 0.1 },
+  // штраф повторов > 1 толкает qwen с повторяющихся кириллических токенов на китайские — выключен (1.0)
+  sampling: { topK: 20, topP: 0.8, repeatPenalty: 1.0 },
+  numCtx: 4096,
+  keepAlive: '2h',
+  keepAliveRefreshMs: 15 * 60_000,
+  // переменная часть подсказки читается заново каждый раз (~2,5 симв./ток., 25–50 ток/с) — ≤ ~1000 симв. ≈ 8–15 с
+  prompt: { chatItems: 3, chatChars: 750, liveItems: 1, liveChars: 300, historyMessages: 2, historyChars: 300 },
+}
+
+/**
+ * Миграция старого config.json (создан со старыми умолчаниями, без configVersion): значения, равные СТАРОМУ умолчанию,
+ * заменяются новыми. Файл владельца не переписывается; его явные правки (не равные старому умолчанию) сохраняются.
+ */
+export const CONFIG_MIGRATIONS: { version: number; path: string; old: unknown }[] = [
+  { version: 2, path: 'timeouts.firstTokenMs', old: 4000 },
+  { version: 2, path: 'timeouts.liveFirstTokenMs', old: 2500 },
+  { version: 2, path: 'timeouts.totalMs', old: 60_000 },
+  { version: 2, path: 'timeouts.classifyMs', old: 1500 },
+  { version: 2, path: 'timeouts.translateMs', old: 15_000 },
+  { version: 2, path: 'numPredict.brief', old: 350 },
+  { version: 2, path: 'numPredict.more', old: 800 },
+  { version: 2, path: 'numPredict.live', old: 220 },
+  { version: 2, path: 'numCtx', old: 8192 },
+  { version: 2, path: 'temperature.chat', old: 0.3 },
+]
+
+function getPath(o: unknown, p: string): unknown {
+  return p.split('.').reduce<unknown>((a, k) => (a && typeof a === 'object' ? (a as Record<string, unknown>)[k] : undefined), o)
+}
+
+function setPath(o: Record<string, unknown>, p: string, v: unknown): void {
+  const ks = p.split('.')
+  let cur = o
+  for (const k of ks.slice(0, -1)) {
+    cur[k] = { ...(cur[k] as Record<string, unknown>) }
+    cur = cur[k] as Record<string, unknown>
+  }
+  cur[ks[ks.length - 1]!] = v
+}
+
+/** Применить миграции к уже слитому конфигу; fileVersion — configVersion из файла (0, если его нет). */
+export function migrateConfig(cfg: BrainConfig, fileVersion: number): { cfg: BrainConfig; changed: string[] } {
+  const out = structuredClone(cfg) as unknown as Record<string, unknown>
+  const changed: string[] = []
+  for (const m of CONFIG_MIGRATIONS) {
+    if (fileVersion >= m.version) continue
+    if (getPath(out, m.path) === m.old) {
+      const next = getPath(DEFAULT_CONFIG, m.path)
+      setPath(out, m.path, next)
+      changed.push(`${m.path}: ${String(m.old)} → ${String(next)}`)
+    }
+  }
+  out.configVersion = DEFAULT_CONFIG.configVersion
+  return { cfg: out as unknown as BrainConfig, changed }
 }
 
 export const DIRS = {
@@ -94,7 +160,11 @@ export function loadConfig(): BrainConfig {
   let cfg = DEFAULT_CONFIG
   if (fs.existsSync(FILES.config)) {
     try {
-      cfg = merge(DEFAULT_CONFIG, JSON.parse(fs.readFileSync(FILES.config, 'utf8')))
+      const raw = JSON.parse(fs.readFileSync(FILES.config, 'utf8')) as Record<string, unknown>
+      const fileVersion = typeof raw.configVersion === 'number' ? raw.configVersion : 0
+      const mig = migrateConfig(merge(DEFAULT_CONFIG, raw), fileVersion)
+      cfg = mig.cfg
+      if (mig.changed.length) console.log(`[brain] config.json v${fileVersion} → умолчания v${DEFAULT_CONFIG.configVersion} (в памяти, файл не меняется): ${mig.changed.join(', ')}`)
     } catch (err) {
       console.warn('[brain] config.json не читается, беру умолчания:', (err as Error).message)
     }

@@ -43,6 +43,13 @@ const R3: RegExp[] = [
   /puter/i,
 ]
 
+/** Китайские/японские/корейские символы и полноширинные знаки — qwen иногда срывается на них посреди ответа. */
+export const CJK_RE = /[　-ヿ㐀-䶿一-鿿豈-﫿가-힯＀-￯]/
+
+export function hasCjk(text: string): boolean {
+  return CJK_RE.test(text)
+}
+
 export function hasR3(text: string): boolean {
   return R3.some((re) => re.test(text))
 }
@@ -151,6 +158,8 @@ export class StreamGate {
   langChecked = false
   langMismatch = false
   stopped = false
+  /** модель сорвалась на CJK-символы (поток остановлен, хвост выброшен) */
+  cjk = false
   private readonly lang: Lang
   private readonly limit: number
   private readonly emit: (s: string) => void
@@ -165,6 +174,16 @@ export class StreamGate {
   push(token: string): boolean {
     if (this.stopped) return false
     this.buf += token
+    // срыв на китайский/японский/корейский: законченные предложения до него отдаём, остальное выбрасываем и останавливаем модель
+    const cjkAt = this.buf.search(CJK_RE)
+    if (cjkAt >= 0) {
+      this.cjk = true
+      this.buf = this.buf.slice(0, cjkAt)
+      if (!this.langMismatch && (this.langChecked || languageOk(this.buf, this.lang) || !(this.buf.match(/\p{L}/gu) ?? []).length)) this.flush(false)
+      this.buf = ''
+      this.stopped = true
+      return false
+    }
     if (!this.langChecked) {
       const letters = (this.buf.match(/\p{L}/gu) ?? []).length
       if (letters < 60) return true

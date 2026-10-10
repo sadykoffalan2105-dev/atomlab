@@ -4,6 +4,7 @@
  * нарочно ведёт себя как настоящая маленькая LLM — иногда вставляет R3-фразы («не знаю точно, но…»)
  * и портит числа расчёта. Так проверяется весь путь llm → StreamGate → postcheck без Ollama.
  */
+import { questionOf } from '../persona/systemPrompt.ts'
 import type { ChatStreamOptions, ChatStreamResult, LlmClient, LlmMessage, LlmStatus } from './ollama.ts'
 
 export type MockOptions = {
@@ -75,8 +76,11 @@ export class MockLlm implements LlmClient {
 
   /** Ответ «модели» по системному промпту и последнему вопросу. */
   compose(messages: LlmMessage[]): string {
-    const system = messages.find((m) => m.role === 'system')?.content ?? ''
-    const q = [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
+    // персона — в system, переменные блоки (знания, расчёт) и вопрос — в последнем сообщении user (кеш префикса)
+    const persona = messages.find((m) => m.role === 'system')?.content ?? ''
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content ?? ''
+    const system = `${persona}\n\n${lastUser}`
+    const q = questionOf(lastUser)
     const lang = langOf(system)
     const h = hash(q)
     const bad = (this.opts.misbehave ?? 0) > 0 && (h % 1000) / 1000 < (this.opts.misbehave ?? 0)
