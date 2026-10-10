@@ -55,7 +55,9 @@ const NUMBER_NOTE: Record<Lang, string> = {
   en: 'Honestly, no exact number can be given here — there is no measured value for this object in scientific references, and I will not invent one. Such quantities are found only by measuring a specific pure substance and checking against reference data.',
 }
 
-const LOGIC: Record<Lang, string> ={ ru: 'Логика от законов: ', uz: 'Qonunlardan mantiq: ', en: 'Reasoning from the laws: ' }
+const LIVE_DATA = /(погод|прогноз|новост|курс (доллар|валют|сум)|сч[её]т матча|который час|сегодняшн|ob-?havo|yangilik|valyuta kursi|weather|forecast|news|exchange rate|stock price|what time is it)/iu
+
+const LOGIC: Record<Lang, string> = { ru: 'Логика от законов: ', uz: 'Qonunlardan mantiq: ', en: 'Reasoning from the laws: ' }
 
 const MICRO: Record<QType | 'calc', Record<Lang, string[]>> = {
   definition: {
@@ -232,12 +234,26 @@ export function substanceFacts(s: QaSubstance, lang: Lang, qtype: QType): string
   return out
 }
 
+const REACT_Q = /(реаги|взаимодейст|будет,?\s+если|опуст|добав|реакци|react|reaksiya|taʼsirlash|ta'sirlash)/iu
+const DIATOMIC = new Set(['H', 'O', 'N', 'F', 'Cl', 'Br', 'I'])
+
+/** Уравнение из qaBank, где среди исходных веществ есть все названные вещества/элементы (≥ 2). */
+function reactionBetween(subs: QaSubstance[], els: QaElement[], kb: Knowledge): string | null {
+  const want = [...subs.map((s) => s.fa), ...els.map((e) => (DIATOMIC.has(e.s) ? `${e.s}2` : e.s))].filter((x, i, a) => a.indexOf(x) === i)
+  if (want.length < 2) return null
+  const hit = kb.qa.reactions.find((r) => want.every((w) => r.r.includes(w)))
+  return hit?.eq ?? null
+}
+
 function obtainEquations(s: QaSubstance, kb: Knowledge): string[] {
   const out: string[] = []
   if (s.rec) for (const r of s.rec.split(/;\s*/)) if (r.trim()) out.push(r.trim().replace(/\s=\s/, ' → '))
-  for (const r of kb.qa.reactions) {
+  // лабораторные способы чаще всего — разложение (KMnO₄, H₂O₂, KClO₃ → O₂): их первыми
+  const rank = (t: string) => (t === 'decomposition' ? 0 : t === 'substitution' ? 1 : 2)
+  const cands = kb.qa.reactions.filter((r) => r.p.includes(s.fa)).sort((a, b) => rank(a.t) - rank(b.t))
+  for (const r of cands) {
     if (out.length >= 3) break
-    if (r.p.includes(s.fa) && !out.includes(r.eq)) out.push(r.eq)
+    if (!out.includes(r.eq)) out.push(r.eq)
   }
   return out.slice(0, 2)
 }
@@ -323,8 +339,13 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   }
 
   if (!lines.length) {
-    // 2) тезис
-    if (primary && !(qtype === 'who' && elements.length)) {
+    // 2) тезис: «почему натрий реагирует с водой» — сначала само уравнение из учебника
+    const rxEq = REACT_Q.test(inp.cmp) ? reactionBetween(substances, elements, kb) : null
+    if (rxEq) {
+      lines.push(T(lang, `Реакция из учебника: ${rxEq}.`, `Darslikdagi reaksiya: ${rxEq}.`, `Textbook reaction: ${rxEq}.`))
+      cite('[ATOMLAB: реакции учебника]')
+      confidence = Math.max(confidence, 0.75)
+    } else if (primary && !(qtype === 'who' && elements.length)) {
       lines.push(primary.def[lang])
       logic = primary.law[lang]
       conceptId = primary.id
@@ -370,8 +391,10 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     if (haveThesis && items[0] && (r?.confR ?? 0) >= inp.thresholds.medium) cite(items[0].citation)
 
     // 4) логика по типу вопроса
-    if (qtype === 'how' && substances.length) {
-      const eqs = obtainEquations(substances[0]!, kb)
+    // «как получить кислород» — элемент назван, а получают простое вещество (O₂)
+    const howSub = substances[0] ?? (elements[0] ? (kb.substanceByFormula.get(DIATOMIC.has(elements[0].s) ? `${elements[0].s}2` : elements[0].s) ?? null) : null)
+    if (qtype === 'how' && howSub) {
+      const eqs = obtainEquations(howSub, kb)
       if (eqs.length) {
         logic = T(lang, `например, ${eqs.join('; ')}. Атомов каждого элемента слева и справа поровну — закон сохранения массы.`, `masalan, ${eqs.join('; ')}. Har bir element atomlari chapda va oʻngda teng — massaning saqlanish qonuni.`, `for example, ${eqs.join('; ')}. Each element has the same number of atoms on both sides — conservation of mass.`)
         cite(`[ATOMLAB: реакции учебника]`)
@@ -427,7 +450,26 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
 }
 
 /** Вопрос не про химию: коротко и честно (энциклопедия, если нашлась) + возврат к химии. */
-export function offtopicReply(lang: Lang, retrieval: RetrievalResult | null, seed: number): FallbackOutput {
+export function offtopicReply(lang: Lang, retrieval: RetrievalResult | null, seed: number, cmp = ''): FallbackOutput {
+  // свежие данные (погода, новости, курсы, счёт матча) — честно: интернета у мозга нет; мост к химии по теме
+  if (LIVE_DATA.test(cmp)) {
+    const weather = /(погод|дожд|снег|гроз|ob-?havo|yomg|weather|rain|snow|storm)/iu.test(cmp)
+    return {
+      text:
+        T(
+          lang,
+          'Свежих данных — прогнозов, новостей, курсов — у меня нет: я работаю на вашем компьютере без интернета, поэтому гадать не буду; загляните в приложение погоды или новостей.',
+          'Yangi maʼlumotlar — ob-havo, yangiliklar, kurslar — menda yoʻq: men kompyuteringizda internetsiz ishlayman, shuning uchun taxmin qilmayman; ob-havo yoki yangiliklar ilovasiga qarang.',
+          'I have no live data — forecasts, news or exchange rates: I run on your computer without the internet, so I will not guess; please check a weather or news app.',
+        ) +
+        '\n' +
+        (weather
+          ? T(lang, 'Зато могу объяснить химию погоды: почему перед грозой пахнет озоном (O₃) и откуда берутся кислотные дожди. Рассказать?', 'Lekin ob-havo kimyosini tushuntira olaman: momaqaldiroq oldidan nega ozon (O₃) hidi keladi va kislotali yomgʻirlar qayerdan paydo boʻladi. Aytib beraymi?', 'But I can explain the chemistry of weather: why it smells of ozone (O₃) before a storm and where acid rain comes from. Shall I?')
+          : T(lang, 'А вот химию за этим могу разобрать — спросите, из каких веществ это состоит или какие реакции тут идут.', 'Lekin buning ortidagi kimyoni tahlil qila olaman — u qanday moddalardan iborat yoki qanday reaksiyalar borishini soʻrang.', 'But I can unpack the chemistry behind it — ask what it is made of or which reactions are involved.')),
+      citations: [],
+      confidence: 0.3,
+    }
+  }
   const enc = retrieval?.items.find((c) => c.type === 'encyclopedia' && (c.lang === lang || lang === 'ru'))
   const bridge = pick(
     [

@@ -330,7 +330,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       }
       if (ans.stopped === 'total_timeout') {
         // договорить из запасного пути только недостающее
-        const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed) : composeFallback(fbInput())
+        const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, cmp) : composeFallback(fbInput())
         const have = splitSentences(body).map((s) => new Set(analyzeTerms(s)))
         const extra = splitSentences(fb.text).filter((s) => {
           const t = new Set(analyzeTerms(s))
@@ -348,7 +348,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     }
     // LLM не ответила (таймаут первого токена, ошибка, язык) → запасной путь
     if (ans.text) {
-      const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed) : composeFallback(fbInput())
+      const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, cmp) : composeFallback(fbInput())
       const have = splitSentences(ans.text).map((s) => new Set(analyzeTerms(s)))
       const extra = splitSentences(fb.text).filter((s) => !have.some((h) => jaccard(h, new Set(analyzeTerms(s))) > 0.5))
       const add = extra.length ? ' ' + extra.join(' ') : ''
@@ -358,7 +358,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   }
 
   // запасной путь
-  const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed) : composeFallback(fbInput())
+  const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, cmp) : composeFallback(fbInput())
   let body = scrubR3(fb.text, lang)
   if (hwNote) body += '\n' + hwNote
   streamText(body, sink)
