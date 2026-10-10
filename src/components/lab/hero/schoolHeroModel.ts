@@ -620,7 +620,7 @@ function ionicFromCatalog(shape: CatalogShape, els: readonly string[], list: rea
     const el = a.symbol as ElementSymbol
     const q = charges[a.symbol]!
     const radiusPm = rPm(a.symbol)
-    return { el, label: speciesLabel(el, q), charge: q, pos: [(a.pos[0] / u) * K, (a.pos[1] / u) * K, (a.pos[2] / u) * K], r: radiusPm * K * 0.94, radiusPm }
+    return { el, label: speciesLabel(el, q), charge: q, pos: [(a.pos[0] / u) * K, (a.pos[1] / u) * K, (a.pos[2] / u) * K], r: radiusPm * K * 0.92, radiusPm }
   })
   const radius = centerAndBound(atoms)
   return { compoundId: shape.id, kind: 'molecule', source: 'catalog', atoms, bonds: [], cellEdges: [], radius, ...screenPose(atoms, 0.16, 0.35), motion: 'sway', caption: [] }

@@ -17,9 +17,10 @@ import {
 } from '../hero/schoolHeroStyle'
 import { atomRadiusAt, clamp01, easeInOut, routeKeyAt, screenToModel, stageIndexAt, type FormationStory } from './formationStory'
 import type { FormationClock } from './formationTimeline'
-import { heatExpand, heatLevel, MOTION, smooth01, vibOffset } from './motion'
+import { heatExpand, heatLevel, MOTION, vibOffset } from './motion'
 import { acidDetach, phaseAtomPos, phaseExtent, phaseLayout } from './FormationPhaseScene'
 import { phaseOf } from './story/phase'
+import { createLatticeMesh, drawLattice, frameRadius, solidSwayYaw } from './view/latticeDraw'
 
 /**
  * «Как образуется» в 3D карточки каталога — от и до (сценарий formationStory): исходные вещества (молекулы H₂, O₂ с
@@ -47,7 +48,6 @@ const _cT = new THREE.Vector3()
 const E_LONE = new THREE.Color('#facc15')
 const E_PAIR = new THREE.Color('#22d3ee')
 const E_MOVE = new THREE.Color('#fb923c')
-const LAT_BG = new THREE.Color('#0b1020')
 
 /** src: 'route' — индексы атомов сцены пути (routeStage.atoms), иначе — атомы модели. */
 type Badge = { text: string; atoms: number[]; from: number; to: number; kind: 'group' | 'water' | 'valence' | 'caption' | 'route'; src?: 'route' }
@@ -217,18 +217,8 @@ export function FormationMoleculeView({
     const electrons = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), eMat, Math.max(1, story.electrons.length + nRE))
     electrons.frustumCulled = false
     for (let i = 0; i < story.electrons.length + nRE; i++) electrons.setColorAt(i, E_LONE)
-    // Фрагмент решётки: ионы / молекулы / звенья цепи (полупрозрачно, растут слоями по k).
-    const nL = story.latticeAtoms.length
-    // Чёткие непрозрачные ионы (без «каши» полупрозрачных сфер): цвет приглушён к фону — фокус на центральной единице.
-    const latMat = createSchoolMatteMaterial()
-    const lattice = new THREE.InstancedMesh(schoolSphereGeometry(lowPower), latMat, Math.max(1, nL))
-    lattice.frustumCulled = false
-    lattice.count = nL
-    story.latticeAtoms.forEach((a, i) => {
-      _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(1e-5))
-      lattice.setMatrixAt(i, _m)
-      lattice.setColorAt(i, schoolAtomColor(a.el as never, _c).lerp(LAT_BG, 0.42))
-    })
+    // Фрагмент решётки (view/latticeDraw.ts): оболочки S1/S2 / копии позади, цвет приглушён к фону по LatticeAtom.dim.
+    const { mesh: lattice, mat: latMat } = createLatticeMesh(story, lowPower)
     // Сцена пути получения (H⁺ + OH⁻ → H₂O …): свои шары.
     const nR = route?.atoms.length ?? 0
     const routeMat = createSchoolMatteMaterial()
@@ -642,28 +632,7 @@ export function FormationMoleculeView({
       }
     }
     // Фрагмент решётки и рёбра ячеек.
-    let latO = 0
-    const nL = story.latticeAtoms.length
-    if (nL) {
-      const [w0, w1] = story.latticeWin
-      const fin = story.stages[story.stages.length - 1]!
-      // Итог «как в жизни»: у твёрдых веществ (ионные, молекулярные, цепные) фрагмент решётки НЕ уходит до конца показа;
-      // у прочих (если фрагмент вдруг есть) — как раньше: уходит в конце «Готово».
-      const fadeAt = solidPhase ? fin.t0 + fin.dur + 10 : fin.t0 + fin.dur - 1.6
-      latO = clamp01((t - w0 + 0.2) / 0.8) * (1 - easeInOut((t - fadeAt) / 0.8))
-      // Ионы фрагмента в «Решётке» меньше (0,62 r) — видно расположение соседей; в «Готово» плавно до 0,9 r
-      // (ионы касаются — твёрдое тело).
-      const latK = story.latticeKind === 'ionic' ? 0.62 + 0.28 * smooth01((t - fin.t0) / 1.5) : 0.85
-      if (latO > 0.01) {
-        story.latticeAtoms.forEach((a, i) => {
-          const g = easeInOut((t - (w0 + a.k * (w1 - w0))) / 0.7) * latO
-          _m.compose(_p.set(...a.pos), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g * latK)))
-          res.lattice.setMatrixAt(i, _m)
-        })
-        res.lattice.instanceMatrix.needsUpdate = true
-      }
-    }
-    res.lattice.visible = latO > 0.04
+    const latO = drawLattice(story, res.lattice, t, solidPhase)
     if (res.edges) (res.edges.material as THREE.LineBasicMaterial).opacity = 0.55 * clamp01((t - finalT0) / 1.2)
     const cTarget = _cT.set(0, 0, 0)
     // Кадр: описанная сфера текущих положений (+ призраки и копии решётки, пока видны).
@@ -704,11 +673,8 @@ export function FormationMoleculeView({
       center.current.lerp(cTarget, kc)
       if (centerRef.current) centerRef.current.position.set(-center.current.x, -center.current.y, -center.current.z)
     }
-    // Кадр держит весь фрагмент, пока он виден (без наезда камеры на уходящие ионы), затем плавно возвращается.
-    if (latO > 0.04) {
-      const kk = 1
-      for (const a of story.latticeAtoms) R = Math.max(R, model.radius + (Math.hypot(...a.pos) + a.r - model.radius) * kk)
-    }
+    // Кадр, пока фрагмент виден: модель в центре и ≥ 45 % кадра, оболочка S1 целиком (view/latticeDraw.ts frameRadius).
+    R = frameRadius(story, model, R, latO)
     // Сцена фазы (копии молекул газа/жидкости, вода раствора) — в кадре целиком (не режется ближней плоскостью).
     R = Math.max(R, phaseExtent(phaseL, t))
     const o = outer.current
@@ -726,8 +692,8 @@ export function FormationMoleculeView({
         a.rotation.set(model.pitch, 0, 0)
         bb.rotation.set(0, model.yaw + stt * HERO_ORBIT_RAD_PER_SEC, 0)
       } else if (solidPhase) {
-        // Твёрдое вещество: с «Готово» — медленный облёт (как у кристаллов), фрагмент виден со всех сторон.
-        a.rotation.set(0, model.yaw + stt * HERO_ORBIT_RAD_PER_SEC, 0)
+        // Твёрдое вещество: с «Готово» — покачивание ±0,42 рад вокруг читаемой позы (оболочки КЧ видны с разных сторон).
+        a.rotation.set(0, solidSwayYaw(model, stt), 0)
         bb.rotation.set(model.pitch, 0, 0)
       } else {
         a.rotation.set(0, model.yaw + SWAY_AMP * Math.sin((2 * Math.PI * stt) / SWAY_PERIOD), 0)

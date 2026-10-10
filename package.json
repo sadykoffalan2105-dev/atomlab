@@ -124,6 +124,7 @@
     "test:formation-lab": "tsx scripts/test-formation-lab.mts",
     "test:formation-plan": "tsx scripts/test-formation-plan.mts",
     "test:formation-motion": "tsx scripts/test-formation-motion.mts",
+    "test:formation-lattice": "tsx scripts/test-formation-lattice.mts",
     "test:formation-teacher": "tsx scripts/test-formation-teacher.mts",
     "test:reactions200": "tsx scripts/test-reactions200.mts",
     "plan:reactions200": "tsx scripts/plan/select-reactions200.mts",
