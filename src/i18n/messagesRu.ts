@@ -335,6 +335,7 @@ export const messagesRu = {
   'reactor.valencyBondToggle': 'Связь {index} из {total} для {symbol}',
   'reactor.run': 'Проверить и запустить синтез',
   'reactor.runRunning': 'Синтез выполняется…',
+  'reactor.runShowing': 'Идёт показ · этап {k}/{n}',
   'reactor.successRunning': 'Верно! Связь… {name}',
   'reactor.successProduct': 'Получено: {name} {formula}. 3D показан в центре. Можно составить новое уравнение или закрыть реактор.',
   'reactor.valencyHint': 'Валентность {symbol}: {valency}',

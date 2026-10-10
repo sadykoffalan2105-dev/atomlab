@@ -40,3 +40,50 @@ export function formationForLabRun(leftFormulas: readonly string[], productId: s
   const left = [...new Set(leftFormulas)]
   return formationReagentSets(productId).some((set) => sameSet(set, left)) ? productId : null
 }
+
+/* ── Прогрев показа (без three в этом модуле: тяжёлое — в formationLabPrewarmImpl, грузится лениво) ── */
+
+/** Вещества, чьи программы шейдеров показа уже прогреты (FormationLabWarmup). */
+export const formationGpuReady = new Set<string>()
+const cpuWarm = new Set<string>()
+
+/**
+ * Прогреть показ вещества на CPU: история, план, модель, раскладка фазы и HUD-карточки (всё кешируется) —
+ * первый кадр показа не строит их синхронно. Повторный вызов — бесплатно.
+ */
+export function formationLabPrewarm(id: string | null | undefined, lowPower = false): Promise<void> {
+  if (!id || !compoundById[id]) return Promise.resolve()
+  const key = `${id}|${lowPower ? 1 : 0}`
+  if (cpuWarm.has(key)) return Promise.resolve()
+  cpuWarm.add(key)
+  return import('./formationLabPrewarmImpl')
+    .then((m) => m.prewarmFormationCpu(id, lowPower))
+    .catch(() => {
+      cpuWarm.delete(key)
+    })
+}
+
+/** Чанки 3D-сцены, панели и прогрева показа — сразу (без таймеров): нажатие не ждёт сети. */
+export function formationLabChunksPrewarm(): void {
+  void import('./FormationLabFx')
+  void import('./FormationLabPanel')
+  void import('./FormationLabWarmup')
+}
+
+/** Какое вещество греть на GPU (ставит реактор; читает FormationLabWarmup в сцене лаборатории). */
+let warmTarget: string | null = null
+const warmSubs = new Set<() => void>()
+export const formationWarm = {
+  get: (): string | null => warmTarget,
+  set(id: string | null) {
+    if (id === warmTarget) return
+    warmTarget = id
+    warmSubs.forEach((f) => f())
+  },
+  subscribe(f: () => void) {
+    warmSubs.add(f)
+    return () => {
+      warmSubs.delete(f)
+    }
+  },
+}

@@ -337,6 +337,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'reactor.valencyBondToggle': '{symbol} uchun {total} dan {index} bog\'',
   'reactor.run': 'Tekshirish va sintezni ishga tushirish',
   'reactor.runRunning': 'Sintez bajarilmoqda…',
+  'reactor.runShowing': 'Koʻrsatuv · {k}/{n} bosqich',
   'reactor.successRunning': 'To\'g\'ri! Bog\'lanish… {name}',
   'reactor.successProduct':
     'Olingan: {name} {formula}. 3D markazda ko\'rsatilgan. Yangi tenglama tuzishingiz yoki reaktorni yopishingiz mumkin.',

@@ -322,7 +322,8 @@ export function phaseExtent(L: PhaseLayout, t: number): number {
 const WATER_EL = ['O', 'H', 'H'] as const
 const _wo: V3 = [0, 0, 0]
 
-export function FormationPhaseScene({ model, story, clock, lowPower }: { model: SchoolHeroModel; story: FormationStory; clock: MutableRefObject<FormationClock>; lowPower: boolean }) {
+/** copiesCap — не больше стольких копий молекул (лаборатория: копии не выходят за свободную часть кадра); по умолчанию — все. */
+export function FormationPhaseScene({ model, story, clock, lowPower, copiesCap }: { model: SchoolHeroModel; story: FormationStory; clock: MutableRefObject<FormationClock>; lowPower: boolean; copiesCap?: number }) {
   const L = useMemo(() => phaseLayout(story, model, lowPower), [story, model, lowPower])
   const res = useMemo(() => {
     if (L.kind === 'none') return null
@@ -368,6 +369,11 @@ export function FormationPhaseScene({ model, story, clock, lowPower }: { model: 
     if (res.sticks) res.sticks.visible = on
     if (!on) return
     if (L.kind === 'copies') {
+      if (copiesCap != null) {
+        const cap = Math.max(0, Math.min(L.copies.length, Math.floor(copiesCap)))
+        res.atoms.count = cap * L.nA
+        if (res.sticks) res.sticks.count = cap * model.bonds.length
+      }
       const rS = SCHOOL_DRAW.stickR * PM_K * 0.7
       let ks = 0
       L.copies.forEach((c, k) => {
