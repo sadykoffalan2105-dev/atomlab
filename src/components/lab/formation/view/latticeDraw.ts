@@ -13,6 +13,8 @@ export { applyLatticeSnap } from '../story/lattice'
  */
 
 const LAT_BG = new THREE.Color('#0b1020')
+/** Доля радиуса соседних ионов во фрагменте ионной решётки (структура читается, модель выделена). */
+export const LAT_ION_R = 0.6
 const GROW = 0.5
 const _m = new THREE.Matrix4()
 const _q = new THREE.Quaternion()
@@ -70,10 +72,13 @@ export function drawLattice(story: FormationStory, mesh: THREE.InstancedMesh, t:
   if (!(still && ud.k === 2)) {
     if (vis) {
       const span = w1 - w0
+      // ионная решётка: соседние ионы мельче (0,6 радиуса), как на рисунках решёток в учебнике — видны координация
+      // и порядок, формульная единица модели в центре — полного размера и не тонет среди соседей
+      const rk = story.latticeKind === 'ionic' ? LAT_ION_R : 1
       for (let i = 0; i < nL; i++) {
         const a = atoms[i]!
         const g = ease((t - (w0 + a.k * span)) / GROW) * fade
-        _m.compose(_p.set(a.pos[0], a.pos[1], a.pos[2]), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * g)))
+        _m.compose(_p.set(a.pos[0], a.pos[1], a.pos[2]), _q.identity(), _s.setScalar(Math.max(1e-5, a.r * rk * g)))
         mesh.setMatrixAt(i, _m)
       }
       mesh.instanceMatrix.needsUpdate = true
