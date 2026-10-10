@@ -71,6 +71,8 @@
     "test:lab3d-visibility": "tsx scripts/test-lab3d-visibility.mts",
     "test:lab-tasks": "tsx scripts/test-lab-tasks.mts",
     "test:lab3d": "tsx scripts/test-lab3d-experiments.mts",
+    "check:contrast": "tsx scripts/check-contrast.mts",
+    "check:lab3d-board": "node scripts/lab3d-board-check.mjs 4831",
     "test:coeff-edit-atom-pin": "tsx scripts/test-coeff-edit-atom-pin.mts",
     "test:reactor-preview-motion": "tsx scripts/test-reactor-preview-motion.mts",
     "test:catalog-coeff-stress": "tsx scripts/test-catalog-coeff-stress.mts",

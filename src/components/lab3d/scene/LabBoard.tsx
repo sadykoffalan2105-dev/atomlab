@@ -15,11 +15,13 @@
 import { Html, RoundedBox } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
+import type * as THREE from 'three'
 import { BOARD_CENTER, BOARD_PX, BOARD_SIZE, type BoardPanelProps } from '../labContract'
 import { labXr } from '../xr/labXrStore'
 import { BoardPanel } from '../experiments'
 import type { LabMaterials } from './labMaterials'
 import type { LabSceneBridge } from './labBridge'
+import { probeBoard } from './labBoardProbe'
 
 const DISTANCE_FACTOR = (BOARD_SIZE.w * 400) / BOARD_PX.w
 /** Диапазон z-index HTML доски; холст — ровно посередине (как у drei для occlude="blending"), доска — ниже него. */
@@ -35,7 +37,30 @@ interface Props {
 
 export function LabBoard({ mats, panel, bridge }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const groupRef = useRef<THREE.Group>(null)
   const gl = useThree((s) => s.gl)
+  const camera = useThree((s) => s.camera)
+  const scene = useThree((s) => s.scene)
+
+  // Для автоматических проверок (…#/vr-lab?debugLab=1): window.__labBoard.probe() — расхождение HTML-доски с рамкой
+  // и точки экрана, закрытые мебелью; hide(true) прячет HTML-доску (кадр «без доски» для сравнения пикселей)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !/[?&]debug(Lab|Cam)=1/.test(window.location.hash)) return
+    const w = window as unknown as { __labBoard?: unknown }
+    w.__labBoard = {
+      probe: (nx?: number, ny?: number) => {
+        const group = groupRef.current
+        const root = rootRef.current
+        return group && root ? probeBoard({ group, root, camera, scene, canvas: gl.domElement, nx, ny }) : null
+      },
+      hide: (on: boolean) => {
+        if (rootRef.current) rootRef.current.style.visibility = on ? 'hidden' : ''
+      },
+    }
+    return () => {
+      delete w.__labBoard
+    }
+  }, [camera, scene, gl])
 
   // Холст над доской: без этого доска просвечивает сквозь стены и шкафы (см. шапку файла)
   useFrame(() => {
@@ -116,7 +141,7 @@ export function LabBoard({ mats, panel, bridge }: Props) {
   const frameW = BOARD_SIZE.w + 0.07
   const frameH = BOARD_SIZE.h + 0.07
   return (
-    <group position={BOARD_CENTER}>
+    <group ref={groupRef} position={BOARD_CENTER}>
       {/* Корпус и рамка */}
       <RoundedBox args={[frameW, frameH, 0.06]} radius={0.015} smoothness={3} position-z={-0.032} material={mats.darkMetal} castShadow />
       <mesh position-z={-0.001} material={mats.screenBlack}>

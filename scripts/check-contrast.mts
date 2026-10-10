@@ -2,7 +2,8 @@
  * Контраст текста (WCAG 2.x) на ключевых экранах ATOMLAB — в светлой и тёмной теме.
  *
  *   npm run build && npx vite preview --port 4831 --strictPort
- *   npx tsx scripts/check-contrast.mts 4831                       — все экраны, обе темы
+ *   npm run check:contrast                                        — все экраны, обе темы (порт 4831)
+ *   npx tsx scripts/check-contrast.mts 4831                       — то же, порт явно
  *   npx tsx scripts/check-contrast.mts 4831 live-session catalog-rx-g7 --theme=light
  *   SHOTS=.smoke/contrast npx tsx scripts/check-contrast.mts 4831  — кадр каждого экрана
  *   JSON=.smoke/contrast/report.json …                             — полный отчёт
@@ -76,6 +77,8 @@ const SCREENS: readonly Screen[] = [
   { id: 'catalog', hash: '#/catalog', scrolls: 1 },
   { id: 'catalog-rx-g7', hash: '#/catalog?view=reactions&grade=g7', scrolls: 2 },
   { id: 'catalog-rx-g9', hash: '#/catalog?view=reactions&grade=g9', scrolls: 1 },
+  { id: 'vr-lab', hash: '#/vr-lab' },
+  { id: 'vr-lab-board', hash: '#/vr-lab', steps: [{ click: '^Доска$' }, { wait: 1500 }] },
 ]
 
 /** Код страницы — строкой (tsx/esbuild вставляет в функции служебные __name, которых в браузере нет). */
@@ -304,10 +307,11 @@ const BROWSER = String.raw`
 `
 
 const args = process.argv.slice(2)
-const port = args.find((a) => /^\d+$/.test(a))
-if (!port) {
-  console.error('npx tsx scripts/check-contrast.mts <port> [screen…] [--theme=light|dark]')
-  process.exit(2)
+const port = args.find((a) => /^\d+$/.test(a)) ?? process.env.PORT ?? '4831'
+if (args.includes('--help')) {
+  console.log('npx tsx scripts/check-contrast.mts [port=4831] [screen…] [--theme=light|dark]')
+  console.log('экраны: ' + SCREENS.map((s) => s.id).join(' '))
+  process.exit(0)
 }
 const themeArg = args.find((a) => a.startsWith('--theme='))?.slice(8) as Theme | undefined
 const themes: Theme[] = themeArg ? [themeArg] : ['light', 'dark']
