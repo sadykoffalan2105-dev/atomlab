@@ -228,7 +228,6 @@ export function bondPairPos(
   live: readonly V3[],
   out: V3,
 ): V3 {
-  const f = eFrame(model)
   const eR = story.eR
   const A = live[bd.a]!
   const B = live[bd.b]!

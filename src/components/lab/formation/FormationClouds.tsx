@@ -9,6 +9,7 @@ import { distributeElectrons, VALENCE } from './board/lewis'
 import { orbitalsOf, type AtomOrbital, type Hybrid } from './story/phase'
 import { phaseAtomPos } from './FormationPhaseScene'
 import { smooth01 } from './motion'
+import { cloudLimit, lobeLimit } from './story/electrons'
 
 /**
  * «Электронные облака» (по умолчанию ВКЛ, переключатель на доске) — поверх 3D «Как образуется», для всех веществ.
@@ -74,6 +75,7 @@ const DIRS = Array.from({ length: 4 }, () => new THREE.Vector3())
 const TETRA_HALF = (54.75 * Math.PI) / 180
 const UMBRELLA = (70.5 * Math.PI) / 180
 const TETRA = Math.acos(-1 / 3)
+const LD: V3 = [0, 0, 0]
 
 /**
  * Направления L неподелённых пар у атома с соседями nbrs (единичные векторы к ним) — по ОЭПВО (школьная геометрия):
@@ -471,6 +473,10 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
     [res],
   )
 
+  // соседи облаков: положения и радиусы всех атомов модели в кадре (заполняются лениво)
+  const NBP = useMemo(() => model.atoms.map(() => [0, 0, 0] as V3), [model])
+  const NBR = useMemo(() => model.atoms.map(() => 0), [model])
+
   const upModel = useMemo(() => {
     const u = screenToModel(model, [0, 1, 0])
     return new THREE.Vector3(u[0], u[1], u[2]).normalize()
@@ -513,6 +519,39 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
     const lobe = (P: V3, dir: THREE.Vector3, off: number, half: number, wide: number, col: THREE.Color, k: number) =>
       put(P[0] + dir.x * off, P[1] + dir.y * off, P[2] + dir.z * off, dir, half, wide, col, k)
     const rOf = (i: number) => atomRadiusAt(story, i, t, model.atoms[i]!.r)
+    // ── Облако не заходит в шар соседа (story/electrons.ts cloudLimit / lobeLimit): соседи — все атомы модели в момент t ──
+    let nbReady = false
+    const nbs = () => {
+      if (nbReady) return
+      nbReady = true
+      for (let j = 0; j < NBP.length; j++) {
+        phaseAtomPos(story, model, j, t, NBP[j]!)
+        NBR[j] = rOf(j)
+      }
+    }
+    /** сфера у атома i: R_eff = min(R, 0,92·min(d − r_j)); тесно (R_eff < 1,02r) — светящийся ободок 1,04r вместо шара поверх соседа */
+    const sphere = (i: number, P: V3, R: number, col: THREE.Color, k: number) => {
+      if (k < 0.004) return
+      nbs()
+      const r = rOf(i)
+      const Re = cloudLimit(i, R, NBP, NBR)
+      if (Re < 1.02 * r) put(P[0], P[1], P[2], null, 1.04 * r, 1.04 * r, col, k * 1.6)
+      else put(P[0], P[1], P[2], null, Re, Re, col, k)
+    }
+    /** лепесток у атома i вдоль dir (off < 0 — в обратную сторону): длина от центра ≤ 0,92·(до шара соседа) */
+    const lobeL = (i: number, P: V3, dir: THREE.Vector3, off: number, half: number, wide: number, col: THREE.Color, k: number, ex1 = -1, ex2 = -1) => {
+      if (k < 0.004) return
+      nbs()
+      const sg = off < 0 ? -1 : 1
+      LD[0] = dir.x * sg
+      LD[1] = dir.y * sg
+      LD[2] = dir.z * sg
+      const Lw = Math.abs(off) + half
+      const Le = lobeLimit(i, LD, Lw, wide, NBP, NBR, ex1, ex2)
+      const s = Lw > 1e-9 ? Le / Lw : 1
+      if (s < 0.05) return
+      lobe(P, dir, off * s, half * s, wide * Math.min(1, 0.5 + 0.5 * s), col, k)
+    }
 
     // ── 1. Исходные: σ (+π) двухатомных молекул, «электронный газ» металла ──
     const eRea = smooth01((t - plan.rea0) / 0.6) * (1 - smooth01((t - plan.appr0) / 0.8)) * keep
@@ -583,7 +622,7 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
           const gone = o.leave.length ? arrived(o.leave, t) : give * ionU
           const fr = clamp01(gone / give)
           const f = 1.75 + (1.15 - 1.75) * fr
-          put(A[0], A[1], A[2], null, r * f, r * f, C_CAT, eIn * ionOut * (1 - 0.45 * fr))
+          sphere(o.i, A, r * f, C_CAT, eIn * ionOut * (1 - 0.45 * fr))
           continue
         }
         if (o.role === 'anion') {
@@ -592,15 +631,15 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
           const e = o.p + got
           const close = smooth01(e - 5)
           const k = eIn * ionOut
-          put(A[0], A[1], A[2], null, r * 1.2, r * 1.2, C_S, k * 0.35 * (1 - close))
+          sphere(o.i, A, r * 1.2, C_S, k * 0.35 * (1 - close))
           for (let j = 0; j < 3; j++) {
             const occ = hundOcc(e, j)
             if (occ <= 0) continue
             const sz = smooth01(occ)
             const br = 1 + 0.6 * clamp01(occ - 1)
-            for (const sg of [1, -1]) lobe(A, j === 0 ? o.ax[0]! : j === 1 ? o.ax[1]! : o.ax[2]!, 0.85 * r * sg, 0.8 * r * (0.5 + 0.5 * sz), 0.42 * r, C_P, k * sz * br * (1 - close))
+            for (const sg of [1, -1]) lobeL(o.i, A, j === 0 ? o.ax[0]! : j === 1 ? o.ax[1]! : o.ax[2]!, 0.85 * r * sg, 0.8 * r * (0.5 + 0.5 * sz), 0.42 * r, C_P, k * sz * br * (1 - close))
           }
-          put(A[0], A[1], A[2], null, r * 1.75, r * 1.75, C_AN, k * close)
+          sphere(o.i, A, r * 1.75, C_AN, k * close)
           continue
         }
         // ковалентный атом: атомные орбитали гаснут, когда начинается его первая связь (их сменяют σ / π / пары)
@@ -608,22 +647,22 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
         if (kv <= 0.004) continue
         if (o.hybrid === 'none') {
           const isH = o.el === 'H'
-          put(A[0], A[1], A[2], null, r * (isH ? 1.45 : 1.2), r * (isH ? 1.45 : 1.2), C_S, kv * (isH ? 1 : 0.45))
+          sphere(o.i, A, r * (isH ? 1.45 : 1.2), C_S, kv * (isH ? 1 : 0.45))
           for (let j = 0; j < 3; j++) {
             const occ = hundOcc(o.p, j)
             if (occ <= 0) continue
             const br = occ > 1.5 ? 1.6 : 1
-            for (const sg of [1, -1]) lobe(A, o.ax[j]!, 0.85 * r * sg, 0.8 * r, 0.42 * r, C_P, kv * br)
+            for (const sg of [1, -1]) lobeL(o.i, A, o.ax[j]!, 0.85 * r * sg, 0.8 * r, 0.42 * r, C_P, kv * br)
           }
         } else {
           for (const hl of o.hy) {
             const col = hl.kind === 'lone' ? C_LONE : C_HYB
             const kk = hl.kind === 'lone' ? 0.45 : 1
             // гибридный лепесток: большая капля наружу + малая внутрь
-            lobe(A, hl.dir, 0.9 * r, 1.1 * r, 0.55 * r, col, kv * kk)
-            if (plan.cores) lobe(A, hl.dir, -0.55 * r, 0.55 * r, 0.4 * r, col, kv * kk * 0.7)
+            lobeL(o.i, A, hl.dir, 0.9 * r, 1.1 * r, 0.55 * r, col, kv * kk)
+            if (plan.cores) lobeL(o.i, A, hl.dir, -0.55 * r, 0.55 * r, 0.4 * r, col, kv * kk * 0.7)
           }
-          for (const ax of o.pu) for (const sg of [1, -1]) lobe(A, ax, 0.85 * r * sg, 0.8 * r, 0.42 * r, C_P, kv)
+          for (const ax of o.pu) for (const sg of [1, -1]) lobeL(o.i, A, ax, 0.85 * r * sg, 0.8 * r, 0.42 * r, C_P, kv)
         }
       }
     }
@@ -647,7 +686,7 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
         [B, rb, -1],
       ] as const) {
         const half = r * 0.9 + (Math.max(r * 0.9, d * 0.5) - r * 0.9) * u
-        put(P[0] + _d.x * half * 0.95 * sgn, P[1] + _d.y * half * 0.95 * sgn, P[2] + _d.z * half * 0.95 * sgn, _d, half, r * (0.55 + 0.12 * u), C_SIGMA, eb)
+        lobeL(sgn > 0 ? b.a : b.b, P, _d, half * 0.95 * sgn, half, r * (0.55 + 0.12 * u), C_SIGMA, eb, b.a, b.b)
       }
       const rm = Math.min(ra, rb)
       put((A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2, _d, d * 0.32 * u, rm * 0.5 * u, C_OVER, eb)
@@ -697,8 +736,8 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
       }
       if (!units.length) continue
       for (const dir of loneDirs(units, o.lone, upModel)) {
-        lobe(A, dir, 1.7 * r, 0.8 * r, 0.4 * r, C_LONE, el)
-        if (plan.cores) lobe(A, dir, 1.25 * r, 0.36 * r, 0.22 * r, C_LONE_CORE, el)
+        lobeL(o.i, A, dir, 1.7 * r, 0.8 * r, 0.4 * r, C_LONE, el)
+        if (plan.cores) lobeL(o.i, A, dir, 1.25 * r, 0.36 * r, 0.22 * r, C_LONE_CORE, el)
       }
     }
 
@@ -708,7 +747,7 @@ export function FormationClouds({ model, story, clock, lowPower }: { model: Scho
       if (u > 0 && u < 1) {
         phaseAtomPos(story, model, plan.burst.atom, t, A)
         const r = rOf(plan.burst.atom) * (1.3 + 1.7 * smooth01(u))
-        put(A[0], A[1], A[2], null, r, r, C_BURST, (1 - u) * (1 - u) * keep)
+        sphere(plan.burst.atom, A, r, C_BURST, (1 - u) * (1 - u) * keep)
       }
     }
 

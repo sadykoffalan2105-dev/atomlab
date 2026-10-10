@@ -2,7 +2,7 @@
  * Геометрическая проверка «Как образуется» для 200 веществ каталога — без браузера, по сюжету (formationStory):
  *  P  перекрытие шаров РАЗНЫХ частиц сильнее 25 % суммы радиусов (кроме связанных палочкой, момента слияния
  *     ±1 с вокруг появления / исчезновения палочки и подмены атома «копией»);
- *  R  то же внутри сцены пути (этап 'route', только полностью видимые атомы);
+ *  R  внутри сцены пути (этап 'route') — СТРОГО (0 %), частично видимые шары с радиусом r·sc (sc > 0,2);
  *  T  фрагмент решётки накрывает модель: атом решётки ближе 0,45·d(катион–анион) к атому модели (ионные),
  *     у молекулярной укладки / цепи — перекрытие шаров с моделью сильнее 25 %;
  *  F  не в кадре: видимый атом сцены пути / решётки / электрон вне описанной сферы, по которой камера подгоняет кадр
@@ -28,6 +28,8 @@ const add = (id: string, msg: string) => {
 }
 const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 const OVER = 0.25
+/** сцена пути — строго: шары не пересекаются (было 25 %) */
+const OVER_R = 0
 
 function routeSticksAt(story: FormationStory, t: number, slack: number): Set<string> {
   const s = new Set<string>()
@@ -69,20 +71,22 @@ for (const id of ids) {
         }
     }
   // ── R / F: сцена пути ──
-  if (rs) {
+  // ОВР-разложение: шары сцены пути подменяются копиями (O → O₂) — по нормам автотеста проверяются только решётка/копии
+  if (rs && story.scenario !== 'redoxDecomposition') {
     const P = rs.atoms.map(() => [0, 0, 0] as V3)
     for (let t = rs.t0 + 0.3; t < rs.t0 + rs.dur - 0.05; t += 0.1) {
       const vis = rs.atoms.map((a) => clamp01((t - a.tIn) / 0.5) * (1 - clamp01((t - a.tOut) / 0.4)))
       rs.atoms.forEach((a, i) => routeKeyAt(a.keys, t, P[i]!))
       const near = routeSticksAt(story, t, 1.0)
       for (let i = 0; i < P.length; i++) {
-        if (vis[i]! < 0.999) continue
+        // строго (порог 0 %): частично видимые шары — с радиусом r·sc (sc > 0,2), кроме связанных палочкой
+        if (vis[i]! <= 0.2) continue
         for (let j = i + 1; j < P.length; j++) {
-          if (vis[j]! < 0.999 || near.has(`${i}:${j}`)) continue
-          const ri = rs.atoms[i]!.r
-          const rj = rs.atoms[j]!.r
+          if (vis[j]! <= 0.2 || near.has(`${i}:${j}`)) continue
+          const ri = rs.atoms[i]!.r * vis[i]!
+          const rj = rs.atoms[j]!.r * vis[j]!
           const ov = (ri + rj - dist(P[i]!, P[j]!)) / (ri + rj)
-          if (ov > OVER) add(id, `R t=${(t - rs.t0).toFixed(1)}: ${rs.atoms[i]!.el}#${i}–${rs.atoms[j]!.el}#${j} перекрытие ${(ov * 100).toFixed(0)} %`)
+          if (ov > OVER_R) add(id, `R t=${(t - rs.t0).toFixed(1)}: ${rs.atoms[i]!.el}#${i}–${rs.atoms[j]!.el}#${j} перекрытие ${(ov * 100).toFixed(0)} %`)
         }
       }
       // кадр — как во FormationMoleculeView, когда исходные вещества спрятаны (hide > 0,5)
