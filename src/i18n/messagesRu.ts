@@ -513,16 +513,23 @@ export const messagesRu = {
 
   /* ИИ-учитель: чат урока и онлайн-урок («видеозвонок») */
   'learn.teacherUi.sources': 'Источники',
-  'learn.teacherUi.brainSmart': 'Умный ИИ',
+  'learn.teacherUi.brainLocalAi': 'Локальный мозг',
+  'learn.teacherUi.brainOnline': 'Локальный мозг: подключён',
+  'learn.teacherUi.brainOfflineShort': 'Локальная база (мозг не запущен)',
+  'learn.teacherUi.brainOffline': 'Мозг не запущен — отвечает база знаний',
+  'learn.teacherUi.brainChecking': 'Проверяю локальный мозг…',
+  'learn.teacherUi.brainHint': 'Запустите npm run brain:start',
+  'learn.teacherUi.brainLevel': 'Мозг: уровень {level} из 5',
+  'learn.teacherUi.brainPace': 'Темп',
+  'learn.teacherUi.brainPaceSlow': 'медленный',
+  'learn.teacherUi.brainPaceNormal': 'обычный',
+  'learn.teacherUi.brainPaceFast': 'быстрый',
+  'learn.teacherUi.brainErrors': 'Типичные ошибки',
+  'learn.teacherUi.moderation.notice': 'Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.',
+  'learn.teacherUi.rule.orgInorg': 'Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией',
   'learn.teacherUi.brainLocal': 'Локальная база знаний',
   'learn.teacherUi.brainServer': 'Сервер учителя',
   'learn.teacherUi.brainAnswers': 'Отвечает: {brain}',
-  'learn.teacherUi.smartConnect': 'Подключить умный ИИ (бесплатно)',
-  'learn.teacherUi.smartConnecting': 'Подключаю…',
-  'learn.teacherUi.smartExplain':
-    'Отвечает шире и живее. Бесплатно через Puter — нужен только вход; без него отвечает локальная база знаний.',
-  'learn.teacherUi.smartError': 'Не получилось подключить. Разрешите всплывающее окно Puter и попробуйте ещё раз.',
-  'learn.teacherUi.smartToggle': 'Умный ИИ (Puter, бесплатно)',
   'learn.teacherUi.settings': 'Настройки учителя',
   'learn.teacherUi.chatMode': 'Как отвечать',
   'learn.teacherUi.quickPrompts': 'Быстрые вопросы',
@@ -611,7 +618,6 @@ export const messagesRu = {
     'Распознавание речи недоступно в этом браузере. Откройте урок в Chrome или Edge — или пишите текстом: учитель ответит голосом.',
   'learn.teacherUi.sttLanguage':
     'Браузер не распознаёт речь на этом языке. Пишите текстом или откройте урок в Chrome или Edge.',
-  'learn.teacherUi.smartDisconnect': 'Отключить умный ИИ',
   'learn.teacherUi.brainLocalShort': 'База знаний',
   'learn.teacherUi.scrollLatest': 'К последнему сообщению',
 

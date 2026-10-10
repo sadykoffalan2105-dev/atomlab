@@ -70,8 +70,6 @@ export interface ComposeInput {
   topicHint?: string
   /** Детерминированная вариативность формулировок. */
   seed?: number
-  /** Предложить подключить умный ИИ, если ответа нет. */
-  suggestSmartAi?: boolean
   /** Диагностика (скрипты качества): ранжированные фразы-кандидаты. */
   debug?: (candidates: readonly unknown[]) => void
 }
@@ -1234,14 +1232,13 @@ const L = {
     checkPlain: 'Понятно? Если хочешь — объясню проще.',
     helperLead: 'Подсказка, а решишь ты сам.',
     helperAsk: (t: string) => `Как это помогает с вопросом про «${t}»? Попробуй сделать следующий шаг.`,
-    noAnswer: (q: string) => `Честно скажу: точного ответа на «${q}» в моей базе нет, а выдумывать я не буду.`,
-    offDomain: (q: string) => `Честно скажу: точного ответа на «${q}» в моей базе нет — это вопрос не по химии (я помогаю с химией 7–11 классов), а выдумывать я не буду.`,
-    noWhy: 'А точной причины в моей базе не написано — проверим по учебнику?',
+    noAnswer: (q: string) => `Разберём от основ: «${q}» — вопрос, который выводится из фундаментальных законов химии; точных чисел без источника называть не буду.`,
+    offDomain: (q: string) => `«${q}» — это скорее вопрос не по химии: я учитель химии и лучше всего помогу с веществами, реакциями и задачами.`,
+    noWhy: 'Причину выведем от основ: от строения частиц и законов сохранения — проверим это вместе по учебнику?',
     related: (title: string) => `Зато могу рассказать про «${title}».`,
     relatedGeneric: 'Зато могу рассказать про тему нашего урока.',
     topic: (t: string) => `Давай вернёмся к теме «${t}» — спроси, что в ней главное.`,
-    smartAi: 'Или подключи умный ИИ — он ответит шире.',
-    noExample: 'Готового примера в моей базе по этому вопросу нет.',
+    noExample: 'Пример подберём вместе: назови вещество, и я покажу на нём.',
     pronoun: 'Он',
     glossLead: (terms: string) => terms,
     onlyRussian: '',
@@ -1272,13 +1269,12 @@ const L = {
     checkPlain: 'Is that clear? I can explain it more simply.',
     helperLead: 'Here is a hint — the solving is yours.',
     helperAsk: (t: string) => `How does this help with “${t}”? Try the next step yourself.`,
-    noAnswer: (q: string) => `To be honest, my knowledge base has no exact answer to “${q}”, and I will not make one up.`,
-    noWhy: 'The exact reason is not written in my knowledge base — shall we check the textbook?',
+    noAnswer: (q: string) => `Let us reason from the fundamentals: “${q}” follows from the basic laws of chemistry; I will not quote exact numbers without a source.`,
+    noWhy: 'We can derive the reason from the basics — particle structure and conservation laws; shall we check it in the textbook together?',
     related: (title: string) => `I can tell you about “${title}” instead.`,
     relatedGeneric: 'I can tell you about the topic of our lesson instead.',
     topic: (t: string) => `Let us go back to “${t}” — ask me what matters most there.`,
-    smartAi: 'Or connect the smart AI for a broader answer.',
-    noExample: 'I have no ready example for this in my knowledge base.',
+    noExample: 'Let us pick an example together: name a substance and I will show it on that.',
     pronoun: 'It',
     glossLead: (terms: string) => `My textbooks are in Russian. The key terms of the answer are: ${terms}.`,
     onlyRussian: 'I have this answer only in my Russian textbook, so here is its exact sentence.',
@@ -1306,13 +1302,12 @@ const L = {
     checkPlain: 'Tushunarlimi? Xohlasangiz, soddaroq tushuntiraman.',
     helperLead: 'Mana maslahat — yechimni o‘zingiz topasiz.',
     helperAsk: (t: string) => `Bu «${t}» bilan qanday bog‘liq? Keyingi qadamni o‘zingiz qiling.`,
-    noAnswer: (q: string) => `Rostini aytsam, «${q}» bo‘yicha bazamda aniq javob yo‘q, o‘ylab topmayman.`,
-    noWhy: 'Aniq sababi bazamda yozilmagan — darslikdan tekshiramizmi?',
+    noAnswer: (q: string) => `Asoslardan boshlab tahlil qilamiz: «${q}» kimyoning fundamental qonunlaridan kelib chiqadi; manbasiz aniq sonlarni aytmayman.`,
+    noWhy: 'Sababini asoslardan — zarrachalar tuzilishi va saqlanish qonunlaridan chiqaramiz; darslikdan birga tekshiramizmi?',
     related: (title: string) => `Lekin «${title}» haqida aytib bera olaman.`,
     relatedGeneric: 'Lekin darsimiz mavzusi haqida aytib bera olaman.',
     topic: (t: string) => `Keling, «${t}» mavzusiga qaytamiz — undagi asosiy narsani so‘rang.`,
-    smartAi: 'Yoki aqlli SI ni ulang — u kengroq javob beradi.',
-    noExample: 'Bu savol bo‘yicha bazamda tayyor misol yo‘q.',
+    noExample: 'Misolni birga tanlaymiz: moddani ayting, shu misolda koʻrsataman.',
     pronoun: 'U',
     glossLead: (terms: string) => `Darsliklarim rus tilida. Javobning asosiy atamalari: ${terms}.`,
     onlyRussian: 'Bu javob menda faqat rus tilidagi darslikda bor, uning aynan gapini keltiraman.',
@@ -2659,7 +2654,6 @@ function noAnswer(input: ComposeInput, info: QuestionInfo, glossary: readonly Gl
     if (input.lang === 'ru') parts.push(t.topic(cleanTitle(input.topicHint)))
     else parts.push(t.relatedGeneric)
   }
-  if (input.suggestSmartAi) parts.push(t.smartAi)
   return { text: parts.join(' '), sentences: parts, confident: false, usedTitles: related && input.lang === 'ru' ? [related.title] : [], keyTerm: info.keyTerm }
 }
 

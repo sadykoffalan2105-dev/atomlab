@@ -1,27 +1,25 @@
 /**
  * Движок режима «Обучение» для живого диалога.
  *
- * Ход ученика → (follow-up? берём тему прошлого вопроса) → знания через
- * teacherKnowledge.retrieveForTeacher (вне критического пути, кеш, лимит ожидания) →
- *   • «умный ИИ» подключён: потоковый ответ Puter; текст режется на фразы
+ * Ход ученика → политика (правило владельца R1, модерация R2, светская беседа) →
+ *   • локальный мозг запущен: потоковый ответ (SSE); текст режется на фразы
  *     (SentenceStreamSplitter), и первая фраза уходит в озвучку, как только готова;
- *     нет первого куска за ~3.5 с — мгновенно отвечаем локально;
- *   • иначе — локальный составитель ответа (без LLM, только найденный текст).
+ *     мозг оборвался до первого куска — мгновенно отвечаем локально;
+ *   • иначе — «человеческий» слой и локальный составитель ответа (без LLM, только найденный текст).
+ * Любой ответ проходит пост-проверку R3 (без «не знаю / нет в базе»).
  * С учётом эмоции ученика с камеры и памяти сессии (последние ~8 реплик).
  */
-import type { LearnLocalAssistantContext } from '../../learnLocalAssistant'
 import { filterAssistantReply } from '../../learnAssistantGuard'
-import { buildLiveAssistantSystemPrompt } from '../../learnAssistantPrompt'
-import { isSmartAiConnected, streamTeacherChat, type ChatMessage } from '../../learnPuterChat'
-import { buildSectionOutlineBlock } from '../../learnSectionKnowledge'
+import type { ChatMessage } from '../../learnTeacherPrompt'
 import { citationForDisplay, retrieveForTeacher, type TeacherKnowledgeResult } from '../../teacherKnowledge'
 import type { EmotionState } from '../brainTypes'
 import { SentenceStreamSplitter, splitIntoSentences } from '../voice/sentenceStream'
 import { humanTurn } from '../human/humanTeacher'
-import { emotionPromptHint } from './cameraEmotionCoach'
+import { detectMood } from '../human/personaVoice'
+import { applyInputPolicy, detectQuestionLang, ensureNoUnknown, isReasonedLead, reasonFromBasics } from '../policy'
+import { brainMoodFrom, ensureBrainOnline, streamChat } from '../remote/brainClient'
 import { detectNonQuestion, replyForNonQuestion, resolveTurn, type ResolvedTurn } from './followUps'
-import { buildLiveOnlineBrainDirective } from './liveOnlineBrain'
-import { composeLocalAnswer, type ComposeStyle } from './localAnswerComposer'
+import { composeLocalAnswer, extractKeyTerm, type ComposeStyle } from './localAnswerComposer'
 import { clarifyPrompt } from './personaProfiles'
 import type { AssistantLang } from './dualModeTypes'
 
@@ -31,6 +29,8 @@ export interface TrainingEngineConfig {
   chapterId: string
   sectionId?: string
   sectionTitle?: string
+  /** Стабильный id ученика (для модели ученика в мозге). */
+  studentId?: string
 }
 
 export interface TrainingAnswerRequest {
@@ -41,13 +41,15 @@ export interface TrainingAnswerRequest {
   /** Прошлые содержательные вопросы ученика (для «а почему?», «пример»). */
   previousQuestions: string[]
   emotion?: EmotionState
+  /** Вовлечённость с камеры 0..1 (отправляется в мозг один раз за ход). */
+  cameraEngagement?: number
   signal?: AbortSignal
   /** Готовая к озвучке фраза. */
   onSentence?: (sentence: string) => void
   /** Текст ответа на данный момент (для стриминга в UI). */
   onText?: (text: string) => void
-  /** Переопределить «умный ИИ подключён» (тесты). */
-  smartAi?: boolean
+  /** Не обращаться к локальному мозгу (тесты, офлайн). */
+  noBrain?: boolean
 }
 
 export interface TrainingAnswerTimings {
@@ -64,11 +66,11 @@ export interface TrainingAnswer {
   /** Чистый текст ответа (что озвучено). */
   text: string
   sentences: string[]
-  source: 'smart' | 'local'
+  source: 'brain' | 'local'
   confident: boolean
   citations: string[]
   resolved: ResolvedTurn
-  /** «Умный ИИ» не ответил вовремя — ответили локально. */
+  /** Мозг был запущен, но не ответил — ответили локально. */
   fellBack: boolean
   timings: TrainingAnswerTimings
 }
@@ -79,37 +81,12 @@ function abortError(): DOMException {
   return new DOMException('Aborted', 'AbortError')
 }
 
-function styleHint(style: ComposeStyle, lang: AssistantLang): string {
-  const parts: string[] = []
-  if (style.detail === 'more') parts.push('The student asked for MORE DETAIL: up to 140 words, still in short spoken sentences.')
-  else parts.push('Keep it short: about 40–60 words (3–4 short sentences).')
-  if (style.simpler) parts.push('The student did not understand: explain it SIMPLER, everyday words, one idea.')
-  if (style.wantExample) parts.push('Give ONE concrete example (a substance or a reaction said in words).')
-  if (style.wantWhy) parts.push('The student asks WHY: give the cause/mechanism first.')
-  void lang
-  return parts.join(' ')
-}
-
 export class TrainingModeEngine {
   private readonly cfg: TrainingEngineConfig
   private seed = Math.floor(Math.random() * 1000)
 
   constructor(config: TrainingEngineConfig) {
     this.cfg = config
-  }
-
-  private context(): LearnLocalAssistantContext {
-    return {
-      locale: this.cfg.lang,
-      gradeId: this.cfg.gradeId,
-      chapterId: this.cfg.chapterId,
-      sectionId: this.cfg.sectionId ?? 's01',
-      sectionTitle: this.cfg.sectionTitle ?? '',
-      slideTitle: this.cfg.sectionTitle ?? '',
-      slideBody: '',
-      mode: 'teacher',
-      kpNumber: 1,
-    }
   }
 
   private knowledge(query: string, style: ComposeStyle, signal?: AbortSignal): Promise<TeacherKnowledgeResult> {
@@ -126,44 +103,130 @@ export class TrainingModeEngine {
     })
   }
 
+  /** Готовый текст одним ходом (политика, светская беседа, «человеческий» слой). */
+  private immediate(req: TrainingAnswerRequest, text: string): TrainingAnswer {
+    const t0 = now()
+    const sentences = splitIntoSentences(text)
+    for (const s of sentences) req.onSentence?.(s)
+    req.onText?.(text)
+    const resolved = resolveTurn(req.text, req.previousQuestions, this.cfg.lang, this.cfg.sectionTitle)
+    const ms = Math.round(now() - t0)
+    return {
+      display: text,
+      text,
+      sentences,
+      source: 'local',
+      confident: true,
+      citations: [],
+      resolved,
+      fellBack: false,
+      timings: { knowledgeMs: 0, firstSentenceMs: ms, firstTokenMs: null, totalMs: ms },
+    }
+  }
+
   /**
-   * Ответ на ход ученика (стриминг фраз через колбэки). Сначала — «человеческий» слой:
-   * приветствие, эмоции, память, расчёты и химия из данных проекта отвечаются сразу;
-   * «привет, а что такое моль?» — приветствие звучит первым, вопрос идёт в базу знаний.
+   * Ответ на ход ученика (стриминг фраз через колбэки). Сначала — политика (R1/R2/светская
+   * беседа), затем локальный мозг, если он запущен; иначе «человеческий» слой и база знаний.
    */
   async answer(req: TrainingAnswerRequest): Promise<TrainingAnswer> {
+    const step = applyInputPolicy(req.text, this.cfg.lang, this.seed++)
+    if (step.kind === 'reply') return this.immediate(req, step.text)
+    if (step.prefix) {
+      // R2 звучит первым, затем ответ по сути на очищенный вопрос.
+      const notice = step.prefix.trim()
+      for (const s of splitIntoSentences(notice)) req.onSentence?.(s)
+      const onText = req.onText
+      const res = await this.answerAfterPolicy({ ...req, text: step.text, onText: onText ? (t) => onText(`${step.prefix}${t}`) : undefined })
+      const noticeSentences = splitIntoSentences(notice)
+      return { ...res, display: `${step.prefix}${res.display}`, text: `${step.prefix}${res.text}`, sentences: [...noticeSentences, ...res.sentences] }
+    }
+    return this.answerAfterPolicy({ ...req, text: step.text })
+  }
+
+  private async answerAfterPolicy(req: TrainingAnswerRequest): Promise<TrainingAnswer> {
+    let brainTried = false
+    if (!req.noBrain && (await ensureBrainOnline())) {
+      brainTried = true
+      const brain = await this.answerBrain(req)
+      if (brain) return brain
+      if (req.signal?.aborted) throw abortError()
+    }
     const lastTeacher = [...req.history].reverse().find((m) => m.role === 'assistant')?.content
     const human = humanTurn(req.text, { lang: this.cfg.lang, lastTeacher })
-    if (human?.kind === 'reply') {
-      const t0 = now()
-      const sentences = splitIntoSentences(human.text)
-      for (const s of sentences) req.onSentence?.(s)
-      req.onText?.(human.text)
-      const resolved = resolveTurn(req.text, req.previousQuestions, this.cfg.lang, this.cfg.sectionTitle)
-      const ms = Math.round(now() - t0)
-      return {
-        display: human.text,
-        text: human.text,
-        sentences,
-        source: 'local',
-        confident: true,
-        citations: [],
-        resolved,
-        fellBack: false,
-        timings: { knowledgeMs: 0, firstSentenceMs: ms, firstTokenMs: null, totalMs: ms },
-      }
-    }
+    if (human?.kind === 'reply') return this.immediate(req, human.text)
     if (human?.kind === 'prefix') {
       const pre = human.prefix
       req.onSentence?.(pre)
       const onText = req.onText
-      const res = await this.answerCore({ ...req, text: human.rest, onText: onText ? (t) => onText(`${pre} ${t}`) : undefined })
+      const res = await this.answerCore({ ...req, text: human.rest, onText: onText ? (t) => onText(`${pre} ${t}`) : undefined }, brainTried)
       return { ...res, display: `${pre} ${res.display}`, text: `${pre} ${res.text}`, sentences: [pre, ...res.sentences] }
     }
-    return this.answerCore(req)
+    return this.answerCore(req, brainTried)
   }
 
-  private async answerCore(req: TrainingAnswerRequest): Promise<TrainingAnswer> {
+  /** Потоковый ответ локального мозга; null — мозг не ответил до первого куска (запасной путь). */
+  private async answerBrain(req: TrainingAnswerRequest): Promise<TrainingAnswer | null> {
+    const t0 = now()
+    const signal = req.signal
+    const resolved = resolveTurn(req.text, req.previousQuestions, this.cfg.lang, this.cfg.sectionTitle)
+    const timings: TrainingAnswerTimings = { knowledgeMs: 0, firstSentenceMs: null, firstTokenMs: null, totalMs: 0 }
+    const sentences: string[] = []
+    const emit = (s: string) => {
+      if (signal?.aborted) return
+      if (timings.firstSentenceMs === null) timings.firstSentenceMs = Math.round(now() - t0)
+      sentences.push(s)
+      req.onSentence?.(s)
+    }
+    const splitter = new SentenceStreamSplitter({ firstMaxChars: 110, minChars: 12 })
+    const messages = [...req.history.slice(-10), { role: 'user', content: req.text }]
+    const done = await streamChat({
+      messages,
+      lang: detectQuestionLang(req.text, this.cfg.lang),
+      context: {
+        gradeId: this.cfg.gradeId,
+        chapterId: this.cfg.chapterId,
+        sectionId: this.cfg.sectionId,
+        sectionTitle: this.cfg.sectionTitle,
+        mode: 'live',
+        detail: resolved.style.detail === 'more' ? 'more' : 'brief',
+      },
+      student: {
+        mood: brainMoodFrom(req.emotion ?? null, detectMood(req.text)),
+        ...(typeof req.cameraEngagement === 'number' ? { cameraEngagement: Math.max(0, Math.min(1, req.cameraEngagement)) } : {}),
+      },
+      studentId: this.cfg.studentId,
+      signal,
+      onDelta: (delta, full) => {
+        if (signal?.aborted) return
+        if (timings.firstTokenMs === null) timings.firstTokenMs = Math.round(now() - t0)
+        req.onText?.(full)
+        for (const s of splitter.push(delta)) emit(s)
+      },
+    })
+    if (signal?.aborted) throw abortError()
+    if (!done) return null
+    for (const s of splitter.flush()) emit(s)
+    const raw = done.text.trim()
+    const text = ensureNoUnknown(filterAssistantReply(raw, this.cfg.lang).trim() || raw, this.cfg.lang, [this.cfg.sectionTitle ?? ''])
+    if (text.length < 2) return null
+    // Пост-проверка изменила текст до того, как он прозвучал целиком, — договариваем недостающее.
+    if (!sentences.length) for (const s of splitIntoSentences(text)) emit(s)
+    const citations = done.citations.slice(0, 2)
+    timings.totalMs = Math.round(now() - t0)
+    return {
+      display: citations.length ? `${text}\n\n${citations.join(' ')}` : text,
+      text,
+      sentences,
+      source: 'brain',
+      confident: done.confidenceLabel !== 'reasoned',
+      citations,
+      resolved,
+      fellBack: false,
+      timings,
+    }
+  }
+
+  private async answerCore(req: TrainingAnswerRequest, brainTried: boolean): Promise<TrainingAnswer> {
     const t0 = now()
     const signal = req.signal
     const resolved = resolveTurn(req.text, req.previousQuestions, this.cfg.lang, this.cfg.sectionTitle)
@@ -186,80 +249,13 @@ export class TrainingModeEngine {
       emit(reply)
       req.onText?.(reply)
       timings.totalMs = Math.round(now() - t0)
-      return { display: reply, text: reply, sentences, source: 'local', confident: true, citations: [], resolved, fellBack: false, timings }
+      return { display: reply, text: reply, sentences, source: 'local', confident: true, citations: [], resolved, fellBack: brainTried, timings }
     }
 
-    const knowledgeP = this.knowledge(resolved.query, style, signal)
-    const smart = req.smartAi ?? isSmartAiConnected()
-
-    if (smart) {
-      const knowledge = await knowledgeP
-      timings.knowledgeMs = knowledge.ms
-      if (signal?.aborted) throw abortError()
-      const splitter = new SentenceStreamSplitter({ firstMaxChars: 110, minChars: 12 })
-      try {
-        const ctx = this.context()
-        const system = buildLiveAssistantSystemPrompt({
-          ...ctx,
-          knowledgeBlock: '',
-          chemistryKnowledgeBlock: knowledge.text,
-          sectionOutlineBlock: buildSectionOutlineBlock(ctx, 600),
-          liveDirective: buildLiveOnlineBrainDirective(this.cfg.lang),
-          cameraHint: emotionPromptHint(this.cfg.lang, req.emotion ?? 'neutral'),
-          answerStyle: styleHint(style, this.cfg.lang),
-        })
-        const payload: ChatMessage[] = [
-          { role: 'system', content: system },
-          ...req.history.slice(-8).map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
-          { role: 'user', content: req.text },
-        ]
-        const result = await streamTeacherChat(payload, {
-          signal,
-          firstTokenTimeoutMs: 3_500,
-          totalTimeoutMs: 20_000,
-          maxTokens: style.detail === 'more' ? 600 : 320,
-          temperature: 0.35,
-          onDelta: (delta, full) => {
-            req.onText?.(full)
-            for (const s of splitter.push(delta)) emit(s)
-          },
-        })
-        timings.firstTokenMs = result.firstTokenMs === null ? null : Math.round(result.firstTokenMs)
-        for (const s of splitter.flush()) emit(s)
-        const text = filterAssistantReply(result.text.trim(), this.cfg.lang).trim() || result.text.trim()
-        if (text.length > 2) {
-          const citations = knowledge.citations.slice(0, 2).map((c) => citationForDisplay(c, this.cfg.lang))
-          timings.totalMs = Math.round(now() - t0)
-          return {
-            display: citations.length ? `${text}\n\n${citations.join(' ')}` : text,
-            text,
-            sentences,
-            source: 'smart',
-            confident: true,
-            citations,
-            resolved,
-            fellBack: false,
-            timings,
-          }
-        }
-      } catch (error) {
-        if ((error as DOMException)?.name === 'AbortError' || signal?.aborted) throw abortError()
-        // Если что-то уже прозвучало — договариваем остаток и не дублируем ответ локально.
-        if (sentences.length > 0) {
-          for (const s of splitter.flush()) emit(s)
-          const text = sentences.join(' ')
-          timings.totalMs = Math.round(now() - t0)
-          return { display: text, text, sentences, source: 'smart', confident: true, citations: [], resolved, fellBack: false, timings }
-        }
-      }
-      // «Умный ИИ» не успел — отвечаем локально (знания уже найдены).
-      return this.composeLocal(req, resolved, knowledge, timings, t0, emit, sentences, true)
-    }
-
-    const knowledge = await knowledgeP
+    const knowledge = await this.knowledge(resolved.query, style, signal)
     timings.knowledgeMs = knowledge.ms
     if (signal?.aborted) throw abortError()
-    return this.composeLocal(req, resolved, knowledge, timings, t0, emit, sentences, false)
+    return this.composeLocal(req, resolved, knowledge, timings, t0, emit, sentences, brainTried)
   }
 
   private composeLocal(
@@ -279,10 +275,17 @@ export class TrainingModeEngine {
       style: resolved.style,
       topicHint: this.cfg.sectionTitle,
       seed: this.seed++,
-      suggestSmartAi: !isSmartAiConnected(),
     })
-    for (const s of composed.sentences) emit(s)
-    req.onText?.(composed.text)
+    const nearTopics = [...new Set([...knowledge.hits.map((h) => h.title), this.cfg.sectionTitle ?? ''])].filter(Boolean)
+    const reasonedOpts = { query: resolved.query, keyTerm: composed.keyTerm ?? extractKeyTerm(resolved.query, this.cfg.lang) }
+    // Готового ответа нет — рассуждение от основ вместо «нет в базе» (R3).
+    const text =
+      !composed.confident && isReasonedLead(composed.text)
+        ? reasonFromBasics(this.cfg.lang, nearTopics, reasonedOpts)
+        : ensureNoUnknown(composed.text, this.cfg.lang, nearTopics, reasonedOpts)
+    const spoken = text === composed.text ? composed.sentences : splitIntoSentences(text)
+    for (const s of spoken) emit(s)
+    req.onText?.(text)
     const used = new Set(composed.usedTitles)
     // Значки — из фрагментов, давших фразы ответа (не все фрагменты с тем же заголовком).
     const citations = [
@@ -294,8 +297,8 @@ export class TrainingModeEngine {
     ].slice(0, 2)
     timings.totalMs = Math.round(now() - t0)
     return {
-      display: citations.length && composed.confident ? `${composed.text}\n\n${citations.join(' ')}` : composed.text,
-      text: composed.text,
+      display: citations.length && composed.confident ? `${text}\n\n${citations.join(' ')}` : text,
+      text,
       sentences,
       source: 'local',
       confident: composed.confident,

@@ -516,16 +516,23 @@ export const messagesUz: Record<MessageKey, string> = {
 
   /* SI o'qituvchi: dars chati va onlayn dars ("videoqo'ng'iroq") */
   'learn.teacherUi.sources': 'Manbalar',
-  'learn.teacherUi.brainSmart': 'Aqlli SI',
+  'learn.teacherUi.brainLocalAi': 'Mahalliy miya',
+  'learn.teacherUi.brainOnline': 'Mahalliy miya: ulangan',
+  'learn.teacherUi.brainOfflineShort': 'Mahalliy baza (miya ishga tushmagan)',
+  'learn.teacherUi.brainOffline': 'Miya ishga tushmagan — bilimlar bazasi javob beradi',
+  'learn.teacherUi.brainChecking': 'Mahalliy miya tekshirilmoqda…',
+  'learn.teacherUi.brainHint': 'npm run brain:start buyrugʻini ishga tushiring',
+  'learn.teacherUi.brainLevel': 'Miya: daraja {level} / 5',
+  'learn.teacherUi.brainPace': 'Surʼat',
+  'learn.teacherUi.brainPaceSlow': 'sekin',
+  'learn.teacherUi.brainPaceNormal': 'oddiy',
+  'learn.teacherUi.brainPaceFast': 'tez',
+  'learn.teacherUi.brainErrors': 'Koʻp uchraydigan xatolar',
+  'learn.teacherUi.moderation.notice': 'Iltimos, odob bilan yozing, bu chatda haqoratli so‘zlar ishlatish mumkin emas.',
+  'learn.teacherUi.rule.orgInorg': 'Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией',
   'learn.teacherUi.brainLocal': 'Mahalliy bilimlar bazasi',
   'learn.teacherUi.brainServer': 'O‘qituvchi serveri',
   'learn.teacherUi.brainAnswers': 'Javob beradi: {brain}',
-  'learn.teacherUi.smartConnect': 'Aqlli SI ni ulash (bepul)',
-  'learn.teacherUi.smartConnecting': 'Ulanmoqda…',
-  'learn.teacherUi.smartExplain':
-    'Kengroq va jonliroq javob beradi. Puter orqali bepul — faqat kirish kerak; aks holda mahalliy bilimlar bazasi javob beradi.',
-  'learn.teacherUi.smartError': 'Ulanib bo‘lmadi. Puter qalqib chiquvchi oynasiga ruxsat bering va qayta urinib ko‘ring.',
-  'learn.teacherUi.smartToggle': 'Aqlli SI (Puter, bepul)',
   'learn.teacherUi.settings': 'O‘qituvchi sozlamalari',
   'learn.teacherUi.chatMode': 'Javob uslubi',
   'learn.teacherUi.quickPrompts': 'Tezkor savollar',
@@ -614,7 +621,6 @@ export const messagesUz: Record<MessageKey, string> = {
     'Bu brauzerda nutqni tanish ishlamaydi. Darsni Chrome yoki Edge’da oching — yoki matn bilan yozing: o‘qituvchi ovoz bilan javob beradi.',
   'learn.teacherUi.sttLanguage':
     'Brauzer bu tildagi nutqni tanimaydi. Matn bilan yozing yoki darsni Chrome yoki Edge’da oching.',
-  'learn.teacherUi.smartDisconnect': 'Aqlli AI’ni o‘chirish',
   'learn.teacherUi.brainLocalShort': 'Bilimlar bazasi',
   'learn.teacherUi.scrollLatest': 'Oxirgi xabarga',
 

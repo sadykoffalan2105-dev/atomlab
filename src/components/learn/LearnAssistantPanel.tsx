@@ -29,7 +29,10 @@ import { filterAssistantReply } from '../../learn/learnAssistantGuard'
 import { applyFeedback, forgetEverything } from '../../learn/brain/human/studentProfile'
 import { noteNegativeFeedback } from '../../learn/brain/ml/intentStep'
 import { LiveDialogButton } from './LearnLiveTutorPanel'
-import { warmupPuterFromUserGesture } from '../../learn/learnPuterTts'
+import { applyInputPolicy, ensureNoUnknown } from '../../learn/brain/policy'
+import { ensureBrainOnline, useBrainStatus } from '../../learn/brain/remote/brainClient'
+import { resolveStableStudentId } from '../../learn/brain/dualMode/useDualModeTeacher'
+import { getActiveStudent } from '../../learn/learnClassRosterStorage'
 import {
   formatHomeworkReportForChat,
   homeworkUserLabel,
@@ -60,7 +63,7 @@ import {
 } from './LearnAiIcons'
 import { AiCoreAvatar } from './hub/HubArt'
 import { extractCitations } from './teacher/citations'
-import { BrainChip, SmartAiCta, SourceChips, type TeacherBrain } from './teacher/TeacherChips'
+import { BrainChip, BrainStatusChip, SourceChips, type TeacherBrain } from './teacher/TeacherChips'
 import {
   IconCheck,
   IconChevronDown,
@@ -72,7 +75,6 @@ import {
   IconWifiOff,
 } from './teacher/TeacherIcons'
 import { StreamingReply } from './teacher/StreamingReply'
-import { useSmartAi } from './teacher/smartAiStore'
 import kit from './studio/StudioKit.module.css'
 import styles from './LearnAssistantPanel.module.css'
 
@@ -80,14 +82,14 @@ type MicPermission = 'granted' | 'denied' | 'prompt'
 
 /**
  * Шлюз чата (сервер с LLM) — только если явно настроен. Пустая строка = не настроен
- * (раньше `??` пропускал ''). По умолчанию учитель бесплатный: база знаний + «умный ИИ» по согласию.
+ * (раньше `??` пропускал ''). По умолчанию учитель бесплатный: локальный мозг на ПК учителя, иначе база знаний.
  */
 const CHAT_URL = (import.meta.env.VITE_LEARN_CHAT_URL as string | undefined)?.trim() || ''
 const CHAT_TIMEOUT_MS = 15_000
 
 type ReplyResult = { text: string; source: AssistantSource; notice?: 'rate_limit' }
 
-type AssistantSource = 'openai' | 'local' | 'ollama' | 'puter'
+type AssistantSource = 'openai' | 'local' | 'ollama' | 'brain'
 
 type ChatMessage = {
   role: 'user' | 'assistant'
@@ -165,14 +167,24 @@ function prefersReducedMotion(): boolean {
 }
 
 function mapRoutedSource(s: TeacherReplySource): AssistantSource {
-  return s === 'ollama' ? 'ollama' : s === 'puter' ? 'puter' : 'local'
+  return s === 'brain' ? 'brain' : 'local'
 }
 
 function brainOf(source: AssistantSource | undefined): TeacherBrain {
-  if (source === 'puter') return 'smart'
-  if (source === 'openai') return 'server'
-  if (source === 'ollama') return 'ollama'
+  if (source === 'brain') return 'brain'
+  if (source === 'openai' || source === 'ollama') return 'server'
   return 'local'
+}
+
+function replaceLastUserText<M extends { role: string; content: string }>(list: M[], content: string): M[] {
+  const next = [...list]
+  for (let i = next.length - 1; i >= 0; i--) {
+    if (next[i]!.role === 'user') {
+      next[i] = { ...next[i]!, content }
+      break
+    }
+  }
+  return next
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -222,7 +234,9 @@ export function LearnAssistantPanel({
 }) {
   void slideIndex
   const { t, locale } = useT()
-  const smartAi = useSmartAi()
+  const brainStatus = useBrainStatus()
+  // Ученик из списка класса (для модели ученика в мозге); иначе — анонимный id браузера.
+  const rosterStudentId = useMemo(() => (rosterSectionId ? (getActiveStudent(rosterSectionId)?.id ?? null) : null), [rosterSectionId])
   const [mode, setMode] = useState<'teacher' | 'helper'>('teacher')
   const [curriculumOnly, setCurriculumOnly] = useState(false)
   const [autoRead, setAutoRead] = useState(() => {
@@ -269,13 +283,6 @@ export function LearnAssistantPanel({
     setError(null)
     setAtBottom(true)
   }
-  const [preferOllama, setPreferOllama] = useState(() => {
-    try {
-      return localStorage.getItem('atomlab-learn-ollama') === '1'
-    } catch {
-      return false
-    }
-  })
   const [lastSource, setLastSource] = useState<AssistantSource | null>(null)
   const [scanPreview, setScanPreview] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -503,16 +510,23 @@ export function LearnAssistantPanel({
       signal: AbortSignal,
       onDelta?: (fullText: string) => void,
     ): Promise<ReplyResult> => {
-      const payload = {
-        messages: nextMessages.map((m) => ({ role: m.role, content: m.text })),
-        context: localCtx,
-      }
+      const history = nextMessages.map((m) => ({ role: m.role, content: m.text }))
       let notice: ReplyResult['notice']
+      // Политика (R1/R2/светская беседа) и локальный мозг — внутри routeTeacherReply.
+      const viaRouter = async (): Promise<ReplyResult> => {
+        const routed = await routeTeacherReply(history, localCtx, { signal, onDelta, studentId: resolveStableStudentId(rosterStudentId) })
+        return { text: filterAssistantReply(routed.text, locale), source: mapRoutedSource(routed.source), notice }
+      }
+      const policy = applyInputPolicy(history[history.length - 1]?.content ?? '', locale, history.length)
+      if (policy.kind === 'reply' || (await ensureBrainOnline())) return viaRouter()
+      // Ниже — старые серверы (teacher_service / шлюз): вопрос уже очищен политикой, R2 — в начало ответа.
+      const payload = { messages: replaceLastUserText(history, policy.text), context: localCtx }
+      const finish = (text: string) => `${policy.prefix}${ensureNoUnknown(filterAssistantReply(text, locale), locale, [localCtx.sectionTitle])}`
 
       // 1) Локальный teacher_service (dev / свой ПК) — с таймаутом и отменой.
       const teacher = await requestTeacherChat(payload.messages, payload.context, { signal })
       if (teacher?.text) {
-        return { text: filterAssistantReply(teacher.text, locale), source: 'ollama' }
+        return { text: finish(teacher.text), source: 'ollama' }
       }
 
       // 2) Шлюз чата — только если явно настроен.
@@ -538,7 +552,7 @@ export function LearnAssistantPanel({
             const reply = data.reply?.trim()
             if (res.ok && reply) {
               return {
-                text: filterAssistantReply(reply, locale),
+                text: finish(reply),
                 source: data.source === 'openai' ? 'openai' : 'local',
               }
             }
@@ -551,15 +565,10 @@ export function LearnAssistantPanel({
         }
       }
 
-      // 3) Бесплатный маршрут: база знаний → Ollama → «умный ИИ» (стриминг) → локальный ответ.
-      const routed = await routeTeacherReply(
-        nextMessages.map((m) => ({ role: m.role, content: m.text })),
-        localCtx,
-        { preferOllama, signal, onDelta },
-      )
-      return { text: filterAssistantReply(routed.text, locale), source: mapRoutedSource(routed.source), notice }
+      // 3) Бесплатный маршрут: политика → локальный мозг (стриминг) → база знаний.
+      return viaRouter()
     },
-    [localCtx, preferOllama, locale],
+    [localCtx, locale, rosterStudentId],
   )
 
   /** Запросить ответ на историю `history` (последнее сообщение — вопрос ученика). */
@@ -572,7 +581,7 @@ export function LearnAssistantPanel({
       setLoading(true)
       const isCurrent = () => pendingRef.current === request && !request.ctrl.signal.aborted
       const reqKey = storeKey
-      // Стриминг «умного ИИ»: сообщение появляется сразу и дописывается на месте.
+      // Стриминг локального мозга: сообщение появляется сразу и дописывается на месте.
       let streamAt: number | null = null
       const onDelta = (fullText: string) => {
         if (!isCurrent() || !fullText.trim()) return
@@ -580,7 +589,7 @@ export function LearnAssistantPanel({
           const at = Date.now()
           streamAt = at
           setLoading(false)
-          setMessagesFor(reqKey, (m) => [...m, { role: 'assistant', text: fullText, at, source: 'puter' }])
+          setMessagesFor(reqKey, (m) => [...m, { role: 'assistant', text: fullText, at, source: 'brain' }])
           setStreamingAt(at)
         } else {
           const at = streamAt
@@ -629,14 +638,13 @@ export function LearnAssistantPanel({
     (text: string) => {
       const clean = text.trim()
       if (!clean || loading) return
-      if (smartAi.connected) warmupPuterFromUserGesture()
       const userMsg: ChatMessage = { role: 'user', text: clean, at: Date.now() }
       const history = [...messages, userMsg]
       setMessages(history)
       setStreamingAt(null)
       void requestReply(history)
     },
-    [loading, messages, requestReply, setMessages, smartAi.connected],
+    [loading, messages, requestReply, setMessages],
   )
 
   const send = useCallback(() => {
@@ -740,7 +748,6 @@ export function LearnAssistantPanel({
         setError(t('learn.assistant.homeworkNeedText'))
         return
       }
-      if (smartAi.connected) warmupPuterFromUserGesture()
       // Та же отмена, что у обычного вопроса: «Остановить», очистка и смена параграфа
       // не должны дописывать отчёт в чужой чат или оставлять панель в «думаю».
       pendingRef.current?.ctrl.abort()
@@ -807,7 +814,6 @@ export function LearnAssistantPanel({
       setMessages,
       setMessagesFor,
       slideTitle,
-      smartAi.connected,
       speakMessage,
       storeKey,
       t,
@@ -843,7 +849,7 @@ export function LearnAssistantPanel({
   // «Печать» считается только для сообщения, которое есть в ленте этого параграфа: устаревший
   // ответ другого параграфа не должен оставлять кнопку «Остановить» навсегда.
   const generating = loading || (streamingAt !== null && messages.some((m) => m.at === streamingAt))
-  const headerBrain: TeacherBrain = lastSource ? brainOf(lastSource) : smartAi.connected ? 'smart' : 'local'
+  const headerBrain: TeacherBrain = lastSource ? brainOf(lastSource) : brainStatus === 'online' ? 'brain' : 'local'
 
   const statusText = loading
     ? t('learn.assistant.thinking')
@@ -865,13 +871,8 @@ export function LearnAssistantPanel({
           ? 'online'
           : 'offline'
 
-  const settingLabels = [
-    t('learn.teacherUi.smartToggle'),
-    t('learn.assistant.curriculumOnly'),
-    t('learn.assistant.autoRead'),
-    t('learn.assistant.ollamaToggle'),
-  ]
-  const settingsOnCount = [smartAi.connected, curriculumOnly, autoRead, preferOllama].filter(Boolean).length
+  const settingLabels = [t('learn.assistant.curriculumOnly'), t('learn.assistant.autoRead')]
+  const settingsOnCount = [curriculumOnly, autoRead].filter(Boolean).length
   const infoNotices = new Set([
     t('learn.assistant.homeworkReading'),
     t('learn.teacherUi.stoppedNotice'),
@@ -960,7 +961,7 @@ export function LearnAssistantPanel({
               <span className={styles.statusText} data-state={statusState}>
                 {statusText}
               </span>
-              <BrainChip brain={headerBrain} compact />
+              {headerBrain === 'server' ? <BrainChip brain="server" compact /> : <BrainStatusChip compact />}
             </p>
           </div>
 
@@ -1063,25 +1064,6 @@ export function LearnAssistantPanel({
       {settingsOpen ? (
         <div id={settingsId} className={styles.settings}>
           <label className={styles.switchRow}>
-            <span className={styles.switchText}>
-              {t('learn.teacherUi.smartToggle')}
-              {smartAi.status === 'connecting' ? (
-                <span className={styles.switchSub}>{t('learn.teacherUi.smartConnecting')}</span>
-              ) : null}
-            </span>
-            <input
-              type="checkbox"
-              role="switch"
-              className={styles.switchInput}
-              checked={smartAi.connected || smartAi.status === 'connecting'}
-              onChange={(e) => {
-                if (e.target.checked) void smartAi.connect()
-                else smartAi.disconnect()
-              }}
-            />
-            <span className={styles.switchTrack} aria-hidden />
-          </label>
-          <label className={styles.switchRow}>
             <span className={styles.switchText}>{t('learn.assistant.curriculumOnly')}</span>
             <input
               type="checkbox"
@@ -1105,25 +1087,6 @@ export function LearnAssistantPanel({
                 if (!on) stopSpeaking()
                 try {
                   localStorage.setItem('atomlab-learn-autoread', on ? '1' : '0')
-                } catch {
-                  /* ignore */
-                }
-              }}
-            />
-            <span className={styles.switchTrack} aria-hidden />
-          </label>
-          <label className={styles.switchRow}>
-            <span className={styles.switchText}>{t('learn.assistant.ollamaToggle')}</span>
-            <input
-              type="checkbox"
-              role="switch"
-              className={styles.switchInput}
-              checked={preferOllama}
-              onChange={(e) => {
-                const on = e.target.checked
-                setPreferOllama(on)
-                try {
-                  localStorage.setItem('atomlab-learn-ollama', on ? '1' : '0')
                 } catch {
                   /* ignore */
                 }
@@ -1164,7 +1127,7 @@ export function LearnAssistantPanel({
                 {t('learn.teacherUi.quickPrompts')}
               </p>
               {quickChips('grid')}
-              <SmartAiCta className={styles.welcomeCta} />
+              <BrainStatusChip className={styles.welcomeCta} />
             </div>
           ) : null}
 

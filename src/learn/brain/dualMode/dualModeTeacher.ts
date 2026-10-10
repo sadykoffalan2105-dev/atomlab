@@ -5,7 +5,7 @@
  *  • камеру  → EngagementTracker → UnifiedBrain (вовлечённость, мимика, честность);
  *  • микрофон → DuplexVoiceSession (непрерывное STT, быстрый конец реплики,
  *    перебивание голосом, озвучка фраза за фразой);
- *  • знания → TrainingModeEngine (стриминг «умного ИИ» или локальный ответ из базы);
+ *  • знания → TrainingModeEngine (стриминг локального мозга или локальный ответ из базы);
  *  • экзамен → QuestionGenerator / ExamModeEngine (устные пулы 7–11 класса).
  *
  * Все входы ученика (голос, набранный текст, кнопки-команды) проходят через FIFO
@@ -17,9 +17,9 @@
  *   EXAM     — строгий экзаменатор, правило «НЕТ ОТВЕТАМ», сократовский диалог.
  */
 import type { LearnSpeechController } from '../../learnSpeech'
-import { isSmartAiConnected } from '../../learnPuterChat'
 import type { FusedContext, ReasoningStepSnapshot, VisionSignal, EmotionState } from '../brainTypes'
 import { UnifiedBrain } from '../unifiedBrain'
+import { getBrainStatus } from '../remote/brainClient'
 import { EngagementTracker } from '../vision/engagementTracker'
 import { DuplexVoiceSession, type BargeInEvent, type TeacherTurnHandle, type UserUtteranceMeta } from '../voice/duplexVoiceSession'
 import type { DialogTurn } from '../voice/interruptionController'
@@ -55,7 +55,7 @@ export interface TeacherDraft {
 export interface DualModeTeacherCallbacks {
   /** Итоговая реплика учителя (текст для чата). При стриминге приходит после черновиков. */
   onResponse?: (response: TeacherResponse) => void
-  /** Черновик реплики учителя, пока «умный ИИ» пишет ответ (тот же turnId, что у onResponse). */
+  /** Черновик реплики учителя, пока мозг пишет ответ (тот же turnId, что у onResponse). */
   onTeacherDraft?: (draft: TeacherDraft) => void
   /** Ученик перебил учителя (голосом, кнопкой или набранным текстом). */
   onTeacherInterrupted?: (info: { turnId: number | null; source: BargeInEvent['source']; stopLatencyMs: number }) => void
@@ -156,6 +156,8 @@ export class TeacherIntelligence {
   private lastReengageMs = 0
   private lastEmotionReactMs = 0
   private lastFusedEmotion: EmotionState = 'neutral'
+  /** Внимание ученика с камеры 0..1 (null — камеры нет). */
+  private lastFusedAttention: number | null = null
 
   private teacherTurnSeq = 0
   private current: TurnTrack | null = null
@@ -184,6 +186,7 @@ export class TeacherIntelligence {
       chapterId: config.chapterId,
       sectionId: config.sectionId,
       sectionTitle: config.sectionTitle,
+      studentId: config.studentId,
     })
     this.exam = new ExamModeEngine({
       lang: config.lang,
@@ -536,8 +539,7 @@ export class TeacherIntelligence {
     const signal = track.abort.signal
     let handle: TeacherTurnHandle | null = null
     let draft = ''
-    const smart = isSmartAiConnected()
-    track.source = smart ? 'smart' : 'local'
+    track.source = getBrainStatus() === 'online' ? 'brain' : 'local'
     // История без текущей реплики ученика (она добавлена в processTurn).
     const history = this.state.history(9).slice(0, -1)
 
@@ -555,8 +557,9 @@ export class TeacherIntelligence {
         history,
         previousQuestions: this.previousQuestions.slice(-4),
         emotion: this.lastFusedEmotion,
+        // Вовлечённость с камеры — один раз за ход (null — камеры нет).
+        cameraEngagement: this.lastFusedAttention ?? undefined,
         signal,
-        smartAi: smart,
         onSentence: (sentence) => {
           if (signal.aborted) return
           if (track.firstSentenceAt === null) track.firstSentenceAt = now()
@@ -615,7 +618,7 @@ export class TeacherIntelligence {
   private onBargeIn(ev: BargeInEvent): void {
     const turnId = this.speakingTurnId ?? this.proactive?.turnId ?? null
     this.speakingTurnId = null
-    // Голосом перебили, пока «умный ИИ» ещё пишет ответ — дальше не генерируем.
+    // Голосом перебили, пока мозг ещё пишет ответ — дальше не генерируем.
     if (ev.source === 'voice' && this.current && this.current.item.kind !== 'command') this.current.abort.abort()
     this.cfg.callbacks?.onTeacherInterrupted?.({ turnId, source: ev.source, stopLatencyMs: ev.stopLatencyMs })
   }
@@ -786,6 +789,7 @@ export class TeacherIntelligence {
   private handleEngagement(fused: FusedContext): void {
     this.cfg.callbacks?.onEngagement?.(fused)
     this.lastFusedEmotion = fused.emotion
+    this.lastFusedAttention = fused.present && fused.engagement !== 'absent' ? fused.attention : 0
     if (!this.running || this.thinking || this.queue.isBusy()) return
     if (this.duplex.isAiSpeaking() || this.duplex.hasPendingUserSpeech()) return
     if (this.duplex.getTurn() !== 'idle') return

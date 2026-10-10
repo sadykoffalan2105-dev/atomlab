@@ -1,13 +1,14 @@
 /**
- * Общие «чипы» ИИ-учителя: источники ответа, какой «мозг» отвечает,
- * призыв подключить умный ИИ. Используются и в чате урока, и в онлайн-уроке.
+ * Общие «чипы» ИИ-учителя: источники ответа, какой «мозг» отвечает и индикатор
+ * локального мозга. Используются и в чате урока, и в онлайн-уроке.
  */
 import { useT } from '../../../i18n/useT'
+import { useBrainStatus } from '../../../learn/brain/remote/brainClient'
 import { IconBook, IconBrainSpark, IconDatabase } from './TeacherIcons'
-import { useSmartAi } from './smartAiStore'
 import styles from './TeacherChips.module.css'
 
-export type TeacherBrain = 'smart' | 'local' | 'ollama' | 'server'
+/** 'brain' — локальный мозг на ПК учителя; 'local' — база знаний в браузере; 'server' — сервер учителя. */
+export type TeacherBrain = 'brain' | 'local' | 'server'
 
 export function SourceChips({ citations, className }: { citations: readonly string[]; className?: string }) {
   const { t } = useT()
@@ -35,13 +36,11 @@ export function BrainChip({
 }) {
   const { t } = useT()
   const label =
-    brain === 'smart'
-      ? t('learn.teacherUi.brainSmart')
-      : brain === 'ollama'
-        ? t('learn.assistant.sourceOllama')
-        : brain === 'server'
-          ? t('learn.teacherUi.brainServer')
-          : t('learn.teacherUi.brainLocal')
+    brain === 'brain'
+      ? t('learn.teacherUi.brainLocalAi')
+      : brain === 'server'
+        ? t('learn.teacherUi.brainServer')
+        : t('learn.teacherUi.brainLocal')
   const Icon = brain === 'local' ? IconDatabase : IconBrainSpark
   return (
     <span
@@ -64,34 +63,33 @@ export function BrainChip({
 }
 
 /**
- * «Подключить умный ИИ (бесплатно)» + однострочное пояснение.
- * `layout="inline"` — кнопка-ссылка для тесных мест.
+ * Индикатор локального мозга: «Локальный мозг: подключён» / «Локальная база (мозг не запущен)»;
+ * подсказка — как запустить мозг (`npm run brain:start`). Проверка /health ≤ 800 мс, опрос раз в 30 с.
  */
-export function SmartAiCta({ layout = 'card', className }: { layout?: 'card' | 'inline'; className?: string }) {
+export function BrainStatusChip({ compact = false, className }: { compact?: boolean; className?: string }) {
   const { t } = useT()
-  const { status, connect } = useSmartAi()
-  if (status === 'on') return null
-  const busy = status === 'connecting'
-  const button = (
-    <button
-      type="button"
-      className={layout === 'inline' ? styles.ctaInline : styles.ctaBtn}
-      onClick={() => void connect()}
-      disabled={busy}
-      aria-busy={busy}
-      title={layout === 'inline' ? t('learn.teacherUi.smartExplain') : undefined}
-    >
-      <IconBrainSpark className={styles.ctaIcon} />
-      <span>{busy ? t('learn.teacherUi.smartConnecting') : t('learn.teacherUi.smartConnect')}</span>
-    </button>
-  )
-  if (layout === 'inline') return <span className={className}>{button}</span>
+  const status = useBrainStatus()
+  const online = status === 'online'
+  const label =
+    status === 'online'
+      ? t('learn.teacherUi.brainOnline')
+      : status === 'checking'
+        ? t('learn.teacherUi.brainChecking')
+        : t('learn.teacherUi.brainOfflineShort')
+  const title = online ? label : `${t('learn.teacherUi.brainOffline')}. ${t('learn.teacherUi.brainHint')}`
+  const Icon = online ? IconBrainSpark : IconDatabase
   return (
-    <div className={`${styles.cta} ${className ?? ''}`} data-status={status}>
-      {button}
-      <p className={styles.ctaText}>
-        {status === 'error' ? t('learn.teacherUi.smartError') : t('learn.teacherUi.smartExplain')}
-      </p>
-    </div>
+    <span
+      className={`${styles.brain} ${className ?? ''}`}
+      data-brain={online ? 'brain' : 'local'}
+      data-status={status}
+      data-compact={compact ? '1' : undefined}
+      title={title}
+      role="status"
+      aria-live="polite"
+    >
+      <Icon className={styles.brainIcon} />
+      <span className={styles.brainLabel}>{label}</span>
+    </span>
   )
 }
