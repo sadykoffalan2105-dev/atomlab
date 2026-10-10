@@ -13,6 +13,7 @@ import { showcaseHud } from './showcase/texts/index'
 import { VIB_DEFAULT, type FinalPhase, type PhaseInfo, type StoryOrbitals, type VibSpec } from './story/phase'
 import { phaseRow } from './story/phase-data'
 import { buildStoryOrbitals } from './story/orbitals'
+import { E_GAP, E_PAIR, eFrame, electronRadius, fitFlightLifts, pairNormal, slotDirs } from './story/electrons'
 import { buildPhaseHud } from './story/hud'
 
 export type { LatticeAtom, StoryLatticeKind } from './story/lattice'
@@ -50,10 +51,31 @@ export type GhostAtom = { el: string; r: number; p0: V3; p1: V3 }
  */
 export type StoryElectron = {
   home: number
+  /** (совместимость) смещение дома при итоговом радиусе: (r + GAP)·homeDir + homeSide·PAIR·n̂ — точное положение см. story/electrons.ts */
   homeOff: V3
+  /** (добавлено) единичное направление слота дома (координаты модели): свободно от соседей (story/electrons.ts slotDirs) */
+  homeDir: V3
+  /** (добавлено) место в паре: 0 — один в слоте, −1 / +1 — пара (разнос ±PAIR по n̂) */
+  homeSide: -1 | 0 | 1
+  /** (добавлено) номер слота дома 0…3 */
+  homeSlot: number
+  /** (добавлено) с этого момента (за 0,3 с) электрон сдвигается из 0 в homeSide — пришёл второй электрон пары */
+  sideAt?: number
   /** появление (этап «валентные электроны») */
   tIn: number
-  move: null | { t0: number; t1: number; toAtom?: number; toOff?: V3; bond?: { a: number; b: number; slot: number; n: number; sign: -1 | 1; k: number } }
+  move: null | {
+    t0: number
+    t1: number
+    toAtom?: number
+    /** (совместимость) смещение цели при итоговом радиусе */
+    toOff?: V3
+    /** (добавлено) слот акцептора: направление и место в паре */
+    toDir?: V3
+    toSide?: -1 | 0 | 1
+    /** (добавлено) высота дуги перелёта к зрителю (story/electrons.ts fitFlightLifts) */
+    path?: { H: number }
+    bond?: { a: number; b: number; slot: number; n: number; sign: -1 | 1; k: number }
+  }
   /** исчезновение: общая пара — когда выросла палочка; остальные — в начале «Готово» */
   tOut: number
   kind: 'lone' | 'transfer' | 'pair'
@@ -201,7 +223,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   for (const p of PF) maxD = Math.max(maxD, len(p))
   maxD = Math.max(maxD, 0.25)
   const avgR = model.atoms.reduce((s, a) => s + a.r, 0) / Math.max(1, n)
-  const eR = clamp(0.2 * avgR, 0.012, 0.05)
+  // eR — в блоке «Электроны» (story/electrons.ts electronRadius: по медиане шаров атомов с точками)
   const unitOf = new Map<number, number>()
   plan.units.forEach((u, i) => u.atoms.forEach((a) => unitOf.set(a, i)))
   const speciesOfAtom = (i: number) => plan.species[plan.units[unitOf.get(i) ?? -1]?.species ?? -1]
@@ -545,7 +567,7 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     }
   }
 
-  // ── Электроны ──
+  // ── Электроны ── (математика — story/electrons.ts: слоты свободны от соседей, точка всегда снаружи шара)
   const sv = st('valence')!
   const fin = st('final')!
   const sums = model.atoms.map(() => 0)
@@ -561,31 +583,79 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     }
     return VALENCE_E[a.el] ?? 0
   })
+  // eR = clamp(0,16·r_med, 0,016, 0,034): медиана шаров атомов с точками (у ионов — меньший из r и r_нейтр)
+  const eR = electronRadius(model.atoms.map((a, i) => (showE[i] && valenceE[i]! > 0 ? Math.min(a.r, rNeutralOf(i)) : 0)))
+  const frame = eFrame(model)
+  // Слоты: по 4 свободных направления у каждого атома с точками — по итоговым местам PF (в P2/P3 соседи только дальше).
+  const ballR = model.atoms.map((a) => a.r)
+  const dirs: V3[][] = model.atoms.map((_, i) => (showE[i] ? slotDirs(i, PF, ballR, eR, frame) : []))
+  const offAt = (i: number, u: V3, side: number): V3 => {
+    const nn = pairNormal(u, frame)
+    const rho = model.atoms[i]!.r + E_GAP * eR
+    return [u[0] * rho + nn[0] * side * E_PAIR * eR, u[1] * rho + nn[1] * side * E_PAIR * eR, u[2] * rho + nn[2] * side * E_PAIR * eR]
+  }
   const electrons: StoryElectron[] = []
   const pool: number[][] = model.atoms.map(() => [])
-  const lewisOff = (i: number, k: number, total: number): V3 => {
-    // 4 стороны (верх, право, низ, лево), сначала по одному, затем пары — как в схемах Льюиса.
-    const side = k % 4
-    const second = k >= 4 ? 1 : 0
-    const paired = total > 4 + side
-    const r = model.atoms[i]!.r
-    const d = r + 2.2 * eR
-    const sp = paired ? (second ? 1 : -1) * 1.6 * eR : 0
-    const base: V3[] = [[sp, d, 0], [d, sp, 0], [sp, -d, 0], [-d, sp, 0]]
-    return screenToModel(model, [base[side]![0], base[side]![1], 0.35 * r])
+  /** занятость слотов: индексы электронов, сидящих в слоте (не улетевших) */
+  const occ: number[][][] = model.atoms.map(() => [[], [], [], []])
+  const mk = (i: number, slot: number, side: -1 | 0 | 1, tIn: number): number => {
+    const u = dirs[i]![slot]!
+    electrons.push({ home: i, homeOff: offAt(i, u, side), homeDir: u, homeSide: side, homeSlot: slot, tIn, move: null, tOut: fin.t0 + 1.2, kind: 'lone' })
+    const e = electrons.length - 1
+    occ[i]![slot]!.push(e)
+    return e
   }
   model.atoms.forEach((_, i) => {
     if (!showE[i]) return
+    // Хунд / Льюис: k = 0…3 — по одному в слоты 0…3, k = 4…7 — вторые (пара: первый сдвигается на −PAIR, второй +PAIR).
     const total = Math.min(8, valenceE[i]!)
     for (let k = 0; k < total; k++) {
-      pool[i]!.push(electrons.length)
-      electrons.push({ home: i, homeOff: lewisOff(i, k, total), tIn: sv.t0 + 0.3 + (0.5 * k) / Math.max(1, total), move: null, tOut: fin.t0 + 1.2, kind: 'lone' })
+      // сначала по одному (0,15 с), затем пары (0,35 с): первый отходит на −PAIR до появления второго — ни кадра слипания
+      const tIn = sv.t0 + 0.3 + (k < 4 ? 0.15 * k : 1.05 + 0.35 * (k - 4))
+      const slot = k % 4
+      if (k >= 4) {
+        const first = electrons[occ[i]![slot]![0]!]!
+        first.homeSide = -1
+        first.sideAt = tIn - 0.3
+        first.homeOff = offAt(i, first.homeDir, -1)
+      }
+      pool[i]!.push(mk(i, slot, k >= 4 ? 1 : 0, tIn))
     }
   })
-  const take = (i: number): number | null => (pool[i]!.length ? pool[i]!.shift()! : null)
-  const phantom = (i: number): number => {
-    electrons.push({ home: i, homeOff: lewisOff(i, 0, 1), tIn: sv.t0 + 0.8, move: null, tOut: fin.t0 + 1.2, kind: 'lone' })
-    return electrons.length - 1
+  const dirTo = (i: number, j: number): V3 => {
+    const v: V3 = [P3[j]![0] - P3[i]![0], P3[j]![1] - P3[i]![1], P3[j]![2] - P3[i]![2]]
+    const l = len(v) || 1
+    return [v[0] / l, v[1] / l, v[2] / l]
+  }
+  const dotV = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+  /** Донор отдаёт электрон слота, ближайшего по углу к партнёру; сначала одиночные (неспаренные). */
+  const take = (i: number, toward: number): number | null => {
+    const list = pool[i]!
+    if (!list.length) return null
+    const w = dirTo(i, toward)
+    let best = -1
+    let bk = -Infinity
+    for (let q = 0; q < list.length; q++) {
+      const E = electrons[list[q]!]!
+      const single = occ[i]![E.homeSlot]!.length === 1 ? 1 : 0
+      const key = 10 * single + dotV(E.homeDir, w)
+      if (key > bk) ((bk = key), (best = q))
+    }
+    const e = list.splice(best, 1)[0]!
+    const E = electrons[e]!
+    const sl = occ[i]![E.homeSlot]!
+    sl.splice(sl.indexOf(e), 1)
+    return e
+  }
+  /** «Нет своего электрона»: точка появляется в момент вылета (tIn = t0) у самого свободного слота — ни с кем не слипается. */
+  const phantom = (i: number, t0: number): number => {
+    if (!dirs[i]!.length) dirs[i] = slotDirs(i, PF, ballR, eR, frame)
+    let slot = 0
+    for (let s = 1; s < 4; s++) if (occ[i]![s]!.length < occ[i]![slot]!.length) slot = s
+    const e = mk(i, slot, 0, t0)
+    const sl = occ[i]![slot]!
+    sl.splice(sl.indexOf(e), 1)
+    return e
   }
   // Общие пары: по одному электрону от каждого атома (нет своего — оба от партнёра: донорно-акцепторная).
   // Пары появляются ПО ОДНОЙ (перекрытие соседних ≤ 30 %); у ионных (кислотный остаток) за парой сразу растёт палочка.
@@ -603,10 +673,10 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
       const nn = Math.max(1, Math.min(3, Math.round(b.order)))
       for (let p = 0; p < nn; p++) {
         sharedPairs++
-        const e1 = take(b.a) ?? take(b.b) ?? phantom(b.a)
-        const e2 = take(b.b) ?? take(b.a) ?? phantom(b.b)
         const t0 = pairStage.t0 + 0.2 + q * step
         const t1 = t0 + per
+        const e1 = take(b.a, b.b) ?? take(b.b, b.a) ?? phantom(b.a, t0)
+        const e2 = take(b.b, b.a) ?? take(b.a, b.b) ?? phantom(b.b, t0)
         q++
         const stick = sticks.find((s) => s.bond === k && s.s === p)
         if (stick && ionic) {
@@ -624,20 +694,65 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     })
   }
   // Переход электронов (ионное): каждый e⁻ отдельно и по очереди (≈ 1,2 с, перекрытие соседних ≤ 30 %).
+  // Акцептор принимает в слот, ближайший к донору: сначала достраивает пары (одиночный сдвигается на −PAIR), затем пустые.
   let transferred = 0
   const ts = st('transfer')
   if (ionic && ts) {
-    const moves = plannedMoves.map(({ from, to }) => ({ e: take(from) ?? phantom(from), to }))
-    const m = moves.length
+    const m = plannedMoves.length
     const per = E_PER
     const step = m <= 1 ? 0 : Math.max(0.7 * per, (ts.dur - 0.8 - per) / (m - 1))
-    moves.forEach(({ e, to }, j) => {
+    const moves = plannedMoves.map(({ from, to }, j) => ({ e: take(from, to) ?? phantom(from, ts.t0 + 0.4 + j * step), from, to }))
+    moves.forEach(({ e, from, to }, j) => {
       const t0 = ts.t0 + 0.4 + j * step
-      const k = pool[to]!.length + j
-      electrons[e]!.move = { t0, t1: t0 + per, toAtom: to, toOff: lewisOff(to, 7 - (k % 8), 8) }
+      const w = dirTo(to, from)
+      if (!dirs[to]!.length) dirs[to] = slotDirs(to, PF, ballR, eR, frame)
+      let slot = -1
+      let bk = -Infinity
+      for (let s = 0; s < 4; s++) {
+        const c = occ[to]![s]!.length
+        if (c >= 2) continue
+        const key = (c === 1 ? 10 : 0) + dotV(dirs[to]![s]!, w)
+        if (key > bk) ((bk = key), (slot = s))
+      }
+      if (slot < 0) slot = 0
+      const sl = occ[to]![slot]!
+      // пустой слот: прилетевший садится на −PAIR (место для второго); слот с одним — достраивает пару
+      let side: -1 | 0 | 1 = -1
+      if (sl.length === 1) {
+        const first = electrons[sl[0]!]!
+        if (first.home === to && !first.move) {
+          if (first.homeSide === 0) {
+            first.homeSide = -1
+            first.sideAt = Math.max(first.tIn + 0.4, t0 + per - 0.3)
+            first.homeOff = offAt(to, first.homeDir, -1)
+          }
+          side = first.homeSide === 1 ? -1 : 1
+        } else side = first.move?.toSide === 1 ? -1 : 1
+      }
+      sl.push(e)
+      const u = dirs[to]![slot]!
+      electrons[e]!.move = { t0, t1: t0 + per, toAtom: to, toOff: offAt(to, u, side), toDir: u, toSide: side }
       electrons[e]!.kind = 'transfer'
       transferred++
     })
+  }
+  // Высота дуги каждого перелёта: путь к зрителю, точка вне всех шаров (по тем же положениям атомов, что у вида).
+  {
+    const trS = st('transfer')
+    const tmp = {
+      stages,
+      P: [P0, P1, P2, P3, PF],
+      innerWin,
+      assembleWin,
+      rNeutral: model.atoms.map((_, i) => rNeutralOf(i)),
+      ionWin: trS ? [trS.t0 + 0.45 * trS.dur, trS.t0 + trS.dur] : [Infinity, Infinity],
+      eR,
+      electrons,
+      latticeAtoms: [],
+      latticeWin: [Infinity, Infinity],
+      latticeKind: 'none',
+    } as unknown as FormationStory
+    fitFlightLifts(tmp, model, (i, tt, out) => atomPosAt(tmp, i, tt, out))
   }
 
   // Фрагмент решётки: появление по слоям (k) в этапе «Решётка» (ионные) или «Готово» (молекулярная, цепь).

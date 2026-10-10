@@ -51,6 +51,42 @@ export type RouteStage = {
 export const ROUTE_DUR = 7
 
 /** Положение по ключам (линейно со сглаживанием между ключами). */
+/** запас «точка вне шара» сцены пути (≥ 0,5 радиуса точки 1,15·eR при eR ≤ 0,034) */
+const ROUTE_E_CLEAR = 0.025
+
+/**
+ * Точки сцены пути — всегда снаружи шаров: если точка хоть в один момент (шаг 1/30 с, видимость шара r·sc) заходит в шар,
+ * вся её траектория поднимается к зрителю (ẑ_m) на наименьшее λ: |p + λẑ − c| ≥ r·sc + запас (решение квадратного уравнения).
+ */
+function liftRouteElectrons(atoms: RouteAtom[], electrons: RouteElectron[], z: V3): void {
+  const P: V3 = [0, 0, 0]
+  const C: V3 = [0, 0, 0]
+  for (const e of electrons) {
+    let lift = 0
+    for (let pass = 0; pass < 4; pass++) {
+      let need = 0
+      for (let t = e.tIn; t <= e.tOut + 0.4; t += 1 / 30) {
+        routeKeyAt(e.keys, t, P)
+        for (let q = 0; q < 3; q++) P[q] += z[q]! * lift
+        for (const a of atoms) {
+          const sc = Math.min(1, Math.max(0, (t - a.tIn) / 0.5)) * (1 - Math.min(1, Math.max(0, (t - a.tOut) / 0.4)))
+          if (sc <= 0) continue
+          routeKeyAt(a.keys, t, C)
+          const R = a.r * sc + ROUTE_E_CLEAR
+          const v: V3 = [P[0] - C[0], P[1] - C[1], P[2] - C[2]]
+          const dd = v[0] * v[0] + v[1] * v[1] + v[2] * v[2]
+          if (dd >= R * R) continue
+          const bq = v[0] * z[0] + v[1] * z[1] + v[2] * z[2]
+          need = Math.max(need, -bq + Math.sqrt(Math.max(0, bq * bq - (dd - R * R))))
+        }
+      }
+      if (need <= 1e-6) break
+      lift += need + 1e-3
+    }
+    if (lift > 0) e.keys = e.keys.map(([t, p]) => [t, [p[0] + z[0] * lift, p[1] + z[1] * lift, p[2] + z[2] * lift]] as RouteKey)
+  }
+}
+
 export function routeKeyAt(keys: RouteKey[], t: number, out: V3): V3 {
   const k0 = keys[0]!
   if (t <= k0[0] || keys.length === 1) {
@@ -446,6 +482,7 @@ export function buildRouteStage(
     a.keys = a.keys.map(([t, p]) => [t, toModel(p)] as RouteKey)
   }
   for (const e of c.electrons) e.keys = e.keys.map(([t, p]) => [t, toModel(p)] as RouteKey)
+  liftRouteElectrons(c.atoms, c.electrons, toModel([0, 0, 1]))
   const tx = more ?? TEXT[show as Exclude<RouteShow, MoreShow>]
   return { kind: rk, show, equation: route, title: tx.title, text: tx.text, t0: T, dur: D, atoms: c.atoms, sticks: c.sticks, electrons: c.electrons, badges: c.badges }
 }
