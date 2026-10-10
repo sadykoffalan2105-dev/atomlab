@@ -194,7 +194,7 @@
 /* Выбранный класс — фирменный градиент ИИ (синий → фиолетовый) с белым текстом: контрастно в обеих темах. */
 .gradeOn {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--lt-primary), var(--lt-primary-2));
+  background: var(--lt-grad-primary);
   color: #fff;
   box-shadow: var(--lt-glow-primary);
 }

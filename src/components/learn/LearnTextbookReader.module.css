@@ -470,7 +470,7 @@
   box-sizing: border-box;
   padding: 8px 14px;
   border-radius: 10px;
-  background: var(--lt-primary);
+  background: var(--lt-primary-fill, var(--lt-primary));
   color: var(--lt-on-primary, #fff);
   font-size: 13px;
   font-weight: 600;
