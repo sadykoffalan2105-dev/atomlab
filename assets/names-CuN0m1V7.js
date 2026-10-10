@@ -1,1 +1,0 @@
-import{ln as e}from"./lab-scene-D-g8lu6U.js";import{b as t}from"./registry-B4j5eMnV.js";function n(n,r){let i=e[n.id];return i?r===`en`?i.nameEn:r===`uz`?i.nameUz:i.nameRu:t(n.formula)}export{n as t};
