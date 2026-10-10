@@ -65,13 +65,13 @@ export interface TeacherResponse {
   finished: boolean
   /** Номер реплики учителя (совпадает с черновиком при стриминге). */
   turnId?: number
-  /** Откуда ответ: «умный ИИ», локальная база, служебная фраза. */
+  /** Откуда ответ: локальный мозг (сервер на ПК учителя), локальная база, служебная фраза. */
   source?: TeacherReplyOrigin
   /** Источники знаний (подписи вида «[Kimyo 8, §2, стр. 10]»). */
   citations?: string[]
 }
 
-export type TeacherReplyOrigin = 'smart' | 'local' | 'system'
+export type TeacherReplyOrigin = 'brain' | 'local' | 'system'
 
 /** Задержки одного хода живого диалога (мс). */
 export interface LiveTurnMetrics {

@@ -56,7 +56,7 @@
   white-space: nowrap;
 }
 
-.brain[data-brain='smart'] {
+.brain[data-brain='brain'] {
   --brain: var(--lt-primary-2);
 }
 

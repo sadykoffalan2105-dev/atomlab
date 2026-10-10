@@ -179,7 +179,7 @@
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 999px;
-  color: var(--lt-g10-a, #34d399);
+  color: var(--lt-ink-success, var(--lt-g10-a, #34d399));
   background: color-mix(in srgb, var(--lt-g10-a, #34d399) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--lt-g10-a, #34d399) 40%, transparent);
 }

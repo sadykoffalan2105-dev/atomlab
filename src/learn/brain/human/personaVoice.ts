@@ -13,7 +13,10 @@
 import { loadProfile } from './studentProfile'
 
 export type VoiceLang = 'ru' | 'en' | 'uz'
-export type VoiceKind = 'book' | 'fact' | 'encyclopedia' | 'smalltalk' | 'noAnswer'
+/** 'reasoned' — готового ответа нет, учитель рассуждает от основ; 'noAnswer' — прежнее имя того же вида. */
+export type VoiceKind = 'book' | 'fact' | 'encyclopedia' | 'smalltalk' | 'reasoned' | 'noAnswer'
+
+const isReasonedKind = (k: VoiceKind) => k === 'reasoned' || k === 'noAnswer'
 export type VoiceIntent = 'definition' | 'why' | 'scientist' | 'history' | 'everyday' | 'calc' | 'how' | 'general'
 export type VoiceMood = 'cool' | 'hard' | 'thanks' | 'neutral'
 
@@ -324,7 +327,7 @@ export function speakLikeHuman(answer: string, opts: SpeakOptions): string {
   const avoid = new Set<string>([...(opts.previousOpeners ?? []), ...recentOpeners])
 
   const { body: rawBody, tail } = splitCitations(src)
-  let body = dedupeSentences(softenBureaucratic(rawBody, lang))
+  const body = dedupeSentences(softenBureaucratic(rawBody, lang))
   const baseWords = words(src)
 
   // Уже начинается с нашей фразы (повторный вызов) — не наращиваем второй раз.
@@ -338,8 +341,8 @@ export function speakLikeHuman(answer: string, opts: SpeakOptions): string {
     // 1) Эмоциональная реакция важнее вступления.
     if (opts.mood && opts.mood !== 'neutral') {
       pieces.opener = pickSeeded(MOOD_REACTIONS[opts.mood][lang], seed, avoid)
-    } else if (opts.kind === 'noAnswer') {
-      pieces.opener = '' // текст «не знаю» уже честный и короткий — без вступления
+    } else if (isReasonedKind(opts.kind)) {
+      pieces.opener = '' // рассуждение от основ уже начинается своей фразой — без вступления
     } else if (seed % 3 !== 2 || opts.kind === 'encyclopedia') {
       // Вступление не в каждом ответе: иначе приедается.
       pieces.opener = pickSeeded(OPENERS[intent][lang], seed, avoid)
@@ -351,7 +354,7 @@ export function speakLikeHuman(answer: string, opts: SpeakOptions): string {
     }
     // 3) Концовка-зацепка: не после вопроса, не для коротких стилей, не для «не знаю».
     const brief = profile.detail <= -1
-    if (!opts.noHook && !endsWithQuestion && !brief && opts.kind !== 'noAnswer' && body.length < 900 && seed % 2 === 0) {
+    if (!opts.noHook && !endsWithQuestion && !brief && !isReasonedKind(opts.kind) && body.length < 900 && seed % 2 === 0) {
       const pool = profile.examples >= 1 && intent !== 'scientist' ? HOOKS.definition[lang] : HOOKS[intent][lang]
       pieces.hook = pickSeeded(pool, seed + 3, new Set(recentHooks))
     }
@@ -359,7 +362,7 @@ export function speakLikeHuman(answer: string, opts: SpeakOptions): string {
 
   // «Не знаю»: добавить близкие темы (если они есть и их ещё нет в тексте).
   let near = ''
-  if (opts.kind === 'noAnswer' && opts.nearTopics?.length) {
+  if (isReasonedKind(opts.kind) && opts.nearTopics?.length) {
     const topics = [...new Set(opts.nearTopics.map((t) => t.replace(/[*_`]/g, '').trim()).filter((t) => t && !body.toLowerCase().includes(t.toLowerCase())))].slice(0, 2)
     if (topics.length === 2) near = pickSeeded(NO_ANSWER_NEAR[lang], seed, new Set()).replace('{a}', topics[0]!).replace('{b}', topics[1]!)
     else if (topics.length === 1) near = pickSeeded(NO_ANSWER_ONE[lang], seed, new Set()).replace('{a}', topics[0]!)
@@ -367,7 +370,7 @@ export function speakLikeHuman(answer: string, opts: SpeakOptions): string {
 
   // Сборка с контролем прироста (≤ MAX_ADDED_WORDS).
   const assemble = () => {
-    let head = ''
+    let head: string
     if (pieces.withName && pieces.opener) head = `${name}, ${lowerFirst(pieces.opener)}`
     else if (pieces.withName) head = `${name}, ${lowerFirst(firstWordHint(lang))}`
     else head = pieces.opener

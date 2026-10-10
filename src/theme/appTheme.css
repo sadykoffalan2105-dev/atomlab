@@ -33,12 +33,15 @@ html[data-app-theme='dark'] {
 
   --lt-text: #e8edff;
   --lt-text-2: #b6c0e0;
-  --lt-text-3: #8793b8;
-  --lt-text-mute: #5f6a8f;
+  --lt-text-3: #929dc2;
+  --lt-text-mute: #7d88ad;
 
   --lt-primary: #5b8cff;
   --lt-primary-2: #8b5cf6;
-  --lt-grad-primary: linear-gradient(135deg, #5b8cff 0%, #8b5cf6 55%, #d946ef 100%);
+  /* Заливка кнопки под белым текстом (--lt-primary ночью светлый — он для текста и обводок). */
+  --lt-primary-fill: #4169dc;
+  /* Белый текст на градиенте ≥ 4,5 : 1 по всей длине (был #5b8cff→#d946ef, 3,2–4,1). */
+  --lt-grad-primary: linear-gradient(135deg, #4169dc 0%, #7c4ddf 55%, #b935c9 100%);
   --lt-accent-teal: #2dd4bf;
   --lt-accent-cyan: #22d3ee;
   --lt-accent-amber: #fbbf24;
@@ -125,20 +128,21 @@ html[data-app-theme='light'] {
 
   --lt-text: #172033;
   --lt-text-2: #37425c;
-  --lt-text-3: #56617c;
-  --lt-text-mute: #79829a;
+  --lt-text-3: #4d5873;
+  --lt-text-mute: #5d667d;
 
-  --lt-primary: #2f62d8;
+  --lt-primary: #2a58c4;
   --lt-primary-2: #7c3aed;
+  --lt-primary-fill: #2a58c4;
   --lt-grad-primary: linear-gradient(135deg, #2f62d8 0%, #7c3aed 55%, #c026d3 100%);
   --lt-accent-teal: #0d9488;
   --lt-accent-cyan: #0e7490;
-  --lt-accent-amber: #b45309;
-  --lt-accent-pink: #db2777;
+  --lt-accent-amber: #a14a0b;
+  --lt-accent-pink: #be185d;
   --lt-success: #15803d;
   --lt-warning: #b45309;
   --lt-danger: #dc2626;
-  --lt-info: #0369a1;
+  --lt-info: #075985;
 
   --lt-g7-a: #0891b2;
   --lt-g7-b: #2563eb;
@@ -175,7 +179,7 @@ html[data-app-theme='light'] {
    */
   --lt-ink-1: #172033;
   --lt-ink-2: #37425c;
-  --lt-ink-3: #56617c;
+  --lt-ink-3: #4d5873;
   --lt-ink-teal: #0f766e;
   --lt-ink-amber: #92400e;
   --lt-ink-success: #166534;
@@ -270,12 +274,15 @@ html[data-app-theme] [data-app-night] {
 
   --lt-text: #e8edff;
   --lt-text-2: #b6c0e0;
-  --lt-text-3: #8793b8;
-  --lt-text-mute: #5f6a8f;
+  --lt-text-3: #929dc2;
+  --lt-text-mute: #7d88ad;
 
   --lt-primary: #5b8cff;
   --lt-primary-2: #8b5cf6;
-  --lt-grad-primary: linear-gradient(135deg, #5b8cff 0%, #8b5cf6 55%, #d946ef 100%);
+  /* Заливка кнопки под белым текстом (--lt-primary ночью светлый — он для текста и обводок). */
+  --lt-primary-fill: #4169dc;
+  /* Белый текст на градиенте ≥ 4,5 : 1 по всей длине (был #5b8cff→#d946ef, 3,2–4,1). */
+  --lt-grad-primary: linear-gradient(135deg, #4169dc 0%, #7c4ddf 55%, #b935c9 100%);
   --lt-accent-teal: #2dd4bf;
   --lt-accent-cyan: #22d3ee;
   --lt-accent-amber: #fbbf24;

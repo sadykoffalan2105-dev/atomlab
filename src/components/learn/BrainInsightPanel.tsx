@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 
 import { useUnifiedBrainSession } from '../../learn/brain'
 import type { AssistantLang } from '../../learn/brain'
 import { useT } from '../../i18n/useT'
+import { useBrainStudent } from '../../learn/brain/remote/brainClient'
 import { EMOTION_LABEL, ENGAGEMENT_LABEL, ENGAGEMENT_TONE, labelLocale } from './teacher/liveTutorLabels'
 import styles from './teacher/BrainInsightPanel.module.css'
 
@@ -53,6 +54,14 @@ export function BrainInsightPanel({ videoRef, active, studentId, lang }: Props) 
   const engagement = fused?.engagement ?? 'focused'
   const emotion = fused?.emotion ?? 'neutral'
   const integrityPct = fused ? Math.round(fused.integrityRisk * 100) : 0
+  // Модель ученика от локального мозга (последний ответ /chat): уровень, темп, типичные ошибки.
+  const brainStudent = useBrainStudent()
+  const paceKey =
+    brainStudent?.pace === 'slow'
+      ? 'learn.teacherUi.brainPaceSlow'
+      : brainStudent?.pace === 'fast'
+        ? 'learn.teacherUi.brainPaceFast'
+        : 'learn.teacherUi.brainPaceNormal'
 
   return (
     <section className={styles.panel} aria-label={t('learn.teacherUi.insightTitle')}>
@@ -92,6 +101,24 @@ export function BrainInsightPanel({ videoRef, active, studentId, lang }: Props) 
       ) : (
         <p className={styles.hint}>{t('learn.teacherUi.insightHint')}</p>
       )}
+
+      {brainStudent ? (
+        <div data-brain-student="">
+          <div className={styles.row}>
+            <span>{t('learn.teacherUi.brainLevel', { level: String(Math.max(1, Math.min(5, Math.round(brainStudent.level)))) })}</span>
+          </div>
+          <div className={styles.row}>
+            <span>{t('learn.teacherUi.brainPace')}</span>
+            <span>{t(paceKey)}</span>
+          </div>
+          {brainStudent.recentErrors.length > 0 ? (
+            <div className={styles.row}>
+              <span>{t('learn.teacherUi.brainErrors')}</span>
+              <span className={styles.value}>{brainStudent.recentErrors.slice(0, 3).join(' · ')}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   )
 }
