@@ -3,15 +3,29 @@
  * HTML рисуется drei <Html transform occlude="blending">: 1 CSS px = distanceFactor / 400 м, поэтому
  * BOARD_PX (1280×720) ровно заполняет экран BOARD_SIZE (1,9 × 1,07 м). Касания и клики по доске уходят в HTML
  * и не крутят камеру; на телефоне в режиме «Доска» горизонтальное перетаскивание листает доску.
+ *
+ * Два «сторожа» (жалобы «доска отлетает» и «доска видна сквозь стену/шкаф»):
+ *  • occlude="blending" работает, только пока холст лежит НАД доской (z-index 10, доска ниже) и
+ *    прозрачен для указателя — тогда стены и мебель перед доской её закрывают, а «дыра» в холсте её показывает.
+ *    drei ставит этот стиль холсту один раз, а любой другой <Html> без blending (подписи LabLabel, подсказки
+ *    «Нажмите») при монтировании сбрасывает его — доска оказывалась поверх всей сцены. Держим стиль каждый кадр.
+ *  • обёртка drei — overflow:hidden размером с холст; выделение текста протяжкой, Tab по кнопкам доски или
+ *    фокус прокручивали её (scrollTop/scrollLeft), и HTML-доска съезжала с рамки. Прокрутку обёрток гасим.
  */
 import { Html, RoundedBox } from '@react-three/drei'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useRef } from 'react'
 import { BOARD_CENTER, BOARD_PX, BOARD_SIZE, type BoardPanelProps } from '../labContract'
+import { labXr } from '../xr/labXrStore'
 import { BoardPanel } from '../experiments'
 import type { LabMaterials } from './labMaterials'
 import type { LabSceneBridge } from './labBridge'
 
 const DISTANCE_FACTOR = (BOARD_SIZE.w * 400) / BOARD_PX.w
+/** Диапазон z-index HTML доски; холст — ровно посередине (как у drei для occlude="blending"), доска — ниже него. */
+const BOARD_Z_RANGE: [number, number] = [20, 0]
+/** Совпадает с LABEL_Z_MIN − 1 в labOccluders.tsx: подписи и подсказки всегда выше холста. */
+const CANVAS_Z = String(Math.floor(BOARD_Z_RANGE[0] / 2))
 
 interface Props {
   readonly mats: LabMaterials
@@ -21,6 +35,36 @@ interface Props {
 
 export function LabBoard({ mats, panel, bridge }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const gl = useThree((s) => s.gl)
+
+  // Холст над доской: без этого доска просвечивает сквозь стены и шкафы (см. шапку файла)
+  useFrame(() => {
+    const st = gl.domElement.style
+    // в VR-эмуляции мышь слушает сам холст; DOM-доска там скрыта — отдаём холсту указатель
+    const pe = labXr.get().presenting ? '' : 'none'
+    if (st.zIndex !== CANVAS_Z || st.position !== 'absolute' || st.pointerEvents !== pe) {
+      st.zIndex = CANVAS_Z
+      st.position = 'absolute'
+      st.pointerEvents = pe
+    }
+  })
+
+  // Обёртки drei (overflow:hidden) не прокручиваются: иначе HTML-доска съезжает с рамки
+  // (HTML drei рисует отдельным React-корнем, поэтому корень доски ищем в момент прокрутки, а не при монтировании)
+  useEffect(() => {
+    const host = gl.domElement.parentElement?.parentElement
+    if (!host) return
+    const onScroll = (e: Event) => {
+      const t = e.target
+      const root = rootRef.current
+      // только корень доски и обёртки над ним; списки внутри доски листаются как обычно
+      if (!root || !(t instanceof Element) || !t.contains(root)) return
+      if (t.scrollTop) t.scrollTop = 0
+      if (t.scrollLeft) t.scrollLeft = 0
+    }
+    host.addEventListener('scroll', onScroll, true)
+    return () => host.removeEventListener('scroll', onScroll, true)
+  }, [gl])
 
   useEffect(() => {
     const el = rootRef.current
@@ -99,7 +143,7 @@ export function LabBoard({ mats, panel, bridge }: Props) {
         occlude="blending"
         distanceFactor={DISTANCE_FACTOR}
         position={[0, 0, 0.002]}
-        zIndexRange={[20, 0]}
+        zIndexRange={BOARD_Z_RANGE}
         style={{ width: BOARD_PX.w, height: BOARD_PX.h }}
       >
         <div

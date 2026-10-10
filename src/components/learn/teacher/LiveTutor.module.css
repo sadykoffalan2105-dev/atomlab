@@ -7,7 +7,8 @@
 .overlay {
   --lv-gutter: clamp(16px, 1.8vw, 32px);
   --lv-side: clamp(360px, 31vw, 540px);
-  --lv-field-bg: rgba(3, 5, 12, 0.55);
+  /* Ночные подложки → белые днём: --lt-ink-rgb задан только в светлой теме (src/theme/appTheme.css). */
+  --lv-field-bg: rgba(var(--lt-ink-rgb, 3, 5, 12), 0.55);
 
   position: fixed;
   inset: 0;
@@ -103,7 +104,7 @@
   min-width: 0;
   padding: 14px var(--lv-gutter);
   border-bottom: 1px solid var(--lt-border);
-  background: linear-gradient(180deg, rgba(8, 11, 24, 0.85), rgba(8, 11, 24, 0.45));
+  background: linear-gradient(180deg, rgba(var(--lt-ink-rgb, 8, 11, 24), 0.85), rgba(var(--lt-ink-rgb, 8, 11, 24), 0.45));
   -webkit-backdrop-filter: var(--lt-blur);
   backdrop-filter: var(--lt-blur);
 }
@@ -290,14 +291,14 @@
   background:
     radial-gradient(60% 55% at 50% 38%, rgba(91, 140, 255, 0.14), transparent 70%),
     radial-gradient(40% 40% at 50% 100%, rgba(45, 212, 191, 0.08), transparent 70%),
-    rgba(10, 14, 30, 0.45);
+    rgba(var(--lt-ink-rgb, 10, 14, 30), 0.45);
 }
 
 .stage[data-mode='exam'] {
   background:
     radial-gradient(60% 55% at 50% 38%, rgba(251, 191, 36, 0.1), transparent 70%),
     radial-gradient(40% 40% at 50% 100%, rgba(244, 114, 182, 0.08), transparent 70%),
-    rgba(10, 14, 30, 0.45);
+    rgba(var(--lt-ink-rgb, 10, 14, 30), 0.45);
 }
 
 .banners {
@@ -401,7 +402,7 @@
   padding: 6px 16px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid var(--lt-border);
-  background: rgba(3, 5, 12, 0.45);
+  background: rgba(var(--lt-ink-rgb, 3, 5, 12), 0.45);
   font-size: var(--lt-fs-body);
   font-weight: 700;
   color: var(--lt-text);
@@ -491,11 +492,11 @@
 }
 
 .captions[data-speaking='1'] .sentence[data-done='1'] {
-  color: var(--lt-text-mute);
+  color: var(--lt-text-2);
 }
 
 .captions[data-speaking='1'] .sentence[data-now='1'] {
-  color: #fff;
+  color: var(--lt-ink-1, #fff);
   text-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
   background: linear-gradient(transparent 62%, rgba(34, 211, 238, 0.22) 62%);
   -webkit-box-decoration-break: clone;
@@ -503,7 +504,7 @@
 }
 
 .captionYou {
-  color: #d1fae5;
+  color: var(--lt-ink-success, #d1fae5);
 }
 
 .captionEcho {
@@ -549,6 +550,13 @@
 /* ——— Камера (картинка в картинке) ——— */
 
 .pip {
+  /* Видео камеры тёмное в обеих темах — текст поверх него всегда «ночной». */
+  --lt-text: #e8edff;
+  --lt-text-2: #b6c0e0;
+  --lt-text-3: #8793b8;
+  --lt-warning: #fbbf24;
+  --lt-danger: #fb7185;
+
   position: absolute;
   top: 14px;
   right: 14px;
@@ -753,7 +761,7 @@
   background: rgba(52, 211, 153, 0.12);
   border: 1px dashed rgba(52, 211, 153, 0.5);
   box-shadow: none;
-  color: #d1fae5;
+  color: var(--lt-ink-success, #d1fae5);
 }
 
 .msgQueued {
@@ -794,7 +802,7 @@
   margin-bottom: 4px;
   font-size: var(--lt-fs-xs);
   font-weight: 800;
-  color: #a5b4fc;
+  color: var(--lt-ink-violet, #a5b4fc);
 }
 
 .msgSpeaking {
@@ -857,7 +865,7 @@
   gap: 8px;
   padding: 10px 12px 12px;
   border-top: 1px solid var(--lt-border);
-  background: linear-gradient(to top, rgba(8, 11, 24, 0.9), rgba(8, 11, 24, 0.5));
+  background: linear-gradient(to top, rgba(var(--lt-ink-rgb, 8, 11, 24), 0.9), rgba(var(--lt-ink-rgb, 8, 11, 24), 0.5));
 }
 
 .quickRow {
@@ -1020,7 +1028,7 @@
   padding: 8px;
   border-radius: var(--lt-radius-pill);
   border: 1px solid var(--lt-border);
-  background: rgba(12, 16, 34, 0.78);
+  background: rgba(var(--lt-ink-rgb, 12, 16, 34), 0.78);
   -webkit-backdrop-filter: var(--lt-blur);
   backdrop-filter: var(--lt-blur);
   box-shadow: var(--lt-shadow-lg);
@@ -1050,7 +1058,7 @@
 }
 
 .roundBtn[data-on='1'] {
-  color: #fff;
+  color: var(--lt-ink-success, #fff);
   border-color: rgba(52, 211, 153, 0.5);
   background: rgba(52, 211, 153, 0.18);
 }
@@ -1079,7 +1087,7 @@
 .micBtn[data-state='muted'] {
   background: var(--lt-surface-3);
   border-color: rgba(251, 113, 133, 0.5);
-  color: #ffd1da;
+  color: var(--lt-ink-pink, #ffd1da);
   box-shadow: none;
 }
 
@@ -1140,12 +1148,12 @@
 .pillBtn {
   border: 1px solid rgba(251, 191, 36, 0.5);
   background: rgba(251, 191, 36, 0.14);
-  color: #fde68a;
+  color: var(--lt-ink-amber, #fde68a);
 }
 
 .pillBtn:hover:not(:disabled) {
   background: rgba(251, 191, 36, 0.24);
-  color: #fff;
+  color: var(--lt-ink-amber, #fff);
 }
 
 .pillBtn:disabled {
@@ -1305,7 +1313,7 @@
   flex-direction: column;
   border-radius: var(--lt-radius);
   border: 1px solid var(--lt-border);
-  background: rgba(3, 5, 12, 0.28);
+  background: rgba(var(--lt-ink-rgb, 3, 5, 12), 0.28);
 }
 
 .permRow {
@@ -1332,7 +1340,7 @@
 }
 
 .permIcon[data-tone='cam'] {
-  color: #c4b5fd;
+  color: var(--lt-ink-violet, #c4b5fd);
   background: rgba(139, 92, 246, 0.16);
 }
 
@@ -1520,6 +1528,50 @@
   margin: 0;
   font-size: var(--lt-fs-small);
   color: var(--lt-text-3);
+}
+
+/* ——— Светлая тема: то, что не сводится к токенам ——— */
+
+html[data-app-theme='light'] .segBtn[data-on='1'] {
+  background: linear-gradient(135deg, #2f62d8, #6d4bd8);
+  box-shadow: none;
+}
+
+html[data-app-theme='light'] .segBtn[data-on='1'][data-mode='exam'] {
+  background: linear-gradient(135deg, #b45309, #be185d);
+}
+
+html[data-app-theme='light'] .banner {
+  border-color: rgba(180, 83, 9, 0.35);
+  background: #fff8e8;
+}
+
+html[data-app-theme='light'] .banner[data-tone='danger'] {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: #fff1f2;
+}
+
+html[data-app-theme='light'] .banner[data-tone='info'] {
+  border-color: rgba(47, 98, 216, 0.35);
+  background: #eef3ff;
+}
+
+html[data-app-theme='light'] .status {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--lt-shadow-sm);
+}
+
+html[data-app-theme='light'] .captions[data-speaking='1'] .sentence[data-now='1'] {
+  text-shadow: none;
+  background: linear-gradient(transparent 62%, rgba(14, 116, 144, 0.18) 62%);
+}
+
+html[data-app-theme='light'] .micBtn[data-state='off'] .micCore {
+  background: rgba(23, 32, 51, 0.08);
+}
+
+html[data-app-theme='light'] .micBtn[data-state='muted'] {
+  border-color: rgba(220, 38, 38, 0.45);
 }
 
 /* ——— Ноутбуки (1280–1439) ——— */
