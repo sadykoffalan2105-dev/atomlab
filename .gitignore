@@ -42,3 +42,10 @@ scripts/.g7-quiz-visual-catalog.json
 
 # Черновые половины инвентаризации учебников (сводятся merge-parts.mjs)
 src/data/textbook/*-part*.json
+
+# Кадры проверок, временные файлы и копии сборок — только локально (не в репозиторий)
+.smoke/
+.tmp/
+.out/
+scripts/video-review/*.jpg
+scripts/video-review/*.png
