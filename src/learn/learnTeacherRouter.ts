@@ -171,17 +171,29 @@ async function qaOffSubject(query: string, qaText: string, locale: string): Prom
 }
 
 /**
- * Вопрос-определение из ≥2 смысловых слов, а статья покрывает лишь часть из них («лантаноидное сжатие» →
- * «Лантаноиды»): её пересказ не отвечает на вопрос.
+ * Вопрос-определение из ≥2 смысловых слов: статья должна быть именно о предмете вопроса — все смысловые слова
+ * в названии или начале текста («лантаноидное сжатие» ≠ «Лантаноиды», «процесс Габера» ≠ «Габер, Фриц»).
+ * null — проверка к вопросу не применяется.
  */
-async function broaderArticle(query: string, hit: { title: string; text: string }, locale: string): Promise<boolean> {
-  if (locale !== 'ru' || !DEFINITION_Q.test(query)) return false
+async function onSubjectFilter(query: string, locale: string): Promise<((hit: { title: string; text: string }) => boolean) | null> {
+  if (locale !== 'ru' || !DEFINITION_Q.test(query)) return null
   try {
     const { queryContentTerms, subjectIsMainTopic } = await import('./kb/wikiBig')
-    if (queryContentTerms(query).length < 2) return false
-    return !subjectIsMainTopic(query, hit.title, hit.text, 25)
+    if (queryContentTerms(query).length < 2) return null
+    return (hit) => subjectIsMainTopic(query, hit.title, hit.text, 25)
   } catch {
-    return false
+    return null
+  }
+}
+
+/** Все смысловые слова вопроса (по первым 5 буквам) встречаются в названии или тексте фрагмента. */
+async function mentionsAllTerms(query: string, hit: { title: string; text: string }): Promise<boolean> {
+  try {
+    const { queryContentTerms } = await import('./kb/wikiBig')
+    const hay = `${hit.title} ${hit.text}`.toLowerCase().replace(/ё/g, 'е')
+    return queryContentTerms(query).every((t) => hay.includes(t.slice(0, 5)))
+  } catch {
+    return true
   }
 }
 
@@ -361,8 +373,19 @@ export async function composeLocalTeacherReply(
       if (disc) return disc
     }
     // Статья о более широком предмете («Лантаноиды» на «лантаноидное сжатие») — не ответ: дальше рассуждение от основ.
-    if (encHits.length && (!composed.confident || strong) && !(await broaderArticle(resolved.query, encHits[0]!, ctx.locale))) {
-      const enc = composeEncyclopediaAnswer(resolved.query, encHits, ctx.locale, { seed: messages.length })
+    if (encHits.length && (!composed.confident || strong)) {
+      let enc = composeEncyclopediaAnswer(resolved.query, encHits, ctx.locale, { seed: messages.length })
+      // Пересказанная статья — о соседнем предмете («Габер, Фриц» на «процесс Габера»), а среди найденных есть
+      // статья ровно о предмете вопроса — отвечаем ею.
+      const onSubject = enc && !composed.confident ? await onSubjectFilter(resolved.query, ctx.locale) : null
+      const used = enc ? encHits.find((h) => h.title === enc!.title) : undefined
+      if (enc && onSubject && used && !onSubject(used)) {
+        const exactHits = encHits.filter(onSubject)
+        if (exactHits.length) enc = composeEncyclopediaAnswer(resolved.query, exactHits, ctx.locale, { seed: messages.length }) ?? enc
+        // Статьи о предмете нет, а в найденной нет даже всех слов вопроса («Лантаноиды» без «сжатия») —
+        // это не ответ: ниже учебник или рассуждение от основ.
+        else if (!(await mentionsAllTerms(resolved.query, used))) enc = null
+      }
       if (enc) return { text: enc.text, source: 'local', citations: [enc.citation], confident: true }
     }
     // Учебник/карточка ответили, но предмет вопроса у них — мимолётное упоминание («Кобальт важен при синтезе
@@ -409,11 +432,20 @@ export async function composeLocalTeacherReply(
   return { text: body, source: 'local', citations, confident: composed.confident }
 }
 
-/** Первое предложение фрагмента, чей заголовок совпадает с ключевым термином вопроса (для «Разберём от основ»). */
+const QUESTION_WORDS =
+  /^(что|такое|такой|такая|такие|кто|это|как|почему|зачем|расскажи|расскажите|про|объясни|объясните|значит|какой|какая|какие|where|what|which|who|why|how|does|explain|nima|nega|qanday|degani)$/u
+
+/**
+ * Первое предложение фрагмента, в заголовке которого есть ВСЕ смысловые слова вопроса (для «Разберём от основ»):
+ * «кто такой Альберт Эйнштейн» не подхватит «Альберт Гиорсо».
+ */
 function definitionFromHits(query: string, keyTerm: string | null, hits: TeacherKnowledgeResult['hits']): string | null {
-  const term = (keyTerm ?? '').toLowerCase().replace(/ё/g, 'е').trim()
-  if (term.length < 4) return null
-  const stems = term.split(/\s+/).filter((w) => w.length >= 4).map((w) => w.slice(0, Math.max(4, w.length - 2)))
+  const words = `${query} ${keyTerm ?? ''}`
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .split(/[^\p{L}]+/u)
+    .filter((w) => w.length >= 4 && !QUESTION_WORDS.test(w))
+  const stems = [...new Set(words.map((w) => w.slice(0, Math.max(4, w.length - 2))))]
   if (!stems.length) return null
   for (const h of hits) {
     if (h.type === 'glossary') continue
@@ -422,7 +454,6 @@ function definitionFromHits(query: string, keyTerm: string | null, hits: Teacher
     const first = h.text.replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s+/u)[0] ?? ''
     if (first.length >= 30 && first.length <= 260 && stems.some((s) => first.toLowerCase().replace(/ё/g, 'е').includes(s))) return first
   }
-  void query
   return null
 }
 
