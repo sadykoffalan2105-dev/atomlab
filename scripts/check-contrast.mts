@@ -166,6 +166,13 @@ const BROWSER = String.raw`
       const visibleAt = (el, r) => {
         const x = r.left + r.width / 2, y = r.top + r.height / 2
         if (x < 0 || y < 0 || x >= vw || y >= vh) return false
+        // обрезано прокручиваемым/overflow-предком (строка списка за краем) — не видно
+        for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+          const o = getComputedStyle(a)
+          if (o.overflowX === 'visible' && o.overflowY === 'visible') continue
+          const q = a.getBoundingClientRect()
+          if (x < q.left || x > q.right || y < q.top || y > q.bottom) return false
+        }
         // элементы с pointer-events: none «прозрачны» для elementFromPoint — сверяемся с ближайшим «кликабельным» предком
         let probe = el
         while (probe && getComputedStyle(probe).pointerEvents === 'none') probe = probe.parentElement
@@ -233,6 +240,8 @@ const BROWSER = String.raw`
         if (bc[3] > 0.12) tones.push(bc)
         for (const m of (cs.backgroundImage || '').matchAll(/rgba?\([^)]*\)/g)) tones.push(rgba(m[0]))
         // почти непрозрачная тёмная панель — это осознанный тёмный блок, а «пелена» — полупрозрачная (серое пятно)
+        // под тёмной вуалью есть непрозрачный слой (градиент кнопки/пузыря) — это затемнение заливки, не пелена
+        if (tones.some((c) => c[3] >= 0.95)) continue
         const dark = tones.filter((c) => c[3] >= 0.12 && c[3] <= 0.85 && lum(c[0], c[1], c[2]) < 0.03)
         if (!dark.length) continue
         if (el.parentElement && el.parentElement.closest('[data-cc-veil]')) continue
