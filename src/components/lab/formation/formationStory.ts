@@ -4,7 +4,7 @@ import { DIATOMIC, formationEquation, type FormationEquation } from '../../../ch
 import { buildSchoolHeroModel, schoolBallRadius, type SchoolHeroModel, type V3 } from '../hero/schoolHeroModel'
 import { compoundById } from '../../../data/compounds'
 import { formationScript, type FormationType } from '../../../chemistry/formationScripts'
-import { latticeFor, type LatticeAtom, type StoryLatticeKind } from './story/lattice'
+import { latticeFor, type LatticeAtom, type LatticeShells, type StoryLatticeKind } from './story/lattice'
 import { buildRouteStage, ROUTE_DUR, type RouteStage } from './story/route'
 import { buildStoryHud } from './story/hud'
 import { buildRedoxDecomposition, type RedoxSceneInfo } from './story/redoxDecomposition'
@@ -120,6 +120,13 @@ export type FormationStory = {
   latticeKind: StoryLatticeKind
   /** окно роста фрагмента: атом с порядком k появляется в latticeWin[0] + k·(latticeWin[1] − latticeWin[0]) */
   latticeWin: [number, number]
+  /**
+   * (lattice) «усадка в узлы»: смещение каждого атома модели к узлу решётки (≤ 0,15·d катион–анион; у точных частиц ≈ 0),
+   * доходит за 1 с от latticeWin[0] (story/lattice.ts applyLatticeSnap). Нет — модель стоит в узлах точно.
+   */
+  latticeSnap?: V3[]
+  /** (lattice) сводка фрагмента: частицы оболочек S1/S2, протяжённость (кадр), невязка подгонки, масштаб радиусов */
+  latticeShells?: LatticeShells
   /** тип образования по таблице правил (formationScripts): S, MP, N, PM, IB, IC, IH */
   type: FormationType | null
   /** путь получения на уровне частиц (этап 'route'); null — путь показан только уравнением */
@@ -468,7 +475,8 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     push('bonds', bondsDur(stickList.length))
     push('assemble', network ? D.assemble + 2 : D.assemble)
   }
-  const extraFinal = lat.kind === 'molecular' || lat.kind === 'chain' ? 2.5 : 0
+  // копии молекул / звенья цепи растут в «Готово» за 1,6 с (fin.t0 + 0,2 … + 1,8) — к итогу +2 с
+  const extraFinal = lat.kind === 'molecular' || lat.kind === 'chain' ? 2 : 0
   push('final', Math.min(MAX_TOTAL - t, Math.max(D.final + extraFinal, MIN_TOTAL - t)))
   const st = (k: StageKey) => stages.find((s) => s.key === k)
 
@@ -635,7 +643,8 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
   // Фрагмент решётки: появление по слоям (k) в этапе «Решётка» (ионные) или «Готово» (молекулярная, цепь).
   const latticeStage = st('lattice') ?? fin
   const latticeAtoms = lat.atoms
-  const latticeWin: [number, number] = lat.kind === 'ionic' ? [latticeStage.t0 + 0.3, latticeStage.t0 + 0.75 * latticeStage.dur] : [fin.t0 + 0.2, fin.t0 + 2.2]
+  // ионные: S1 — [t0 + 0,3; t0 + 0,45·dur], S2 — до t0 + 0,85·dur (k: 0…0,45 и 0,55…1); копии — [fin.t0 + 0,2; + 1,8]
+  const latticeWin: [number, number] = lat.kind === 'ionic' ? [latticeStage.t0 + 0.3, latticeStage.t0 + 0.85 * latticeStage.dur] : [fin.t0 + 0.2, fin.t0 + 1.8]
 
   const tr = st('transfer')
   return withPhase(plan, model, withHud(plan.formula, {
@@ -652,6 +661,8 @@ export function buildFormationStory(plan: FormationPlan, model: SchoolHeroModel,
     latticeAtoms,
     latticeKind: lat.kind,
     latticeWin,
+    ...(lat.snap ? { latticeSnap: lat.snap } : {}),
+    ...(lat.shells ? { latticeShells: lat.shells } : {}),
     type,
     routeStage,
     ionLabelsFrom: tr ? tr.t0 + tr.dur - 0.2 : Infinity,
@@ -713,7 +724,9 @@ function redoxStory(plan: FormationPlan, model: SchoolHeroModel, r: NonNullable<
     // решётка продукта в «Итоге»: фрагмент по структурному типу (куприт Cu₂O, рутил MnO₂ …) растёт вокруг модели
     latticeAtoms: lat.atoms,
     latticeKind: lat.kind,
-    latticeWin: [fin.t0 + 0.6, fin.t0 + 0.6 + 0.6 * fin.dur],
+    latticeWin: lat.kind === 'ionic' ? [fin.t0 + 0.3, fin.t0 + 0.85 * fin.dur] : [fin.t0 + 0.2, fin.t0 + 1.8],
+    ...(lat.snap ? { latticeSnap: lat.snap } : {}),
+    ...(lat.shells ? { latticeShells: lat.shells } : {}),
     type: formationScript(plan.compoundId)?.type ?? null,
     routeStage: r.route,
     ionLabelsFrom: fin.t0 + 0.3,

@@ -31,8 +31,8 @@ import { SCHOOL_DRAW } from '../../../lab/cinema/scenes/school/schoolModel'
 
 export type P3 = [number, number, number]
 
-/** Доля ионного радиуса для шара иона (как у ionicFromCatalog: ионы почти касаются, щель 6 %). */
-export const ION_BALL_SCALE = 0.94
+/** Доля ионного радиуса для шара иона (как у ionicFromCatalog: ионы почти касаются, щель 8 %: r₁ + r₂ ≤ 0,92·d). */
+export const ION_BALL_SCALE = 0.92
 
 export type UnitAtom = {
   el: ElementSymbol

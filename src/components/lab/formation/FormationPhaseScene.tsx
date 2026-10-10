@@ -8,12 +8,15 @@ import { atomPosAt, screenToModel, type FormationStory } from './formationStory'
 import type { FormationClock } from './formationTimeline'
 import { PM_K, smooth01 } from './motion'
 import { phaseInfoOf, phaseOf, type FinalPhase } from './story/phase'
+import { applyLatticeSnap } from './story/lattice'
 
 /**
  * Итог «как в жизни» (25 °C) — слой внутри группы атомов FormationMoleculeView (та же система координат, что у шаров):
  *  • газ — 6–10 копий молекулы далеко друг от друга (R ≈ 2,2–3,4 радиуса модели), медленный дрейф и вращение;
- *    честно: в настоящем газе молекулы ещё в ~10 раз дальше (подпись — в HUD у B);
+ *    честно: в настоящем газе молекулы ещё в ~10 раз дальше (подпись — в HUD у B); копии мельче (0,8·r) и тусклее
+ *    (цвет 0,4 к фону) — модель главная; кадр держит копии на 0,8 (обрезка краем допустима);
  *  • жидкость — 12 копий вплотную (направления кубооктаэдра, шаг 1,08 диаметра), медленное коллективное движение;
+ *    копии 0,9·r, цвет 0,25 к фону;
  *  • раствор — молекулы воды (O–H 96 пм, 104,5°) кольцом; сильная кислота: H⁺ уходит к воде → H₃O⁺ (O–H 98 пм),
  *    слабая — одна вода подходит (водородная связь O···H 180 пм) и отходит;
  *  • ионные / молекулярные / цепные — фрагмент решётки остаётся (это делает сам вид), сеть — модель и есть каркас.
@@ -49,6 +52,9 @@ const HALF_HOH = ((104.5 / 2) * Math.PI) / 180
 /** Половина угла между неподелёнными парами воды (тетраэдр: 109,5° / 2). */
 const HALF_LP = ((109.47 / 2) * Math.PI) / 180
 const ATOM_BUDGET = 160
+/** Копии газа / жидкости: радиус относительно атома модели и доля смешения цвета с фоном. */
+export const PHASE_COPY = { gas: { r: 0.8, dim: 0.4 }, liquid: { r: 0.9, dim: 0.25 } } as const
+const PHASE_BG = new THREE.Color('#0b1020')
 const WATER_BUDGET = 8
 const ELNEG = new Set(['N', 'O', 'F', 'Cl', 'Br', 'I', 'S'])
 
@@ -251,9 +257,13 @@ export function acidDetach(story: FormationStory, model: SchoolHeroModel, i: num
   return 0
 }
 
-/** Положение атома i модели с учётом сцены фазы (уход H⁺ к воде) — пишет в out. */
+/**
+ * Положение атома i модели с учётом сцены фазы (уход H⁺ к воде) и «усадки в узлы» решётки (latticeSnap, ионные) —
+ * пишет в out.
+ */
 export function phaseAtomPos(story: FormationStory, model: SchoolHeroModel, i: number, t: number, out: V3): V3 {
   atomPosAt(story, i, t, out)
+  applyLatticeSnap(story, i, t, out)
   const L = phaseLayout(story, model, false)
   if (!L.acid.length) return out
   for (const a of L.acid)
@@ -308,7 +318,8 @@ export function phaseExtent(L: PhaseLayout, t: number): number {
       const s = smooth01((t - c.tIn) / 1.0)
       if (s <= 0) continue
       copyCenter(L, c, t, _p)
-      R = Math.max(R, s * (_p.length() + L.Rm))
+      // копии в кадре на 0,8: модель крупнее, крайние копии может обрезать край окна
+      R = Math.max(R, 0.8 * s * (_p.length() + L.Rm))
     }
   else
     for (const w of L.waters) {
@@ -333,9 +344,10 @@ export function FormationPhaseScene({ model, story, clock, lowPower }: { model: 
     atoms.name = 'formation-phase-atoms'
     atoms.frustumCulled = false
     atoms.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    const dim = L.kind === 'copies' ? (L.liquid ? PHASE_COPY.liquid.dim : PHASE_COPY.gas.dim) : 0
     for (let k = 0; k < nInst; k++) {
       const el = L.kind === 'copies' ? model.atoms[k % L.nA]!.el : WATER_EL[k % 3]!
-      atoms.setColorAt(k, schoolAtomColor(el as never, _c))
+      atoms.setColorAt(k, schoolAtomColor(el as never, _c).lerp(PHASE_BG, dim))
       atoms.setMatrixAt(k, _m.makeScale(1e-5, 1e-5, 1e-5))
     }
     let sticks: THREE.InstancedMesh | null = null
@@ -368,7 +380,8 @@ export function FormationPhaseScene({ model, story, clock, lowPower }: { model: 
     if (res.sticks) res.sticks.visible = on
     if (!on) return
     if (L.kind === 'copies') {
-      const rS = SCHOOL_DRAW.stickR * PM_K * 0.7
+      const rK = L.liquid ? PHASE_COPY.liquid.r : PHASE_COPY.gas.r
+      const rS = SCHOOL_DRAW.stickR * PM_K * 0.7 * rK
       let ks = 0
       L.copies.forEach((c, k) => {
         const s = smooth01((t - c.tIn) / 1.0)
@@ -378,7 +391,7 @@ export function FormationPhaseScene({ model, story, clock, lowPower }: { model: 
         for (let i = 0; i < L.nA; i++) {
           const a = model.atoms[i]!
           const P = res.pool[i]!.set(a.pos[0], a.pos[1], a.pos[2]).applyQuaternion(_q).add(_a)
-          _m.compose(P, _qs.identity(), _s.setScalar(Math.max(1e-5, a.r * s)))
+          _m.compose(P, _qs.identity(), _s.setScalar(Math.max(1e-5, a.r * rK * s)))
           res.atoms.setMatrixAt(k * L.nA + i, _m)
         }
         if (res.sticks)

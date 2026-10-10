@@ -5,9 +5,12 @@
  *    (модель-кристалл — сама решётка), включая 7 ОВР-веществ (окно роста внутри «Готово»); раствор 'strong' — acidH
  *    непусты и указывают на атомы H модели; облака (orbitals) на каждый атом; карточка фазы в HUD на RU/EN/UZ
  *    (EN/UZ без кириллицы, без пустых строк);
- *  O решётка по структурному типу (RS/CsCl/ZB/WZ/AF/CUP/COR/CdI2/L3/RUT/NiAs): фрагмент из генератора; КЧ катиона и аниона
- *    (частицы на расстоянии ≤ 1,15·d_min) = табличному; ближайшее катион–анион фрагмента = модельному ±2 %;
- *    наложений нет: d ≥ 0,8·(r₁ + r₂) у любых двух атомов фрагмента и модели;
+ *  O решётка по структурному типу (RS/CsCl/ZB/WZ/AF/CUP/COR/CdI2/L3/RUT/NiAs): фрагмент из генератора, модель карточки —
+ *    в узлах (story/lattice.ts buildIonicFragment); КЧ каждого иона модели по оболочке S1 (частицы противоположного знака
+ *    на ≤ CONTACT_TOL·d) = табличному; ближайшее катион–анион фрагмента = модельному ±1 %; Σr ≤ 0,92·d у пар ионов
+ *    (одноатомных), d ≥ Σr у прочих пар разных частиц. Модель, не ложащаяся в узлы (ε > 0,15·d: линейный Cu–O–Cu против
+ *    тетраэдра O в куприте, плоский MCl₃ против слоя, бипирамида M₂O₃ против корунда) — схема по правилам, строка
+ *    в сводке (доля генератора — scripts/test-formation-lattice.mts, ≥ 85 %);
  *  P нормы движения — scripts/test-formation-motion.mts (vibOf ≤ VIB_LIMITS, vibOffset — если есть motion.ts,
  *    непрерывность atomPosAt).
  */
@@ -17,7 +20,7 @@ import { formationPlan } from '../src/chemistry/formationPlan'
 import { formationScript } from '../src/chemistry/formationScripts'
 import { buildSchoolHeroModel } from '../src/components/lab/hero/schoolHeroModel'
 import { formationStoryFor, screenToModel } from '../src/components/lab/formation/formationStory'
-import { latticeFor, type LatticeAtom } from '../src/components/lab/formation/story/lattice'
+import { CONTACT_TOL, latticeFor, type LatticeAtom } from '../src/components/lab/formation/story/lattice'
 import { phaseRow, type LatticeCode } from '../src/components/lab/formation/story/phase-data'
 import { redoxDecomposition } from '../src/chemistry/formationRedoxDecomposition'
 import { checkMotion } from './test-formation-motion.mts'
@@ -48,6 +51,7 @@ export async function auditPhases() {
     notes.push(`${cat} ${id}: ${msg}`)
   }
   const oStats: string[] = []
+  const schemaO: string[] = []
   for (const id of CATALOG_TOP200_IDS) {
     const c = compoundById[id]
     const plan = formationPlan(id)
@@ -113,52 +117,46 @@ export async function auditPhases() {
     if (!want || model.kind === 'crystal') continue
     const lat = latticeFor(sc, plan, model, (s) => screenToModel(model, s))
     if (lat.src !== 'generator') {
-      flag('O', id, `${code}: фрагмент не из генератора (${lat.src})`)
+      schemaO.push(`${id} ${code}`)
       continue
     }
     if (story.latticeAtoms.length !== lat.atoms.length) flag('O', id, 'story.latticeAtoms ≠ latticeFor')
-    // частицы: модель (по plan.units) + фрагмент (по u)
-    type Part = { sign: number; c: V3; atoms: { el: string; pos: V3; r: number }[]; model: boolean }
-    const parts: Part[] = []
-    for (const u of plan.units) {
-      const q = plan.species[u.species]!.charge
-      if (!q) continue
-      const atoms = u.atoms.map((a) => ({ el: model.atoms[a]!.el, pos: model.atoms[a]!.pos as V3, r: model.atoms[a]!.r }))
-      parts.push({ sign: Math.sign(q), c: anchor(atoms), atoms, model: true })
+    if (!lat.nodes?.length) {
+      flag('O', id, 'нет узлов частиц модели')
+      continue
     }
+    // частицы: узлы модели + фрагмент (по u)
+    type Part = { sign: number; c: V3; atoms: { el: string; pos: V3; r: number; ion: boolean }[]; model: boolean }
+    const snap = story.latticeSnap
+    const parts: Part[] = lat.nodes.map((n) => ({
+      sign: n.ion,
+      c: n.node,
+      model: true,
+      atoms: n.atoms.map((a) => {
+        const p = model.atoms[a]!.pos
+        const sv = snap?.[a] ?? [0, 0, 0]
+        return { el: model.atoms[a]!.el, pos: [p[0] + sv[0], p[1] + sv[1], p[2] + sv[2]] as V3, r: model.atoms[a]!.r, ion: n.atoms.length === 1 }
+      }),
+    }))
     const byU = new Map<number, LatticeAtom[]>()
     for (const a of lat.atoms) byU.set(a.u ?? -1, [...(byU.get(a.u ?? -1) ?? []), a])
-    for (const [, atoms] of byU) parts.push({ sign: atoms[0]!.ion ?? 0, c: anchor(atoms), atoms, model: false })
+    for (const [, atoms] of byU) parts.push({ sign: atoms[0]!.ion ?? 0, c: anchor(atoms), atoms: atoms.map((a) => ({ el: a.el, pos: a.pos as V3, r: a.r, ion: atoms.length === 1 })), model: false })
     if (parts.some((p) => !p.model && !p.sign)) {
       flag('O', id, 'у узлов фрагмента нет знака (ion)')
       continue
     }
-    const mCat = parts.filter((p) => p.model && p.sign > 0)
-    const mAn = parts.filter((p) => p.model && p.sign < 0)
-    const C0 = mCat[0]!
-    const A0 = [...mAn].sort((a, b) => len(sub(a.c, C0.c)) - len(sub(b.c, C0.c)))[0]!
-    const dModel = len(sub(A0.c, C0.c))
-    // ближайшее катион–анион внутри фрагмента
-    const fC = parts.filter((p) => !p.model && p.sign > 0)
-    const fA = parts.filter((p) => !p.model && p.sign < 0)
+    let dModel = Infinity
+    for (const x of parts) for (const y of parts) if (x.model && y.model && x.sign > 0 && y.sign < 0) dModel = Math.min(dModel, len(sub(x.c, y.c)))
     let dFrag = Infinity
-    for (const x of fC) for (const y of fA) dFrag = Math.min(dFrag, len(sub(x.c, y.c)))
-    if (!Number.isFinite(dFrag) || Math.abs(dFrag - dModel) > 0.02 * dModel) flag('O', id, `d(катион–анион) фрагмента ${dFrag.toFixed(3)} ≠ модели ${dModel.toFixed(3)} ±2 %`)
-    // КЧ: у иона модели, иначе — у ближайших к модели ионов фрагмента (модель «как в паре» может не совпадать с узлами)
-    const lim = 1.15 * Math.min(dModel, dFrag)
-    const cnOf = (p: Part) => parts.filter((o) => o.sign === -p.sign && len(sub(o.c, p.c)) <= lim).length
-    const centre = anchor(model.atoms.map((a) => ({ el: a.el, pos: a.pos as V3 })))
-    const pick = (sign: number, m0: Part, wantCN: number) => {
-      const cands = [m0, ...parts.filter((p) => !p.model && p.sign === sign).sort((a, b) => len(sub(a.c, centre)) - len(sub(b.c, centre))).slice(0, 12)]
-      const got = cands.map(cnOf)
-      const k = got.findIndex((g) => g === wantCN)
-      return { ok: k >= 0, at: k === 0 ? 'модель' : k > 0 ? 'фрагмент' : '—', got }
-    }
-    const cc = pick(1, C0, want[0])
-    const ca = pick(-1, A0, want[1])
-    if (!cc.ok) flag('O', id, `${code}: КЧ катиона ${cc.got.join('/')} ≠ ${want[0]}`)
-    if (!ca.ok) flag('O', id, `${code}: КЧ аниона ${ca.got.join('/')} ≠ ${want[1]}`)
-    // наложения
+    for (const x of parts) for (const y of parts) if (!x.model && !y.model && x.sign > 0 && y.sign < 0) dFrag = Math.min(dFrag, len(sub(x.c, y.c)))
+    if (!Number.isFinite(dFrag) || Math.abs(dFrag - dModel) > 0.01 * dModel) flag('O', id, `d(катион–анион) фрагмента ${dFrag.toFixed(3)} ≠ модели ${dModel.toFixed(3)} ±1 %`)
+    // КЧ каждого иона модели по S1 (соседи противоположного знака на ≤ CONTACT_TOL·d)
+    const cnOf = (p: Part) => parts.filter((o) => o.sign === -p.sign && len(sub(o.c, p.c)) <= CONTACT_TOL * dModel).length
+    const cc = parts.filter((p) => p.model && p.sign > 0).map(cnOf)
+    const ca = parts.filter((p) => p.model && p.sign < 0).map(cnOf)
+    if (!cc.every((g) => g === want[0])) flag('O', id, `${code}: КЧ катионов модели ${cc.join('/')} ≠ ${want[0]}`)
+    if (!ca.every((g) => g === want[1])) flag('O', id, `${code}: КЧ анионов модели ${ca.join('/')} ≠ ${want[1]}`)
+    // касание: Σr ≤ 0,92·d у пар ионов, d ≥ Σr у прочих пар разных частиц
     const all = parts.flatMap((p, pi) => p.atoms.map((a) => ({ ...a, pi, model: p.model })))
     let worst = Infinity
     let wAt = ''
@@ -166,20 +164,25 @@ export async function auditPhases() {
       for (let j = i + 1; j < all.length; j++) {
         const x = all[i]!
         const y = all[j]!
-        if (x.pi === y.pi || (x.model && y.model)) continue
-        const r = len(sub(x.pos, y.pos)) / (x.r + y.r)
+        if (x.pi === y.pi) continue
+        const r = ((x.ion && y.ion ? 0.92 : 1) * len(sub(x.pos, y.pos))) / (x.r + y.r)
         if (r < worst) {
           worst = r
           wAt = `${x.el}${x.model ? '(модель)' : ''}–${y.el}${y.model ? '(модель)' : ''}`
         }
       }
-    if (worst < 0.8) flag('O', id, `наложение ${wAt}: d = ${worst.toFixed(2)}·(r₁ + r₂) < 0,8`)
-    oStats.push(`${id} ${code}: КЧ ${cc.got[cc.got.findIndex((g) => g === want[0])] ?? cc.got[0]}(${cc.at}):${ca.got[ca.got.findIndex((g) => g === want[1])] ?? ca.got[0]}(${ca.at}), d ${(dFrag / dModel).toFixed(3)}, мин. ${worst.toFixed(2)}·Σr, атомов ${lat.atoms.length}`)
+    if (worst < 1 - 1e-6) flag('O', id, `наложение ${wAt}: норма·d = ${worst.toFixed(3)}·(r₁ + r₂) < 1`)
+    const sh = lat.shells
+    oStats.push(`${id} ${code}: КЧ ${cc.join('/')}:${ca.join('/')} (S1), d ${(dFrag / dModel).toFixed(3)}, норма ${worst.toFixed(2)}, S1 ${sh?.n1} + S2 ${sh?.n2} частиц, атомов ${lat.atoms.length}`)
   }
   // ── P ──
   const m = await checkMotion(CATALOG_TOP200_IDS)
   for (const id of m.flagged) after.P.add(id)
   notes.push(...m.notes)
-  const summary = [`Решётки по типу (O), ${oStats.length} веществ:`, ...oStats.map((s) => `  ${s}`)]
+  const summary = [
+    `Решётки по типу (O), ${oStats.length} веществ (модель в узлах, КЧ по S1):`,
+    ...oStats.map((s) => `  ${s}`),
+    `  схема (модель карточки не ложится в узлы структурного типа, ε > 0,15·d): ${schemaO.length} — ${schemaO.join(', ') || '—'}`,
+  ]
   return { before, after, notes, summary, pSkipped: m.skipped }
 }

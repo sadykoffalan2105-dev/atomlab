@@ -2,7 +2,8 @@
  * Аудит «Как образуется» для всех 200 веществ каталога: план, сценарий «от и до» (formationStory), уравнение образования.
  * Категории проблем (таблица «до / после»):
  *  A план или 3D-модель не строятся;
- *  B итог анимации ≠ модель карточки (положения атомов в конце показа, палочки и их кратность — как у buildSchoolHeroModel);
+ *  B итог анимации ≠ модель карточки (положения атомов в конце показа = модель + latticeSnap — «усадка в узлы» решётки,
+ *    ≤ 0,15·d катион–анион; палочки и их кратность — как у buildSchoolHeroModel);
  *  C частицы: атомы модели разложены не по одному разу / частицы × число ≠ формула;
  *  D ионные: сумма зарядов ≠ 0, число перешедших e⁻ ≠ сумме зарядов катионов формульной единицы (нет показа переноса e⁻);
  *  E ковалентные: число общих пар ≠ сумме кратностей связей (нет показа общих пар);
@@ -36,6 +37,7 @@ import { formationPlan } from '../src/chemistry/formationPlan'
 import { formationEquation, isBalanced, equationSides, DIATOMIC, simpleFormula } from '../src/chemistry/formationEquation'
 import { buildSchoolHeroModel } from '../src/components/lab/hero/schoolHeroModel'
 import { atomPosAt, formationStoryFor } from '../src/components/lab/formation/formationStory'
+import { applyLatticeSnap } from '../src/components/lab/formation/story/lattice'
 import { formationScript } from '../src/chemistry/formationScripts'
 import { pmToScene } from '../src/lab/cinema/scenes/kit/cpkAtoms'
 import { redoxDecomposition, productAtoms, reagentAtoms } from '../src/chemistry/formationRedoxDecomposition'
@@ -115,8 +117,10 @@ for (const id of CATALOG_TOP200_IDS) {
   const p: [number, number, number] = [0, 0, 0]
   for (let i = 0; i < model.atoms.length; i++) {
     atomPosAt(story, i, story.total + 0.01, p)
+    applyLatticeSnap(story, i, story.total + 0.01, p)
+    const sv = story.latticeSnap?.[i] ?? [0, 0, 0]
     const q = model.atoms[i]!.pos
-    dev = Math.max(dev, Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]))
+    dev = Math.max(dev, Math.hypot(p[0] - q[0] - sv[0], p[1] - q[1] - sv[1], p[2] - q[2] - sv[2]))
   }
   const stickCount = new Map<number, number>()
   for (const s of story.sticks) stickCount.set(s.bond, (stickCount.get(s.bond) ?? 0) + 1)
