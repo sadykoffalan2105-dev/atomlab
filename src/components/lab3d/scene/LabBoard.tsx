@@ -14,7 +14,8 @@
  */
 import { Html, RoundedBox } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type * as THREE from 'three'
 import { BOARD_CENTER, BOARD_PX, BOARD_SIZE, type BoardPanelProps } from '../labContract'
 import { labXr } from '../xr/labXrStore'
 import { BoardPanel } from '../experiments'
@@ -35,8 +36,40 @@ interface Props {
 }
 
 export function LabBoard({ mats, panel, bridge }: Props) {
-  const rootRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  // HTML drei монтирует отдельным React-корнем позже LabBoard: в эффекте LabBoard rootRef ещё пуст, и слушатели
+  // касаний не вешались вовсе — протяжка по доске уходила OrbitControls и крутила камеру («доска отлетает»).
+  // Корень доски — в состоянии: эффект ниже срабатывает, когда он действительно появился.
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null)
+  const setRoot = useCallback((el: HTMLDivElement | null) => {
+    rootRef.current = el
+    setRootEl(el)
+  }, [])
+  const groupRef = useRef<THREE.Group>(null)
   const gl = useThree((s) => s.gl)
+  const camera = useThree((s) => s.camera)
+
+  // Для автоматических проверок (…#/vr-lab?debugLab=1): window.__labBoard.probe() — расхождение HTML-доски с рамкой;
+  // mark('invert' | 'paint' | null) — кадры для проверки «доска не видна сквозь стены» (см. labBoardProbe.ts)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !/[?&]debug(Lab|Cam)=1/.test(window.location.hash)) return
+    const w = window as unknown as { __labBoard?: unknown }
+    w.__labBoard = {
+      probe: () => {
+        const group = groupRef.current
+        const root = rootRef.current
+        return group && root ? probeBoard({ group, root, camera, canvas: gl.domElement }) : null
+      },
+      mark: (mode: BoardMark) => {
+        const group = groupRef.current
+        const root = rootRef.current
+        return group && root ? markBoard(group, root, mode) : 0
+      },
+    }
+    return () => {
+      delete w.__labBoard
+    }
+  }, [camera, gl])
 
   // Холст над доской: без этого доска просвечивает сквозь стены и шкафы (см. шапку файла)
   useFrame(() => {
