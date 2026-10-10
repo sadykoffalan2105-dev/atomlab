@@ -28,6 +28,7 @@ import {
   type RouteModel,
   type V3,
 } from '../geom'
+import { keepElectronsOutside } from './electronsOutside'
 
 export const CO2_COMBUSTION_STAGES = [
   { key: 'reagents', dur: 5 },
@@ -246,5 +247,6 @@ export function co2CombustionModel(): RouteModel {
     { t: F.t0 + 2.6, d: 3, yaw: 0.62, pitch: 0.16, zoom: 1.85, focus: [0, 0.78, 0] },
   ]
 
-  return { stages, particles, bonds, electrons, cam, fit: 1.15 }
+  // точки — снаружи шаров (r + 1,25·eR), как у «Как образуется» v3
+  return keepElectronsOutside({ stages, particles, bonds, electrons, cam, fit: 1.15 })
 }

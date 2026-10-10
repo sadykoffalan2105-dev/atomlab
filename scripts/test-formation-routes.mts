@@ -5,7 +5,9 @@
  *  • электронейтральность: сумма зарядов частиц реакции = 0 в любой момент;
  *  • геометрия по справочнику: исходные (O=O 121, C–O в CO₃²⁻ 129, 120°, HCl 127, графит 142 пм),
  *    промежуточные (H₂CO₃: C=O 121, C–OH 134 пм), продукты (CO₂ 116 пм, 180°; H₂O 96 пм, 104,5°; CaO 240 пм);
- *  • шары не налезают друг на друга (кроме связанных палочкой): расстояние ≥ 0,8 суммы радиусов.
+ *  • шары не налезают друг на друга (кроме связанных палочкой): расстояние ≥ 0,8 суммы радиусов;
+ *  • электроны (шаг 1/30 с): ни одна видимая точка не внутри видимого шара — |e − c| ≥ r·(0,2 + 0,8k) + 0,5·eR
+ *    (eR = 9 пм — радиус точки RouteAtoms, шар — как рисует RouteAtoms); центры видимых точек ≥ 2,2·eR.
  * Запуск: npx tsx scripts/test-formation-routes.mts
  */
 import { angleDeg, dist3, labelAt, type RouteModel, type V3 } from '../src/components/lab/formation/routes/geom'
@@ -31,6 +33,7 @@ const P = (m: RouteModel, id: string, t: number): V3 => {
   return p.pos(t)
 }
 const near = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol
+const e2s = (d: number) => (d / K).toFixed(0)
 
 function common(name: string, m: RouteModel, tIn: number) {
   console.log(`— ${name}: ${m.stages.list.length} этапов, ${m.stages.total.toFixed(1)} с, частиц ${m.particles.length}, электронов ${m.electrons.length}`)
@@ -65,6 +68,41 @@ function common(name: string, m: RouteModel, tIn: number) {
       }
   }
   console.log(`  ближе всего (без связи): ${worst.a}…${worst.b} = ${worst.r.toFixed(2)} суммы радиусов при t=${worst.t.toFixed(2)}`)
+  // электроны вне шаров (как рисует RouteAtoms: шар r·(0,2 + 0,8k) при k > 0,005, точка видна при k > 0,01)
+  const eR = 9 * K
+  let inside = 0
+  let worstE = { pen: 0, e: '', p: '', t: 0 }
+  for (let f = 0; f / 30 <= m.stages.total + 1e-9; f++) {
+    const t = f / 30
+    const balls = m.particles.filter((p) => p.k(t) > 0.005).map((p) => ({ id: p.id, c: p.pos(t), r: p.r(t) * (0.2 + 0.8 * Math.min(1, p.k(t))) }))
+    for (const e of m.electrons) {
+      if (e.k(t) <= 0.01) continue
+      const q = e.pos(t)
+      for (const b of balls) {
+        const pen = b.r + 0.5 * eR - dist3(q, b.c)
+        if (pen > 0) {
+          inside++
+          if (pen > worstE.pen) worstE = { pen, e: e.id, p: b.id, t }
+        }
+      }
+    }
+  }
+  // разнос точек: две видимые точки не ближе 2,2·eR
+  let minSep = Infinity
+  let sepAt = ''
+  for (let f = 0; f / 30 <= m.stages.total + 1e-9; f++) {
+    const t = f / 30
+    const vis = m.electrons.filter((e) => e.k(t) > 0.01).map((e) => ({ id: e.id, p: e.pos(t) }))
+    for (let a = 0; a < vis.length; a++)
+      for (let b = a + 1; b < vis.length; b++) {
+        const d = dist3(vis[a]!.p, vis[b]!.p) / eR
+        if (d < minSep) ((minSep = d), (sepAt = `${vis[a]!.id}…${vis[b]!.id} t=${t.toFixed(2)}`))
+      }
+  }
+  console.log(`  ближайшие точки: ${Number.isFinite(minSep) ? minSep.toFixed(2) : '—'}·eR (${sepAt})`)
+  ok(!(minSep < 2.2), `${name}: две видимые точки ближе 2,2·eR (${minSep.toFixed(2)}·eR, ${sepAt})`)
+  console.log(`  электроны внутри шаров: ${inside}${inside ? ` (худшее ${e2s(worstE.pen)} пм: ${worstE.e} в ${worstE.p} при t=${worstE.t.toFixed(2)})` : ''}`)
+  ok(inside === 0, `${name}: электроны внутри шаров — ${inside} точко-кадров`)
   ok(worst.r >= 0.8, `${name}: шары ${worst.a} и ${worst.b} налезают (${worst.r.toFixed(2)}) t=${worst.t.toFixed(2)}`)
   // тексты: этапы есть на трёх языках
   const tx = ROUTE_TEXTS[name as keyof typeof ROUTE_TEXTS]

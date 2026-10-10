@@ -29,6 +29,7 @@ import {
   type RouteModel,
   type V3,
 } from '../geom'
+import { keepElectronsOutside } from './electronsOutside'
 
 export const CO2_CALCINATION_STAGES = [
   { key: 'reagents', dur: 5 },
@@ -200,5 +201,6 @@ export function co2CalcinationModel(): RouteModel {
     { t: F.t0, d: 2.4, yaw: 0.3, pitch: 0.2, zoom: 1.0, focus: [-0.1, 0.25, 0.1] },
   ]
 
-  return { stages, particles, bonds, electrons, cam, fit: 1.15 }
+  // точки — снаружи шаров (r + 1,25·eR), как у «Как образуется» v3
+  return keepElectronsOutside({ stages, particles, bonds, electrons, cam, fit: 1.15 })
 }

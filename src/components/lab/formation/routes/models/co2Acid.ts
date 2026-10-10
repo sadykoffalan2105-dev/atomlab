@@ -35,6 +35,7 @@ import {
   type RouteModel,
   type V3,
 } from '../geom'
+import { keepElectronsOutside } from './electronsOutside'
 
 export const CO2_ACID_STAGES = [
   { key: 'reagents', dur: 5 },
@@ -311,5 +312,6 @@ export function co2AcidModel(): RouteModel {
     { t: F.t0, d: 2.4, yaw: 0.36, pitch: 0.22, zoom: 0.92, focus: [0, 0.08, 0] },
   ]
 
-  return { stages, particles, bonds, electrons, cam, fit: 1.3, decorDim: 0.24 }
+  // точки — снаружи шаров (r + 1,25·eR), как у «Как образуется» v3
+  return keepElectronsOutside({ stages, particles, bonds, electrons, cam, fit: 1.3, decorDim: 0.24 })
 }
