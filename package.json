@@ -27,6 +27,8 @@
     "test:catalog-200-models": "tsx scripts/test-catalog-top200-models.mts",
     "audit:catalog-200": "tsx scripts/audit-catalog-200-rules.mts",
     "validate:element-years": "tsx scripts/validate-element-discovery-years.mts",
+    "build:element-photos": "tsx scripts/build-element-photos.mts",
+    "test:element-photos": "tsx scripts/test-element-photos.mts",
     "validate:vr-reactions": "tsx scripts/validate-vr-reactions.ts",
     "learn:nanobanana-prompts": "tsx scripts/export-nanobanana-prompts.ts",
     "learn:capture-refs": "tsx scripts/capture-learn-refs.ts",

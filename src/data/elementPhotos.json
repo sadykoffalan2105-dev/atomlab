@@ -1,6 +1,7 @@
 {
  "H": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Hydrogen_discharge_tube.jpg/500px-Hydrogen_discharge_tube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Hydrogen_discharge_tube.jpg/960px-Hydrogen_discharge_tube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Hydrogen_discharge_tube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -8,6 +9,7 @@
  },
  "He": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Helium_discharge_tube.jpg/500px-Helium_discharge_tube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Helium_discharge_tube.jpg/960px-Helium_discharge_tube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Helium_discharge_tube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "GFDL 1.2",
@@ -15,6 +17,7 @@
  },
  "Li": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Purified_lithium_in_an_ampoule_under_argon%2C_dark_background.png/500px-Purified_lithium_in_an_ampoule_under_argon%2C_dark_background.png",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8a/Purified_lithium_in_an_ampoule_under_argon%2C_dark_background.png/960px-Purified_lithium_in_an_ampoule_under_argon%2C_dark_background.png",
   "page": "https://commons.wikimedia.org/wiki/File:Purified_lithium_in_an_ampoule_under_argon,_dark_background.png",
   "author": "AdvancedTinkering",
   "license": "CC BY-SA 4.0",
@@ -29,6 +32,7 @@
  },
  "B": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Boron_R105.jpg/500px-Boron_R105.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Boron_R105.jpg/960px-Boron_R105.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Boron_R105.jpg",
   "author": "James L Marshall",
   "license": "CC BY-SA 3.0",
@@ -36,6 +40,7 @@
  },
  "C": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Graphite-and-diamond-with-scale.jpg/500px-Graphite-and-diamond-with-scale.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Graphite-and-diamond-with-scale.jpg/960px-Graphite-and-diamond-with-scale.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Graphite-and-diamond-with-scale.jpg",
   "author": "Robert M. Lavinsky",
   "license": "CC BY-SA 3.0",
@@ -43,6 +48,7 @@
  },
  "N": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Fluessiger_Stickstoff.jpg/500px-Fluessiger_Stickstoff.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f5/Fluessiger_Stickstoff.jpg/960px-Fluessiger_Stickstoff.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Fluessiger_Stickstoff.jpg",
   "author": "Robin Müller",
   "license": "CC BY-SA 3.0",
@@ -50,12 +56,14 @@
  },
  "O": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Liquid_oxygen_in_a_beaker_%28cropped_and_retouched%29.jpg/500px-Liquid_oxygen_in_a_beaker_%28cropped_and_retouched%29.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a0/Liquid_oxygen_in_a_beaker_%28cropped_and_retouched%29.jpg/960px-Liquid_oxygen_in_a_beaker_%28cropped_and_retouched%29.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Liquid_oxygen_in_a_beaker_(cropped_and_retouched).jpg",
   "author": "Staff Sgt. Nika Glover, U.S. Air Force",
   "license": "Public domain"
  },
  "F": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/Fluoro_liquido_a_-196%C2%B0C_1.jpg/500px-Fluoro_liquido_a_-196%C2%B0C_1.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/Fluoro_liquido_a_-196%C2%B0C_1.jpg/960px-Fluoro_liquido_a_-196%C2%B0C_1.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Fluoro_liquido_a_-196%C2%B0C_1.jpg",
   "author": "Fulvio314",
   "license": "CC BY-SA 3.0",
@@ -63,6 +71,7 @@
  },
  "Ne": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Neon_discharge_tube.jpg/500px-Neon_discharge_tube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/Neon_discharge_tube.jpg/960px-Neon_discharge_tube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Neon_discharge_tube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "GFDL 1.2",
@@ -70,13 +79,15 @@
  },
  "Na": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Na_%28Sodium%29.jpg/500px-Na_%28Sodium%29.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Na_%28Sodium%29.jpg/960px-Na_%28Sodium%29.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Na_(Sodium).jpg",
-  "author": "The original uploader was Dnn87 at English Wikipedia.",
+  "author": "Dnn87 (English Wikipedia)",
   "license": "CC BY-SA 3.0",
   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0"
  },
  "Mg": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5c/CSIRO_ScienceImage_2893_Crystalised_magnesium.jpg/500px-CSIRO_ScienceImage_2893_Crystalised_magnesium.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5c/CSIRO_ScienceImage_2893_Crystalised_magnesium.jpg/960px-CSIRO_ScienceImage_2893_Crystalised_magnesium.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:CSIRO_ScienceImage_2893_Crystalised_magnesium.jpg",
   "author": "Mark Fergus, CSIRO",
   "license": "CC BY 3.0",
@@ -91,6 +102,7 @@
  },
  "Si": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/A_piece_of_zone_refined_silicon.JPG/500px-A_piece_of_zone_refined_silicon.JPG",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/A_piece_of_zone_refined_silicon.JPG/960px-A_piece_of_zone_refined_silicon.JPG",
   "page": "https://commons.wikimedia.org/wiki/File:A_piece_of_zone_refined_silicon.JPG",
   "author": "Rasiel Suarez on behalf of Luciteria LLC",
   "license": "CC BY-SA 4.0",
@@ -104,12 +116,14 @@
  },
  "S": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Sulfur-sample.jpg/500px-Sulfur-sample.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/44/Sulfur-sample.jpg/960px-Sulfur-sample.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Sulfur-sample.jpg",
   "author": "Ben Mills",
   "license": "Public domain"
  },
  "Cl": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Chlorine_liquid_in_an_ampoule.jpg/500px-Chlorine_liquid_in_an_ampoule.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/78/Chlorine_liquid_in_an_ampoule.jpg/960px-Chlorine_liquid_in_an_ampoule.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Chlorine_liquid_in_an_ampoule.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -117,6 +131,7 @@
  },
  "Ar": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Argon_discharge_tube.jpg/500px-Argon_discharge_tube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/87/Argon_discharge_tube.jpg/960px-Argon_discharge_tube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Argon_discharge_tube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "GFDL 1.2",
@@ -131,6 +146,7 @@
  },
  "Ca": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Calcium_crystals_in_ampoule_cropped.jpg/500px-Calcium_crystals_in_ampoule_cropped.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/17/Calcium_crystals_in_ampoule_cropped.jpg/960px-Calcium_crystals_in_ampoule_cropped.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Calcium_crystals_in_ampoule_cropped.jpg",
   "author": "Original upload by 范皓程",
   "license": "CC BY 4.0",
@@ -138,6 +154,7 @@
  },
  "Sc": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Scandium_sublimed_dendritic_and_1cm3_cube.jpg/500px-Scandium_sublimed_dendritic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Scandium_sublimed_dendritic_and_1cm3_cube.jpg/960px-Scandium_sublimed_dendritic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Scandium_sublimed_dendritic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -145,6 +162,7 @@
  },
  "Ti": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Titan-crystal_bar.JPG/500px-Titan-crystal_bar.JPG",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Titan-crystal_bar.JPG/960px-Titan-crystal_bar.JPG",
   "page": "https://commons.wikimedia.org/wiki/File:Titan-crystal_bar.JPG",
   "author": "Alchemist-hp (pse-mendelejew.de)",
   "license": "CC BY-SA 3.0",
@@ -152,6 +170,7 @@
  },
  "V": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/Vanadium_crystal_bar_and_1cm3_cube.jpg/500px-Vanadium_crystal_bar_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/Vanadium_crystal_bar_and_1cm3_cube.jpg/960px-Vanadium_crystal_bar_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Vanadium_crystal_bar_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (pse-mendelejew.de).",
   "license": "FAL",
@@ -159,6 +178,7 @@
  },
  "Cr": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Chromium_crystals_and_1cm3_cube.jpg/500px-Chromium_crystals_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Chromium_crystals_and_1cm3_cube.jpg/960px-Chromium_crystals_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Chromium_crystals_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -166,6 +186,7 @@
  },
  "Mn": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Manganese_electrolytic_and_1cm3_cube.jpg/500px-Manganese_electrolytic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1d/Manganese_electrolytic_and_1cm3_cube.jpg/960px-Manganese_electrolytic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Manganese_electrolytic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -173,6 +194,7 @@
  },
  "Fe": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Iron_electrolytic_and_1cm3_cube.jpg/500px-Iron_electrolytic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ad/Iron_electrolytic_and_1cm3_cube.jpg/960px-Iron_electrolytic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Iron_electrolytic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -180,6 +202,7 @@
  },
  "Co": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Kobalt_electrolytic_and_1cm3_cube.jpg/500px-Kobalt_electrolytic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Kobalt_electrolytic_and_1cm3_cube.jpg/960px-Kobalt_electrolytic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Kobalt_electrolytic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -187,6 +210,7 @@
  },
  "Ni": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Nickel_electrolytic_and_1cm3_cube.jpg/500px-Nickel_electrolytic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Nickel_electrolytic_and_1cm3_cube.jpg/960px-Nickel_electrolytic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Nickel_electrolytic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -194,6 +218,7 @@
  },
  "Cu": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/NatCopper.jpg/500px-NatCopper.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/NatCopper.jpg/960px-NatCopper.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:NatCopper.jpg",
   "author": "Jonathan Zander (Digon3) derivative work: Materialscientist",
   "license": "CC BY-SA 3.0",
@@ -201,6 +226,7 @@
  },
  "Zn": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Zinc_fragment_sublimed_and_1cm3_cube.jpg/500px-Zinc_fragment_sublimed_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f9/Zinc_fragment_sublimed_and_1cm3_cube.jpg/960px-Zinc_fragment_sublimed_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Zinc_fragment_sublimed_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -208,6 +234,7 @@
  },
  "Ga": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Gallium_bar_cracked_open_to_show_crystal_structure_with_scale_1.png/500px-Gallium_bar_cracked_open_to_show_crystal_structure_with_scale_1.png",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Gallium_bar_cracked_open_to_show_crystal_structure_with_scale_1.png/960px-Gallium_bar_cracked_open_to_show_crystal_structure_with_scale_1.png",
   "page": "https://commons.wikimedia.org/wiki/File:Gallium_bar_cracked_open_to_show_crystal_structure_with_scale_1.png",
   "author": "Arònel123",
   "license": "CC BY 4.0",
@@ -215,6 +242,7 @@
  },
  "Ge": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Polycrystalline-germanium.jpg/500px-Polycrystalline-germanium.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/08/Polycrystalline-germanium.jpg/960px-Polycrystalline-germanium.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Polycrystalline-germanium.jpg",
   "author": "Jurii",
   "license": "CC BY 3.0",
@@ -236,6 +264,7 @@
  },
  "Br": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Bromine_vial_in_acrylic_cube.jpg/500px-Bromine_vial_in_acrylic_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Bromine_vial_in_acrylic_cube.jpg/960px-Bromine_vial_in_acrylic_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Bromine_vial_in_acrylic_cube.jpg",
   "author": "Alchemist-hp (pse-mendelejew.de)",
   "license": "CC BY-SA 3.0 de",
@@ -243,6 +272,7 @@
  },
  "Kr": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Krypton_discharge_tube.jpg/500px-Krypton_discharge_tube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Krypton_discharge_tube.jpg/960px-Krypton_discharge_tube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Krypton_discharge_tube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "GFDL 1.2",
@@ -250,6 +280,7 @@
  },
  "Rb": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Rb5.JPG/500px-Rb5.JPG",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c9/Rb5.JPG/960px-Rb5.JPG",
   "page": "https://commons.wikimedia.org/wiki/File:Rb5.JPG",
   "author": "Dnn87",
   "license": "CC BY 3.0",
@@ -257,6 +288,7 @@
  },
  "Sr": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Strontium_destilled_crystals.jpg/500px-Strontium_destilled_crystals.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/Strontium_destilled_crystals.jpg/960px-Strontium_destilled_crystals.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Strontium_destilled_crystals.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -264,6 +296,7 @@
  },
  "Y": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Yttrium_sublimed_dendritic_and_1cm3_cube.jpg/500px-Yttrium_sublimed_dendritic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/19/Yttrium_sublimed_dendritic_and_1cm3_cube.jpg/960px-Yttrium_sublimed_dendritic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Yttrium_sublimed_dendritic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -271,6 +304,7 @@
  },
  "Zr": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Zirconium_crystal_bar_and_1cm3_cube.jpg/500px-Zirconium_crystal_bar_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Zirconium_crystal_bar_and_1cm3_cube.jpg/960px-Zirconium_crystal_bar_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Zirconium_crystal_bar_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (pse-mendelejew.de).",
   "license": "FAL",
@@ -278,6 +312,7 @@
  },
  "Nb": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Niobium_crystals_and_1cm3_cube.jpg/500px-Niobium_crystals_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f2/Niobium_crystals_and_1cm3_cube.jpg/960px-Niobium_crystals_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Niobium_crystals_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -285,6 +320,7 @@
  },
  "Mo": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Molybdenum_crystaline_fragment_and_1cm3_cube.jpg/500px-Molybdenum_crystaline_fragment_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Molybdenum_crystaline_fragment_and_1cm3_cube.jpg/960px-Molybdenum_crystaline_fragment_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Molybdenum_crystaline_fragment_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -292,6 +328,7 @@
  },
  "Tc": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Technetium-sample-cropped.jpg/500px-Technetium-sample-cropped.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Technetium-sample-cropped.jpg/960px-Technetium-sample-cropped.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Technetium-sample-cropped.jpg",
   "author": "Marco Cardin",
   "license": "CC BY-SA 4.0",
@@ -299,6 +336,7 @@
  },
  "Ru": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/Ruthenium_a_half_bar.jpg/500px-Ruthenium_a_half_bar.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/Ruthenium_a_half_bar.jpg/960px-Ruthenium_a_half_bar.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Ruthenium_a_half_bar.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -306,6 +344,7 @@
  },
  "Rh": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Rhodium_powder_pressed_melted.jpg/500px-Rhodium_powder_pressed_melted.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Rhodium_powder_pressed_melted.jpg/960px-Rhodium_powder_pressed_melted.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Rhodium_powder_pressed_melted.jpg",
   "author": "Alchemist-hp www.pse-mendelejew.de derivative work: Purpy Pupple",
   "license": "CC BY-SA 3.0 de",
@@ -320,6 +359,7 @@
  },
  "Ag": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Silver_crystal.jpg/500px-Silver_crystal.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Silver_crystal.jpg/960px-Silver_crystal.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Silver_crystal.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "CC BY-SA 3.0 de",
@@ -327,6 +367,7 @@
  },
  "Cd": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Cadmium-crystal_bar.jpg/500px-Cadmium-crystal_bar.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Cadmium-crystal_bar.jpg/960px-Cadmium-crystal_bar.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Cadmium-crystal_bar.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -334,6 +375,7 @@
  },
  "In": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Indium.jpg/500px-Indium.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/Indium.jpg/960px-Indium.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Indium.jpg",
   "author": "Nerdtalker",
   "license": "CC BY-SA 3.0",
@@ -341,6 +383,7 @@
  },
  "Sn": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Sn-Alpha-Beta.jpg/500px-Sn-Alpha-Beta.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Sn-Alpha-Beta.jpg/960px-Sn-Alpha-Beta.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Sn-Alpha-Beta.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "CC BY-SA 3.0 de",
@@ -355,6 +398,7 @@
  },
  "Te": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Tellurium2.jpg/500px-Tellurium2.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Tellurium2.jpg/960px-Tellurium2.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Tellurium2.jpg",
   "author": "Heinrich Pniok (images-of-elements.com)",
   "license": "CC BY 3.0",
@@ -362,6 +406,7 @@
  },
  "I": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Sample_of_iodine.jpg/500px-Sample_of_iodine.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Sample_of_iodine.jpg/960px-Sample_of_iodine.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Sample_of_iodine.jpg",
   "author": "LHcheM",
   "license": "CC BY-SA 3.0",
@@ -369,6 +414,7 @@
  },
  "Xe": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Xenon_discharge_tube.jpg/500px-Xenon_discharge_tube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Xenon_discharge_tube.jpg/960px-Xenon_discharge_tube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Xenon_discharge_tube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -376,6 +422,7 @@
  },
  "Cs": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/Cesium.jpg/500px-Cesium.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/Cesium.jpg/960px-Cesium.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Cesium.jpg",
   "author": "Dnn87",
   "license": "CC BY-SA 3.0",
@@ -432,6 +479,7 @@
  },
  "Gd": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Gadolinium-4.jpg/500px-Gadolinium-4.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Gadolinium-4.jpg/960px-Gadolinium-4.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Gadolinium-4.jpg",
   "author": "Heinrich Pniok (images-of-elements.com)",
   "license": "CC BY 3.0",
@@ -453,6 +501,7 @@
  },
  "Ho": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Holmium2.jpg/500px-Holmium2.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Holmium2.jpg/960px-Holmium2.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Holmium2.jpg",
   "author": "Heinrich Pniok (images-of-elements.com)",
   "license": "CC BY 3.0",
@@ -460,6 +509,7 @@
  },
  "Er": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Erbium_%2868_Er%29.jpg/500px-Erbium_%2868_Er%29.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/88/Erbium_%2868_Er%29.jpg/960px-Erbium_%2868_Er%29.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Erbium_(68_Er).jpg",
   "author": "Heinrich Pniok (images-of-elements.com)",
   "license": "CC BY 3.0",
@@ -467,6 +517,7 @@
  },
  "Tm": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Thulium_sublimed_dendritic_and_1cm3_cube.jpg/500px-Thulium_sublimed_dendritic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1e/Thulium_sublimed_dendritic_and_1cm3_cube.jpg/960px-Thulium_sublimed_dendritic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Thulium_sublimed_dendritic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -481,6 +532,7 @@
  },
  "Lu": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/Lutetium_sublimed_dendritic_and_1cm3_cube.jpg/500px-Lutetium_sublimed_dendritic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/Lutetium_sublimed_dendritic_and_1cm3_cube.jpg/960px-Lutetium_sublimed_dendritic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Lutetium_sublimed_dendritic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -495,6 +547,7 @@
  },
  "Ta": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Tantalum_single_crystal_and_1cm3_cube.jpg/500px-Tantalum_single_crystal_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/83/Tantalum_single_crystal_and_1cm3_cube.jpg/960px-Tantalum_single_crystal_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Tantalum_single_crystal_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -502,6 +555,7 @@
  },
  "W": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Wolfram_evaporated_crystals_and_1cm3_cube.jpg/500px-Wolfram_evaporated_crystals_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Wolfram_evaporated_crystals_and_1cm3_cube.jpg/960px-Wolfram_evaporated_crystals_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Wolfram_evaporated_crystals_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -509,6 +563,7 @@
  },
  "Re": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Rhenium_single_crystal_bar_and_1cm3_cube.jpg/500px-Rhenium_single_crystal_bar_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/Rhenium_single_crystal_bar_and_1cm3_cube.jpg/960px-Rhenium_single_crystal_bar_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Rhenium_single_crystal_bar_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -516,6 +571,7 @@
  },
  "Os": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Osmium_crystals.jpg/500px-Osmium_crystals.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0c/Osmium_crystals.jpg/960px-Osmium_crystals.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Osmium_crystals.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -530,6 +586,7 @@
  },
  "Pt": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Platinum_crystals.jpg/500px-Platinum_crystals.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Platinum_crystals.jpg/960px-Platinum_crystals.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Platinum_crystals.jpg",
   "author": "Periodictableru",
   "license": "CC BY 3.0",
@@ -537,6 +594,7 @@
  },
  "Au": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Gold-crystals.jpg/500px-Gold-crystals.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d7/Gold-crystals.jpg/960px-Gold-crystals.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Gold-crystals.jpg",
   "author": "Alchemist-hp www.pse-mendelejew.de",
   "license": "CC BY-SA 3.0 de",
@@ -544,6 +602,7 @@
  },
  "Hg": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Pouring_liquid_mercury_bionerd.jpg/500px-Pouring_liquid_mercury_bionerd.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Pouring_liquid_mercury_bionerd.jpg/960px-Pouring_liquid_mercury_bionerd.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Pouring_liquid_mercury_bionerd.jpg",
   "author": "Bionerd",
   "license": "CC BY 3.0",
@@ -558,6 +617,7 @@
  },
  "Pb": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Lead_electrolytic_and_1cm3_cube.jpg/500px-Lead_electrolytic_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/Lead_electrolytic_and_1cm3_cube.jpg/960px-Lead_electrolytic_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Lead_electrolytic_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -565,6 +625,7 @@
  },
  "Bi": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Bismuth_crystals_and_1cm3_cube.jpg/500px-Bismuth_crystals_and_1cm3_cube.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ef/Bismuth_crystals_and_1cm3_cube.jpg/960px-Bismuth_crystals_and_1cm3_cube.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Bismuth_crystals_and_1cm3_cube.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -572,6 +633,7 @@
  },
  "Po": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Polonium_on_brass_sheet.jpg/500px-Polonium_on_brass_sheet.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/07/Polonium_on_brass_sheet.jpg/960px-Polonium_on_brass_sheet.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Polonium_on_brass_sheet.jpg",
   "author": "范皓程",
   "license": "CC BY 4.0",
@@ -579,6 +641,7 @@
  },
  "At": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Glow_from_a_sample_of_astatine_%28cropped%29.jpg/500px-Glow_from_a_sample_of_astatine_%28cropped%29.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Glow_from_a_sample_of_astatine_%28cropped%29.jpg/960px-Glow_from_a_sample_of_astatine_%28cropped%29.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Glow_from_a_sample_of_astatine_(cropped).jpg",
   "author": "NuclearAlex",
   "license": "CC BY 4.0",
@@ -595,6 +658,7 @@
  },
  "Ac": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Actinium_sample_%2831481701837%29.png/500px-Actinium_sample_%2831481701837%29.png",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/27/Actinium_sample_%2831481701837%29.png/960px-Actinium_sample_%2831481701837%29.png",
   "page": "https://commons.wikimedia.org/wiki/File:Actinium_sample_(31481701837).png",
   "author": "Oak Ridge National Laboratory",
   "license": "CC BY 2.0",
@@ -602,6 +666,7 @@
  },
  "Th": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Thorium_sample_0.1g.jpg/500px-Thorium_sample_0.1g.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Thorium_sample_0.1g.jpg/960px-Thorium_sample_0.1g.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Thorium_sample_0.1g.jpg",
   "author": "Alchemist-hp (www.pse-mendelejew.de)",
   "license": "FAL",
@@ -609,6 +674,7 @@
  },
  "Pa": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Protactinium_%28Element_-_91%29_2.jpg/500px-Protactinium_%28Element_-_91%29_2.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Protactinium_%28Element_-_91%29_2.jpg/960px-Protactinium_%28Element_-_91%29_2.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Protactinium_(Element_-_91)_2.jpg",
   "author": "James St. John",
   "license": "CC BY 2.0",
@@ -616,6 +682,7 @@
  },
  "U": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/HEUraniumC.jpg/500px-HEUraniumC.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/HEUraniumC.jpg/960px-HEUraniumC.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:HEUraniumC.jpg",
   "author": "U.S. Department of Energy",
   "license": "Public domain"
@@ -629,12 +696,14 @@
  },
  "Pu": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Plutonium_ring.jpg/500px-Plutonium_ring.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Plutonium_ring.jpg/960px-Plutonium_ring.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Plutonium_ring.jpg",
   "author": "Los Alamos National Laboratory",
   "license": "Attribution"
  },
  "Am": {
   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Americium_microscope.jpg/500px-Americium_microscope.jpg",
+  "thumb2x": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ee/Americium_microscope.jpg/960px-Americium_microscope.jpg",
   "page": "https://commons.wikimedia.org/wiki/File:Americium_microscope.jpg",
   "author": "Bionerd",
   "license": "CC BY 3.0",
