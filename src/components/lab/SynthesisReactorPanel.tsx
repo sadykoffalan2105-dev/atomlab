@@ -1511,6 +1511,7 @@ export function SynthesisReactorPanel({
             }}
             disabled={!canRun || synthesisRunning}
             title={runUnavailableHint ?? undefined}
+            data-reactor-run=""
           >
             {showSynthLive ? (
               <ShowingRunContent kind={showKind} template={t('reactor.runShowing')} />
