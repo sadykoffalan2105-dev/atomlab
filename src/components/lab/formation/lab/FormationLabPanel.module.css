@@ -4,10 +4,14 @@
   position: fixed;
   z-index: 60;
   top: 132px;
-  right: 16px;
+  right: max(16px, env(safe-area-inset-right));
+  left: auto;
+  /* Низ панели — не ниже верха реактора: --lab-reactor-clearance (высота дока + 10) ведёт страница лаборатории. */
+  max-height: calc(100dvh - 132px - var(--lab-reactor-clearance, 330px) - 12px);
   width: min(400px, calc(100vw - 32px));
-  max-height: calc(100dvh - 132px - 330px);
+  max-width: calc(100vw - 32px);
   min-height: 0;
+  box-sizing: border-box;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -67,11 +71,13 @@
   color: #fde68a;
 }
 
-/* HUD-карточки: слой над свободной частью 3D-сцены (между панелями), сами карточки — справа сверху. */
+/* HUD-карточки: слой над свободной частью 3D-сцены (между панелями), сами карточки — справа сверху.
+   Контейнер для @container правил HUD: перенос пути — по ширине свободной части, а не окна браузера. */
 .hudHost {
   position: fixed;
   z-index: 55;
   pointer-events: none;
+  container-type: inline-size;
 }
 
 /* Карточки HUD всегда поверх сцены (и на телефоне): в лаборатории под 3D нет «полосы» как в окне каталога. */
@@ -86,9 +92,9 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  width: max-content;
+  width: fit-content;
   min-height: 0;
-  max-width: min(60%, 440px);
+  max-width: min(calc(100% - 20px), 440px);
   max-height: calc(100% - 20px);
   padding: 0;
 }
@@ -99,7 +105,8 @@
     left: 8px;
     right: 8px;
     width: auto;
-    max-height: 40dvh;
+    max-width: none;
+    max-height: 36dvh;
     padding: 10px 12px;
     border-radius: 14px;
   }

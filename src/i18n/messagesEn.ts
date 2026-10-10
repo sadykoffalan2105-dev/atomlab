@@ -337,6 +337,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'reactor.valencyBondToggle': 'Bond {index} of {total} for {symbol}',
   'reactor.run': 'Check and run synthesis',
   'reactor.runRunning': 'Synthesis in progress…',
+  'reactor.runShowing': 'Showing · step {k}/{n}',
   'reactor.successRunning': 'Correct! Bonding… {name}',
   'reactor.successProduct':
     'Obtained: {name} {formula}. 3D is shown in the center. You can set up a new equation or close the reactor.',

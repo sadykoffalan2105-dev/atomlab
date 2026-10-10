@@ -33,8 +33,10 @@ import { ReactorAtomLedger, ReactorLedgerComment, useAtomLedger } from './Reacto
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
 import { reactorRouteFor } from './formation/routes/routeIndex'
-import { formationLabProductFor } from './formation/lab/formationLabIndex'
-import { formationLab, useFormationLabId } from './formation/lab/formationLabStore'
+import { formationLabChunksPrewarm, formationLabPrewarm, formationLabProductFor, formationWarm } from './formation/lab/formationLabIndex'
+import { formationLab, useFormationLab, useFormationLabId } from './formation/lab/formationLabStore'
+import { useRouteLab } from './formation/routes/routeLabStore'
+import { useShowKind } from './formation/lab/showDirector'
 
 /** «Как образуется» для реакций с собственным показом пути (CO₂ тремя способами) — грузится по клику. */
 const RouteFormationModal = lazy(() => import('./formation/routes/RouteFormationModal'))
@@ -312,6 +314,33 @@ function RunButtonContent({ synthesisRunning, locale, runningText, runText }: { 
         {synthesisRunning ? pausedText ? <IconPlay /> : <IconSpinner className={panelStyles.spin} /> : <IconPlay />}
       </span>
       <span>{synthesisRunning ? (pausedText ?? runningText) : runText}</span>
+    </>
+  )
+}
+
+/**
+ * Кнопка запуска, пока идёт показ «Как образуется» при синтезе: «Идёт показ · этап k/n» (не «Синтез выполняется…»).
+ * Подписка на ход показа — только здесь (перерисовывается одна кнопка).
+ */
+function ShowingRunContent({ kind, template }: { kind: string; template: string }) {
+  const f = useFormationLab()
+  const r = useRouteLab()
+  let k = 0
+  let n: number
+  if (kind === 'route-synth' && r.stages) {
+    const list = r.stages.list
+    n = list.length
+    for (let j = 0; j < list.length; j++) if (r.t >= list[j]!.t0) k = j
+  } else {
+    n = f.stages?.length ?? 0
+    k = f.step
+  }
+  return (
+    <>
+      <span className={panelStyles.reactorBtnPrimaryIcon} aria-hidden>
+        <IconPlay />
+      </span>
+      <span data-run-showing="">{template.replace('{k}', String(Math.min(n, k + 1) || 1)).replace('{n}', String(n || 1))}</span>
     </>
   )
 }
@@ -658,6 +687,9 @@ export function SynthesisReactorPanel({
   )
   const formationLabId = useFormationLabId()
   const formationShowing = formationLabId != null && formationLabId === formationId
+  // Показ при синтезе (образование или путь): кнопка Run — «Идёт показ · этап k/n», реактор компактный.
+  const showKind = useShowKind()
+  const showSynthLive = showKind === 'formation-synth' || showKind === 'route-synth'
   // Реакция сменилась / реактор закрыт — показ по кнопке закрывается; уход со страницы — тоже.
   useEffect(() => {
     const cur = formationLab.get()
@@ -678,15 +710,61 @@ export function SynthesisReactorPanel({
       setCollapsed(false)
     }
   }, [formationAny])
-  // 3D показа грузим заранее — без паузы на нажатии
+  // 3D показа грузим сразу при открытом реакторе (без таймера), историю / модель / фазу / HUD строим в простое
+  // (не позже 300 мс) — первый кадр показа не ждёт ни сети, ни CPU; GPU-прогрев ведёт FormationLabWarmup в сцене.
   useEffect(() => {
-    if (!formationId) return
-    const id = window.setTimeout(() => {
-      void import('./formation/lab/FormationLabFx')
-      void import('./formation/lab/FormationLabPanel')
-    }, 900)
+    if (open) formationLabChunksPrewarm()
+  }, [open])
+  useEffect(() => {
+    if (!formationId || !open) {
+      formationWarm.set(null)
+      return
+    }
+    formationWarm.set(formationId)
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback
+    const cic = (window as unknown as { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback
+    const run = () => void formationLabPrewarm(formationId)
+    if (ric) {
+      const id = ric(run, { timeout: 300 })
+      return () => cic?.(id)
+    }
+    const id = window.setTimeout(run, 0)
     return () => window.clearTimeout(id)
-  }, [formationId])
+  }, [formationId, open])
+  useEffect(() => () => formationWarm.set(null), [])
+  // Где реактор и кнопка свёрнутого реактора (px окна): сцена показа обходит их без запросов DOM в кадре.
+  const reactorRootRef = useRef<HTMLDivElement>(null)
+  const reactorFabRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = reactorRootRef.current
+    if (!el) return
+    const upd = () => {
+      formationLab.setRect('reactor', open && !collapsed ? el.getBoundingClientRect() : null)
+      const f = reactorFabRef.current
+      formationLab.setRect('fab', open && collapsed && f ? f.getBoundingClientRect() : null)
+    }
+    upd()
+    const ro = new ResizeObserver(upd)
+    ro.observe(el)
+    if (reactorFabRef.current) ro.observe(reactorFabRef.current)
+    el.addEventListener('transitionend', upd)
+    window.addEventListener('resize', upd)
+    // док выезжает анимацией (transform не будит ResizeObserver) — ещё раз после неё
+    const t1 = window.setTimeout(upd, 380)
+    return () => {
+      ro.disconnect()
+      el.removeEventListener('transitionend', upd)
+      window.removeEventListener('resize', upd)
+      window.clearTimeout(t1)
+    }
+  }, [open, collapsed])
+  useEffect(
+    () => () => {
+      formationLab.setRect('reactor', null)
+      formationLab.setRect('fab', null)
+    },
+    [],
+  )
   /** Раскрытый раздел под уравнением (аккордеон: одновременно один). */
   const [openSection, setOpenSection] = useState<ReactorSection | null>(null)
   const sectionsId = useId()
@@ -836,7 +914,9 @@ export function SynthesisReactorPanel({
       data-collapsed={open && collapsed ? 'true' : undefined}
       data-lab-reactor=""
       data-dim-hero={dimInCatalogHeroView && open}
-      data-compact={open && (dimInCatalogHeroView || synthesisRunning) ? 'true' : undefined}
+      ref={reactorRootRef}
+      data-compact={open && (dimInCatalogHeroView || synthesisRunning || showSynthLive) ? 'true' : undefined}
+      data-show-live={open && showSynthLive ? 'true' : undefined}
       data-section-open={open && activeSection != null ? 'true' : undefined}
       role="region"
       aria-label={t('reactor.ariaRegion')}
@@ -904,7 +984,19 @@ export function SynthesisReactorPanel({
             <button
               type="button"
               className={`${panelStyles.reactorBtnSecondary} ${panelStyles.reactorBtnAccent}`}
-              onClick={() => (formationShowing ? formationLab.close() : formationLab.open(formationId, 'preview'))}
+              onClick={() => {
+                if (formationShowing) {
+                  formationLab.close()
+                  return
+                }
+                try {
+                  performance.mark('formation-lab:click')
+                } catch {
+                  /* нет User Timing */
+                }
+                formationLab.open(formationId, 'preview')
+              }}
+              disabled={synthesisRunning || showSynthLive}
               title={t('reactor.howFormsTitle')}
               aria-pressed={formationShowing}
               data-reactor-how-forms={formationId}
@@ -1419,14 +1511,19 @@ export function SynthesisReactorPanel({
             }}
             disabled={!canRun || synthesisRunning}
             title={runUnavailableHint ?? undefined}
+            data-reactor-run=""
           >
-            <RunButtonContent synthesisRunning={synthesisRunning} locale={locale} runningText={t('reactor.runRunning')} runText={t('reactor.run')} />
+            {showSynthLive ? (
+              <ShowingRunContent kind={showKind} template={t('reactor.runShowing')} />
+            ) : (
+              <RunButtonContent synthesisRunning={synthesisRunning} locale={locale} runningText={t('reactor.runRunning')} runText={t('reactor.run')} />
+            )}
           </button>
         </div>
       </div>
     </div>
     {open && collapsed ? (
-      <div className={panelStyles.reactorFabCluster}>
+      <div className={panelStyles.reactorFabCluster} ref={reactorFabRef}>
         {teacherAvailable ? (
           <button
             type="button"

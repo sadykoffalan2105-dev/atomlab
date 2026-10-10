@@ -29,6 +29,7 @@ export type FormationLabState = {
 const clockRef: MutableRefObject<FormationClock> = { current: { t: 0, playing: true } }
 let state: FormationLabState = { id: null, mode: 'preview', stages: null, total: 0, t: 0, step: 0, playing: true, speed: 1, free: null, canvasTop: 0 }
 const subs = new Set<() => void>()
+const rectSubs = new Set<() => void>()
 const emit = () => subs.forEach((f) => f())
 const set = (patch: Partial<FormationLabState>) => {
   state = { ...state, ...patch }
@@ -46,14 +47,43 @@ export const formationLab = {
   clock: clockRef,
   /** где на экране панель этапов (px окна) — сцена вписывается в остаток кадра */
   panelRect: null as DOMRect | null,
+  /**
+   * Прямоугольники окна, которые сцена обходит (px окна): реактор (открытый док) и кнопка свёрнутого реактора.
+   * Ведут наблюдатели страницы (ResizeObserver) — сцена в кадре DOM не опрашивает.
+   */
+  rects: { reactor: null as DOMRect | null, fab: null as DOMRect | null, rev: 0 },
+  setRect(key: 'reactor' | 'fab', r: DOMRect | null) {
+    const a = formationLab.rects[key]
+    if (a && r && Math.abs(a.top - r.top) < 0.5 && Math.abs(a.left - r.left) < 0.5 && Math.abs(a.width - r.width) < 0.5 && Math.abs(a.height - r.height) < 0.5) return
+    if (!a && !r) return
+    formationLab.rects[key] = r
+    formationLab.rects.rev++
+    rectSubs.forEach((f) => f())
+  },
+  /** Подписка на смену прямоугольников реактора / кнопки (клапан панели этапов). */
+  onRects(f: () => void) {
+    rectSubs.add(f)
+    return () => {
+      rectSubs.delete(f)
+    }
+  },
   /** сколько места HUD-карточки занимают в свободной части (px): dx — справа, dy — сверху */
   hudLayout: { current: { dx: 0, dy: 0 } } as MutableRefObject<{ dx: number; dy: number }>,
   /** «Закрыть» в показе при синтезе: сцена сразу отдаёт продукт */
   skipToEnd: false,
   /** открыть показ вещества (кнопка в реакторе — preview; сцена синтеза — synth) */
   open(id: string, mode: FormationLabMode = 'preview') {
-    clockRef.current = { t: 0, playing: true }
+    // Передача preview → synth того же вещества (Run при открытом показе): панель и сцена не размонтируются,
+    // этапы те же — только режим и часы с нуля.
+    const handoff = state.id === id && state.stages != null
+    if (handoff && state.mode === mode && mode === 'synth') return
+    clockRef.current.t = 0
+    clockRef.current.playing = true
     formationLab.skipToEnd = false
+    if (handoff) {
+      set({ mode, t: 0, step: 0, playing: true })
+      return
+    }
     formationLab.hudLayout.current = { dx: 0, dy: 0 }
     set({ id, mode, stages: null, total: 0, t: 0, step: 0, playing: true, speed: state.speed })
   },

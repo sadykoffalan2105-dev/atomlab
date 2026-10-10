@@ -33,8 +33,11 @@ import { getElementByZ } from '../../data/elements'
 const RouteLabFx = lazy(() => import('./formation/routes/RouteLabFx'))
 /** «Как образуется» v2 (200 веществ каталога) на большой сцене лаборатории: по кнопке реактора или при синтезе по уравнению образования. */
 const FormationLabFx = lazy(() => import('./formation/lab/FormationLabFx'))
+/** Прогрев программ показа «Как образуется» (вещество кнопки реактора) — пока реактор простаивает. */
+const FormationLabWarmup = lazy(() => import('./formation/lab/FormationLabWarmup'))
 import { formationForLabRun, labTermFormula } from './formation/lab/formationLabIndex'
 import { useFormationLabPreviewId } from './formation/lab/formationLabStore'
+import { useShowDirector } from './formation/lab/showDirector'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { LabIdleCosmicBackdrop, LAB_IDLE_COSMIC_BG } from './LabIdleCosmicBackdrop'
@@ -767,8 +770,21 @@ function SceneContent({
   // Показ «Как образуется» по кнопке реактора (без синтеза): шары реактора скрыты, модель — на всю свободную сцену.
   const formationLabPreviewId = useFormationLabPreviewId()
   const formationPreviewId = reactorViewOpen && !synthActive ? formationLabPreviewId : null
+  // Режиссёр показов: в кадре не больше одного показа; герой продукта невидим, пока любой показ жив.
+  const show = useShowDirector()
+  const showLive = show.kind !== 'none'
+  // Показ образования — ОДИН экземпляр на preview и synth (передача по Run без размонтирования и мигания):
+  // synth — когда идёт синтез по уравнению образования (или режиссёр уже передал показ, а синтез ещё стартует).
+  const formationShow: { id: string; mode: 'preview' | 'synth' } | null =
+    synthActive && synthesis && instantSynthesis && showElementsCollapseFx && formationLabId && scientificMicroworldActive
+      ? { id: formationLabId, mode: 'synth' }
+      : show.kind === 'formation-synth' && show.id && reactorViewOpen
+        ? { id: show.id, mode: 'synth' }
+        : formationPreviewId
+          ? { id: formationPreviewId, mode: 'preview' }
+          : null
   // Флаг для Bohr-моделей: пока идёт урок-кино, ни один чужой атом не рисуется.
-  const cinemaOwnsScreen = scientificMicroworldActive || formationPreviewId != null
+  const cinemaOwnsScreen = scientificMicroworldActive || formationPreviewId != null || showLive
   useEffect(() => {
     setCinemaActive(cinemaOwnsScreen)
     return () => setCinemaActive(false)
@@ -2536,7 +2552,7 @@ function SceneContent({
 
       {reactorViewOpen ? (
         // Пока открыт показ «Как образуется» по кнопке реактора, обычные шары реактора скрыты (не размонтированы).
-        <group name="lab-reactor-content-root" visible={formationPreviewId == null}>
+        <group name="lab-reactor-content-root" visible={formationPreviewId == null && !(show.kind === 'formation-synth' && !synthActive)}>
           {/* Sticky shell: не unmount при product slot — иначе +/- после синтеза cold remount. */}
           {reactorPreviewMounted && effectivePreviewTerms && scientificStage == null ? (
             <ReactorTermsPreview
@@ -2622,19 +2638,8 @@ function SceneContent({
           ) : null}
           {synthActive && synthesis && instantSynthesis && showElementsCollapseFx ? (
             formationLabId && scientificMicroworldActive ? (
-              <group name="lab-cinema-scene-root">
-                <Suspense fallback={null}>
-                  <FormationLabFx
-                    key={`formation-${formationLabId}-${synthesis.runId}`}
-                    compoundId={formationLabId}
-                    mode="synth"
-                    lowPower={cinemaLowPower}
-                    onEmbryoReady={handleElementsCollapseEmbryoReady}
-                    onBirthReady={handleElementsCollapseBirthReady}
-                    onComplete={handleElementsCollapseComplete}
-                  />
-                </Suspense>
-              </group>
+              // показ образования при синтезе — общий слот formationShow ниже (тот же экземпляр, что и preview)
+              null
             ) : routeLabId && scientificMicroworldActive ? (
               <group name="lab-cinema-scene-root">
                 <Suspense fallback={null}>
@@ -2737,19 +2742,35 @@ function SceneContent({
             : null}
         </group>
       ) : null}
-      {formationPreviewId ? (
+      {formationShow ? (
+        // Один слот на preview и synth: передача по Run не размонтирует показ (панель и модель не мигают).
         <group name="lab-cinema-scene-root">
           <Suspense fallback={null}>
-            <FormationLabFx key={`formation-preview-${formationPreviewId}`} compoundId={formationPreviewId} mode="preview" lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc} />
+            <FormationLabFx
+              key={`formation-lab-${formationShow.id}`}
+              compoundId={formationShow.id}
+              mode={formationShow.mode}
+              runKey={formationShow.mode === 'synth' ? (synthesis?.runId ?? 0) : 0}
+              lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
+              onEmbryoReady={handleElementsCollapseEmbryoReady}
+              onBirthReady={handleElementsCollapseBirthReady}
+              onComplete={handleElementsCollapseComplete}
+            />
           </Suspense>
         </group>
+      ) : null}
+      {reactorViewOpen && reactorGpuIdleReady ? (
+        // Сам уходит через 1,5 с после старта показа / синтеза (боевые материалы успевают забрать программы).
+        <Suspense fallback={null}>
+          <FormationLabWarmup lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc} busy={synthActive || showLive} />
+        </Suspense>
       ) : null}
 
       {/* Resize sync всегда: balance-панель меняет высоту реактора → иначе 0×0 / белый canvas. */}
       <CatalogCanvasResizeSync touchDpr={false} />
       {/* Любое подвисание героя (шрифт подписи, ресурс) остаётся внутри слота — холст не прячется. */}
       {showProductDuringCollapse ? (
-        <group name="lab-product-hero-root" visible={formationPreviewId == null}>
+        <group name="lab-product-hero-root" visible={formationPreviewId == null && !showLive}>
         <Suspense fallback={null}>
           <LabProductHeroSlot
             compound={productForSlot!}

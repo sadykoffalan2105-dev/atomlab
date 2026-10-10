@@ -6,7 +6,7 @@
  * сцены). Время — общее с панелью этапов (formationLabStore): пауза, скорость, перемотка.
  * synth: в конце — продукт (embryo → birth → complete), сторож лаборатории ждёт конца показа.
  */
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { formationPlan } from '../../../../chemistry/formationPlan'
@@ -21,6 +21,7 @@ import { ShowcaseBounds, ShowcaseClock } from '../showcase/kit/core'
 import { showcaseSceneFor } from '../showcase/registry'
 import type { CamCtl } from '../showcase/types'
 import { formationLab, type FormationLabMode } from './formationLabStore'
+import { showDirector } from './showDirector'
 
 /** Доля меньшей стороны свободной части кадра под описанную сферу — как у карточки каталога. */
 const FILL = 0.86
@@ -82,32 +83,45 @@ function zoomAt(story: FormationStory, t: number, crystal: boolean): number {
   return prev + (cur - prev) * easeInOut((t - st[k]!.t0) / 1.2)
 }
 
-/** Сколько px холста занимают панели: справа (панель этапов), сверху (она же на телефоне), снизу (реактор). */
-function overlaps(c: DOMRect): { dx: number; dy: number; db: number } {
+/**
+ * Сколько px холста занимают панели: справа (панель этапов), сверху (она же на телефоне), снизу (реактор).
+ * Прямоугольники ведут наблюдатели (formationLab.rects / panelRect) — в кадре DOM не опрашивается.
+ */
+function overlaps(c: { left: number; top: number; width: number; height: number }): { dx: number; dy: number; db: number } {
   const out = { dx: 0, dy: 0, db: 0 }
+  const right = c.left + c.width
+  const bottom = c.top + c.height
   const p = formationLab.panelRect
   if (p && p.width > 0) {
-    if (p.left > c.left + c.width / 2) out.dx = Math.max(0, c.right - p.left + 12)
+    if (p.left > c.left + c.width / 2) out.dx = Math.max(0, right - p.left + 12)
     else out.dy = Math.max(0, p.bottom - c.top + 8)
   }
-  const r = document.querySelector('[data-lab-reactor][data-open="true"]')?.getBoundingClientRect()
-  if (r && r.height > 0 && r.top < c.bottom) out.db = Math.max(0, c.bottom - r.top + 8)
+  const r = formationLab.rects.reactor
+  if (r && r.height > 0 && r.top < bottom) out.db = Math.max(0, bottom - r.top + 8)
   // свёрнутый реактор (телефон): кнопка «Показать реактор» внизу
-  const f = document.querySelector('[data-lab-reactor-fab]')?.getBoundingClientRect()
-  if (f && f.height > 0 && f.top < c.bottom && f.bottom > c.top + c.height / 2) out.db = Math.max(out.db, c.bottom - f.top + 6)
+  const f = formationLab.rects.fab
+  if (f && f.height > 0 && f.top < bottom && f.bottom > c.top + c.height / 2) out.db = Math.max(out.db, bottom - f.top + 6)
   return out
 }
+
+/** Сжатие группы показа после конца (продукт уже передан): 250 мс. */
+const SHRINK_MS = 250
+/** Копии молекул итога в лаборатории: не больше 6 и только при свободной высоте кадра от 480 px. */
+const COPIES_CAP = 6
+const COPIES_MIN_H = 480
 
 export type FormationLabFxProps = {
   compoundId: string
   mode: FormationLabMode
   lowPower?: boolean
+  /** номер запуска синтеза (synth): новый запуск того же вещества, пока прежний показ доживает, — показ заново */
+  runKey?: number
   onEmbryoReady?: () => void
   onBirthReady?: () => void
   onComplete?: () => void
 }
 
-export default function FormationLabFx({ compoundId, mode, lowPower = false, onEmbryoReady, onBirthReady, onComplete }: FormationLabFxProps) {
+export default function FormationLabFx({ compoundId, mode, lowPower = false, runKey = 0, onEmbryoReady, onBirthReady, onComplete }: FormationLabFxProps) {
   const shape = compoundById[compoundId]
   const model = useMemo(() => (shape ? buildSchoolHeroModel(shape) : null), [shape])
   const plan = useMemo(() => formationPlan(compoundId), [compoundId])
@@ -118,11 +132,15 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
   const root = useRef<THREE.Group>(null)
   const cam = useRef<CamCtl>({ active: false, yaw: 0, pitch: 0.12, zoom: 1, userUntil: 0 })
   const bounds = useRef({ dx: 0, dy: 0 })
-  const ov = useRef({ dx: 0, dy: 0, db: 0, at: 0 })
+  const ov = useRef({ dx: 0, dy: 0, db: 0, at: 0, rev: -1, w: 0, h: 0 })
+  // Прямоугольник холста в окне: холст лаборатории двигается только при ресайзе — меряем наблюдателем, не в кадре.
+  const canvasRect = useRef({ left: 0, top: 0, width: 0, height: 0 })
+  const firstFrame = useRef(false)
+  const [copiesCap, setCopiesCap] = useState(COPIES_CAP)
+  const clipStep = useRef(-1)
   const sm = useRef<{ s: number; x: number; y: number; q: THREE.Quaternion } | null>(null)
-  const end = useRef({ at: 0, done: false })
+  const end = useRef({ at: 0, done: false, doneAt: 0 })
   const clip = useMemo(makeClip, [])
-  const clipAt = useRef(0)
   const clipUsed = useMemo(() => new Set<THREE.Material>(), [])
   const camera0 = useThree((s) => s.camera) as THREE.PerspectiveCamera
   const fovKeep = useRef<number | null>(null)
@@ -146,12 +164,38 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
   const cbs = useRef({ onEmbryoReady, onBirthReady, onComplete })
   cbs.current = { onEmbryoReady, onBirthReady, onComplete }
 
-  // Показ при синтезе открывает сцена; по кнопке — панель реактора. Этапы для панели — из истории.
+  // Показ при синтезе открывает сцена (или режиссёр — передачей из preview); по кнопке — панель реактора.
+  // Смена режима preview → synth не размонтирует показ: закрытие — только при уходе сцены / смене вещества.
+  // Новый запуск синтеза того же вещества, пока прежний показ ещё доживает (сжат) — показ заново.
+  const runSeen = useRef(runKey)
   useEffect(() => {
-    if (mode === 'synth') formationLab.open(compoundId, 'synth')
+    if (mode === 'synth' && end.current.done && runKey !== runSeen.current) {
+      end.current = { at: 0, done: false, doneAt: 0 }
+      if (root.current) root.current.visible = true
+    }
+    runSeen.current = runKey
+    if (mode === 'synth' && !end.current.done) formationLab.open(compoundId, 'synth')
     if (story) formationLab.setStages(compoundId, story.stages.map((s) => ({ key: s.key, t0: s.t0, dur: s.dur })), story.total)
-    return () => formationLab.close(compoundId)
-  }, [compoundId, mode, story])
+  }, [compoundId, mode, story, runKey])
+  useEffect(() => () => formationLab.close(compoundId), [compoundId])
+
+  // Холст в окне — наблюдателем (ресайз), а не getBoundingClientRect в каждом кадре.
+  useEffect(() => {
+    const el = gl.domElement
+    const upd = () => {
+      const r = el.getBoundingClientRect()
+      canvasRect.current = { left: r.left, top: r.top, width: r.width, height: r.height }
+      ov.current.rev = -1
+    }
+    upd()
+    const ro = new ResizeObserver(upd)
+    ro.observe(el)
+    window.addEventListener('resize', upd)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', upd)
+    }
+  }, [gl])
 
   // Отсечение — только у материалов показа (локальное); при закрытии показа — как было.
   useEffect(() => {
@@ -167,9 +211,13 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     }
   }, [gl, clipUsed])
 
+  // Конец показа при синтезе: сначала режиссёр → 'none' (панель исчезает, группа сжимается за 250 мс), и только
+  // потом продукт — в кадре никогда нет двух моделей (показ + герой продукта).
   const finish = () => {
     if (end.current.done) return
     end.current.done = true
+    end.current.doneAt = performance.now()
+    showDirector.finish('formation-synth', compoundId)
     cbs.current.onEmbryoReady?.()
     cbs.current.onBirthReady?.()
     cbs.current.onComplete?.()
@@ -201,6 +249,16 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
 
     const g = root.current
     if (!g) return
+    if (end.current.done && sm.current) {
+      // продукт передан: группа показа уходит (scale → 0), затем скрыта до размонтирования
+      const k = 1 - Math.min(1, (performance.now() - end.current.doneAt) / SHRINK_MS)
+      if (k <= 0) {
+        g.visible = false
+        return
+      }
+      g.scale.setScalar(Math.max(1e-4, sm.current.s * k * k))
+      return
+    }
     const camera = state.camera as THREE.PerspectiveCamera
     if (camera.isPerspectiveCamera && camera.fov !== SHOW_FOV) {
       // угол сменил кто-то другой (переход камеры лаборатории) — его и вернём после показа
@@ -213,9 +271,12 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     const now = performance.now()
     const W = Math.max(1, state.size.width)
     const H = Math.max(1, state.size.height)
-    if (now - ov.current.at > 300) {
-      const rect = gl.domElement.getBoundingClientRect()
-      Object.assign(ov.current, overlaps(rect), { at: now })
+    // свободная часть кадра — только когда сменились прямоугольники панелей (rev) или размер холста
+    const pr = formationLab.panelRect
+    const rev = formationLab.rects.rev * 1e6 + (pr ? Math.round(pr.left + pr.bottom * 7 + pr.width * 13) : 0)
+    if (rev !== ov.current.rev || W !== ov.current.w || H !== ov.current.h) {
+      const rect = canvasRect.current
+      Object.assign(ov.current, overlaps(rect), { at: now, rev, w: W, h: H })
       const { dx, dy, db } = ov.current
       formationLab.setFree({ left: rect.left, top: rect.top + dy, width: Math.max(120, rect.width - dx), height: Math.max(120, rect.height - dy - db) }, rect.top)
     }
@@ -223,6 +284,9 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     // свободная часть холста (px холста): x ∈ [0, aW], y ∈ [dy, dy + aH]
     const aW = Math.max(120, W - dx)
     const aH = Math.max(120, H - dy - db)
+    // копии молекул итога («как в жизни») — только если свободной части хватает (иначе они «вторым фоном» у краёв)
+    const cap = aH >= COPIES_MIN_H ? COPIES_CAP : 0
+    if (cap !== copiesCap) setCopiesCap(cap)
     // HUD-карточки — в правом верхнем углу свободной части: модель слева от них или под ними (где больше места)
     const hud = formationLab.hudLayout.current
     const left = Math.min(aW - hud.dx, aH)
@@ -289,10 +353,21 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     edge(2, aW, H / 2, 'R')
     edge(3, W / 2, dy, 'T')
     edge(4, W / 2, dy + aH, 'B')
-    if (now - clipAt.current > 500) {
-      clipAt.current = now
+    // плоскости — новым материалам показа: на первом кадре и при смене этапа (части сцены монтируются по этапам)
+    // и облаков — без обхода дерева каждые полсекунды
+    const step = formationLab.get().step * 2 + (cloudsOn ? 1 : 0)
+    if (step !== clipStep.current) {
+      clipStep.current = step
       applyClip(g, clip, clipUsed)
-      applyClip(scene.getObjectByName('formation-clouds'), clip, clipUsed)
+      applyClip((g.parent ?? scene).getObjectByName('formation-clouds'), clip, clipUsed)
+    }
+    if (!firstFrame.current) {
+      firstFrame.current = true
+      try {
+        performance.mark('formation-lab:first-frame')
+      } catch {
+        /* нет User Timing */
+      }
     }
   })
 
@@ -309,7 +384,7 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
             </ShowcaseBounds>
           </ShowcaseClock>
         ) : (
-          <FormationPhaseScene model={model} story={story} clock={clock} lowPower={lowPower} />
+          <FormationPhaseScene model={model} story={story} clock={clock} lowPower={lowPower} copiesCap={copiesCap} />
         )}
       </FormationMoleculeView>
     </group>

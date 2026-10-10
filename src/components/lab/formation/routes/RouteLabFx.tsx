@@ -13,6 +13,8 @@ import { camAt } from './geom'
 import { ROUTE_SCENES } from './registry'
 import type { ReactorRouteId } from './routeIndex'
 import { routeLab } from './routeLabStore'
+import { formationLab } from '../lab/formationLabStore'
+import { showDirector } from '../lab/showDirector'
 import { ROUTE_TEXTS } from './texts/co2Routes'
 
 const FILL = 0.84
@@ -23,19 +25,27 @@ const _right = new THREE.Vector3()
 const _up = new THREE.Vector3()
 const ORIGIN = new THREE.Vector3()
 
-/** Сколько px кадра занимают панели: справа (панель этапов), сверху (она же на телефоне), снизу (реактор). */
-function overlaps(canvas: HTMLCanvasElement): { dx: number; dy: number; db: number } {
-  const c = canvas.getBoundingClientRect()
+/**
+ * Сколько px кадра занимают панели: справа (панель этапов), сверху (она же на телефоне), снизу (реактор).
+ * Прямоугольники ведут наблюдатели (routeLab.panelRect, formationLab.rects) — в кадре DOM не опрашивается.
+ */
+function overlaps(c: { left: number; top: number; width: number; height: number }): { dx: number; dy: number; db: number } {
   const out = { dx: 0, dy: 0, db: 0 }
+  const right = c.left + c.width
+  const bottom = c.top + c.height
   const p = routeLab.panelRect
   if (p && p.width > 0) {
-    if (p.left > c.left + c.width / 2) out.dx = Math.max(0, c.right - p.left + 12)
+    if (p.left > c.left + c.width / 2) out.dx = Math.max(0, right - p.left + 12)
     else out.dy = Math.max(0, p.bottom - c.top + 8)
   }
-  const r = document.querySelector('[data-lab-reactor][data-open="true"]')?.getBoundingClientRect()
-  if (r && r.height > 0 && r.top < c.bottom) out.db = Math.max(0, c.bottom - r.top + 8)
+  const r = formationLab.rects.reactor
+  if (r && r.height > 0 && r.top < bottom) out.db = Math.max(0, bottom - r.top + 8)
+  const f = formationLab.rects.fab
+  if (f && f.height > 0 && f.top < bottom && f.bottom > c.top + c.height / 2) out.db = Math.max(out.db, bottom - f.top + 6)
   return out
 }
+/** Сжатие группы показа после конца (продукт уже передан): 250 мс. */
+const SHRINK_MS = 250
 
 export default function RouteLabFx({ routeId, lowPower, onEmbryoReady, onBirthReady, onComplete }: ScientificSynthesisFxProps & { routeId: ReactorRouteId }) {
   const def = ROUTE_SCENES[routeId]
@@ -50,7 +60,9 @@ export default function RouteLabFx({ routeId, lowPower, onEmbryoReady, onBirthRe
   const bounds = useRef({ dx: 0, dy: 0 })
   const ov = useRef({ dx: 0, dy: 0, db: 0, at: 0 })
   const sm = useRef<{ z: number; f: THREE.Vector3; q: THREE.Quaternion } | null>(null)
-  const end = useRef({ at: 0, done: false })
+  const end = useRef({ at: 0, done: false, doneAt: 0 })
+  const canvasRect = useRef({ left: 0, top: 0, width: 0, height: 0 })
+  const firstFrame = useRef(false)
   const clockFn = useMemo(() => () => routeLab.clock.t, [])
   const total = model.stages.total
 
@@ -58,6 +70,24 @@ export default function RouteLabFx({ routeId, lowPower, onEmbryoReady, onBirthRe
     routeLab.start(routeId, model.stages)
     return () => routeLab.stop(routeId)
   }, [routeId, model])
+
+  // Холст в окне — наблюдателем (ресайз), а не getBoundingClientRect в кадре.
+  useEffect(() => {
+    const el = gl.domElement
+    const upd = () => {
+      const r = el.getBoundingClientRect()
+      canvasRect.current = { left: r.left, top: r.top, width: r.width, height: r.height }
+      ov.current.at = 0
+    }
+    upd()
+    const ro = new ResizeObserver(upd)
+    ro.observe(el)
+    window.addEventListener('resize', upd)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', upd)
+    }
+  }, [gl])
 
   useFrame((state, dt) => {
     const c = routeLab.clock
@@ -73,6 +103,9 @@ export default function RouteLabFx({ routeId, lowPower, onEmbryoReady, onBirthRe
       if (!end.current.at) end.current.at = now
       if (now - end.current.at > 1200) {
         end.current.done = true
+        end.current.doneAt = now
+        // сначала режиссёр → 'none' (панель исчезает, группа сжимается), потом продукт: в кадре одна модель
+        showDirector.finish('route-synth', routeId)
         onEmbryoReady?.()
         onBirthReady?.()
         onComplete()
@@ -82,11 +115,17 @@ export default function RouteLabFx({ routeId, lowPower, onEmbryoReady, onBirthRe
     const g = root.current
     const gi = inner.current
     if (!g || !gi) return
+    if (end.current.done) {
+      const k = 1 - Math.min(1, (performance.now() - end.current.doneAt) / SHRINK_MS)
+      if (k <= 0) g.visible = false
+      else g.scale.multiplyScalar(k > 0.98 ? 1 : 0.8)
+      return
+    }
     const cam = state.camera as THREE.PerspectiveCamera
     const target = (state.controls as unknown as { target?: THREE.Vector3 } | null)?.target ?? ORIGIN
     const now = performance.now()
     if (now - ov.current.at > 400) {
-      Object.assign(ov.current, overlaps(gl.domElement), { at: now })
+      Object.assign(ov.current, overlaps(canvasRect.current), { at: now })
       bounds.current = { dx: ov.current.dx, dy: ov.current.dy }
     }
     const k = camAt(model.cam, c.t)
@@ -118,6 +157,14 @@ export default function RouteLabFx({ routeId, lowPower, onEmbryoReady, onBirthRe
     _up.setFromMatrixColumn(cam.matrixWorld, 1)
     g.position.copy(target).addScaledVector(_right, (-dx / 2) * wpp).addScaledVector(_up, ((db - dy) / 2) * wpp)
     gi.position.set(-s0.f.x, -s0.f.y, -s0.f.z)
+    if (!firstFrame.current) {
+      firstFrame.current = true
+      try {
+        performance.mark('formation-lab:first-frame')
+      } catch {
+        /* нет User Timing */
+      }
+    }
   })
 
   const Scene = def.Scene

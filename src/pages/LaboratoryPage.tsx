@@ -98,10 +98,11 @@ import {
 } from '../components/lab/ReactorCompoundCatalogPanel'
 import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
 import { RouteLabHost } from '../components/lab/formation/routes/RouteLabHost'
-import { routeLab } from '../components/lab/formation/routes/routeLabStore'
 import { routeProductForLabRun } from '../components/lab/formation/routes/routeIndex'
 import { FormationLabHost } from '../components/lab/formation/lab/FormationLabHost'
-import { formationLab, useFormationLabId } from '../components/lab/formation/lab/formationLabStore'
+import { useFormationLabId } from '../components/lab/formation/lab/formationLabStore'
+import { formationForLabRun, formationLabPrewarm, labTermFormula } from '../components/lab/formation/lab/formationLabIndex'
+import { showDirector } from '../components/lab/formation/lab/showDirector'
 import { compoundById } from '../data/compounds'
 import { labCompoundById } from '../data/labSpecies'
 import {
@@ -153,7 +154,8 @@ function writeReactorClearance(px: number | null): void {
   if (!clearanceRule) {
     if (px == null) return
     const first = (cls: string | undefined) => (cls ? `.${cls.split(' ')[0]}` : null)
-    const sel = [first(styles.panelFabReactorOpen), first(sidePanelStyles.panelOpenCompact), first(mechPanelStyles.panel)]
+    // [data-lab-show-panel] — панели этапов показа «Как образуется»: низ панели не ниже верха реактора
+    const sel = [first(styles.panelFabReactorOpen), first(sidePanelStyles.panelOpenCompact), first(mechPanelStyles.panel), '[data-lab-show-panel]']
       .filter(Boolean)
       .join(', ')
     const el = document.createElement('style')
@@ -1068,8 +1070,28 @@ export function LaboratoryPage() {
     )
     const routeCompound = routeProduct && routeProduct !== prepared.payload.productId ? compoundById[routeProduct] : undefined
     const payload = routeCompound ? { ...prepared.payload, productId: routeCompound.id, compound: routeCompound } : prepared.payload
-    // Показ «Как образуется» по кнопке реактора закрывается: начинается синтез.
-    formationLab.closePreview()
+    // Показ «Как образуется» по кнопке реактора: запуск ровно по уравнению образования того же вещества —
+    // режиссёр передаёт показ в synth без размонтирования (панель и модель не мигают); иначе preview закрывается.
+    const storyForced = (() => {
+      try {
+        return new URLSearchParams(window.location.search).get('story') === '1'
+      } catch {
+        return false
+      }
+    })()
+    const formationRunId =
+      routeProduct || storyForced
+        ? null
+        : formationForLabRun(
+            prepared.payload.flyTerms.map((x) => labTermFormula(x.compoundId, getElementByZ(x.z)?.symbol ?? '', Boolean(x.diatomic))),
+            prepared.payload.productId,
+          )
+    try {
+      performance.mark('formation-lab:click')
+    } catch {
+      /* нет User Timing */
+    }
+    showDirector.handoffToSynth(formationRunId)
     resetEditBurst()
     setLaboratorySynthesisView('reactor')
     synthesisCompletingRef.current = false
@@ -1176,7 +1198,7 @@ export function LaboratoryPage() {
         return
       }
       // Показ «Как образуется» по пути реакции идёт сколько решает ученик (пауза, перемотка) — ждём его complete.
-      if (routeLab.get().id != null || (formationLab.get().id != null && formationLab.get().mode === 'synth')) {
+      if (showDirector.synthBusy()) {
         timer = window.setTimeout(guard, SCIENTIFIC_LESSON_RECHECK_MS)
         return
       }
@@ -1465,6 +1487,8 @@ export function LaboratoryPage() {
 
   const onSynthesisPrewarmIntent = useCallback(() => {
     if (!productCompound || !canRunSynthesis) return
+    // показ «Как образуется» продукта (если он из 200) — история / модель / фаза готовы до нажатия
+    void formationLabPrewarm(productCompound.id)
     setPrewarmCompound(productCompound)
   }, [productCompound, canRunSynthesis])
 
