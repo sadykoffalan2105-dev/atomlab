@@ -49,18 +49,24 @@
 }
 
 /* «Путь» — компактно, одной строкой: заголовок и уравнение рядом. */
+/* Длинный путь (ОВР-разложение KMnO₄, пероксиды K…) переносится: заголовок и уравнение — в строку, если влезают,
+   иначе уравнение уходит под заголовок и переносится между членами; ничего не обрезается справа. */
 .path {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 10px;
+  column-gap: 10px;
+  row-gap: 2px;
+  max-width: 100%;
   padding: 8px 12px;
   border-radius: 12px;
-  white-space: nowrap;
+  white-space: normal;
   animation: none;
 }
 
 .pathTitle {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
   color: var(--lt-text-2, #cbd5e1);
   font-family: var(--lt-font, 'Inter', system-ui, sans-serif);
   font-size: 11px;
@@ -70,9 +76,11 @@
 }
 
 .pathEq {
-  flex: 0 1 auto;
+  flex: 1 1 14em;
   min-width: 0;
   white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
   color: #fde68a;
   font-family: var(--lt-font, 'Inter', system-ui, sans-serif);
   font-size: 14px;

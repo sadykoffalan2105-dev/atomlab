@@ -100,6 +100,8 @@ import { SynthesisReactorPanel } from '../components/lab/SynthesisReactorPanel'
 import { RouteLabHost } from '../components/lab/formation/routes/RouteLabHost'
 import { routeLab } from '../components/lab/formation/routes/routeLabStore'
 import { routeProductForLabRun } from '../components/lab/formation/routes/routeIndex'
+import { FormationLabHost } from '../components/lab/formation/lab/FormationLabHost'
+import { formationLab } from '../components/lab/formation/lab/formationLabStore'
 import { compoundById } from '../data/compounds'
 import { labCompoundById } from '../data/labSpecies'
 import {
@@ -1066,6 +1068,8 @@ export function LaboratoryPage() {
     )
     const routeCompound = routeProduct && routeProduct !== prepared.payload.productId ? compoundById[routeProduct] : undefined
     const payload = routeCompound ? { ...prepared.payload, productId: routeCompound.id, compound: routeCompound } : prepared.payload
+    // Показ «Как образуется» по кнопке реактора закрывается: начинается синтез.
+    formationLab.closePreview()
     resetEditBurst()
     setLaboratorySynthesisView('reactor')
     synthesisCompletingRef.current = false
@@ -1172,7 +1176,7 @@ export function LaboratoryPage() {
         return
       }
       // Показ «Как образуется» по пути реакции идёт сколько решает ученик (пауза, перемотка) — ждём его complete.
-      if (routeLab.get().id != null) {
+      if (routeLab.get().id != null || (formationLab.get().id != null && formationLab.get().mode === 'synth')) {
         timer = window.setTimeout(guard, SCIENTIFIC_LESSON_RECHECK_MS)
         return
       }
@@ -1608,6 +1612,8 @@ export function LaboratoryPage() {
 
       {/* Панель этапов «Как образуется» во время показа в лаборатории (CO₂ тремя путями). */}
       <RouteLabHost />
+      {/* «Как образуется» v2 (200 веществ каталога) в лаборатории: панель этапов и HUD-карточки. */}
+      <FormationLabHost />
       {/* Вне canvasWrap: contain:layout + fixed-реактор → 0×0 WebGL / белый canvas. */}
       <SynthesisReactorPanel
         open={reactorOpen}

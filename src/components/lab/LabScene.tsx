@@ -31,6 +31,10 @@ import { getElementByZ } from '../../data/elements'
 
 /** «Как образуется» по пути реакции (CO₂: уголь, мрамор + HCl, обжиг) — своя сцена в лаборатории, грузится при запуске. */
 const RouteLabFx = lazy(() => import('./formation/routes/RouteLabFx'))
+/** «Как образуется» v2 (200 веществ каталога) на большой сцене лаборатории: по кнопке реактора или при синтезе по уравнению образования. */
+const FormationLabFx = lazy(() => import('./formation/lab/FormationLabFx'))
+import { formationForLabRun, labTermFormula } from './formation/lab/formationLabIndex'
+import { useFormationLab } from './formation/lab/formationLabStore'
 import { LabProductHeroSlot } from './LabProductHeroSlot'
 import { LabSynthesisCosmicBackdrop } from './LabSynthesisCosmicBackdrop'
 import { LabIdleCosmicBackdrop, LAB_IDLE_COSMIC_BG } from './LabIdleCosmicBackdrop'
@@ -731,7 +735,20 @@ function SceneContent({
           ),
     [forceStory, synthesis],
   )
-  const sceneFxMatch = !forceStory && (routeLabId != null || hasScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms))
+  // Запуск ровно по уравнению образования вещества из 200 (2Na + Cl₂ → 2NaCl, 2H₂ + O₂ → 2H₂O…) — показ v2
+  // «Как образуется» на сцене лаборатории вместо старой анимации; в конце — продукт.
+  const formationLabId = useMemo(
+    () =>
+      forceStory || !synthesis || routeLabId
+        ? null
+        : formationForLabRun(
+            synthesis.flyTerms.map((x) => labTermFormula(x.compoundId, getElementByZ(x.z)?.symbol ?? '', Boolean(x.diatomic))),
+            synthesis.product?.id,
+          ),
+    [forceStory, synthesis, routeLabId],
+  )
+  const sceneFxMatch =
+    !forceStory && (routeLabId != null || formationLabId != null || hasScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms))
   // Реакции без своей сцены — «сюжет реакции» (scenes/story): частицы по коэффициентам, разрыв, перенос e⁻,
   // образование, итог. Уравнение — с экрана реакции (или из полёта «элементы → вещество»).
   const storyEquation = useMemo(() => {
@@ -747,11 +764,16 @@ function SceneContent({
     ? getScientificSynthesisFx(synthesis?.product?.id, synthesis?.flyTerms)
     : null
   void collapseRev
+  // Показ «Как образуется» по кнопке реактора (без синтеза): шары реактора скрыты, модель — на всю свободную сцену.
+  const formationLabState = useFormationLab()
+  const formationPreviewId =
+    reactorViewOpen && !synthActive && formationLabState.mode === 'preview' ? formationLabState.id : null
   // Флаг для Bohr-моделей: пока идёт урок-кино, ни один чужой атом не рисуется.
+  const cinemaOwnsScreen = scientificMicroworldActive || formationPreviewId != null
   useEffect(() => {
-    setCinemaActive(scientificMicroworldActive)
+    setCinemaActive(cinemaOwnsScreen)
     return () => setCinemaActive(false)
-  }, [scientificMicroworldActive])
+  }, [cinemaOwnsScreen])
 
   useLayoutEffect(() => {
     if (!synthActive) {
@@ -2514,7 +2536,8 @@ function SceneContent({
       ) : null}
 
       {reactorViewOpen ? (
-        <>
+        // Пока открыт показ «Как образуется» по кнопке реактора, обычные шары реактора скрыты (не размонтированы).
+        <group name="lab-reactor-content-root" visible={formationPreviewId == null}>
           {/* Sticky shell: не unmount при product slot — иначе +/- после синтеза cold remount. */}
           {reactorPreviewMounted && effectivePreviewTerms && scientificStage == null ? (
             <ReactorTermsPreview
@@ -2599,7 +2622,21 @@ function SceneContent({
             />
           ) : null}
           {synthActive && synthesis && instantSynthesis && showElementsCollapseFx ? (
-            routeLabId && scientificMicroworldActive ? (
+            formationLabId && scientificMicroworldActive ? (
+              <group name="lab-cinema-scene-root">
+                <Suspense fallback={null}>
+                  <FormationLabFx
+                    key={`formation-${formationLabId}-${synthesis.runId}`}
+                    compoundId={formationLabId}
+                    mode="synth"
+                    lowPower={cinemaLowPower}
+                    onEmbryoReady={handleElementsCollapseEmbryoReady}
+                    onBirthReady={handleElementsCollapseBirthReady}
+                    onComplete={handleElementsCollapseComplete}
+                  />
+                </Suspense>
+              </group>
+            ) : routeLabId && scientificMicroworldActive ? (
               <group name="lab-cinema-scene-root">
                 <Suspense fallback={null}>
                   <RouteLabFx
@@ -2699,13 +2736,21 @@ function SceneContent({
                   />
                 ))
             : null}
-        </>
+        </group>
+      ) : null}
+      {formationPreviewId ? (
+        <group name="lab-cinema-scene-root">
+          <Suspense fallback={null}>
+            <FormationLabFx key={`formation-preview-${formationPreviewId}`} compoundId={formationPreviewId} mode="preview" lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc} />
+          </Suspense>
+        </group>
       ) : null}
 
       {/* Resize sync всегда: balance-панель меняет высоту реактора → иначе 0×0 / белый canvas. */}
       <CatalogCanvasResizeSync touchDpr={false} />
       {/* Любое подвисание героя (шрифт подписи, ресурс) остаётся внутри слота — холст не прячется. */}
       {showProductDuringCollapse ? (
+        <group name="lab-product-hero-root" visible={formationPreviewId == null}>
         <Suspense fallback={null}>
           <LabProductHeroSlot
             compound={productForSlot!}
@@ -2727,12 +2772,13 @@ function SceneContent({
             embryoInGlow={productEmbryoOnly && productSlotVisibleResolved}
           />
         </Suspense>
+        </group>
       ) : null}
       <OrbitControls
         ref={orbRef}
         makeDefault
         enablePan={false}
-        enableRotate={!synthActive && !synthesisRunActive}
+        enableRotate={!synthActive && !synthesisRunActive && formationPreviewId == null}
         enableZoom={!catalogViewMode && !synthActive && !synthesisRunActive}
         // Во время pre-synth можно свободно крутить; damping чуть живее для осмотра.
         // Радиус каталожного кадра зависит от свободной полосы над доком реактора.
