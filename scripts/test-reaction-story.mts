@@ -13,6 +13,9 @@
  *    одному, иначе не больше 6 волн; полёты — внутри шага переноса, до паузы-акцента; атомы есть в каждом кадре;
  *    в итоге газ/осадок не налезают на другие продукты; огромные реакции — компактный вид (по одной лицевой копии
  *    члена, у каждого члена с ролью светится лицевой атом).
+ *  • электроны (200 основных реакций, шаг 1/30 с, обычный вид и слабое устройство): ни одна видимая точка — пары,
+ *    общей пары или летящая — не внутри шара (|e − c| ≥ r + 0,5·eR, все шары сюжета и окружения «Итога»); центры
+ *    видимых точек пар не ближе 2,2·eR друг к другу.
  * Запуск: npx tsx scripts/test-reaction-story.mts
  */
 import { existsSync, readFileSync } from 'node:fs'
@@ -21,6 +24,21 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SCHOOL_REACTION_BANK } from '../src/chemistry/schoolReactionBank'
 import { buildReactionStory, unitOxSum, type ReactionStory } from '../src/chemistry/reactionStory'
 import { parseEquationText, equationImbalance } from '../src/chemistry/equationFormula'
+import {
+  buildStoryPairs,
+  storyBondDot,
+  storyBondVis,
+  storyFlightPoint,
+  storyFlightU,
+  storyFlightVis,
+  storyFrame,
+  storyLoneDot,
+  storyLoneVis,
+  STORY_E_R,
+} from '../src/lab/cinema/scenes/story/storyPairs'
+import { buildStoryEnv, envDrift } from '../src/lab/cinema/scenes/story/storyPhase'
+import { storyVibWindow } from '../src/lab/cinema/scenes/story/storyMotion'
+import { smooth } from '../src/lab/cinema/scenes/story/storyLayout'
 import { buildStoryLayout, E_SINGLE_MAX, E_WAVES_MAX, STORY_COMPACT_ATOMS, STORY_COMPACT_ATOMS_LOW, storyAtomPos } from '../src/lab/cinema/scenes/story/storyLayout'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -201,6 +219,101 @@ function checkLayout(label: string, s: ReactionStory): void {
   }
 }
 
+/** Электроны сюжета (как рисует ReactionStoryScene): точки вне шаров, пары раздельны. */
+const eStat = { reactions: 0, frames: 0, dots: 0, inside: 0, close: 0, worstIn: 0, worstSep: Infinity, list: [] as string[] }
+function checkElectrons(label: string, s: ReactionStory): void {
+  for (const lowPower of [false, true]) {
+    const lay = buildStoryLayout(s, { lowPower })
+    const pr = buildStoryPairs(s, lay, { lowPower })
+    const env = buildStoryEnv(s, lay, { lowPower })
+    const vib = storyVibWindow(lay.steps, lay.breakFrom)
+    const n = lay.n
+    const P = new Float32Array(n * 3)
+    const R = new Float32Array(n)
+    const Rv = new Float32Array(n)
+    const E = new Float32Array(Math.max(1, env.particles.length) * 3)
+    const Er = new Float32Array(Math.max(1, env.particles.length))
+    const q = [0, 0, 0]
+    const tA = pr.on
+    const tB = Math.max(pr.off, ...lay.electrons.map((e) => e.t1 + 0.25))
+    let bad = 0
+    let close = 0
+    eStat.reactions++
+    for (let k = 0; ; k++) {
+      const t = tA + k / 30
+      if (t > tB + 1e-9) break
+      eStat.frames++
+      const fade = smooth(0, 0.65, t) * (1 - smooth(lay.finish.from, lay.finish.to - 0.15, t))
+      storyFrame(lay, vib, t, P, R, Rv)
+      const dr = envDrift(env, t)
+      env.particles.forEach((p, m) => {
+        E[m * 3] = p.x + p.vx * dr
+        E[m * 3 + 1] = p.y + p.vy * dr
+        E[m * 3 + 2] = p.z + p.vz * dr
+        Er[m] = p.r * smooth(p.t0, p.t0 + 0.45, t)
+      })
+      // точки: [x, y, z, eR, неподвижная]
+      const dots: number[][] = []
+      for (const lp of pr.lone) {
+        if (fade * storyLoneVis(pr, lay, lp, t) < 0.01) continue
+        for (const sd of [-1, 1]) {
+          storyLoneDot(lp, P, R, sd, q)
+          dots.push([q[0]!, q[1]!, q[2]!, STORY_E_R, 1])
+        }
+      }
+      for (const bp of pr.bond) {
+        if (fade * storyBondVis(pr, lay, bp, t) < 0.01) continue
+        for (const sd of [-1, 1]) {
+          storyBondDot(lay, bp, P, R, sd, q)
+          dots.push([q[0]!, q[1]!, q[2]!, STORY_E_R, 1])
+        }
+      }
+      lay.electrons.forEach((e, m) => {
+        if (fade * storyFlightVis(e, t) < 0.01) return
+        storyFlightPoint(pr.flights[m]!, e.from, e.to, P, R, storyFlightU(e.t0, e.t1, t), q)
+        dots.push([q[0]!, q[1]!, q[2]!, pr.flights[m]!.er, 0])
+      })
+      eStat.dots += dots.length
+      for (const d of dots) {
+        const lim = 0.5 * d[3]!
+        for (let j = 0; j < n; j++) {
+          if (Rv[j]! < 0.005) continue
+          const pen = Rv[j]! + lim - Math.hypot(d[0]! - P[j * 3]!, d[1]! - P[j * 3 + 1]!, d[2]! - P[j * 3 + 2]!)
+          if (pen > 0) {
+            bad++
+            eStat.worstIn = Math.max(eStat.worstIn, pen)
+            if (eStat.list.length < 30) eStat.list.push(`${label}${lowPower ? ' (слабое)' : ''}: точка в шаре ${lay.el[j]}${j} на ${pen.toFixed(3)} при t=${t.toFixed(2)} (${d[4] ? 'пара' : 'летит'})`)
+          }
+        }
+        for (let m = 0; m < env.particles.length; m++) {
+          if (Er[m]! < 0.005) continue
+          const pen = Er[m]! + lim - Math.hypot(d[0]! - E[m * 3]!, d[1]! - E[m * 3 + 1]!, d[2]! - E[m * 3 + 2]!)
+          if (pen > 0) {
+            bad++
+            if (eStat.list.length < 30) eStat.list.push(`${label}${lowPower ? ' (слабое)' : ''}: точка в шаре окружения при t=${t.toFixed(2)}`)
+          }
+        }
+      }
+      for (let a = 0; a < dots.length; a++) {
+        if (!dots[a]![4]) continue
+        for (let b = a + 1; b < dots.length; b++) {
+          if (!dots[b]![4]) continue
+          const d = Math.hypot(dots[a]![0]! - dots[b]![0]!, dots[a]![1]! - dots[b]![1]!, dots[a]![2]! - dots[b]![2]!)
+          eStat.worstSep = Math.min(eStat.worstSep, d / STORY_E_R)
+          if (d < 2.2 * STORY_E_R) {
+            close++
+            if (eStat.list.length < 30) eStat.list.push(`${label}${lowPower ? ' (слабое)' : ''}: точки пар в ${(d / STORY_E_R).toFixed(2)}·eR при t=${t.toFixed(2)}`)
+          }
+        }
+      }
+    }
+    eStat.inside += bad
+    eStat.close += close
+    ok(bad === 0, `${label}${lowPower ? ' (слабое)' : ''}: электроны внутри шаров — ${bad} точко-кадров`)
+    ok(close === 0, `${label}${lowPower ? ' (слабое)' : ''}: точки пар ближе 2,2·eR — ${close}`)
+  }
+}
+
 // ——— 1. банк реакций ———
 let bankOk = 0
 const bankSkipped: string[] = []
@@ -231,6 +344,7 @@ if (existsSync(mainPath)) {
     if (!s) continue
     main200++
     checkStory(`200 ${r.id ?? ''} «${text}»`, s)
+    checkElectrons(`200 ${r.id ?? ''} «${text}»`, s)
   }
 }
 
@@ -408,6 +522,10 @@ const oxOf = (s: ReactionStory, side: 'left' | 'right', el: string) => [...new S
 if (bankSkipped.length) console.log(`  · банк: пропущено ${bankSkipped.length} (не полное уравнение): ${bankSkipped.slice(0, 6).join('; ')}`)
 if (bookFail.length) console.log(`  · учебники: не построено ${bookFail.length}: ${bookFail.slice(0, 12).join(' | ')}`)
 console.log(`банк: ${bankOk}/${SCHOOL_REACTION_BANK.length}; 200 основных: ${main200 || 'нет модуля в ветке'}; учебники 7–9: ${bookOk}/${bookTotal}`)
+console.log(
+  `электроны (200 основных): реакций×вид ${eStat.reactions}, кадров ${eStat.frames}, точко-кадров ${eStat.dots}; внутри шаров ${eStat.inside} (худшее ${eStat.worstIn.toFixed(3)}), пары ближе 2,2·eR ${eStat.close} (минимум ${Number.isFinite(eStat.worstSep) ? eStat.worstSep.toFixed(2) : '—'}·eR)`,
+)
+for (const x of eStat.list) console.log(`  · ${x}`)
 console.log(`test-reaction-story: ${checks - fails}/${checks} проверок`)
 if (fails > 0) {
   console.error(`FAIL: ${fails}`)

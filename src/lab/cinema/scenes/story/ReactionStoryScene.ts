@@ -7,7 +7,17 @@ import { naclHaloTexture, naclSphereGeometry, NACL_RIM, withNaclRim } from '../n
 import type { SchoolRuntimeOptions, SchoolRuntimeScene, SchoolRuntimeStatus } from '../school/schoolRuntime'
 import { buildStoryLayout, smooth, storyAtomPos, storyAtomRadius, STORY_LAYER_BRIGHT, type StoryLayout } from './storyLayout'
 import { STORY_FX_HZ, storyPulse, storyVibOffset, storyVibWindow } from './storyMotion'
-import { buildStoryPairs, pairsVisibility, type StoryPairs } from './storyPairs'
+import {
+  buildStoryPairs,
+  pairsVisibility,
+  storyBondDot,
+  storyBondVis,
+  storyFlightPoint,
+  storyLoneDot,
+  storyLoneVis,
+  STORY_E_R,
+  type StoryPairs,
+} from './storyPairs'
 import { buildStoryEnv, envDrift, type StoryEnv } from './storyPhase'
 
 /**
@@ -46,7 +56,7 @@ const PETAL_GAIN = 0.32
 /** окружение итога темнее продукта (глубина) */
 const ENV_DIM = 0.78
 /** электрон пары */
-const PAIR_E_R = 0.032
+const PAIR_E_R = STORY_E_R
 const DONOR_COLOR = new THREE.Color(0xff9a3c)
 const ACCEPTOR_COLOR = new THREE.Color(0x4fb2ff)
 const KEPT_COLOR = new THREE.Color(0xb48cff)
@@ -142,6 +152,8 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
   private readonly _b = new THREE.Vector3()
   private readonly _up = new THREE.Vector3(0, 1, 0)
   private readonly _off = new Float32Array(3)
+  private readonly _arc = new Float32Array(3)
+  private readonly _dot = new Float32Array(3)
 
   /** окно тепловых колебаний (только «Исходные») */
   private readonly vibWin: ReturnType<typeof storyVibWindow>
@@ -714,7 +726,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const post = 1 - smooth(e.t1, e.t1 + 0.22, t)
       const vis = pre * post * fade
       const flying = smooth(e.t0, e.t0 + 0.08, t) * (1 - smooth(e.t1 - 0.03, e.t1 + 0.12, t))
-      this.arcPoint(e.from, e.to, u, this._v)
+      this.arcPoint(k, u, this._v)
       const er = 0.088 * pre * post * (1 + 0.14 * Math.min(4, e.n - 1)) * storyPulse(STORY_FX_HZ.electronPulse, t, k, 0.06)
       this._s.set(er, er, er)
       this._m.compose(this._v, this._q.identity(), this._s)
@@ -729,7 +741,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
           this._s.set(0, 0, 0)
           tailCol.setRGB(0, 0, 0)
         } else {
-          this.arcPoint(e.from, e.to, uj, this._w)
+          this.arcPoint(k, uj, this._w)
           const tr = 0.088 * (0.35 + 0.6 * w)
           this._s.set(tr, tr, tr)
           tailCol.copy(ELECTRON_COLOR).multiplyScalar(0.8 * w * w * flying * vis)
@@ -739,7 +751,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
         this.tailMesh.setColorAt(ii, tailCol)
       }
       // точка — заново (хвост переписал _v)
-      this.arcPoint(e.from, e.to, u, this._v)
+      this.arcPoint(k, u, this._v)
       const halo = this.halos[k]
       if (halo) {
         // после прилёта ореол вспыхивает у акцептора и гаснет
@@ -778,7 +790,7 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       let z = 0
       for (const q of w.tokens) {
         const e = es[q]!
-        this.arcPoint(e.from, e.to, flightU(e.t0, e.t1, t), this._w)
+        this.arcPoint(q, flightU(e.t0, e.t1, t), this._w)
         x += this._w.x / w.tokens.length
         z += this._w.z / w.tokens.length
         y = Math.max(y, this._w.y)
@@ -976,11 +988,11 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       this.hideAt(this.petals, pt, this._a)
       this.petals.setColorAt(pt++, this._tail.setRGB(0, 0, 0))
     }
-    // неподелённые пары
+    const q3 = this._dot
+    // неподелённые пары: точки — снаружи шара (r + GAP) в свободном слоте (storyPairs), лепесток — не на соседа
     for (const lp of pr.lone) {
       const i = lp.atom
-      const left = lp.t0 <= pr.on + 1e-6
-      const v = all * (left ? 1 - smooth(lp.t1 - 0.25, lp.t1 + 0.05, t) : smooth(lp.t0 - 0.05, lp.t0 + 0.3, t)) * this.layerVis(i, t)
+      const v = fade * storyLoneVis(pr, lay, lp, t)
       const r = R[i]!
       const x = P[i * 3]!
       const y = P[i * 3 + 1]!
@@ -992,29 +1004,38 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
         hidePetal()
         continue
       }
-      // пара — два e⁻ рядом, поперёк направления лепестка
-      let px = lp.dy
-      let py = -lp.dx
-      const pl = Math.hypot(px, py)
-      if (pl < 1e-4) {
-        px = 1
-        py = 0
-      } else {
-        px /= pl
-        py /= pl
-      }
-      const k = r + 0.1
-      const sep = 0.042
       const er = PAIR_E_R * (0.5 + 0.5 * v)
-      dot(x + lp.dx * k + px * sep, y + lp.dy * k + py * sep, z + lp.dz * k, er)
-      dot(x + lp.dx * k - px * sep, y + lp.dy * k - py * sep, z + lp.dz * k, er)
-      petal(x + lp.dx * (r + 0.07), y + lp.dy * (r + 0.07), z + lp.dz * (r + 0.07), lp.dx, lp.dy, lp.dz, 0.17, 0.115, v)
+      storyLoneDot(lp, P, R, -1, q3)
+      dot(q3[0]!, q3[1]!, q3[2]!, er)
+      storyLoneDot(lp, P, R, 1, q3)
+      dot(q3[0]!, q3[1]!, q3[2]!, er)
+      // лепесток: длина не дальше 0,92 зазора до соседнего шара по его направлению
+      let reach = r + 0.24
+      for (let j = 0; j < lay.n; j++) {
+        if (j === i) continue
+        const rj = R[j]! * this.layerVis(j, t)
+        if (rj < 0.005) continue
+        const vx = P[j * 3]! - x
+        const vy = P[j * 3 + 1]! - y
+        const vz = P[j * 3 + 2]! - z
+        const along = vx * lp.dx + vy * lp.dy + vz * lp.dz
+        if (along <= 0) continue
+        const perp2 = Math.max(0, vx * vx + vy * vy + vz * vz - along * along)
+        const rw = rj + 0.115
+        if (perp2 >= rw * rw) continue
+        reach = Math.min(reach, 0.92 * (along - Math.sqrt(rw * rw - perp2)))
+      }
+      const half = (reach - r) / 2
+      if (half < 0.04) hidePetal()
+      else {
+        const c = r + half
+        petal(x + lp.dx * c, y + lp.dy * c, z + lp.dz * c, lp.dx, lp.dy, lp.dz, Math.min(0.17, half * 1.1), 0.115, v)
+      }
     }
-    // общие пары: σ — на оси (два e⁻ поперёк оси, перед палочкой), π — сбоку (вдоль связи)
+    // общие пары: σ — у оси в середине зазора между шарами (два e⁻ поперёк оси, перед палочкой), π — сбоку
     for (const bp of pr.bond) {
       const s = lay.sticks[bp.stick]!
-      const alpha = s.kind === 'broken' ? 1 - smooth(s.t0, s.t1, t) : smooth(s.t0, s.t1, t)
-      const v = all * alpha * Math.min(this.layerVis(s.a, t), this.layerVis(s.b, t))
+      const v = fade * storyBondVis(pr, lay, bp, t)
       this._a.set(P[s.a * 3]!, P[s.a * 3 + 1]!, P[s.a * 3 + 2]!)
       this._b.set(P[s.b * 3]!, P[s.b * 3 + 1]!, P[s.b * 3 + 2]!)
       const len = this._a.distanceTo(this._b)
@@ -1028,23 +1049,15 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
       const ux = (this._b.x - this._a.x) / len
       const uy = (this._b.y - this._a.y) / len
       const uz = (this._b.z - this._a.z) / len
-      let wx = -uy
-      let wy = ux
-      const wl = Math.hypot(wx, wy)
-      if (wl < 1e-4) {
-        wx = 0
-        wy = 1
-      } else {
-        wx /= wl
-        wy /= wl
-      }
-      const mx = (this._a.x + this._b.x) / 2
-      const my = (this._a.y + this._b.y) / 2
-      const mz = (this._a.z + this._b.z) / 2
       const er = PAIR_E_R * (0.5 + 0.5 * v)
+      storyBondDot(lay, bp, P, R, -1, q3)
+      dot(q3[0]!, q3[1]!, q3[2]!, er)
+      const mx = q3[0]!
+      const my = q3[1]!
+      const mz = q3[2]!
+      storyBondDot(lay, bp, P, R, 1, q3)
+      dot(q3[0]!, q3[1]!, q3[2]!, er)
       if (bp.kind === 'sigma') {
-        dot(mx + wx * 0.045, my + wy * 0.045, mz + 0.07, er)
-        dot(mx - wx * 0.045, my - wy * 0.045, mz + 0.07, er)
         const ra = R[s.a]!
         const rb = R[s.b]!
         const ax = this._a.x
@@ -1056,10 +1069,8 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
         petal(ax + ux * ra * 0.8, ay + uy * ra * 0.8, az + uz * ra * 0.8, ux, uy, uz, ra * 0.62, ra * 0.42, v)
         petal(bx - ux * rb * 0.8, by - uy * rb * 0.8, bz - uz * rb * 0.8, -ux, -uy, -uz, rb * 0.62, rb * 0.42, v)
       } else {
-        const o = bp.side * 0.2
-        dot(mx + wx * o + ux * 0.045, my + wy * o + uy * 0.045, mz + 0.03, er)
-        dot(mx + wx * o - ux * 0.045, my + wy * o - uy * 0.045, mz + 0.03, er)
-        petal(mx + wx * o, my + wy * o, mz, ux, uy, uz, Math.min(0.32, len * 0.3), 0.085, v)
+        // лепесток π — между двумя точками пары, вдоль связи, за ними
+        petal((mx + q3[0]!) / 2, (my + q3[1]!) / 2, (mz + q3[2]!) / 2 - 0.03, ux, uy, uz, Math.min(0.32, len * 0.3), 0.085, v)
       }
     }
     this.pairDots.instanceMatrix.needsUpdate = true
@@ -1124,35 +1135,16 @@ export class ReactionStoryScene implements SchoolRuntimeScene {
     return bl === br ? bl : bl + (br - bl) * smooth(lay.moveFrom[i]!, lay.moveFrom[i]! + lay.moveDur, t)
   }
 
-  /** Точка дуги электрона (u ∈ [0, 1]) от поверхности донора к поверхности акцептора, приподнята к зрителю. */
-  private arcPoint(from: number, to: number, u: number, out: THREE.Vector3): void {
-    const P = this.pos
-    const ra = this.rad[from]!
-    const rb = this.rad[to]!
-    // выход — с той стороны донора, что смотрит на акцептор (чуть выше экватора), вход — так же у акцептора:
-    // чипы степеней окисления над шарами остаются свободными
-    const fx = P[from * 3]!
-    const fy = P[from * 3 + 1]!
-    const tx = P[to * 3]!
-    const ty = P[to * 3 + 1]!
-    let dx = tx - fx
-    let dy = ty - fy
-    const d = Math.hypot(dx, dy) || 1
-    dx /= d
-    dy /= d
-    const ax = fx + (dx * 0.8) * ra
-    const ay = fy + (dy * 0.8 + 0.6) * ra
-    const az = P[from * 3 + 2]! + ra * 0.55
-    const bx = tx - (dx * 0.8) * rb
-    const by = ty + (-dy * 0.8 + 0.6) * rb
-    const bz = P[to * 3 + 2]! + rb * 0.55
-    const cx = (ax + bx) / 2
-    const cy = (ay + by) / 2 + Math.abs(by - ay) * 0.5 + 0.38 + Math.min(0.7, d * 0.2)
-    const cz = (az + bz) / 2 + 0.55
-    const w0 = (1 - u) * (1 - u)
-    const w1 = 2 * u * (1 - u)
-    const w2 = u * u
-    out.set(w0 * ax + w1 * cx + w2 * bx, w0 * ay + w1 * cy + w2 * by, w0 * az + w1 * cz + w2 * bz)
+  /**
+   * Точка дуги электрона k (u ∈ [0, 1]): из свободного слота донора (ближайшего по углу к акцептору) в свободный слот
+   * акцептора, приподнята к зрителю на подобранную высоту — на всём пути вне всех шаров (storyPairs.storyFlightPoint).
+   */
+  private arcPoint(k: number, u: number, out: THREE.Vector3): void {
+    const e = this.lay.electrons[k]!
+    const fl = this.pairs.flights[k]!
+    const o = this._arc
+    storyFlightPoint(fl, e.from, e.to, this.pos, this.rad, u, o, 0)
+    out.set(o[0]!, o[1]!, o[2]!)
   }
 }
 
