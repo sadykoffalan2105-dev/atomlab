@@ -1,0 +1,164 @@
+{"id":"sr01","cat":"school-ru","lang":"ru","q":"Что такое валентность?","expect":{"mustMatch":["валентн"],"lang":"ru"}}
+{"id":"sr02","cat":"school-ru","lang":"ru","q":"Что такое моль?","expect":{"mustMatch":["моль","6[,.]02|Авогадро"],"lang":"ru"}}
+{"id":"sr03","cat":"school-ru","lang":"ru","q":"Что такое оксиды?","expect":{"mustMatch":["оксид"],"lang":"ru"}}
+{"id":"sr04","cat":"school-ru","lang":"ru","q":"Что такое кислоты?","expect":{"mustMatch":["кислот","H⁺|водород"],"lang":"ru"}}
+{"id":"sr05","cat":"school-ru","lang":"ru","q":"Что такое основания?","expect":{"mustMatch":["основани|щелоч","OH|гидроксид"],"lang":"ru"}}
+{"id":"sr06","cat":"school-ru","lang":"ru","q":"Что такое соли?","expect":{"mustMatch":["сол"],"lang":"ru"}}
+{"id":"sr07","cat":"school-ru","lang":"ru","q":"Что такое химическая реакция?","expect":{"mustMatch":["реакци"],"lang":"ru"}}
+{"id":"sr08","cat":"school-ru","lang":"ru","q":"Какие бывают типы химических реакций?","expect":{"mustMatch":["соединени|разложени|замещени|обмен"],"lang":"ru"}}
+{"id":"sr09","cat":"school-ru","lang":"ru","q":"Что такое изотопы?","expect":{"mustMatch":["изотоп"],"lang":"ru"}}
+{"id":"sr10","cat":"school-ru","lang":"ru","q":"Что такое электроотрицательность?","expect":{"mustMatch":["электроотрицательн"],"lang":"ru"}}
+{"id":"sr11","cat":"school-ru","lang":"ru","q":"Что такое ковалентная связь?","expect":{"mustMatch":["ковалентн"],"lang":"ru"}}
+{"id":"sr12","cat":"school-ru","lang":"ru","q":"Что такое ионная связь?","expect":{"mustMatch":["ионн"],"lang":"ru"}}
+{"id":"sr13","cat":"school-ru","lang":"ru","q":"Что такое степень окисления?","expect":{"mustMatch":["окислени|заряд"],"lang":"ru"}}
+{"id":"sr14","cat":"school-ru","lang":"ru","q":"Сформулируй закон сохранения массы","expect":{"mustMatch":["масс","сохран|равн"],"lang":"ru"}}
+{"id":"sr15","cat":"school-ru","lang":"ru","q":"Что такое периодический закон?","expect":{"mustMatch":["периодическ","Менделеев|заряд"],"lang":"ru"}}
+{"id":"sr16","cat":"school-ru","lang":"ru","q":"Что такое электролитическая диссоциация?","expect":{"mustMatch":["диссоциац|ион"],"lang":"ru"}}
+{"id":"sr17","cat":"school-ru","lang":"ru","q":"Что такое гидролиз солей?","expect":{"mustMatch":["гидролиз"],"lang":"ru"}}
+{"id":"sr18","cat":"school-ru","lang":"ru","q":"Что такое катализатор?","expect":{"mustMatch":["катализ"],"lang":"ru"}}
+{"id":"sr19","cat":"school-ru","lang":"ru","q":"Почему металлы проводят электрический ток?","expect":{"mustMatch":["электрон"],"lang":"ru"}}
+{"id":"sr20","cat":"school-ru","lang":"ru","q":"Что такое амфотерные оксиды?","expect":{"mustMatch":["амфотерн"],"lang":"ru"}}
+{"id":"sr21","cat":"school-ru","lang":"ru","q":"Что такое алканы?","expect":{"mustMatch":["алкан|предельн","углеводород|C"],"lang":"ru"}}
+{"id":"sr22","cat":"school-ru","lang":"ru","q":"Что такое спирты?","expect":{"mustMatch":["спирт|гидроксильн|OH"],"lang":"ru"}}
+{"id":"sr23","cat":"school-ru","lang":"ru","q":"Что такое изомеры?","expect":{"mustMatch":["изомер"],"lang":"ru"}}
+{"id":"sr24","cat":"school-ru","lang":"ru","q":"Как получить кислород в лаборатории?","expect":{"mustMatch":["кислород|O₂"],"mustNotMatch":["^Кислоты —"],"lang":"ru"}}
+{"id":"sr25","cat":"school-ru","lang":"ru","q":"Что такое коррозия металлов?","expect":{"mustMatch":["корроз|ржав"],"lang":"ru"}}
+{"id":"sr26","cat":"school-ru","lang":"ru","q":"Расскажи про серную кислоту","expect":{"mustMatch":["серн|H₂SO₄"],"lang":"ru"}}
+{"id":"sr27","cat":"school-ru","lang":"ru","q":"Что такое водородная связь?","expect":{"mustMatch":["водородн"],"lang":"ru"}}
+{"id":"sr28","cat":"school-ru","lang":"ru","q":"Что такое молярная масса?","expect":{"mustMatch":["молярн","г/моль"],"lang":"ru"}}
+{"id":"sr29","cat":"school-ru","lang":"ru","q":"Что такое электролиз?","expect":{"mustMatch":["электролиз"],"lang":"ru"}}
+{"id":"sr30","cat":"school-ru","lang":"ru","q":"Что такое кристаллическая решётка?","expect":{"mustMatch":["решетк|решётк|кристалл"],"lang":"ru"}}
+{"id":"sr31","cat":"school-ru","lang":"ru","q":"Почему благородные газы малоактивны?","expect":{"mustMatch":["газ","электрон|оболоч|заполн"],"lang":"ru"}}
+{"id":"sr32","cat":"school-ru","lang":"ru","q":"Какие свойства у кислорода?","expect":{"mustMatch":["кислород"],"lang":"ru"}}
+{"id":"su01","cat":"school-uz","lang":"uz","q":"Valentlik nima?","expect":{"mustMatch":["valentli"],"lang":"uz"}}
+{"id":"su02","cat":"school-uz","lang":"uz","q":"Mol nima?","expect":{"mustMatch":["mol"],"lang":"uz"}}
+{"id":"su03","cat":"school-uz","lang":"uz","q":"Oksidlar nima?","expect":{"mustMatch":["oksid"],"lang":"uz"}}
+{"id":"su04","cat":"school-uz","lang":"uz","q":"Kislotalar nima?","expect":{"mustMatch":["kislota"],"lang":"uz"}}
+{"id":"su05","cat":"school-uz","lang":"uz","q":"Asoslar nima?","expect":{"mustMatch":["asos|ishqor"],"lang":"uz"}}
+{"id":"su06","cat":"school-uz","lang":"uz","q":"Tuzlar nima?","expect":{"mustMatch":["tuz"],"lang":"uz"}}
+{"id":"su07","cat":"school-uz","lang":"uz","q":"Kimyoviy reaksiya nima?","expect":{"mustMatch":["reaksiya"],"lang":"uz"}}
+{"id":"su08","cat":"school-uz","lang":"uz","q":"Izotoplar nima?","expect":{"mustMatch":["izotop"],"lang":"uz"}}
+{"id":"su09","cat":"school-uz","lang":"uz","q":"Elektromanfiylik nima?","expect":{"mustMatch":["elektromanfiy"],"lang":"uz"}}
+{"id":"su10","cat":"school-uz","lang":"uz","q":"Kovalent bogʻ nima?","expect":{"mustMatch":["kovalent"],"lang":"uz"}}
+{"id":"su11","cat":"school-uz","lang":"uz","q":"Davriy qonun nima?","expect":{"mustMatch":["davriy"],"lang":"uz"}}
+{"id":"su12","cat":"school-uz","lang":"uz","q":"Elektroliz nima?","expect":{"mustMatch":["elektroliz"],"lang":"uz"}}
+{"id":"su13","cat":"school-uz","lang":"uz","q":"Katalizator nima?","expect":{"mustMatch":["kataliz"],"lang":"uz"}}
+{"id":"su14","cat":"school-uz","lang":"uz","q":"Molyar massa nima?","expect":{"mustMatch":["molyar|g/mol"],"lang":"uz"}}
+{"id":"su15","cat":"school-uz","lang":"uz","q":"Gidroliz nima?","expect":{"mustMatch":["gidroliz"],"lang":"uz"}}
+{"id":"su16","cat":"school-uz","lang":"uz","q":"Alkanlar nima?","expect":{"mustMatch":["alkan"],"lang":"uz"}}
+{"id":"su17","cat":"school-uz","lang":"uz","q":"Korroziya nima?","expect":{"mustMatch":["korroziya|zang"],"lang":"uz"}}
+{"id":"su18","cat":"school-uz","lang":"uz","q":"Kristall panjara nima?","expect":{"mustMatch":["panjara|kristall"],"lang":"uz"}}
+{"id":"su19","cat":"school-uz","lang":"uz","q":"Oksidlanish darajasi nima?","expect":{"mustMatch":["oksidlanish"],"lang":"uz"}}
+{"id":"su20","cat":"school-uz","lang":"uz","q":"Atom tuzilishi qanday?","expect":{"mustMatch":["atom","yadro|proton|elektron"],"lang":"uz"}}
+{"id":"su21","cat":"school-uz","lang":"uz","q":"Metallar nima uchun elektr tokini oʻtkazadi?","expect":{"mustMatch":["elektron|metall"],"lang":"uz"}}
+{"id":"un01","cat":"univ","lang":"ru","q":"Что такое энтропия?","expect":{"mustMatch":["энтропи"],"lang":"ru"}}
+{"id":"un02","cat":"univ","lang":"ru","q":"Что такое энергия Гиббса и как она определяет самопроизвольность реакции?","expect":{"mustMatch":["Гиббс|ΔG"],"lang":"ru"}}
+{"id":"un03","cat":"univ","lang":"ru","q":"Объясни sp3-гибридизацию","expect":{"mustMatch":["гибрид","109|тетраэдр"],"lang":"ru"}}
+{"id":"un04","cat":"univ","lang":"ru","q":"Что такое реакция второго порядка?","expect":{"mustMatch":["порядк","скорост|концентрац"],"lang":"ru"}}
+{"id":"un05","cat":"univ","lang":"ru","q":"Как работает буферный раствор?","expect":{"mustMatch":["буфер","pH|рН"],"lang":"ru"}}
+{"id":"un06","cat":"univ","lang":"ru","q":"Что такое координационные соединения?","expect":{"mustMatch":["лиганд|комплекс|координац"],"lang":"ru"}}
+{"id":"un07","cat":"univ","lang":"en","q":"What is entropy?","expect":{"mustMatch":["entrop"],"lang":"en"}}
+{"id":"un08","cat":"univ","lang":"en","q":"What is Gibbs free energy?","expect":{"mustMatch":["Gibbs|ΔG"],"lang":"en"}}
+{"id":"un09","cat":"univ","lang":"en","q":"What is hybridization in chemistry?","expect":{"mustMatch":["hybrid"],"lang":"en"}}
+{"id":"un10","cat":"univ","lang":"en","q":"What is a buffer solution?","expect":{"mustMatch":["buffer","pH"],"lang":"en"}}
+{"id":"un11","cat":"univ","lang":"en","q":"What is a second-order reaction?","expect":{"mustMatch":["order|rate"],"lang":"en"}}
+{"id":"un12","cat":"univ","lang":"en","q":"What are coordination compounds?","expect":{"mustMatch":["ligand|coordination|complex"],"lang":"en"}}
+{"id":"un13","cat":"univ","lang":"ru","q":"Что такое энергия активации?","expect":{"mustMatch":["активац"],"lang":"ru"}}
+{"id":"un14","cat":"univ","lang":"ru","q":"Что такое константа равновесия?","expect":{"mustMatch":["равновеси"],"lang":"ru"}}
+{"id":"un15","cat":"univ","lang":"ru","q":"Что такое энтальпия?","expect":{"mustMatch":["энтальпи|теплов"],"lang":"ru"}}
+{"id":"un16","cat":"univ","lang":"ru","q":"Что такое метод молекулярных орбиталей?","expect":{"mustMatch":["орбитал"],"lang":"ru"}}
+{"id":"un17","cat":"univ","lang":"ru","q":"Что такое коллоидные растворы?","expect":{"mustMatch":["коллоид|дисперс"],"lang":"ru"}}
+{"id":"un18","cat":"univ","lang":"ru","q":"Что такое титрование?","expect":{"mustMatch":["титрован|эквивалент"],"lang":"ru"}}
+{"id":"un19","cat":"univ","lang":"ru","q":"Что такое хроматография?","expect":{"mustMatch":["хроматограф"],"lang":"ru"}}
+{"id":"un20","cat":"univ","lang":"en","q":"What is the first law of thermodynamics?","expect":{"mustMatch":["energy"],"lang":"en"}}
+{"id":"un21","cat":"univ","lang":"ru","q":"Объясни теорию отталкивания электронных пар (VSEPR)","expect":{"mustMatch":["пар|геометри|форм"],"lang":"ru"}}
+{"id":"ol01","cat":"olympiad","lang":"ru","q":"Почему HF — слабая кислота, хотя фтор самый электроотрицательный элемент?","expect":{"mustMatch":["HF|фтор|водородн|связ"],"lang":"ru"}}
+{"id":"ol02","cat":"olympiad","lang":"ru","q":"Почему температура кипения воды выше, чем у сероводорода?","expect":{"mustMatch":["водородн|связ|полярн"],"lang":"ru"}}
+{"id":"ol03","cat":"olympiad","lang":"ru","q":"Почему CO2 — газ, а SiO2 — твёрдое вещество?","expect":{"mustMatch":["решетк|решётк|молекул|кристалл|атомн|связ"],"lang":"ru"}}
+{"id":"ol04","cat":"olympiad","lang":"ru","q":"Почему лёд легче жидкой воды?","expect":{"mustMatch":["водородн|плотн|лёд|лед|вод"],"lang":"ru"}}
+{"id":"ol05","cat":"olympiad","lang":"ru","q":"Почему алмаз твёрже графита?","expect":{"mustMatch":["алмаз|графит|связ|решетк|решётк"],"lang":"ru"}}
+{"id":"ol06","cat":"olympiad","lang":"ru","q":"Почему щелочные металлы хранят под слоем керосина?","expect":{"mustMatch":["кислород|вод|активн|реаг|металл"],"lang":"ru"}}
+{"id":"ol07","cat":"olympiad","lang":"ru","q":"Почему раствор NH4Cl имеет кислую среду?","expect":{"mustMatch":["гидролиз|кисл|аммони"],"lang":"ru"}}
+{"id":"ol08","cat":"olympiad","lang":"ru","q":"Почему катализатор не смещает химическое равновесие?","expect":{"mustMatch":["равновес|катализ"],"lang":"ru"}}
+{"id":"ol09","cat":"olympiad","lang":"ru","q":"Почему благородные газы почти не вступают в реакции?","expect":{"mustMatch":["электрон|оболоч|заполн|газ"],"lang":"ru"}}
+{"id":"ol10","cat":"olympiad","lang":"en","q":"Why is benzene less reactive than alkenes towards addition reactions?","expect":{"mustMatch":["aromatic|benzene|delocal|stab|ring"],"lang":"en"}}
+{"id":"ol11","cat":"olympiad","lang":"ru","q":"Почему радиус атома уменьшается по периоду слева направо?","expect":{"mustMatch":["заряд|ядр|радиус"],"lang":"ru"}}
+{"id":"ol12","cat":"olympiad","lang":"ru","q":"Почему энергия ионизации натрия меньше, чем у магния?","expect":{"mustMatch":["ионизац|электрон|заряд|натри"],"lang":"ru"}}
+{"id":"ol13","cat":"olympiad","lang":"ru","q":"Почему вода хорошо растворяет ионные соединения?","expect":{"mustMatch":["полярн|ион|гидрат|вод"],"lang":"ru"}}
+{"id":"ol14","cat":"olympiad","lang":"ru","q":"Почему реакции горения экзотермичны?","expect":{"mustMatch":["экзотерм|энерги|тепл|связ|горени"],"lang":"ru"}}
+{"id":"ol15","cat":"olympiad","lang":"ru","q":"Почему серебро не реагирует с соляной кислотой?","expect":{"mustMatch":["ряд|активн|водород|напряжени|серебр"],"lang":"ru"}}
+{"id":"ca01","cat":"calc","lang":"ru","q":"Вычисли молярную массу H2SO4","expect":{"number":{"value":98.08,"tol":0.1},"lang":"ru"}}
+{"id":"ca02","cat":"calc","lang":"ru","q":"Найди молярную массу воды H2O","expect":{"number":{"value":18.02,"tol":0.05},"lang":"ru"}}
+{"id":"ca03","cat":"calc","lang":"ru","q":"Найди массовую долю кислорода в H2O","expect":{"number":{"value":88.8,"tol":0.3},"lang":"ru"}}
+{"id":"ca04","cat":"calc","lang":"ru","q":"Уравняй Fe + O2 = Fe2O3","expect":{"mustMatch":["4Fe \\+ 3O₂ → 2Fe₂O₃"],"lang":"ru"}}
+{"id":"ca05","cat":"calc","lang":"ru","q":"Какая степень окисления марганца в KMnO4?","expect":{"mustMatch":["\\+7"],"lang":"ru"}}
+{"id":"ca06","cat":"calc","lang":"en","q":"What is the molar mass of CaCO3?","expect":{"number":{"value":100.09,"tol":0.1},"lang":"en"}}
+{"id":"ca07","cat":"calc","lang":"ru","q":"Молярная масса медного купороса CuSO4·5H2O","expect":{"number":{"value":249.69,"tol":0.2},"lang":"ru"}}
+{"id":"ca08","cat":"calc","lang":"ru","q":"Уравняй H2 + O2 = H2O","expect":{"mustMatch":["2H₂ \\+ O₂ → 2H₂O"],"lang":"ru"}}
+{"id":"ca09","cat":"calc","lang":"ru","q":"Уравняй Al + O2 = Al2O3","expect":{"mustMatch":["4Al \\+ 3O₂ → 2Al₂O₃"],"lang":"ru"}}
+{"id":"ca10","cat":"calc","lang":"ru","q":"Сколько моль в 36 г воды H2O?","expect":{"number":{"value":2,"tol":0.02},"lang":"ru"}}
+{"id":"ca11","cat":"calc","lang":"ru","q":"Какой объём займут 2 моль кислорода при н.у.?","expect":{"number":{"value":44.8,"tol":0.1},"lang":"ru"}}
+{"id":"ca12","cat":"calc","lang":"ru","q":"Определи степень окисления серы в H2SO4","expect":{"mustMatch":["\\+6"],"lang":"ru"}}
+{"id":"ca13","cat":"calc","lang":"ru","q":"Степень окисления хрома в K2Cr2O7","expect":{"mustMatch":["\\+6"],"lang":"ru"}}
+{"id":"ca14","cat":"calc","lang":"ru","q":"Вычисли массовую долю натрия в NaCl","expect":{"number":{"value":39.34,"tol":0.3},"lang":"ru"}}
+{"id":"ca15","cat":"calc","lang":"uz","q":"NaOH ning molyar massasini hisoblang","expect":{"number":{"value":40.0,"tol":0.1},"lang":"uz"}}
+{"id":"ca16","cat":"calc","lang":"en","q":"Balance CH4 + O2 = CO2 + H2O","expect":{"mustMatch":["CH₄ \\+ 2O₂ → CO₂ \\+ 2H₂O"],"lang":"en"}}
+{"id":"ca17","cat":"calc","lang":"ru","q":"Сколько граммов в 0,5 моль NaCl?","expect":{"number":{"value":29.22,"tol":0.1},"lang":"ru"}}
+{"id":"ca18","cat":"calc","lang":"ru","q":"Какой pH у раствора HCl с концентрацией 0,01 моль/л?","expect":{"number":{"value":2,"tol":0.05},"lang":"ru"}}
+{"id":"ca19","cat":"calc","lang":"ru","q":"Сколько моль CO2 в 11,2 л при н.у.?","expect":{"number":{"value":0.5,"tol":0.01},"lang":"ru"}}
+{"id":"ca20","cat":"calc","lang":"ru","q":"Молярная масса Ca(OH)2","expect":{"number":{"value":74.09,"tol":0.1},"lang":"ru"}}
+{"id":"ca21","cat":"calc","lang":"ru","q":"Степень окисления азота в HNO3","expect":{"mustMatch":["\\+5"],"lang":"ru"}}
+{"id":"st01","cat":"smalltalk","lang":"ru","q":"Привет!","expect":{"maxWords":40,"mustMatch":["хими|опыт|задач|тем|урок"],"mustNotMatch":["[₀-₉]"],"lang":"ru","intent":"smalltalk"}}
+{"id":"st02","cat":"smalltalk","lang":"ru","q":"Как дела?","expect":{"maxWords":40,"mustMatch":["хими|опыт|задач|тем|урок"],"mustNotMatch":["[₀-₉]"],"lang":"ru","intent":"smalltalk"}}
+{"id":"st03","cat":"smalltalk","lang":"ru","q":"Спасибо!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"ru","intent":"smalltalk"}}
+{"id":"st04","cat":"smalltalk","lang":"ru","q":"Пока!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"ru","intent":"smalltalk"}}
+{"id":"st05","cat":"smalltalk","lang":"ru","q":"Кто ты?","expect":{"maxWords":40,"mustMatch":["хими|учител"],"mustNotMatch":["[₀-₉]"],"lang":"ru","intent":"smalltalk"}}
+{"id":"st06","cat":"smalltalk","lang":"uz","q":"Salom!","expect":{"maxWords":40,"mustMatch":["kimyo|tajriba|masala|mavzu|dars"],"mustNotMatch":["[₀-₉]"],"lang":"uz","intent":"smalltalk"}}
+{"id":"st07","cat":"smalltalk","lang":"uz","q":"Qalaysiz?","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"uz","intent":"smalltalk"}}
+{"id":"st08","cat":"smalltalk","lang":"uz","q":"Rahmat!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"uz","intent":"smalltalk"}}
+{"id":"st09","cat":"smalltalk","lang":"uz","q":"Xayr!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"uz","intent":"smalltalk"}}
+{"id":"st10","cat":"smalltalk","lang":"en","q":"Hello!","expect":{"maxWords":40,"mustMatch":["chemi|experiment|problem|topic|lesson"],"mustNotMatch":["[₀-₉]"],"lang":"en","intent":"smalltalk"}}
+{"id":"st11","cat":"smalltalk","lang":"en","q":"How are you?","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"en","intent":"smalltalk"}}
+{"id":"st12","cat":"smalltalk","lang":"en","q":"Thanks!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"en","intent":"smalltalk"}}
+{"id":"st13","cat":"smalltalk","lang":"en","q":"Bye!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"en","intent":"smalltalk"}}
+{"id":"st14","cat":"smalltalk","lang":"ru","q":"Доброе утро!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"ru","intent":"smalltalk"}}
+{"id":"st15","cat":"smalltalk","lang":"en","q":"Good morning!","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"en","intent":"smalltalk"}}
+{"id":"st16","cat":"smalltalk","lang":"ru","q":"Я устал","expect":{"maxWords":40,"mustNotMatch":["[₀-₉]"],"lang":"ru","intent":"smalltalk"}}
+{"id":"pr01","cat":"profanity","lang":"ru","q":"б*я, что такое оксид","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["оксид"]}}
+{"id":"pr02","cat":"profanity","lang":"ru","q":"бл9д, что такое моль","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["моль"]}}
+{"id":"pr03","cat":"profanity","lang":"ru","q":"х у й, что такое валентность","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["валентн"]}}
+{"id":"pr04","cat":"profanity","lang":"ru","q":"что такое кислота, сука","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["кислот"]}}
+{"id":"pr05","cat":"profanity","lang":"ru","q":"блять, уравняй H2 + O2 = H2O","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["2H₂ \\+ O₂ → 2H₂O"]}}
+{"id":"pr06","cat":"profanity","lang":"ru","q":"пиздец, что такое электролиз","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["электролиз"]}}
+{"id":"pr07","cat":"profanity","lang":"ru","q":"еб@ть, почему металлы проводят ток","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["электрон"]}}
+{"id":"pr08","cat":"profanity","lang":"en","q":"fuck, what is a mole?","expect":{"startsWith":"Please keep it polite — profanity is not allowed in this chat.","mustMatch":["mole"]}}
+{"id":"pr09","cat":"profanity","lang":"en","q":"bitch what is an acid","expect":{"startsWith":"Please keep it polite — profanity is not allowed in this chat.","mustMatch":["acid"]}}
+{"id":"pr10","cat":"profanity","lang":"ru","q":"сyка, что такое соль","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["сол"]}}
+{"id":"pr11","cat":"profanity","lang":"ru","q":"мудак, что такое изотоп","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["изотоп"]}}
+{"id":"pr12","cat":"profanity","lang":"uz","q":"jalab, valentlik nima?","expect":{"startsWith":"Iltimos, odob bilan yozing, bu chatda haqoratli so‘zlar ishlatish mumkin emas.","mustMatch":["valentli"]}}
+{"id":"pr13","cat":"profanity","lang":"uz","q":"dalbayob, mol nima","expect":{"startsWith":"Iltimos, odob bilan yozing, bu chatda haqoratli so‘zlar ishlatish mumkin emas.","mustMatch":["mol"]}}
+{"id":"pr14","cat":"profanity","lang":"ru","q":"b.l.y.a.t что такое ион","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","mustMatch":["ион"]}}
+{"id":"pr15","cat":"profanity","lang":"ru","q":"п и з д е ц, вычисли молярную массу H2SO4","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.","number":{"value":98.08,"tol":0.1}}}
+{"id":"pr16","cat":"profanity","lang":"ru","q":"бля","expect":{"startsWith":"Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо."}}
+{"id":"ru01","cat":"rule","lang":"ru","q":"В чём разница между органической и неорганической химией?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru02","cat":"rule","lang":"ru","q":"Чем отличается органическая химия от неорганической?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru03","cat":"rule","lang":"ru","q":"Сравни органическую и неорганическую химию","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru04","cat":"rule","lang":"ru","q":"Органическая vs неорганическая химия — в чём отличие?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru05","cat":"rule","lang":"ru","q":"Какие различия между неорганической и органической химией?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru06","cat":"rule","lang":"uz","q":"Organik va noorganik kimyo oʻrtasidagi farq nima?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru07","cat":"rule","lang":"uz","q":"Organik kimyo anorganik kimyodan nima bilan farq qiladi?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru08","cat":"rule","lang":"en","q":"What is the difference between organic and inorganic chemistry?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru09","cat":"rule","lang":"en","q":"Compare organic and inorganic chemistry","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru10","cat":"rule","lang":"en","q":"How does organic chemistry differ from inorganic chemistry?","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"ru11","cat":"rule","lang":"ru","q":"а в чем отличие органики от неорганической химии","expect":{"exact":"Извините, но в соответствии с внутренним регламентом я не могу отвечать на вопрос о разнице между органической и неорганической химией"}}
+{"id":"tr01","cat":"traps","lang":"ru","q":"Сколько весит атом любви?","expect":{"mustNotMatch":["\\d+[.,]?\\d*\\s*(г|кг|а\\.\\s?е\\.\\s?м)","регламент"],"lang":"ru"}}
+{"id":"tr02","cat":"traps","lang":"ru","q":"Какой год открытия элемента 150?","expect":{"mustNotMatch":["(1[5-9]\\d\\d|20[0-2]\\d)\\s*(г|год)","регламент"],"mustMatch":["118|не открыт|не известен|неизвест|не существ|не синтез|пока"],"lang":"ru"}}
+{"id":"tr03","cat":"traps","lang":"ru","q":"В чём разница между кислотой и основанием?","expect":{"mustNotMatch":["регламент"],"mustMatch":["кислот","основани"],"lang":"ru"}}
+{"id":"tr04","cat":"traps","lang":"ru","q":"Чем отличается металл от неметалла?","expect":{"mustNotMatch":["регламент"],"mustMatch":["металл"],"lang":"ru"}}
+{"id":"tr05","cat":"traps","lang":"ru","q":"Какая температура плавления философского камня?","expect":{"mustNotMatch":["\\d+\\s*°","регламент"],"lang":"ru"}}
+{"id":"tr06","cat":"traps","lang":"ru","q":"В каком году Менделеев открыл вибраний?","expect":{"mustNotMatch":["(1[5-9]\\d\\d|20[0-2]\\d)\\s*(г|год)"],"lang":"ru"}}
+{"id":"tr07","cat":"traps","lang":"ru","q":"Какова масса души в граммах?","expect":{"mustNotMatch":["\\d+[.,]?\\d*\\s*(г|грамм)\\b"],"lang":"ru"}}
+{"id":"tr08","cat":"traps","lang":"en","q":"What is the difference between an acid and a base?","expect":{"mustNotMatch":["регламент"],"mustMatch":["acid","base"],"lang":"en"}}
+{"id":"tr09","cat":"traps","lang":"ru","q":"Чем отличается химия от физики?","expect":{"mustNotMatch":["регламент"],"lang":"ru"}}
+{"id":"tr10","cat":"traps","lang":"ru","q":"Назови точную молярную массу вещества философский камень","expect":{"mustNotMatch":["\\d+[.,]\\d+\\s*г/моль"],"lang":"ru"}}
+{"id":"tr11","cat":"traps","lang":"en","q":"Who discovered element 200 and in which year?","expect":{"mustNotMatch":["\\b(1[5-9]\\d\\d|20[0-2]\\d)\\b"],"lang":"en"}}

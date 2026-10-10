@@ -15,7 +15,7 @@ import { buildSystemPrompt } from '../persona/systemPrompt.ts'
 import { adaptationForPrompt } from '../student/adapt.ts'
 import type { StudentStore } from '../student/events.ts'
 import { detectErrorTags, snapshot, type StudentSnapshot } from '../student/model.ts'
-import { composeFallback, offtopicReply } from './fallback.ts'
+import { composeFallback, offtopicReply, referenceFacts } from './fallback.ts'
 import { jaccard } from './hybrid.ts'
 import { classifyIntent, greetingPrefix, hasChemVocabulary, matchSmalltalk, questionType, smalltalkReply, wantsEncyclopedia, type Intent } from './intent.ts'
 import { llmAnswer, llmClassify } from './llm.ts'
@@ -313,6 +313,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       tools,
       studentBlock: adaptationForPrompt(snap, lang),
       reasoned,
+      facts: referenceFacts(text, lang, kb, qtype),
     })
     const ans = await llmAnswer({ llm: deps.llm, config, lang, mode, detail, intent, system, history, wordLimit, signal, onDelta: (d) => sink.delta(d) })
     if (signal?.aborted) return finish({ text: lead + ans.text, intent, route: 'llm', source: 'llm', confidence: 0, streamed: true, snap, tags: tagsArr, good, retrieval, tools })

@@ -90,12 +90,20 @@ export class MockLlm implements LlmClient {
       if (bad) calc = calc.replace(/(\d+)[.,](\d+)/, (_m, a: string, b: string) => `${Number(a) + 1},${b}`)
       parts.push(open + calc)
     }
+    const facts = block(system, /\n(СПРАВОЧНИК ATOMLAB|ATOMLAB MAʼLUMOTNOMASI|ATOMLAB REFERENCE)[^\n]*:\n/)
+    const fact = (facts.split('\n')[0] ?? '').replace(/^•\s*/, '')
     const first = know.split('\n')[0] ?? ''
     const body = first.replace(/^\[\d+\]\s*\[[^\]]*\]\s*/, '').replace(/^[^:]{0,120}:\s*/, '')
     const sent = body.match(/^.{20,400}?[.!?](\s|$)/)?.[0]?.trim() ?? body.slice(0, 240)
-    if (sent && lang === 'ru') parts.push((parts.length ? '' : open) + sent)
-    else if (sent && !parts.length) parts.push(open + (lang === 'uz' ? 'bu savol kimyoning asosiy qonunlariga bogʻliq.' : 'this question rests on the basic laws of chemistry.'))
-    if (!parts.length) parts.push(open + (lang === 'ru' ? 'разберём от основ: опираемся на строение атома и законы сохранения.' : lang === 'uz' ? 'asoslardan boshlaymiz: atom tuzilishi va saqlanish qonunlariga tayanamiz.' : 'let us reason from the basics: atomic structure and the conservation laws.'))
+    // тема вопроса — «маленькая модель» хотя бы повторяет, о чём спросили
+    const topic = q
+      .replace(/[?!.]+$/, '')
+      .replace(/^(what is|what are|what's|explain|tell me about|why is|why are)\s+(an?\s+|the\s+)?/i, '')
+      .replace(/\s+(nima|haqida|qanday)$/i, '')
+      .trim()
+    if (fact) parts.push((parts.length ? '' : open) + fact)
+    else if (sent && lang === 'ru') parts.push((parts.length ? '' : open) + sent)
+    else if (!parts.length) parts.push(open + (lang === 'uz' ? `«${topic}» — bu savol kimyoning asosiy qonunlariga bogʻliq.` : lang === 'en' ? `“${topic}” rests on the basic laws of chemistry.` : `«${topic}»: разберём от основ, опираясь на строение атома и законы сохранения.`))
     parts.push(CLOSERS[lang])
     let text = parts.join(' ')
     if (bad) text = R3_OPENERS[lang] + text.charAt(0).toLowerCase() + text.slice(1)
