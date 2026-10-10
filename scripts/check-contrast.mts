@@ -16,7 +16,9 @@
  *  • порог 4,5 : 1 для обычного текста, 3 : 1 для крупного (≥ 24 px или ≥ 18,66 px жирный) и плейсхолдеров;
  *  • пропускаются: невидимое (opacity < 0,1, вне экрана, перекрыто модальным слоем), отключённые элементы,
  *    aria-hidden-декор и текст-градиент (background-clip: text).
- * Код выхода 1 — есть нарушения.
+ * «Пелены» (только светлая тема): крупный блок с тёмной ПОЛУпрозрачной заливкой (12–85 %) не на тёмном
+ * острове и не поверх 3D-холста/видео — на белом он выглядит серым пятном (жалобы на онлайн-урок).
+ * Код выхода 1 — есть нарушения или пелены.
  */
 import { chromium, type Page } from 'playwright'
 import fs from 'node:fs'
@@ -25,6 +27,8 @@ import path from 'node:path'
 type Theme = 'light' | 'dark'
 interface Step {
   readonly click?: string
+  /** Набрать текст в поле (селектор) и нажать Enter. */
+  readonly type?: readonly [selector: string, text: string]
   readonly wait?: number
   readonly scroll?: number
 }
@@ -60,9 +64,14 @@ const SCREENS: readonly Screen[] = [
       { click: '^Начать онлайн-диалог' },
       { click: '^Без микрофона' },
       { wait: 1500 },
+      { type: ['textarea', 'Теперь тебе вопрос: что такое вещество?'] },
+      { wait: 1200 },
     ],
   },
   { id: 'teacher-hub', hash: '#/learn/teacher', scrolls: 1 },
+  { id: 'book-g7', hash: '#/learn/g/g7/book' },
+  { id: 'pathways', hash: '#/learn/pathways', scrolls: 1 },
+  { id: 'research', hash: '#/learn/research' },
   { id: 'talk', hash: '#/learn/talk' },
   { id: 'catalog', hash: '#/catalog', scrolls: 1 },
   { id: 'catalog-rx-g7', hash: '#/catalog?view=reactions&grade=g7', scrolls: 2 },
@@ -223,7 +232,8 @@ const BROWSER = String.raw`
         const bc = rgba(cs.backgroundColor)
         if (bc[3] > 0.12) tones.push(bc)
         for (const m of (cs.backgroundImage || '').matchAll(/rgba?\([^)]*\)/g)) tones.push(rgba(m[0]))
-        const dark = tones.filter((c) => c[3] >= 0.12 && c[3] <= 0.94 && lum(c[0], c[1], c[2]) < 0.03)
+        // почти непрозрачная тёмная панель — это осознанный тёмный блок, а «пелена» — полупрозрачная (серое пятно)
+        const dark = tones.filter((c) => c[3] >= 0.12 && c[3] <= 0.85 && lum(c[0], c[1], c[2]) < 0.03)
         if (!dark.length) continue
         if (el.parentElement && el.parentElement.closest('[data-cc-veil]')) continue
         // тёмная плашка на тёмном же острове (3D-вьюпорт, видео) — так задумано, это не пелена
@@ -231,7 +241,15 @@ const BROWSER = String.raw`
         for (let a = el.parentElement, k = 0; a && a !== document.body && !darkCtx; a = a.parentElement, k++) {
           const c = rgba(getComputedStyle(a).backgroundColor)
           if (c[3] >= 0.5 && lum(c[0], c[1], c[2]) < 0.03) darkCtx = true
-          if (k < 3 && a.querySelector(':scope > canvas, :scope > div > canvas, :scope > video')) darkCtx = true
+          // плашка поверх 3D-холста или видео (не внутри самой плашки)
+          if (k < 4) {
+            const cx = r.left + r.width / 2, cy = r.top + r.height / 2
+            for (const m of a.querySelectorAll('canvas, video')) {
+              if (el.contains(m)) continue
+              const q = m.getBoundingClientRect()
+              if (cx >= q.left && cx <= q.right && cy >= q.top && cy <= q.bottom) { darkCtx = true; break }
+            }
+          }
         }
         if (darkCtx) continue
         el.dataset.ccVeil = '1'
@@ -339,6 +357,12 @@ async function runSteps(page: Page, steps: readonly Step[]): Promise<void> {
       await btn.click()
       await sleep(1200)
       await waitStable(page, 8000)
+    }
+    if (s.type) {
+      const field = page.locator(s.type[0]).last()
+      await field.waitFor({ state: 'visible', timeout: 20000 })
+      await field.fill(s.type[1])
+      await field.press('Enter')
     }
     if (s.wait) await sleep(s.wait)
   }

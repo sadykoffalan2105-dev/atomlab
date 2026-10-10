@@ -28,13 +28,13 @@
 .subtitle {
   margin: 0.2rem 0 0;
   font-size: 0.82rem;
-  color: rgba(180, 195, 230, 0.88);
+  color: var(--lt-ink-3, rgba(180, 195, 230, 0.88));
 }
 
 .backLink,
 .lessonLink {
   font-size: 0.82rem;
-  color: #3dffec;
+  color: var(--lt-ink-teal, #3dffec);
   text-decoration: none;
   white-space: nowrap;
 }

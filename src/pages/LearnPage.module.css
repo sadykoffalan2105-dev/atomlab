@@ -2405,6 +2405,11 @@
   background: linear-gradient(165deg, #dce2ef 0%, #c8d0e4 45%, #b8c4dc 100%);
 }
 
+/* Ночью светлая «студия» под панелью (каталог молекул и т. п.) делала светлый текст темы нечитаемым. */
+html[data-app-theme='dark'] .learnVisual3dPremium:has(canvas) {
+  background: linear-gradient(165deg, #182238 0%, #111a2e 45%, #0b1222 100%);
+}
+
 .learnPosterFallback {
   display: flex;
   align-items: center;

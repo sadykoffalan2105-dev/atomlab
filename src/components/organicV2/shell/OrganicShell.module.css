@@ -452,7 +452,7 @@
   height: 16px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--lt-success) 22%, transparent);
-  color: var(--lt-success);
+  color: var(--lt-ink-success, var(--lt-success));
   font-size: 10px;
   font-weight: 900;
 }
