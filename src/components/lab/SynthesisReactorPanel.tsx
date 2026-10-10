@@ -664,6 +664,20 @@ export function SynthesisReactorPanel({
     if (cur.id != null && cur.mode === 'preview' && (!open || cur.id !== formationId)) formationLab.closePreview()
   }, [open, formationId])
   useEffect(() => () => formationLab.closePreview(), [])
+  // Телефон: на время показа реактор сворачивается (иначе 3D-сцене остаётся полоска между панелью этапов и доком);
+  // после показа — как было.
+  const formationAny = formationLabState.id != null
+  const autoCollapsedRef = useRef(false)
+  useEffect(() => {
+    const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
+    if (formationAny && phone) {
+      autoCollapsedRef.current = true
+      setCollapsed(true)
+    } else if (!formationAny && autoCollapsedRef.current) {
+      autoCollapsedRef.current = false
+      setCollapsed(false)
+    }
+  }, [formationAny])
   // 3D показа грузим заранее — без паузы на нажатии
   useEffect(() => {
     if (!formationId) return
@@ -1429,6 +1443,7 @@ export function SynthesisReactorPanel({
         <button
           type="button"
           className={panelStyles.reactorReopenFab}
+          data-lab-reactor-fab=""
           onClick={() => setCollapsed(false)}
           aria-label={t('reactor.showPanel')}
           title={t('reactor.showPanel')}

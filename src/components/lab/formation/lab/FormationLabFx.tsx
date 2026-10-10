@@ -24,6 +24,12 @@ import { formationLab, type FormationLabMode } from './formationLabStore'
 
 /** Доля меньшей стороны свободной части кадра под описанную сферу — как у карточки каталога. */
 const FILL = 0.86
+/**
+ * Угол обзора на время показа — как у карточки каталога (38°). У камеры лаборатории 75°: модель в пол-экрана при таком
+ * угле сильно искажена перспективой (ближние шары — овалы вдвое больше дальних). Вне показа — прежний угол.
+ */
+const SHOW_FOV = 38
+const _m4 = new THREE.Matrix4()
 const ORIGIN = new THREE.Vector3()
 const _right = new THREE.Vector3()
 const _up = new THREE.Vector3()
@@ -31,6 +37,32 @@ const _dir = new THREE.Vector3()
 const _q = new THREE.Quaternion()
 const _qv = new THREE.Quaternion()
 const _e = new THREE.Euler()
+const _fwd = new THREE.Vector3()
+const _a = new THREE.Vector3()
+const _n = new THREE.Vector3()
+
+/**
+ * Окно показа как у карточки каталога: всё, что вне свободной части кадра (под панелями) и ближе к камере, чем 3 радиуса
+ * модели (в карточке — ближняя плоскость камеры), отсекается плоскостями — только у материалов показа, фон лаборатории цел.
+ * Порядок: ближняя, левая, правая, верхняя, нижняя.
+ */
+function makeClip(): THREE.Plane[] {
+  return [0, 1, 2, 3, 4].map(() => new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e6))
+}
+/** Материалы показа получают общие плоскости отсечения (один раз на материал); used — чтобы снять их при закрытии
+ *  (общие кэшированные материалы, например подписей шаров, не должны остаться обрезанными в лаборатории). */
+function applyClip(obj: THREE.Object3D | null | undefined, planes: THREE.Plane[], used: Set<THREE.Material>) {
+  obj?.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined
+    if (!m) return
+    for (const mm of Array.isArray(m) ? m : [m]) {
+      if (mm.clippingPlanes === planes) continue
+      mm.clippingPlanes = planes
+      mm.needsUpdate = true
+      used.add(mm)
+    }
+  })
+}
 
 /** Приближение по этапам — как в карточке (FormationCanvas): к центру на разрыве / переходе e⁻, дальше на решётке. */
 function stageZoom(key: StageKey, crystal: boolean): number {
@@ -60,6 +92,9 @@ function overlaps(c: DOMRect): { dx: number; dy: number; db: number } {
   }
   const r = document.querySelector('[data-lab-reactor][data-open="true"]')?.getBoundingClientRect()
   if (r && r.height > 0 && r.top < c.bottom) out.db = Math.max(0, c.bottom - r.top + 8)
+  // свёрнутый реактор (телефон): кнопка «Показать реактор» внизу
+  const f = document.querySelector('[data-lab-reactor-fab]')?.getBoundingClientRect()
+  if (f && f.height > 0 && f.top < c.bottom && f.bottom > c.top + c.height / 2) out.db = Math.max(out.db, c.bottom - f.top + 6)
   return out
 }
 
@@ -86,6 +121,24 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
   const ov = useRef({ dx: 0, dy: 0, db: 0, at: 0 })
   const sm = useRef<{ s: number; x: number; y: number; q: THREE.Quaternion } | null>(null)
   const end = useRef({ at: 0, done: false })
+  const clip = useMemo(makeClip, [])
+  const clipAt = useRef(0)
+  const clipUsed = useMemo(() => new Set<THREE.Material>(), [])
+  const camera0 = useThree((s) => s.camera) as THREE.PerspectiveCamera
+  const fovKeep = useRef<number | null>(null)
+  // Прежний угол обзора лаборатории — назад при закрытии показа.
+  useEffect(
+    () => () => {
+      const f = fovKeep.current
+      if (f != null && camera0.isPerspectiveCamera && camera0.fov === SHOW_FOV) {
+        camera0.fov = f
+        camera0.updateProjectionMatrix()
+      }
+      fovKeep.current = null
+    },
+    [camera0],
+  )
+  const scene = useThree((s) => s.scene)
   const clock = formationLab.clock
   const clockFn = useMemo(() => () => formationLab.clock.current.t, [])
   const total = story?.total ?? 0
@@ -99,6 +152,20 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     if (story) formationLab.setStages(compoundId, story.stages.map((s) => ({ key: s.key, t0: s.t0, dur: s.dur })), story.total)
     return () => formationLab.close(compoundId)
   }, [compoundId, mode, story])
+
+  // Отсечение — только у материалов показа (локальное); при закрытии показа — как было.
+  useEffect(() => {
+    const prev = gl.localClippingEnabled
+    gl.localClippingEnabled = true
+    return () => {
+      gl.localClippingEnabled = prev
+      for (const m of clipUsed) {
+        m.clippingPlanes = null
+        m.needsUpdate = true
+      }
+      clipUsed.clear()
+    }
+  }, [gl, clipUsed])
 
   const finish = () => {
     if (end.current.done) return
@@ -135,6 +202,13 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     const g = root.current
     if (!g) return
     const camera = state.camera as THREE.PerspectiveCamera
+    if (camera.isPerspectiveCamera && camera.fov !== SHOW_FOV) {
+      // угол сменил кто-то другой (переход камеры лаборатории) — его и вернём после показа
+      fovKeep.current = camera.fov
+      camera.fov = SHOW_FOV
+      camera.updateProjectionMatrix()
+      camera.updateMatrixWorld()
+    }
     const target = (state.controls as unknown as { target?: THREE.Vector3 } | null)?.target ?? ORIGIN
     const now = performance.now()
     const W = Math.max(1, state.size.width)
@@ -143,7 +217,7 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
       const rect = gl.domElement.getBoundingClientRect()
       Object.assign(ov.current, overlaps(rect), { at: now })
       const { dx, dy, db } = ov.current
-      formationLab.setFree({ left: rect.left, top: rect.top + dy, width: Math.max(120, rect.width - dx), height: Math.max(120, rect.height - dy - db) })
+      formationLab.setFree({ left: rect.left, top: rect.top + dy, width: Math.max(120, rect.width - dx), height: Math.max(120, rect.height - dy - db) }, rect.top)
     }
     const { dx, dy, db } = ov.current
     // свободная часть холста (px холста): x ∈ [0, aW], y ∈ [dy, dy + aH]
@@ -169,8 +243,13 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     const sT = ((FILL * Math.min(rW, rH)) / 2) * wpp * z
     const xT = (cx - W / 2) * wpp
     const yT = (H / 2 - cy) * wpp
-    // ракурс: модель смотрит на камеру как в карточке; showcase ведёт yaw/pitch (камера «облетает» модель)
-    _q.copy(camera.quaternion)
+    // ракурс: модель повёрнута к камере (из своего места в кадре — без косого взгляда сбоку), как в карточке;
+    // showcase ведёт yaw/pitch (камера «облетает» модель)
+    _right.setFromMatrixColumn(camera.matrixWorld, 0)
+    _up.setFromMatrixColumn(camera.matrixWorld, 1)
+    _dir.copy(target).addScaledVector(_right, xT).addScaledVector(_up, yT)
+    _m4.lookAt(camera.position, _dir, _up)
+    _q.setFromRotationMatrix(_m4)
     if (cc.active) {
       const p = Math.max(-1.2, Math.min(1.2, cc.pitch))
       _qv.setFromEuler(_e.set(-p, cc.yaw, 0, 'YXZ'))
@@ -188,6 +267,33 @@ export default function FormationLabFx({ compoundId, mode, lowPower = false, onE
     _up.setFromMatrixColumn(camera.matrixWorld, 1)
     _dir.copy(target).addScaledVector(_right, s0.x).addScaledVector(_up, s0.y)
     g.position.copy(_dir)
+
+    // ── отсечение: окно = свободная часть кадра, ближняя плоскость — 3 радиуса модели перед центром ──
+    camera.getWorldDirection(_fwd)
+    const D = Math.max(0.5, _a.copy(_dir).sub(camera.position).dot(_fwd))
+    const wD = (2 * D * Math.tan((fov * Math.PI) / 360)) / H
+    clip[0]!.normal.copy(_fwd)
+    clip[0]!.constant = -(_fwd.dot(camera.position) + Math.max(0.05, D - 3 * s0.s))
+    const edge = (i: number, px: number, py: number, nx: 'L' | 'R' | 'T' | 'B') => {
+      // направление из камеры на край окна (px холста) на глубине D
+      _a.copy(_fwd).multiplyScalar(D).addScaledVector(_right, (px - W / 2) * wD).addScaledVector(_up, (H / 2 - py) * wD)
+      if (nx === 'L') _n.crossVectors(_a, _up)
+      else if (nx === 'R') _n.crossVectors(_up, _a)
+      else if (nx === 'T') _n.crossVectors(_a, _right)
+      else _n.crossVectors(_right, _a)
+      _n.normalize()
+      clip[i]!.normal.copy(_n)
+      clip[i]!.constant = -_n.dot(camera.position)
+    }
+    edge(1, 0, H / 2, 'L')
+    edge(2, aW, H / 2, 'R')
+    edge(3, W / 2, dy, 'T')
+    edge(4, W / 2, dy + aH, 'B')
+    if (now - clipAt.current > 500) {
+      clipAt.current = now
+      applyClip(g, clip, clipUsed)
+      applyClip(scene.getObjectByName('formation-clouds'), clip, clipUsed)
+    }
   })
 
   if (!ok || !model || !plan || !story) return null

@@ -22,10 +22,12 @@ export type FormationLabState = {
   speed: number
   /** свободная от панелей часть холста лаборатории (px окна) — туда вписаны 3D и HUD-карточки */
   free: { left: number; top: number; width: number; height: number } | null
+  /** верх холста лаборатории (px окна) — панель этапов на телефоне встаёт сразу под шапку */
+  canvasTop: number
 }
 
 const clockRef: MutableRefObject<FormationClock> = { current: { t: 0, playing: true } }
-let state: FormationLabState = { id: null, mode: 'preview', stages: null, total: 0, t: 0, step: 0, playing: true, speed: 1, free: null }
+let state: FormationLabState = { id: null, mode: 'preview', stages: null, total: 0, t: 0, step: 0, playing: true, speed: 1, free: null, canvasTop: 0 }
 const subs = new Set<() => void>()
 const emit = () => subs.forEach((f) => f())
 const set = (patch: Partial<FormationLabState>) => {
@@ -79,7 +81,8 @@ export const formationLab = {
       set({ t: Math.round(state.total * 10) / 10, playing: false })
     } else formationLab.close()
   },
-  setFree(free: FormationLabState['free']) {
+  setFree(free: FormationLabState['free'], canvasTop = state.canvasTop) {
+    if (Math.abs(canvasTop - state.canvasTop) >= 1) set({ canvasTop })
     const a = state.free
     if (a && free && Math.abs(a.left - free.left) < 1 && Math.abs(a.top - free.top) < 1 && Math.abs(a.width - free.width) < 1 && Math.abs(a.height - free.height) < 1) return
     if (!a && !free) return

@@ -16,6 +16,7 @@ import { formationLab, useFormationLab } from './formationLabStore'
 import styles from './FormationLabPanel.module.css'
 
 const noop = () => {}
+const CLOSE = ['Закрыть показ', 'Close the show', 'Koʻrsatuvni yopish'] as const
 
 export default function FormationLabPanel() {
   const s = useFormationLab()
@@ -35,7 +36,7 @@ export default function FormationLabPanel() {
       const r = document.querySelector('[data-lab-reactor][data-open="true"]')?.getBoundingClientRect()
       const top = el.getBoundingClientRect().top
       const phone = window.innerWidth <= 760
-      const lim = phone ? Math.round(window.innerHeight * 0.4) : Math.round((r && r.height > 0 ? r.top : window.innerHeight) - top - 12)
+      const lim = phone ? Math.round(window.innerHeight * 0.36) : Math.round((r && r.height > 0 ? r.top : window.innerHeight) - top - 12)
       setMaxH((p) => (p === lim ? p : Math.max(160, lim)))
     }
     upd()
@@ -72,6 +73,7 @@ export default function FormationLabPanel() {
     [s.playing, s.step, s.t, s.total, s.speed],
   )
   if (!id) return null
+  const phone = typeof window !== 'undefined' && window.innerWidth <= 760
   const c = compoundById[id]
   const free = s.free
   return createPortal(
@@ -79,15 +81,21 @@ export default function FormationLabPanel() {
       <div
         ref={ref}
         className={styles.panel}
-        style={maxH ? { maxHeight: maxH } : undefined}
+        style={{ ...(maxH ? { maxHeight: maxH } : null), ...(phone && s.canvasTop > 0 ? { top: s.canvasTop + 6 } : null) }}
         data-formation-lab={id}
         data-formation-lab-mode={s.mode}
         role="region"
         aria-label={`${t('reactor.howForms')} · ${c?.formulaUnicode ?? id}`}
       >
-        <p className={styles.title}>
-          {t('reactor.howForms')} · <span className={styles.formula}>{c?.formulaUnicode ?? id}</span>
-        </p>
+        <div className={styles.head}>
+          <p className={styles.title}>
+            {t('reactor.howForms')} · <span className={styles.formula}>{c?.formulaUnicode ?? id}</span>
+          </p>
+          {/* «Закрыть» всегда на виду (на телефоне кнопки показа уходят под прокрутку) — возврат к лаборатории. */}
+          <button type="button" className={styles.close} onClick={formationLab.dismiss} aria-label={CLOSE[locale === 'en' ? 1 : locale === 'uz' ? 2 : 0]} title={CLOSE[locale === 'en' ? 1 : locale === 'uz' ? 2 : 0]} data-formation-lab-close="">
+            ×
+          </button>
+        </div>
         {s.stages ? <FormationCaptions compoundId={id} control={control} locale={locale} obtainingSection={t('compound.obtainingSteps')} /> : null}
       </div>
       {free && plan && story ? (

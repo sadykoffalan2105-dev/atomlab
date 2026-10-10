@@ -2592,7 +2592,7 @@ function SceneContent({
               balanced={scientificStage.balanced}
               labels={scientificStage.labels}
               lowPower={lowPowerProfile.forceLiteReactor || lowPowerProfile.isMobileSoc}
-              visible={scientificStageShown}
+              visible={scientificStageShown && formationPreviewId == null}
             />
           ) : null}
           {previewActive && transformPreviewCompound ? (

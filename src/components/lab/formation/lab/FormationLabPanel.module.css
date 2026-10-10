@@ -25,8 +25,39 @@
   --lt-text-3: #94a3b8;
 }
 
-.title {
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0 0 10px;
+}
+
+.close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin: -4px -4px 0 0;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(15, 23, 42, 0.6);
+  color: #e2e8f0;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  border-color: rgba(125, 211, 252, 0.7);
+}
+
+.close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.6);
+}
+
+.title {
+  margin: 0;
   color: #f1f6ff;
   font-size: 15px;
   font-weight: 750;
@@ -67,9 +98,24 @@
     border-radius: 14px;
   }
 
-  .title {
+  .head {
     margin-bottom: 6px;
+  }
+
+  .title {
     font-size: 14px;
+  }
+
+  /* HUD на телефоне компактнее: модели остаётся больше места. */
+  .hudHost [data-hud-card] {
+    padding: 6px 10px 7px;
+    border-radius: 12px;
+  }
+
+  .hudHost [data-hud-card] p,
+  .hudHost [data-hud-card] span {
+    font-size: 13px;
+    line-height: 1.35;
   }
 
   /* Телефон: только этапы, текст этапа и управление — объяснения и уравнение в карточке вещества каталога. */
