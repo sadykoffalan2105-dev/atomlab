@@ -61,6 +61,25 @@ export class Knowledge {
     const t0 = performance.now()
     this.engine.setLexicon(readJson<KbLexiconFile>(path.join(INDEX_DIR, 'kb-lexicon.json')))
     for (const name of SHARD_NAMES) this.engine.addShard(readJson<KbShardFile>(path.join(INDEX_DIR, `kb-index-${name}.json`)))
+    this.loadRest(t0)
+    return this
+  }
+
+  /** То же, что load(), но с отдачей управления между шардами: сервер уже отвечает на /health, пока знания грузятся. */
+  async loadAsync(): Promise<this> {
+    const t0 = performance.now()
+    const tick = () => new Promise<void>((res) => setImmediate(res))
+    this.engine.setLexicon(readJson<KbLexiconFile>(path.join(INDEX_DIR, 'kb-lexicon.json')))
+    for (const name of SHARD_NAMES) {
+      await tick()
+      this.engine.addShard(readJson<KbShardFile>(path.join(INDEX_DIR, `kb-index-${name}.json`)))
+    }
+    await tick()
+    this.loadRest(t0)
+    return this
+  }
+
+  private loadRest(t0: number): void {
     const vectors = path.join(INDEX_DIR, 'kb-vectors.json')
     if (fs.existsSync(vectors)) {
       try {
@@ -80,7 +99,6 @@ export class Knowledge {
     for (const s of this.qa.substances) if (!this.substanceByFormula.has(s.fa)) this.substanceByFormula.set(s.fa, s)
     for (const g of this.glossary) this.glossaryRu.set(g.ru.toLowerCase(), g)
     this.loadMs = Math.round(performance.now() - t0)
-    return this
   }
 
   get docCount(): number {
