@@ -7,9 +7,17 @@
 import { Knowledge } from '../../brain/kb/shards.ts'
 import { setElementWords } from '../../brain/pipeline/normalize.ts'
 import { cmpForm } from '../../brain/pipeline/normalize.ts'
-import type { ChatMessage } from '../../brain/pipeline/chat.ts'
+import { DEFAULT_CONFIG } from '../../brain/config.ts'
+import type { ChatMessage, ChatRequest, DoneEvent, MetaEvent } from '../../brain/pipeline/chat.ts'
 import { buildDialogState } from '../../brain/pipeline/dialogState.ts'
 import { resolveStandalone } from '../../brain/pipeline/dialogResolve.ts'
+import { planAnswer } from '../../brain/pipeline/dialogPlan.ts'
+import { selfCheck } from '../../brain/pipeline/dialogCheck.ts'
+import type { AnswerPlan, StandaloneQuery } from '../../brain/pipeline/dialogTypes.ts'
+import { R1 } from '../../brain/pipeline/ownerRule.ts'
+import { wordCount } from '../../brain/pipeline/postcheck.ts'
+import type { StudentSnapshot } from '../../brain/student/model.ts'
+import { buildUserTurn, PERSONA, questionOf } from '../../brain/persona/systemPrompt.ts'
 import { uzToRuTerms } from '../../brain/persona/uzGlossary.ts'
 
 const kb = new Knowledge().load()
@@ -96,7 +104,122 @@ ok(uzToRuTerms('Kovalent bogʻ nima?')[0] === 'ковалентная связь
 ok(uzToRuTerms("oksidlanish darajasini qanday topamiz")[0] === 'степень окисления', 'oksidlanish darajasini → степень окисления', JSON.stringify(uzToRuTerms('oksidlanish darajasini qanday topamiz')))
 ok(uzToRuTerms('valentlikni tushuntir').includes('валентность'), 'valentlikni → валентность')
 
-// @@REST@@
+// ——— план ответа
+console.log('план ответа (planAnswer):')
+const snap0 = { levelInt: 3, mood: 'neutral', pace: 'normal', recentErrors: [] } as unknown as StudentSnapshot
+const st0 = buildDialogState(msgs('Что такое валентность?', A_VAL, 'а почему?'), ctx, kb)
+const sqOf = (over: Partial<StandaloneQuery>): StandaloneQuery => ({ text: 'Что такое моль?', lang: 'ru', topic: 'моль', entities: [], grade: 'g8', scope: 'school', kind: 'definition', lengthClass: 'short', followUp: 'none', resolvedBy: 'none', original: 'Что такое моль?', ...over })
+type PlanCase = { name: string; sq: Partial<StandaloneQuery>; mode?: 'chat' | 'live'; detail?: 'brief' | 'more'; profile?: 'laptop' | 'gpu'; lc?: string; check?: (p: AnswerPlan) => boolean }
+const PLANS: PlanCase[] = [
+  { name: 'definition + school → short', sq: {}, lc: 'short' },
+  { name: 'definition + detail more → normal', sq: {}, detail: 'more', lc: 'normal' },
+  { name: 'why + school → normal', sq: { kind: 'why' }, lc: 'normal' },
+  { name: 'broad → normal, more → long', sq: { kind: 'general', scope: 'broad' }, detail: 'more', lc: 'long' },
+  { name: 'chitchat → tiny', sq: { kind: 'chitchat' }, lc: 'tiny' },
+  { name: '«кратко» в реплике → short даже при more', sq: { kind: 'why', original: 'Почему небо голубое? Кратко' }, detail: 'more', lc: 'short' },
+  { name: '«подробно» → long', sq: { kind: 'definition', original: 'Объясни подробно, что такое моль' }, lc: 'long' },
+  { name: 'calc → без минимума слов', sq: { kind: 'calc' }, check: (p) => p.words[0] === 0 },
+  { name: 'live → ≤ 70 слов, без блока ДИАЛОГ', sq: { kind: 'why', followUp: 'why' }, mode: 'live', check: (p) => p.words[1] <= 70 && !p.dialogBlock },
+  { name: 'laptop: история 2, знания 600, без проверки', sq: { kind: 'why' }, check: (p) => p.useHistory === 2 && p.knowledgeChars === 600 && !p.verify },
+  { name: 'gpu: история 8, знания 2400, проверка why', sq: { kind: 'why' }, profile: 'gpu', check: (p) => p.useHistory === 8 && p.knowledgeChars === 2400 && p.verify },
+  { name: 'follow-up why → блок ДИАЛОГ ≤ 230 симв. с темой', sq: { kind: 'why', followUp: 'why', topic: 'валентность' }, check: (p) => p.dialogBlock.startsWith('ДИАЛОГ: тема — валентность') && p.dialogBlock.length <= 230 },
+  { name: 'switch_grade → каркас «на уровне 8 класса»', sq: { kind: 'definition', followUp: 'switch_grade', grade: 'g8' }, check: (p) => /уровне 8 класса/.test(p.structure) },
+]
+for (const c of PLANS) {
+  const p = planAnswer(sqOf(c.sq), st0, snap0, { mode: c.mode ?? 'chat', detail: c.detail ?? 'brief', profile: c.profile ?? 'laptop', config: DEFAULT_CONFIG })
+  const good = (!c.lc || p.lengthClass === c.lc) && (!c.check || c.check(p))
+  ok(good, c.name, `lengthClass ${p.lengthClass}, words ${p.words}, history ${p.useHistory}, verify ${p.verify}, block «${p.dialogBlock}» (${p.dialogBlock.length})`)
+}
+
+// ——— самопроверка
+console.log('самопроверка (selfCheck):')
+const planShort = planAnswer(sqOf({}), st0, snap0, { mode: 'chat', detail: 'brief', profile: 'laptop', config: DEFAULT_CONFIG })
+{
+  const r = selfCheck('Водород горит: 2H₂ + O₂ → H₂O. Это экзотермическая реакция, выделяется много тепла и образуется вода.', { sq: sqOf({ kind: 'general' }), tools: [], lang: 'ru', kb, plan: { ...planShort, words: [0, 200] } })
+  ok(r.fixes.includes('equation') && /2H₂ \+ O₂ → 2H₂O/.test(r.text), 'неуравненное уравнение заменено уравненным', r.text)
+}
+{
+  const r = selfCheck('Валентность показывает, сколько связей образует атом; у элементов первой группы она равна единице.', { sq: sqOf({ followUp: 'switch_entity', entities: ['Натрий'], topic: 'валентность' }), tools: [], lang: 'ru', kb, plan: { ...planShort, words: [0, 200] } })
+  ok(r.fixes.includes('entity') && /Натрий \(Na\)/.test(r.text), 'новая сущность (натрий) дописана фактами', r.text)
+}
+{
+  const r = selfCheck('Valentlik — natriyda bitta. Natriy oddiy sharoitda qattiq metall, uning xossalari yadro zaryadi bilan belgilanadi.', { sq: sqOf({ lang: 'uz', followUp: 'switch_entity', entities: ['Натрий'] }), tools: [], lang: 'uz', kb, plan: { ...planShort, words: [0, 200] } })
+  ok(!r.fixes.includes('entity'), 'uz: «natriy» засчитан как упоминание натрия', r.fixes.join(','))
+}
+{
+  const r = selfCheck("Bu jarayon o'zgarishsiz, mog'or emas.", { sq: sqOf({ lang: 'uz' }), tools: [], lang: 'uz', kb, plan: { ...planShort, words: [0, 200] } })
+  ok(/oʻzgarishsiz/.test(r.text) && /mogʻor/.test(r.text) && r.fixes.includes('uz_apostrophe'), 'uz: апострофы o\'/g\' → oʻ/gʻ', r.text)
+}
+{
+  const long = Array.from({ length: 30 }, (_, i) => `Предложение номер ${i + 1} про моль и число Авогадро.`).join(' ')
+  const r = selfCheck(long, { sq: sqOf({}), tools: [], lang: 'ru', kb, plan: planShort })
+  ok(r.fixes.includes('trim') && wordCount(r.text) <= Math.round(planShort.words[1] * 1.25), 'длиннее класса × 1,25 — обрезано по предложению', String(wordCount(r.text)))
+}
+{
+  const r = selfCheck('Медь не реагирует с соляной кислотой. Медь реагирует с соляной кислотой бурно.', { sq: sqOf({ kind: 'general' }), tools: [], lang: 'ru', kb, plan: { ...planShort, words: [0, 200] } })
+  ok(r.fixes.includes('contradiction'), '«не реагирует … реагирует» — пометка противоречия', r.fixes.join(','))
+}
+
+// ——— подсказка v3
+console.log('подсказка v3 (buildUserTurn / questionOf):')
+{
+  const sq = sqOf({ text: 'Какая валентность у натрия?', original: 'а у натрия?', resolvedBy: 'rules', followUp: 'switch_entity', entities: ['Натрий'], topic: 'валентность' })
+  const plan = planAnswer(sq, st0, snap0, { mode: 'chat', detail: 'brief', profile: 'laptop', config: DEFAULT_CONFIG })
+  const turn = buildUserTurn({ lang: 'ru', mode: 'chat', detail: 'brief', gradeId: 'g8', knowledge: [], background: [], plan, standalone: sq, tools: [], studentBlock: '', reasoned: false, question: sq.text, maxItems: 3, maxChars: 600 })
+  ok(questionOf(turn) === 'Какая валентность у натрия?', 'questionOf отрезает строку «реплика ученика дословно»', JSON.stringify(questionOf(turn)))
+  ok(/реплика ученика дословно: «а у натрия\?»/.test(turn), 'оригинал реплики в подсказке')
+  ok(/ФОРМАТ:\n40–90 слов, по-русски\./.test(turn), 'ФОРМАТ по классу длины', turn.slice(turn.indexOf('ФОРМАТ'), turn.indexOf('ФОРМАТ') + 60))
+  ok(turn.indexOf('ДИАЛОГ:') > -1 && turn.indexOf('ДИАЛОГ:') < turn.indexOf('ВОПРОС УЧЕНИКА'), 'блок ДИАЛОГ перед вопросом')
+  // слова — токены с буквами, без дословных фраз владельца R1/R2 (их длину задаёт контракт)
+  const words = (s: string) => s.replace(R1, '').split(/\s+/).filter((w) => /\p{L}/u.test(w)).length
+  ok(words(PERSONA.ru) <= 230 && words(PERSONA.uz) <= 230 && words(PERSONA.en) <= 230, 'персоны v3 ≤ 230 слов', `${words(PERSONA.ru)}/${words(PERSONA.uz)}/${words(PERSONA.en)} слов`)
+  ok(PERSONA.ru.includes(R1) && PERSONA.uz.includes(R1) && PERSONA.en.includes(R1), 'R1 дословно во всех персонах')
+  ok(PERSONA.ru.includes('Пожалуйста, выражайтесь корректно, использование ненормативной лексики в этом чате недопустимо.'), 'R2 дословно в персоне ru')
+  ok(/Не говори «не знаю» и «нет в базе»/.test(PERSONA.ru), 'запрет «не знаю/нет в базе» в персоне')
+}
+
+// ——— многоходовые диалоги через runChat (mock-LLM и запасной путь)
+console.log('диалоги через runChat (mock-LLM / без LLM):')
+{
+  const { runChat } = await import('../../brain/pipeline/chat.ts')
+  const { MockLlm } = await import('../../brain/llm/mock.ts')
+  const { Journal } = await import('../../brain/kb/journal.ts')
+  const { StudentStore } = await import('../../brain/student/events.ts')
+  const fs = await import('node:fs')
+  const os = await import('node:os')
+  const path = await import('node:path')
+  // пустой журнал во временной папке: проверка не трогает папку данных владельца
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'atomlab-dialog-selftest-'))
+  const journal = new Journal(path.join(tmp, 'kb-journal.jsonl'))
+  const students = new StudentStore(tmp)
+  const ask = async (m: ChatMessage[], llm: InstanceType<typeof MockLlm> | null, extra: Partial<ChatRequest['context']> = {}) => {
+    let meta: MetaEvent | null = null
+    let done: DoneEvent | null = null
+    await runChat(
+      { sessionId: 'dlg', studentId: 'dlg', lang: 'auto', stream: true, messages: m, context: { ...ctx, ...extra } },
+      { kb, journal, embeds: null, llm, students, config: DEFAULT_CONFIG, noJournal: true },
+      { meta: (x) => (meta = x), delta: () => {}, done: (d) => (done = d), error: () => {} },
+    )
+    return { meta: meta as MetaEvent | null, done: done as DoneEvent | null }
+  }
+  const mock = new MockLlm()
+  for (const [name, llm] of [['mock', mock], ['без LLM', null]] as const) {
+    const a = await ask(msgs('Какая валентность у кислорода?', A_VAL, 'а у натрия?'), llm)
+    ok(a.meta?.followUp === 'switch_entity' && /валентность у натрия/i.test(a.meta?.standalone ?? '') && /натри/i.test(a.done?.text ?? ''), `${name}: «а у натрия?» — ответ про натрий`, `${a.meta?.standalone} | ${a.done?.text.slice(0, 120)}`)
+    const b = await ask(msgs('Что такое валентность?', A_VAL, 'объясни проще'), llm)
+    ok(b.meta?.followUp === 'simpler' && b.meta?.lengthClass === 'short' && /валентн/i.test(b.done?.text ?? ''), `${name}: «объясни проще» — коротко про валентность`, `${b.meta?.lengthClass} | ${b.done?.text.slice(0, 160)}`)
+    const c = await ask(msgs('Valentlik nima?', A_UZ, 'soddaroq tushuntir'), llm)
+    ok(c.meta?.lang === 'uz' && c.meta?.followUp === 'simpler' && !/[а-яё]/i.test(c.done?.text ?? ''), `${name}: uz «soddaroq» — по-узбекски`, c.done?.text.slice(0, 160))
+    const d = await ask(msgs('What is the valence of oxygen?', A_EN, 'and for sodium?'), llm)
+    ok(d.meta?.followUp === 'switch_entity' && /sodium|natri|Na\b/i.test(d.done?.text ?? ''), `${name}: en «and for sodium?» — про натрий`, d.done?.text.slice(0, 160))
+    const e = await ask(msgs('Что такое валентность?', A_VAL, 'да'), llm)
+    ok(e.meta?.followUp === 'confirm' && e.meta?.intent !== 'smalltalk', `${name}: «да» после «Хотите задачу?» — не светская беседа`, `${e.meta?.intent} ${e.meta?.standalone}`)
+    const f = await ask(msgs('Что такое органическая химия?', 'Органическая химия изучает соединения углерода.', 'а чем она отличается от неорганической?'), llm)
+    ok(f.done?.text === R1, `${name}: R1 по переписанному вопросу`, f.done?.text.slice(0, 120))
+    ok((a.done?.citations ?? []).every((x) => !/Википедия/.test(x)), `${name}: школьный ответ не цитирует энциклопедию`, JSON.stringify(a.done?.citations))
+  }
+  fs.rmSync(tmp, { recursive: true, force: true })
+}
 
 console.log(`
 [dialog.selftest] прошло ${pass}, провалов ${fail}`)

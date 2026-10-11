@@ -93,7 +93,9 @@ export function buildDialogState(messages: ChatMessage[], ctx: ChatRequest['cont
     const ents = entitiesOf(shape.clean, kb, lang).map((e) => e.ru)
     const concept = topicOf(shape.clean, lang)
     const own = contentWords(shape.clean, entitiesOf(shape.clean, kb, lang), [])
-    if (!ents.length && !concept && own.length < 3) continue
+    // содержательна: своя сущность/понятие, ≥ 3 своих слов или вопрос со своим предметом («Что такое органическая химия?»)
+    const asks = /\?\s*$/.test(t) || /^(что|как|какой|какая|какие|почему|зачем|где|когда|кто|сколько|расскажи|объясни|what|how|why|which|who|tell|explain|nima|qanday|nega|qaysi)(?!\p{L})/iu.test(shape.clean)
+    if (!ents.length && !concept && own.length < 3 && !(asks && own.length >= 1)) continue
     st.lastStandalone = t
     st.lastKind = kindOf(cmpForm(t), t)
     const topic = concept ?? ents[0] ?? (own.slice(0, 3).join(' ') || null)

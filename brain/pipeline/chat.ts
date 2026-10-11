@@ -374,8 +374,11 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   // 4c) самодостаточный вопрос: «а у натрия?» → «Какая валентность у натрия?» (правила; на gpu — ещё и быстрая модель)
   let sq = resolveStandalone(text, state, { lang, cmp, kb, gradeId: req.context.gradeId })
   if (profile === 'gpu' && mode !== 'live' && deps.llm?.status().available) sq = await maybeLlmRewrite(sq, state, { llm: deps.llm, config, profile }, signal)
+  // правило владельца — и вместе с прошлым вопросом («Что такое органическая химия?» → «а чем она отличается от неорганической?»)
+  const ownerCombo = !!state.lastStandalone && /(органич|organik|organic)/iu.test(text) && isOwnerRuleQuestion(`${state.lastStandalone} ${text}`)
+  if (ownerCombo) return finish({ text: head(R1), intent: 'rule', route: 'rule', source: 'rule', confidence: 1 })
   if (sq.text !== text) {
-    // правило владельца и опасность — и по переписанному вопросу («а чем она отличается от неорганической?»)
+    // правило владельца и опасность — и по переписанному вопросу
     if (isOwnerRuleQuestion(sq.text)) return finish({ text: head(R1), intent: 'rule', route: 'rule', source: 'rule', confidence: 1 })
     if (isDangerousRequest(sq.text)) return finish({ text: head(DANGER_REPLY[lang]), intent: 'chemistry', route: 'rule', source: 'rule', confidence: 1 })
   }
