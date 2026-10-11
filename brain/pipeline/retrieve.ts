@@ -252,9 +252,9 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
   let text = sq.text
   const topicExtra = sq.topic && !coveredBy(sq.text, sq.topic) ? sq.topic : null
   if (topicExtra && sq.followUp !== 'none') text = `${sq.text} ${topicExtra}`
-  // uz/en: русские термины глоссария — в сам запрос (учебники русские; «Elektromanfiylik nima?» → «электроотрицательность»)
+  // uz/en: русские термины глоссария — только в поиск журнала (в сам запрос нельзя: лишние «понятия» роняют покрытие
+  // в проверке темы — «Kristall panjara nima?» терял «Кристаллическую решётку»; перевод uz/en делает KbEngine.analyzeQuery)
   const glossRu = glossaryRuTerms(sq.text, lang, kb).filter((ru) => !coveredBy(text, ru))
-  if (glossRu.length) text = `${text} ${glossRu.slice(0, 3).join(' ')}`
 
   // b) школьные пулы: P1 — с классом ученика (глава/параграф урока — только если класс совпал с уроком), P2 — без класса
   const p1: KbHit[] = g != null
@@ -293,7 +293,7 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     const isFormula = findFormulas(e, true).length > 0
     for (const term of analyzeTerms(e, { query: true })) weighted.push({ term, weight: isFormula ? rc.formulaWeight : 1 })
   }
-  for (const ru of glossRu.slice(3)) for (const term of analyzeTerms(ru, { query: true })) weighted.push({ term, weight: rc.glossaryWeight })
+  for (const ru of glossRu) for (const term of analyzeTerms(ru, { query: true })) weighted.push({ term, weight: rc.glossaryWeight })
   const fromJournal = journal.search(weighted, 30)
 
   // слияние с дедупликацией по началу текста (копии учебника в журнале не удваиваются)
