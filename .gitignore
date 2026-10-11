@@ -49,3 +49,6 @@ src/data/textbook/*-part*.json
 .out/
 scripts/video-review/*.jpg
 scripts/video-review/*.png
+
+# Архив установки сервера мозга (npm run brain:package)
+dist-brain/
