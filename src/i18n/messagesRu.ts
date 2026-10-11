@@ -357,6 +357,8 @@ export const messagesRu = {
   'lab.teacher.explainMute': 'Выключить объяснение',
   'lab.teacher.mute': 'Выключить озвучку',
   'lab.teacher.unmute': 'Включить озвучку',
+  'lab.draw.button': 'Нарисовать',
+  'lab.draw.title': 'Нарисовать картинку к опыту',
   'lab.teacher.voiceOn': 'Озвучка',
   'lab.teacher.voiceOff': 'Без звука',
   'lab.teacher.replay': 'Повторить фразу',

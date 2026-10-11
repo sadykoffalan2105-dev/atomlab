@@ -76,6 +76,10 @@ import {
   IconWifiOff,
 } from './teacher/TeacherIcons'
 import { StreamingReply } from './teacher/StreamingReply'
+// «Нарисовать»: кнопка в поле ввода, «нарисуй …» открывает диалог, картинка в пузыре (формулы накладывает сайт)
+import { DrawButton, DrawChatImage, type DrawInsert } from './teacher/DrawButton'
+import { parseDrawRequest } from '../../learn/brain/image/drawIntent'
+import { canUseDrawing } from '../../learn/brain/remote/imageClient'
 import kit from './studio/StudioKit.module.css'
 import styles from './LearnAssistantPanel.module.css'
 
@@ -106,6 +110,8 @@ type ChatMessage = {
   /** «Сфотографируй задачу»: сколько фото было в вопросе (сохраняется) и миниатюры (только в памяти вкладки). */
   photoCount?: number
   thumbs?: string[]
+  /** «Нарисовать» → «Вставить в чат»: картинка + SVG-слой подписи (в хранилище вкладки не сохраняется). */
+  image?: DrawInsert
 }
 
 const QUICK_KEYS = [
@@ -144,8 +150,9 @@ function loadStored(key: string): ChatMessage[] {
 
 function saveStored(key: string, messages: ChatMessage[]): void {
   try {
-    // миниатюры фото не сохраняем (только число): фото тетради не задерживаются в хранилище браузера
-    sessionStorage.setItem(key, JSON.stringify(messages.slice(-24).map((m) => (m.thumbs ? { ...m, thumbs: undefined } : m))))
+    // миниатюры фото не сохраняем (только число): фото тетради не задерживаются в хранилище браузера;
+    // картинки «Нарисовать» (сотни КБ) тоже — остаётся их подпись (alt), иначе квота сессии кончится
+    sessionStorage.setItem(key, JSON.stringify(messages.slice(-24).map((m) => (m.thumbs || m.image ? { ...m, thumbs: undefined, image: undefined } : m))))
   } catch {
     /* quota */
   }
@@ -675,10 +682,27 @@ export function LearnAssistantPanel({
     [loading, messages, requestReply, setMessages],
   )
 
+  /** «Нарисовать»: диалог открывает кнопка в поле ввода; «нарисуй …» в чате — тоже он (через ref кнопки). */
+  const drawOpenRef = useRef<((subject?: string) => void) | null>(null)
+  const insertImageMessage = useCallback(
+    (image: DrawInsert) => {
+      setStreamingAt(null)
+      setMessages((list) => [...list, { role: 'assistant', text: image.alt, at: Date.now(), source: 'brain', image }])
+    },
+    [setMessages],
+  )
+
   const send = useCallback(() => {
     const typed = input.trim()
     // Поле ввода не блокируется во время ответа — текст не теряется, пока ИИ думает.
     if ((!typed && !photos.length) || loading || photoBusy) return
+    // «нарисуй аппарат Киппа» — диалог «Нарисовать» с темой (если рисование включено и роль позволяет)
+    const draw = !photos.length ? parseDrawRequest(typed, locale) : null
+    if (draw && canUseDrawing() && drawOpenRef.current) {
+      setInput('')
+      drawOpenRef.current(draw.subject)
+      return
+    }
     // только фото — подпись по умолчанию («Объясни задачу»)
     const text = typed || photoDefaultText(locale)
     const withPhotos = photos
@@ -1242,6 +1266,7 @@ export function LearnAssistantPanel({
                   </span>
                   <div className={styles.bubbleBot} data-streaming={isStreaming ? '1' : undefined}>
                     <span className={kit.srOnly}>{t('learn.assistant.ai')}: </span>
+                    {m.image ? <DrawChatImage image={m.image} /> : null}
                     <StreamingReply
                       text={body}
                       streaming={isStreaming}
@@ -1506,6 +1531,14 @@ export function LearnAssistantPanel({
                 <IconCheckCircle className={styles.btnIcon} />
                 <span className={styles.hwLabel}>{t('learn.assistant.homework')}</span>
               </button>
+              <DrawButton
+                place="chat"
+                className={`${kit.iconBtn} ${styles.fieldBtn}`}
+                context={{ gradeId: localCtx.gradeId, sectionTitle: localCtx.sectionTitle }}
+                onInsert={insertImageMessage}
+                onDescribeInstead={(text) => sendText(text)}
+                openRef={drawOpenRef}
+              />
               <span id={inputHintId} className={kit.srOnly}>
                 {t('learn.teacherUi.inputHint')}
               </span>

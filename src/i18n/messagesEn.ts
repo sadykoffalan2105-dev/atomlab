@@ -360,6 +360,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'lab.teacher.explainMute': 'Disable explanation',
   'lab.teacher.mute': 'Mute voice',
   'lab.teacher.unmute': 'Enable voice',
+  'lab.draw.button': 'Draw',
+  'lab.draw.title': 'Draw a picture of this experiment',
   'lab.teacher.voiceOn': 'Voice',
   'lab.teacher.voiceOff': 'Muted',
   'lab.teacher.replay': 'Replay line',

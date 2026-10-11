@@ -26,6 +26,8 @@ import type { LabViewId } from '../components/lab3d/scene/labSceneLayout'
 import { detectVrLabQuality, webglSupported } from '../components/vrLab/vrLabPerformance'
 import { useT, type MessageKey } from '../i18n/useT'
 import styles from './Lab3DPage.module.css'
+// «Нарисовать» картинку к опыту (видна, только если сервер мозга рисует и роль позволяет)
+import { DrawButton } from '../components/learn/teacher/DrawButton'
 
 const Lab3DCanvas = lazy(() => import('../components/lab3d/scene/Lab3DCanvas'))
 
@@ -408,6 +410,7 @@ export function Lab3DPage() {
           </button>
         )}
         <LabXrButton lang={lang} className={styles.xrBtn} />
+        <DrawButton place="lab3d" className={styles.chip} label={t('lab.draw.button')} context={{ subject: active.title, formula: (active.equation ?? '').slice(0, 80) }} />
       </div>
 
       {/* Панель опыта */}

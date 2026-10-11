@@ -177,11 +177,11 @@ const keyListeners = new Set<() => void>()
 function readKey(kind: 'owner' | 'teacher'): string {
   const mem = keyMemory[kind]
   if (mem !== undefined) return mem ?? ''
-  let v = ''
+  let v: string
   try {
     v = typeof localStorage !== 'undefined' ? (localStorage.getItem(kind === 'owner' ? ADMIN_KEY : TEACHER_KEY) ?? '') : ''
   } catch {
-    v = ''
+    v = '' // хранилище закрыто (приватное окно, запрет сайта)
   }
   keyMemory[kind] = v || null
   return v
