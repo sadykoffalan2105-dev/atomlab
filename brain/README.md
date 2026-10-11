@@ -184,14 +184,15 @@ Z-Image-Turbo int8 по умолчанию, запасной — FLUX.2 klein 4B
 слова, «спирт», «кислота», «qonun» не задеваются); проверка и перевод Gemma строгим JSON (`IMAGE_CHECK`, до окна GPU);
 готовая картинка — узел ComfyUI `ATOMLABSafetyCheck` (Falconsai NSFW ViT): нет ответа узла — картинка не отдаётся никому;
 порог 0.5 (владелец/учитель), 0.3 (ученики). Журнал `journal/images.jsonl` — только дописывание, без адресов и без текстов
-учеников; подчиняется `server.dialogLog`. Файлы картинок на диск не сохраняются (PNG ComfyUI удаляется после выдачи).
+учеников; подчиняется `server.dialogLog`. Мозг картинки на диск не сохраняет и файлов не удаляет (в brain/** нет удалений —
+проверка `brain:smoke`); PNG в папке вывода ComfyUI (`comfyOutputDir`, C:\ATOMLAB\comfy-out) чистит задача установщика.
 
 **Протокол окна GPU** (`brain/llm/gpuArbiter.ts`; Gemma и модель картинок вместе в 16 ГБ не помещаются):
 1. ComfyUI не готов (нет `/system_stats` или узла безопасности) → `not_ready`;
 2. `queue.pause('image')` → дренаж: идущие ответы дописываются (текст не прерывается никогда), новые ждут в очереди —
    их сроки продлеваются на время паузы, «занят» из-за картинки не получает никто;
 3. Ollama `keep_alive: 0` для чат- и быстрой модели → `/api/ps` пусто → проверка `vram_free ≥ vramNeedGB` (bge-m3 остаётся);
-4. задания по одному: `/prompt` → опрос `/history` 250 мс → `atomlab_safety` → `/view?preview=webp;85` → удалить PNG;
+4. задания по одному: `/prompt` → опрос `/history` 250 мс → `atomlab_safety` → `/view?preview=webp;85`;
    в окно добираются следующие, пока их < `window.maxJobs` и прошло < `window.maxMs`;
 5. `/free` в ComfyUI → `/api/generate {model, keep_alive, options:{num_ctx}}` (тот же `num_ctx`, что у ответов) → `resume()`;
    при любой ошибке — то же в `finally`.

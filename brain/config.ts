@@ -148,7 +148,10 @@ export type ImageConfig = {
   /** адрес ComfyUI (env BRAIN_COMFY_URL важнее) и как часто проверять его готовность */
   comfyUrl: string
   comfyPollMs: number
-  /** папка вывода ComfyUI: задан — PNG задания удаляется после скачивания, при старте чистятся файлы старше 1 ч */
+  /**
+   * папка вывода ComfyUI (C:\ATOMLAB\comfy-out) — для сведения: мозг файлы НЕ удаляет (в brain/** нет удалений,
+   * проверка brain:smoke), старые PNG чистит задача установщика «ATOMLAB Comfy»
+   */
   comfyOutputDir: string
   /** 0 — по движку (z-image 8, klein 4) */
   steps: number

@@ -8,7 +8,6 @@
  */
 import crypto from 'node:crypto'
 import fs from 'node:fs'
-import path from 'node:path'
 import type { BrainConfig } from '../config.ts'
 import { ulid } from '../kb/storage.ts'
 import { GpuArbiter } from '../llm/gpuArbiter.ts'
@@ -117,9 +116,8 @@ export class ImageService {
     return this.ollamaCached.client
   }
 
-  /** Опрос готовности ComfyUI раз в comfyPollMs (только когда картинки включены) + чистка старых PNG. */
+  /** Опрос готовности ComfyUI раз в comfyPollMs (только когда картинки включены). */
   start(): void {
-    this.cleanOutputDir()
     if (this.config.enabled) void this.refreshReady()
     if (this.pollTimer) return
     this.pollTimer = setInterval(() => {
@@ -166,34 +164,6 @@ export class ImageService {
     return this.refreshReady()
   }
 
-  /** Удалить из папки вывода ComfyUI файлы старше часа (галерея не ведётся). */
-  private cleanOutputDir(): void {
-    const dir = this.config.comfyOutputDir
-    if (!dir) return
-    const root = path.resolve(dir)
-    const cutoff = Date.now() - 60 * MIN
-    const walk = (d: string, depth: number) => {
-      let names: fs.Dirent[] = []
-      try {
-        names = fs.readdirSync(d, { withFileTypes: true })
-      } catch {
-        return
-      }
-      for (const e of names) {
-        const p = path.join(d, e.name)
-        if (e.isDirectory() && depth < 3) walk(p, depth + 1)
-        else if (e.isFile() && /\.(png|webp|jpe?g)$/i.test(e.name)) {
-          try {
-            if (fs.statSync(p).mtimeMs < cutoff) fs.rmSync(p, { force: true })
-          } catch {
-            /* занят — в следующий раз */
-          }
-        }
-      }
-    }
-    walk(root, 0)
-  }
-
   health() {
     const ic = this.config
     return {
@@ -236,7 +206,7 @@ export class ImageService {
    */
   async statusFull() {
     const ps = await this.ollama().loaded()
-    let journalLines: number | null = null
+    let journalLines: number | null
     try {
       const f = imagesJournalPath()
       journalLines = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).length : 0

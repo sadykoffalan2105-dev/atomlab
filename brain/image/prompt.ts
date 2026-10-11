@@ -96,7 +96,7 @@ export async function checkFreeText(o: {
   const st = o.llm?.status()
   if (!o.llmCheck || !o.llm || !st?.available) return fallback()
   const ticket = new QueueTicket(o.llm, o.queue, { signal: o.signal })
-  let raw: string | null = null
+  let raw: string | null
   try {
     raw = await ticket.complete({
       model: st.fastModel ?? st.chatModel ?? '',

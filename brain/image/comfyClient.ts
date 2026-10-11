@@ -29,7 +29,7 @@ export class ComfyClient {
   private async postJson<T>(p: string, body: unknown, timeoutMs = SERVICE_MS): Promise<{ status: number; body: T | null }> {
     const r = await fetch(this.baseUrl + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) })
     const text = await r.text()
-    let j: T | null = null
+    let j: T | null
     try {
       j = text ? (JSON.parse(text) as T) : null
     } catch {

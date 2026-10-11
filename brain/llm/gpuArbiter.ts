@@ -5,14 +5,14 @@
  *   b) очередь текста на паузу (ученики видят «в очереди», «занят» не получает никто) → дренаж: ждём, пока идущие
  *      ответы допишутся (текст НИКОГДА не прерывается; задание, которое ждёт дольше jobTimeoutMs, получает busy);
  *   c) выгрузить Gemma (keep_alive 0) → /api/ps пусто → проверить свободную видеопамять ComfyUI;
- *   d) рисовать по одному: /prompt → опрос /history 250 мс → atomlab_safety (нет — картинку не отдаём) → /view WebP;
+ *   d) рисовать по одному: /prompt → опрос /history 250 мс → atomlab_safety (нет — картинку не отдаём) → /view WebP
+ *      (PNG в папке вывода ComfyUI мозг НЕ удаляет: в brain/** нет удалений файлов — это проверяет brain:smoke;
+ *      папку comfy-out чистит задача установщика);
  *      в окно добираются следующие задания, пока их < window.maxJobs и прошло < window.maxMs;
  *   e) /free в ComfyUI → загрузить Gemma с тем же num_ctx → снять паузу;
  *   f) finally: при любой ошибке — free + load + resume (идемпотентно).
  * Когда открывать следующее окно (cooldown, голодание) — решает сервис картинок (brain/image/service.ts).
  */
-import fs from 'node:fs'
-import path from 'node:path'
 import type { BrainConfig } from '../config.ts'
 import type { ComfyClient } from '../image/comfyClient.ts'
 import type { ImageJob, JobOutcome } from '../image/types.ts'
@@ -202,7 +202,7 @@ export class GpuArbiter {
     const g = buildGraph({ engine: ic.engine, variant, prompt: job.promptFinal, width: job.width, height: job.height, seed: job.seed, steps: ic.steps, jobId: job.id })
     job.emit('progress', { phase: firstInWindow ? 'loading' : 'sampling', pct: 30, ms: Date.now() - job.createdAt })
     const tg = Date.now()
-    let promptId = ''
+    let promptId: string
     try {
       promptId = (await comfy.queuePrompt(g.graph, `atomlab-${job.id}`)).prompt_id
     } catch (err) {
@@ -214,7 +214,7 @@ export class GpuArbiter {
     // ожидаемое время: среднее рисование (+ загрузка моделей для первого задания окна)
     const expect = Math.max(1500, (this.avg.genMs || 5000) + (firstInWindow ? this.avg.loadMs || 4000 : 0))
     let lastPct = 30
-    let hist: Awaited<ReturnType<ComfyClient['history']>> = null
+    let hist: Awaited<ReturnType<ComfyClient['history']>>
     for (;;) {
       await sleep(250)
       if (Date.now() > deadline) {
@@ -258,13 +258,11 @@ export class GpuArbiter {
     job.emit('progress', { phase: 'safety', pct: 95, ms: Date.now() - job.createdAt })
     const ownerNoSafety = !ic.safety.required && job.role === 'owner'
     if (!s || typeof s.nsfw !== 'number' || !Number.isFinite(s.nsfw)) {
-      this.removeOutput(imgRef, ic.comfyOutputDir)
       if (!ownerNoSafety) return this.finish(job, { ok: false, code: 'internal', reason: 'safety_unavailable' })
     }
     const safety = { nsfw: round3(Number(s?.nsfw) || 0), normal: round3(Number(s?.normal) || 0) }
     if (s && safety.nsfw >= job.nsfwThreshold) {
       this.counters.unsafeImage++
-      this.removeOutput(imgRef, ic.comfyOutputDir)
       return this.finish(job, { ok: false, code: 'unsafe_image', reason: `nsfw:${safety.nsfw}`, safety })
     }
     if (!imgRef) return this.finish(job, { ok: false, code: 'internal', reason: 'no_image' })
@@ -274,24 +272,9 @@ export class GpuArbiter {
       bytes = await comfy.view(imgRef, ic.result.quality)
     } catch (err) {
       this.counters.comfyErrors++
-      this.removeOutput(imgRef, ic.comfyOutputDir)
       return this.finish(job, { ok: false, code: 'internal', reason: `comfy:${(err as Error).message.slice(0, 120)}` })
     }
-    this.removeOutput(imgRef, ic.comfyOutputDir)
     this.finish(job, { ok: true, bytes, safety })
-  }
-
-  /** Удалить PNG задания из папки вывода ComfyUI (только внутри comfyOutputDir; галерея не ведётся). */
-  private removeOutput(ref: { filename: string; subfolder: string } | undefined, dir: string): void {
-    if (!ref || !dir) return
-    try {
-      const root = path.resolve(dir)
-      const p = path.resolve(root, ref.subfolder || '', ref.filename)
-      if (!p.startsWith(root + path.sep)) return
-      fs.rmSync(p, { force: true })
-    } catch {
-      /* не страшно: при старте чистятся файлы старше часа */
-    }
   }
 }
 

@@ -128,7 +128,7 @@ export async function verifyGraph(engine: ImageEngine, variant: ImageVariant, ob
   for (const n of Object.values(g)) {
     if (seen.has(n.class_type)) continue
     seen.add(n.class_type)
-    let info: Awaited<ReturnType<ObjectInfoFn>> = {}
+    let info: Awaited<ReturnType<ObjectInfoFn>>
     try {
       info = await objectInfo(n.class_type)
     } catch {
