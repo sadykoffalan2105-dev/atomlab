@@ -4,7 +4,8 @@
  *   POST /chat          — ответ потоком SSE (queue / meta / delta / done / error);
  *   POST /kb/append     — дописать запись в журнал базы (только append) — ТОЛЬКО админ;
  *   GET  /kb/stats      — статистика журнала (с путём папки данных) — ТОЛЬКО админ;
- *   GET  /admin/status  — очередь, лимиты, профиль — ТОЛЬКО админ.
+ *   GET  /admin/status  — очередь, лимиты, профиль — ТОЛЬКО админ;
+ *   /image, /image/*, /admin/image/* — картинки (brain/image/http.ts; по умолчанию выключены, config.image).
  * Запуск: npx tsx brain/server.ts (или npm run brain:start). Без Ollama работает запасным путём.
  *
  * Публичный режим (туннель Tailscale Funnel → http://127.0.0.1:8787): адрес ученика — из заголовков прокси
@@ -18,6 +19,8 @@ import { clientInfo } from './http/clientIp.ts'
 import { BodyError, checkChatLimits, checkOriginWith, corsHeaders, isAdmin, json, jsonError, readJson, readJsonWithSize } from './http/guard.ts'
 import { checkChatImages, fillPhotoText, photoLimits, photoRules } from './http/photo.ts'
 import { RateLimiter, StreamCounter, type RateRule } from './http/rateLimit.ts'
+import { handleImageRequest } from './image/http.ts'
+import { createImageService, type ImageService } from './image/service.ts'
 import { EmbedStore } from './kb/embedStore.ts'
 import { Journal, validateAppend } from './kb/journal.ts'
 import { Knowledge } from './kb/shards.ts'
@@ -42,6 +45,8 @@ export type Brain = {
   loading?: boolean
   /** очередь к модели (создаёт createServer по config.llm) */
   queue?: LlmQueue
+  /** картинки (создаёт createServer; включаются config.image.enabled) */
+  image?: ImageService
 }
 
 /** Собрать зависимости: конфиг, знания, журнал, векторы, ученики, клиент Ollama (llm: null — без LLM). */
@@ -101,6 +106,8 @@ export function healthBody(brain: Brain) {
     kb: { docs: brain.deps.kb.docCount + brain.deps.journal.searchableCount(), journalLines: brain.deps.journal.lines, embedded: brain.deps.embeds?.size ?? 0 },
     // нагрузка (сверх контракта v1): сайт может честно сказать «много вопросов, отвечу чуть позже»
     ...(q ? { queue: { parallel: q.parallel, running: q.running, waiting: q.waiting } } : {}),
+    // картинки (сверх контракта v1): сайт показывает кнопку «Нарисовать», только если enabled и ready
+    image: brain.image?.health() ?? { enabled: !!brain.deps.config.image?.enabled, ready: false, engine: brain.deps.config.image?.engine ?? null, students: false, queue: { running: 0, waiting: 0, paused: false }, lastMs: null },
     uptimeMs: Date.now() - brain.startedAt,
     ...(brain.loading ? { loading: true } : {}),
   }
@@ -110,7 +117,7 @@ const MIN = 60_000
 const DAY = 24 * 60 * MIN
 
 /** Группа лимитов по пути запроса. */
-function rateRules(method: string, path: string, r: BrainConfig['server']['rate']): { group: string; rules: RateRule[] } {
+function rateRules(method: string, path: string, r: BrainConfig['server']['rate'], img?: BrainConfig['image']['rate']): { group: string; rules: RateRule[] } {
   if (method === 'POST' && path === '/chat')
     return {
       group: 'chat',
@@ -120,6 +127,15 @@ function rateRules(method: string, path: string, r: BrainConfig['server']['rate'
       ],
     }
   if (method === 'GET' && path === '/health') return { group: 'health', rules: [{ name: 'health_minute', windowMs: MIN, max: r.healthPerMin }] }
+  // картинки — своя группа (GPU дороже текста); остальные /image/* — как прочие запросы
+  if (method === 'POST' && path === '/image' && img)
+    return {
+      group: 'image',
+      rules: [
+        { name: 'image_minute', windowMs: MIN, max: img.perMin },
+        { name: 'image_day', windowMs: DAY, max: img.perDay },
+      ],
+    }
   return { group: 'other', rules: [{ name: 'other_minute', windowMs: MIN, max: r.otherPerMin }] }
 }
 
@@ -129,6 +145,8 @@ const ADMIN_PATHS = new Set(['/kb/append', '/kb/stats', '/admin/status'])
 export function createServer(brain: Brain): http.Server {
   const { deps } = brain
   const queue = (brain.queue ??= new LlmQueue(deps.config.llm))
+  // картинки: окна GPU делят видеокарту с Gemma через эту же очередь (pause/resume)
+  brain.image ??= createImageService({ getConfig: () => deps.config, queue, llm: deps.llm, log: (s) => console.log(s), noJournal: () => !!deps.noJournal })
   const limiter = new RateLimiter()
   const streams = new StreamCounter()
 
@@ -154,7 +172,7 @@ export function createServer(brain: Brain): http.Server {
     try {
       // лимит частоты — до чтения тела
       if (limited) {
-        const rr = rateRules(method, path, sc.rate)
+        const rr = rateRules(method, path, sc.rate, cfg.image?.rate)
         const v = limiter.hit(rr.group, client.key, rr.rules)
         if (!v.ok) {
           req.resume()
@@ -171,7 +189,7 @@ export function createServer(brain: Brain): http.Server {
         return res.end()
       }
       if (method === 'GET' && path === '/health') return json(res, 200, healthBody(brain), cors)
-      if (ADMIN_PATHS.has(path) && !admin) {
+      if ((ADMIN_PATHS.has(path) || path.startsWith('/admin/image')) && !admin) {
         req.resume()
         return jsonError(res, 403, 'forbidden', 'только для администратора мозга', cors)
       }
@@ -205,6 +223,10 @@ export function createServer(brain: Brain): http.Server {
         if (brain.ready) await brain.ready
         const { record, line } = deps.journal.append(v)
         return json(res, 200, { ok: true, id: record.id, line, ...(record.kind === 'dup' ? { dup: true, ref: record.meta.ref } : {}) }, cors)
+      }
+      // картинки (brain/image/http.ts) — до ветки /chat, саму её не меняют
+      if (path === '/image' || path.startsWith('/image/') || path.startsWith('/admin/image')) {
+        return await handleImageRequest({ req, res, url, method, cors, client, admin, brain })
       }
       if (method === 'POST' && path === '/chat') {
         // фото задачи (brain/http/photo.ts): тело с фото может быть больше обычного; без фото — прежний лимит (413)
@@ -303,6 +325,7 @@ export async function main(): Promise<void> {
     server.listen(PORT, '127.0.0.1', () => resolve())
   })
   brain.ollama?.start() // первый опрос /api/tags сразу прогревает чат- и быструю модели (персона в кеше)
+  brain.image?.start() // картинки: опрос готовности ComfyUI (только если config.image.enabled)
   const cfg = brain.deps.config
   console.log(`[brain] ${SERVICE} ${VERSION} слушает http://127.0.0.1:${PORT} за ${Math.round(performance.now() - t0)} мс · данные: ${DATA_DIR} · Ollama: ${cfg.ollamaUrl} (опрос каждые ${Math.round(cfg.pollMs / 1000)} с)`)
   console.log(
@@ -317,6 +340,7 @@ export async function main(): Promise<void> {
   )
   const stop = () => {
     brain.ollama?.stop()
+    brain.image?.stop()
     server.close()
     process.exit(0)
   }
