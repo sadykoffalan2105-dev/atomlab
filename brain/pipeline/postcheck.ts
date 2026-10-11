@@ -8,6 +8,7 @@
  *   наркотиков — отказ; объяснять безопасность и «почему опасно» можно.
  */
 import { matchesLang, type Lang } from './normalize.ts'
+import { delatex } from './delatex.ts'
 import type { ToolResult } from './tools.ts'
 
 /** Из src/learn/learnAssistantGuard.ts (BLOCKED_PATTERNS). */
@@ -202,7 +203,7 @@ export class StreamGate {
     // splitSentences обрезает пробелы по краям: пробел в конце буфера — граница слова, его нельзя терять («the logic» + «is»)
     const lastRaw = final ? '' : ss[ss.length - 1]! + (/[ \t]$/.test(this.buf) ? ' ' : '')
     for (const s of complete) {
-      const body = scrubR3(s.trim(), this.lang)
+      const body = scrubR3(delatex(s.trim()), this.lang)
       if (!body) continue
       const clean = body + (s.endsWith('\n') ? '\n' : '')
       const w = wordCount(clean)

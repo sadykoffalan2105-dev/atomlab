@@ -9,6 +9,8 @@ import { questionType, wantsEncyclopedia } from '../../brain/pipeline/intent.ts'
 import { runTools } from '../../brain/pipeline/tools.ts'
 import { genitive, prepositional } from '../../brain/pipeline/declension.ts'
 import { moderate } from '../../brain/pipeline/moderation.ts'
+import { delatex } from '../../brain/pipeline/delatex.ts'
+import { StreamGate } from '../../brain/pipeline/postcheck.ts'
 
 let pass = 0
 let fail = 0
@@ -94,6 +96,29 @@ for (const [q, re] of [
 {
   const { tools } = await find('Как образуется ионная связь?')
   ok(!tools.some((x) => x.tool === 'obtain'), '«как образуется ионная связь» — не способ получения')
+}
+
+// ——— формулы LaTeX → обычный текст (сайт LaTeX не рисует)
+console.log('формулы без LaTeX:')
+for (const [src, want] of [
+  ['при нагревании: \\(2\\text{KMnO}_4 \\rightarrow \\text{K}_2\\text{MnO}_4 + \\text{MnO}_2 + \\text{O}_2\\uparrow\\).', 'при нагревании: 2KMnO₄ → K₂MnO₄ + MnO₂ + O₂↑.'],
+  ['\\(2\\text{H}_2\\text{O}_2 \\rightarrow 2\\text{H}_2\\text{O} + \\text{O}_2\\uparrow\\)', '2H₂O₂ → 2H₂O + O₂↑'],
+  ['$\\ce{CaCO3 + 2HCl -> CaCl2 + H2O + CO2 ^}$', 'CaCO₃ + 2HCl → CaCl₂ + H₂O + CO₂↑'],
+  ['\\(\\mathrm{SO_4^{2-}}\\) и \\(\\text{Fe}^{3+}\\)', 'SO₄²⁻ и Fe³⁺'],
+  ['N₂ + 3H₂ \\rightleftharpoons 2NH₃, \\(\\Delta H < 0\\), 450\\,^\\circ C', 'N₂ + 3H₂ ⇄ 2NH₃, ΔH < 0, 450 °C'],
+  ['\\(2\\text{KClO}_3 \\xrightarrow{t, \\text{MnO}_2} 2\\text{KCl} + 3\\text{O}_2\\)', '2KClO₃ →(t, MnO₂) 2KCl + 3O₂'],
+  ['Цена набора — $100, H₂O без разметки.', 'Цена набора — $100, H₂O без разметки.'],
+] as const) {
+  const got = delatex(src)
+  ok(got === want, `delatex «${src.slice(0, 40)}…»`, got)
+}
+{
+  let out = ''
+  const g = new StreamGate('ru', 200, (p) => (out += p))
+  const src = 'Кислород получают разложением перманганата калия при нагревании, это самый удобный способ в школьной лаборатории: \\(2\\text{KMnO}_4 \\rightarrow \\text{K}_2\\text{MnO}_4 + \\text{MnO}_2 + \\text{O}_2\\uparrow\\). Готово.'
+  for (const tok of src.match(/.{1,7}/gs)!) g.push(tok)
+  g.end()
+  ok(out.includes('2KMnO₄ → K₂MnO₄ + MnO₂ + O₂↑') && !/[\\{]/.test(out), 'поток (StreamGate) без LaTeX', out)
 }
 
 console.log(`\n${pass} passed, ${fail} failed`)
