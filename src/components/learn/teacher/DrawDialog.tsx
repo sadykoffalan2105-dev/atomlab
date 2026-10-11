@@ -79,9 +79,9 @@ function appTheme(): 'light' | 'dark' {
   }
 }
 
-/** Основа слова для поиска: нижний регистр, первые 5 букв (кислота/кислоты, apparati/apparatini). */
+/** Основа слова для поиска: нижний регистр, первые 5 букв (кислота/кислоты, apparati/apparatini), у коротких — без окончания (вода/воды). */
 function stems(text: string): string[] {
-  return (text.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) ?? []).map((w) => w.slice(0, 5))
+  return (text.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) ?? []).map((w) => (w.length <= 5 ? w.slice(0, Math.max(3, w.length - 1)) : w.slice(0, 5)))
 }
 
 function presetHaystack(p: ImagePreset): string {
