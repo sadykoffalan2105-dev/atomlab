@@ -297,7 +297,11 @@ try {
         if (Test-Path -LiteralPath $pf) { Stop-ProcessTree ([int](Get-Content -LiteralPath $pf -Raw)) }
         Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($paths.ComfyRoot, [StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { Stop-ProcessTree $_.Id }
         for ($i = 0; $i -lt 30 -and (Test-PortListening (Get-ComfyPort $cfg)); $i++) { Start-Sleep -Seconds 2 }
-        Rename-Item -LiteralPath $paths.ComfyRoot -NewName ((Split-Path -Leaf $paths.ComfyRoot) + '.old')
+        # процесс только что убит — Windows может ещё пару секунд держать файлы: несколько попыток
+        for ($i = 1; $i -le 5; $i++) {
+          try { Rename-Item -LiteralPath $paths.ComfyRoot -NewName ((Split-Path -Leaf $paths.ComfyRoot) + '.old'); break }
+          catch { if ($i -eq 5) { throw }; Start-Sleep -Seconds 3 }
+        }
       }
       Move-Item -LiteralPath $newRoot -Destination $paths.ComfyRoot
       Remove-Item -LiteralPath $unpack -Recurse -Force -ErrorAction SilentlyContinue
