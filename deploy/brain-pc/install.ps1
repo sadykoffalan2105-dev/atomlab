@@ -367,8 +367,13 @@ if (Test-ImageEnabled $cfg) {
     if ($script:AtomDry) {
       Say "    [DRY] ждать $comfyBase/system_stats (≤ 3 мин) и непустой $comfyBase/object_info/ATOMLABSafetyCheck" 'DarkCyan'
     } elseif ($imgCode -eq 0) {
+      # Update не должен через 15 мин повторять установку и перезапускать мозг: ключ картинок уже актуален
+      $st = Read-State $paths
+      Set-StateValue $st 'imageKey' (Get-ImageKey $cfg (Read-Json (Join-Path $Pkg 'comfy\manifest.json')))
+      Write-JsonNoBom $paths.State $st
       # первый старт ComfyUI под SYSTEM собирает кеши CUDA — до минуты-двух
-      for ($i = 0; $i -lt 90 -and -not (Test-ComfyUp $cfg 2); $i++) { Start-Sleep -Seconds 2 }
+      $upUntil = (Get-Date).AddMinutes(3)
+      while ((Get-Date) -lt $upUntil -and -not (Test-ComfyUp $cfg 2)) { Start-Sleep -Seconds 3 }
       if (-not (Test-ComfyUp $cfg 2)) { Warn 'ComfyUI не ответил за 3 мин — см. C:\ATOMLAB\logs\comfy-*.log'; $imageState = 'ComfyUI не отвечает' }
       else {
         $oi = Invoke-Http "$comfyBase/object_info/ATOMLABSafetyCheck" 10
@@ -380,7 +385,14 @@ if (Test-ImageEnabled $cfg) {
     $script:AtomDry = [bool]$DryRun
     Warn ("картинки: " + $_.Exception.Message + ' — мозг работает без них')
   }
-} else { Say "    $imageState" }
+} else {
+  Say "    $imageState"
+  if (-not $script:AtomDry) {
+    $st = Read-State $paths
+    Set-StateValue $st 'imageKey' (Get-ImageKey $cfg (Read-Json (Join-Path $Pkg 'comfy\manifest.json')))
+    Write-JsonNoBom $paths.State $st
+  }
+}
 
 # ---------------------------------------------------------------- 12. задачи
 Step '12. Автозапуск и автообновление'
