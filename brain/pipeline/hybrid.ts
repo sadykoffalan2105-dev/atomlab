@@ -26,6 +26,11 @@ export type Candidate = {
   score: number
   terms: Set<string>
   titleTerms: Set<string>
+  /** мозг v2: доля понятий вопроса во фрагменте и попадание в заголовок (relevance.ts) */
+  cov?: number
+  titleHit?: boolean
+  /** частоты термов текста — лениво, для проверки «слабого терма» (relevance.ts) */
+  tf?: Map<string, number>
 }
 
 export type HybridOptions = { wBm: number; wVec: number; grade: number | null; queryTerms: Set<string> }
@@ -77,9 +82,9 @@ function similarity(a: Candidate, b: Candidate): number {
 }
 
 /** MMR: λ·score − (1−λ)·max sim к уже выбранным; не больше topK и maxChars. */
-export function mmrSelect(cands: Candidate[], lambda: number, topK: number, maxChars: number): Candidate[] {
+export function mmrSelect<T extends Candidate>(cands: T[], lambda: number, topK: number, maxChars: number): T[] {
   const pool = [...cands].sort((a, b) => b.score - a.score).slice(0, 40)
-  const out: Candidate[] = []
+  const out: T[] = []
   let chars = 0
   const top = pool[0]?.score || 1
   while (pool.length && out.length < topK) {

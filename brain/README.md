@@ -118,3 +118,30 @@ Kimyo/ATOMLAB выше Википедии; ничего по теме — мод
   очередь 4, ожидание 30 с, «без прокси» не считается владельцем. Модели — по-прежнему `chatModels`/`fastModels`.
 - **`/health`** публичный и быстрый: без путей, ключей и адресов; есть `queue {parallel, running, waiting}`.
 - Проверка: `npm run brain:server-selftest` (порт 8790, подмена модели, временная папка).
+
+## Мозг v2: поиск «сначала школа» (SOURCES)
+
+Контракт с DIALOG — `brain/pipeline/dialogTypes.ts` (StandaloneQuery, RankedFragment, RetrievalResultV2). Поиск —
+`retrieveV2(opts, deps)` в `brain/pipeline/retrieve.ts` (старый `retrieve()` — обёртка над ним):
+
+- ярусы источников: 1 — учебник Kimyo класса ученика; 2 — соседний класс (или класс неизвестен), ATOMLAB того же класса;
+  3 — дальние классы, ATOMLAB, журнал; 4 — энциклопедия и указатель. Множители — `config.retrievalV2.tierBoost`;
+- школьный вопрос (`scope: 'school'`): Википедия не ищется, пока школа находит ответ; если нашлась — не больше одного
+  фрагмента, не выше 3-го места, и только когда нет учебника своего/соседнего класса по теме; DIALOG кладёт её в «ФОН»,
+  не в цитаты. Нет учебника — уверенность не выше «medium»; школа пуста, а энциклопедия сильная — `scopeUsed: 'broad'`;
+- проверка темы (`relevance.ts`): «слабый терм» — в коротком вопросе термин должен встречаться по существу (не «1 моль»,
+  «г/моль») — «What is a mole?» больше не тянет «Угольную кислоту»; персоналии на «кто/история» не требуют фамилии
+  в заголовке; на «кто открыл X» — только учёные, энциклопедия и фрагменты с X в заголовке;
+- классификаторы (`intent.ts`): `questionKind` (definition/why/howto_obtain/…/test_style/confirm/repeat),
+  `classifyScope` (school/broad/offtopic + причина), `GRADE_HINT_RE` (класс в реплике, группа 1).
+
+Проверки: `npm run brain:selftest` (relevance + `brain:selftest:retrieve`), `npx tsx scripts/brain/probe-retrieve.mts
+--grade=g7 --topic=валентность --entities=Na "Какая валентность у натрия?" --why` (ярус и тип источника каждого фрагмента).
+
+Eval v2 (`brain/eval/questions.jsonl`): многоходовые кейсы (`messages` до вопроса, `context {gradeId, detail, mode}`),
+категории dialog-ru/uz/en, scope, length, logic; поля `meta.standalone/followUp/scope/kind/lengthClass` и `done.sources`
+проверяются точно. Пороги: поля — 100 % в `--inproc`/`--mock-llm`, текст диалогов ≥ 90 %, scope ≥ 95 %, length ≥ 90 %,
+logic ≥ 85 %, wikiLeak = 0; общий без LLM — 80 % после сборки DIALOG. Живая подвыборка:
+`npm run brain:eval -- --sample=12 --cat=dialog-ru,dialog-uz,dialog-en,length` — ≥ 80 %. Пока chat.ts не шлёт
+`meta.standalone`, поля «ждут DIALOG» и v2-категории не входят в общий порог; при слиянии — `DIALOG_MERGED = true`
+в `scripts/brain/eval.mts` (или `--strict-dialog`). `--profile=laptop|gpu` подменяет `config.dialog.profile` в процессе.

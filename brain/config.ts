@@ -94,6 +94,28 @@ export type BrainConfig = {
     /** Журнал диалогов: 'all' — все; 'local' — только с этого ПК (ученики из интернета не пишутся); 'off' — никакие. */
     dialogLog: 'all' | 'local' | 'off'
   }
+  // — блок SOURCES (агент B) —
+  /**
+   * Поиск «сначала школа» (мозг v2, brain/pipeline/retrieve.ts → retrieveV2). Ярусы: учебник класса ученика (grade) →
+   * соседний класс (near, Δ = 1) → дальние классы (far) / ATOMLAB / журнал → энциклопедия (в школьном вопросе — только фон).
+   *   tierBoost — множители балла после проверки темы; encyclopediaSchool — Википедия в школьном вопросе, encyclopediaBroad — в широком;
+   *   maxEncyclopediaSchool — сколько фрагментов энциклопедии/указателя допускается в школьном ответе (и не выше 3-го места);
+   *   weakTermMinTf — в коротком вопросе совпавший терм должен встретиться в тексте ≥ N раз или в заголовке;
+   *   topicWeight / formulaWeight / glossaryWeight — веса темы диалога, формул-сущностей и русских термов глоссария (uz/en) в поиске журнала;
+   *   minMmrChars — нижняя граница бюджета MMR (символы), чтобы при маленькой подсказке ноутбука осталось ≥ 3 фрагментов для цитат и запасного пути.
+   */
+  retrievalV2: {
+    tierBoost: { grade: number; near: number; far: number; atomlab: number; journal: number; encyclopediaSchool: number; encyclopediaBroad: number; index: number }
+    maxEncyclopediaSchool: number
+    weakTermMinTf: number
+    topicWeight: number
+    formulaWeight: number
+    glossaryWeight: number
+    minMmrChars: number
+    /** учебник класса ученика ставится первым, только если его балл ≥ этой доли от лучшего фрагмента */
+    tier1MinShare: number
+  }
+  // — конец блока SOURCES —
 }
 
 export const DEFAULT_CONFIG: BrainConfig = {
@@ -136,6 +158,18 @@ export const DEFAULT_CONFIG: BrainConfig = {
     rate: { chatPerMin: 8, chatPerDay: 120, healthPerMin: 120, otherPerMin: 60, exemptLocal: true },
     dialogLog: 'all',
   },
+  // — блок SOURCES (агент B) —
+  retrievalV2: {
+    tierBoost: { grade: 1.3, near: 1.0, far: 0.9, atomlab: 1.05, journal: 1.0, encyclopediaSchool: 0.55, encyclopediaBroad: 1.0, index: 0.7 },
+    maxEncyclopediaSchool: 1,
+    weakTermMinTf: 2,
+    topicWeight: 0.6,
+    formulaWeight: 1.5,
+    glossaryWeight: 0.75,
+    minMmrChars: 3600,
+    tier1MinShare: 0.6,
+  },
+  // — конец блока SOURCES —
 }
 
 /**

@@ -79,6 +79,15 @@ console.log('поиск по теме:')
   ok(r.items.some((c) => /пристли|шееле/iu.test(c.title)), 'кто открыл кислород: учёные остаются', r.items.map((c) => c.title).join(' | '))
 }
 {
+  const { r } = await find('Кто открыл кислород?')
+  ok(r.items.some((c) => /^Пристли, Джозеф/u.test(c.title) || /Джозеф Пристли/u.test(c.title)), 'кто открыл кислород: Пристли не отброшен «не в заголовке»', r.items.map((c) => c.title).join(' | '))
+}
+{
+  const { r } = await find('What is a mole?')
+  ok(!r.items.slice(0, 3).some((c) => /Угольная кислота|Гидролиз солей/u.test(c.title)), 'What is a mole?: нет «Угольной кислоты»/«Гидролиза солей» в top-3 (слабый терм)', r.items.map((c) => c.title).join(' | '))
+  ok(!r.items.some((c) => /википед|wikipedia/iu.test(c.source)), 'What is a mole?: школьный вопрос без Википедии', r.items.map((c) => c.source).join(' | '))
+}
+{
   const { r } = await find('Что такое катализатор?')
   ok(/^Kimyo/i.test(r.items[0]?.source ?? ''), 'катализатор: первым — учебник Kimyo (а не Википедия)', `${r.items[0]?.source} · ${r.items[0]?.title}`)
 }
