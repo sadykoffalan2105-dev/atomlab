@@ -162,6 +162,7 @@
 {"id":"tr09","cat":"traps","lang":"ru","q":"Чем отличается химия от физики?","expect":{"mustNotMatch":["регламент"],"lang":"ru"}}
 {"id":"tr10","cat":"traps","lang":"ru","q":"Назови точную молярную массу вещества философский камень","expect":{"mustNotMatch":["\\d+[.,]\\d+\\s*г/моль"],"lang":"ru"}}
 {"id":"tr11","cat":"traps","lang":"en","q":"Who discovered element 200 and in which year?","expect":{"mustNotMatch":["\\b(1[5-9]\\d\\d|20[0-2]\\d)\\b"],"lang":"en"}}
+{"id":"tr12","cat":"traps","lang":"ru","q":"Почему небо голубое?","expect":{"mustNotMatch":["Голубев","Голубой сдвиг","синий купорос|медн\\p{L}* купорос"],"lang":"ru"}}
 {"id":"ob01","cat":"obtain","lang":"ru","q":"Как получить кислород?","expect":{"mustMatch":["KMnO₄","H₂O₂|KClO₃"],"mustNotMatch":["NaNO₂\\s*(→|=|\\(t)","NaNO₃\\s*→\\s*Na\\s*\\+"],"lang":"ru"}}
 {"id":"ob02","cat":"obtain","lang":"ru","q":"Способы получения водорода","expect":{"mustMatch":["Zn \\+ 2HCl → ZnCl₂ \\+ H₂"],"mustNotMatch":["Cu \\+ 2?HCl","Cu \\+ H₂SO₄\\s*→[^.;]*H₂(?!O|S)"],"lang":"ru"}}
 {"id":"ob03","cat":"obtain","lang":"ru","q":"Как получают углекислый газ в лаборатории?","expect":{"mustMatch":["CaCO₃ \\+ 2HCl"],"mustNotMatch":["CaCO₃ \\+ H₂SO₄","CaCO₃ \\+ HCl →"],"lang":"ru"}}

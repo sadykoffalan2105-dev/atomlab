@@ -303,15 +303,11 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     parts.push(tools.map((t) => t.text).join('\n'))
     for (const t of tools) cite(t.cite ?? '[ATOMLAB: расчёт]')
     confidence = Math.max(confidence, 0.95)
-    // «как получить X»: проверенные уравнения + одно пояснение учебника о получении + микровопрос (без карточки элемента)
+    // «как получить X»: только проверенные уравнения + микровопрос. Предложения учебника рядом со словом «получение» —
+    // чаще подписи к рисункам и условия задач («Прибор для получения…», «При прокаливании 60 г…»): в запасной ответ не берём
     const obtain = tools.find((t) => t.tool === 'obtain')
     if (obtain && inp.intent !== 'calc' && inp.intent !== 'homework') {
-      const extra = (lang === 'ru' ? sentencesFrom(items) : []).find((x) => /получ|выдел|добыва/iu.test(x.s) && !obtain.text.includes(x.s.slice(0, 24)))
       const body = [style.prefix + obtain.text]
-      if (extra && inp.mode !== 'live') {
-        body.push(extra.s)
-        cite(extra.cand.citation)
-      }
       body.push(pick(MICRO.how[lang], inp.seed))
       if (style.suffix) body.push(style.suffix)
       return { text: trimToWords(body.filter(Boolean).join('\n'), inp.wordLimit), citations, confidence }
