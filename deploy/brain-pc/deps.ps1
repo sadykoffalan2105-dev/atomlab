@@ -4,7 +4,7 @@
 # новый пакет — сам переключаюсь на полный `npm ci --ignore-scripts` в репозитории.
 param([string]$Root = 'C:\ATOMLAB', [switch]$Full, [switch]$DryRun)
 . (Join-Path $PSScriptRoot 'common.ps1')
-$script:DryRun = [bool]$DryRun
+$script:AtomDry = [bool]$DryRun
 $paths = Get-AtomPaths $Root
 if (-not $script:LogFile) { $script:LogFile = Join-Path $paths.Logs 'deps.log' }
 Update-PathFromRegistry
@@ -57,7 +57,7 @@ if ($mode -eq 'minimal') {
       if ($LASTEXITCODE -ne 0) { throw "npm install tsx@$ver не удался" }
     }
   } else { Ok "runtime: tsx $ver уже стоит" }
-  if ($script:DryRun) { return }
+  if ($script:AtomDry) { return }
   if (Test-BrainDeps) { return }
   Warn 'мозгу нужны пакеты сверх tsx — перехожу на полный npm ci'
   $mode = 'full'
@@ -68,7 +68,7 @@ Act 'npm ci --ignore-scripts в репозитории (полный режим)
   try { & $npm ci --ignore-scripts --no-audit --no-fund --loglevel=error 2>&1 | Out-Host } finally { Pop-Location }
   if ($LASTEXITCODE -ne 0) { throw 'npm ci не удался' }
 }
-if ($script:DryRun) { return }
+if ($script:AtomDry) { return }
 if (-not (Test-BrainDeps)) { throw 'мозг не загружается даже после npm ci — см. логи' }
 $state = Read-State $paths
 Set-StateValue $state 'deps' 'full'

@@ -3,13 +3,13 @@
 # Программы (Git, Node.js, Tailscale) не удаляются — ими могут пользоваться другие; их можно убрать в «Параметры → Приложения».
 param([string]$Root = 'C:\ATOMLAB', [switch]$DryRun, [switch]$Yes)
 . (Join-Path $PSScriptRoot 'common.ps1')
-$script:DryRun = [bool]$DryRun
+$script:AtomDry = [bool]$DryRun
 $paths = Get-AtomPaths $Root
 if (-not $DryRun -and -not (Test-Admin)) { Fail 'нужны права администратора'; exit 2 }
 
 function Ask([string]$q) {
   if ($Yes) { return $true }
-  if ($script:DryRun) { Say "    [DRY] вопрос: $q → нет" 'DarkCyan'; return $false }
+  if ($script:AtomDry) { Say "    [DRY] вопрос: $q → нет" 'DarkCyan'; return $false }
   return ((Read-Host "$q (д/н)") -match '^(д|да|y|yes)$')
 }
 

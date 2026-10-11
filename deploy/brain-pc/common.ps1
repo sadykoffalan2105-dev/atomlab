@@ -7,7 +7,7 @@ $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest с прогрес
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
 
-$script:DryRun = $false
+$script:AtomDry = $false
 $script:LogFile = $null
 
 function Get-AtomPaths([string]$Root) {
@@ -45,7 +45,7 @@ function Fail([string]$text) { Say ("    XX  " + $text) 'Red' }
 
 # Действие с побочным эффектом: в -DryRun только печатается.
 function Act([string]$desc, [scriptblock]$block) {
-  if ($script:DryRun) { Say ("    [DRY] " + $desc) 'DarkCyan'; return $null }
+  if ($script:AtomDry) { Say ("    [DRY] " + $desc) 'DarkCyan'; return $null }
   Say ("    ... " + $desc) 'DarkGray'
   return (& $block)
 }

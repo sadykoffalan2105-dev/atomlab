@@ -20,7 +20,7 @@ param(
   [switch]$NoPause
 )
 . (Join-Path $PSScriptRoot 'common.ps1')
-$script:DryRun = [bool]$DryRun
+$script:AtomDry = [bool]$DryRun
 $Pkg = $PSScriptRoot
 $paths = Get-AtomPaths $Root
 $cfg = Get-ServerConfig (Join-Path $Pkg 'server-config.json')
@@ -32,14 +32,14 @@ if ($Ssh -and $Ssh -notin 'yes', 'no') { throw '-Ssh: yes или no' }
 $report = [ordered]@{}
 $t0 = Get-Date
 
-if (-not $script:DryRun) {
+if (-not $script:AtomDry) {
   New-Item -ItemType Directory -Force -Path $paths.Root, $paths.Logs, $paths.Run, $paths.Bin | Out-Null
   $script:LogFile = Join-Path $paths.Logs ("install-{0:yyyyMMdd-HHmmss}.log" -f (Get-Date))
 }
 
 Say ''
 Say '  ATOMLAB — установка сервера ИИ-учителя' 'White'
-Say ("  папка: {0} · режим: {1}{2}" -f $paths.Root, $Only, $(if ($script:DryRun) { ' · ПРОБНЫЙ ПРОГОН (ничего не меняется)' } else { '' })) 'White'
+Say ("  папка: {0} · режим: {1}{2}" -f $paths.Root, $Only, $(if ($script:AtomDry) { ' · ПРОБНЫЙ ПРОГОН (ничего не меняется)' } else { '' })) 'White'
 
 # ---------------------------------------------------------------- 1. проверки
 Step '1. Проверка компьютера'
@@ -49,10 +49,10 @@ Say ("    Windows: {0} ({1}), процессор: {2}" -f $os.Caption, $os.Versi
 $report['Windows'] = "$($os.Caption) $($os.Version)"
 if ($full) {
   if (-not $is64) {
-    if ($script:DryRun) { Warn 'нужна Windows x64 (это не x64 — в пробном прогоне продолжаю)' } else { Fail 'нужна 64-битная Windows на процессоре Intel/AMD (x64)'; exit 2 }
+    if ($script:AtomDry) { Warn 'нужна Windows x64 (это не x64 — в пробном прогоне продолжаю)' } else { Fail 'нужна 64-битная Windows на процессоре Intel/AMD (x64)'; exit 2 }
   } else { Ok 'Windows x64' }
   if (-not (Test-Admin)) {
-    if ($script:DryRun) { Warn 'нет прав администратора (в пробном прогоне продолжаю)' } else { Fail 'нужны права администратора — запустите УСТАНОВИТЬ.bat двойным щелчком и нажмите «Да»'; exit 2 }
+    if ($script:AtomDry) { Warn 'нет прав администратора (в пробном прогоне продолжаю)' } else { Fail 'нужны права администратора — запустите УСТАНОВИТЬ.bat двойным щелчком и нажмите «Да»'; exit 2 }
   } else { Ok 'права администратора' }
 }
 $drive = (Split-Path -Qualifier $paths.Root)
@@ -60,7 +60,7 @@ $freeGB = [Math]::Round((Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='{
 $needGB = [int]$cfg.minDiskGB
 if (-not $full) { $needGB = 2 }
 if ($freeGB -lt $needGB) {
-  if ($script:DryRun) { Warn "свободно $freeGB ГБ на $drive, нужно ≥ $needGB ГБ" } else { Fail "на диске $drive свободно $freeGB ГБ, нужно не меньше $needGB ГБ"; exit 2 }
+  if ($script:AtomDry) { Warn "свободно $freeGB ГБ на $drive, нужно ≥ $needGB ГБ" } else { Fail "на диске $drive свободно $freeGB ГБ, нужно не меньше $needGB ГБ"; exit 2 }
 } else { Ok "свободно $freeGB ГБ на $drive (нужно ≥ $needGB)" }
 
 $gpu = $null
@@ -81,7 +81,7 @@ if ($full) {
   }
   if (-not $gpu) {
     Warn 'видеокарта NVIDIA не найдена (нет nvidia-smi). Без неё ответы будут ОЧЕНЬ медленными.'
-    if (-not $script:DryRun -and -not $NoPause) {
+    if (-not $script:AtomDry -and -not $NoPause) {
       $a = Read-Host 'Продолжить без видеокарты? (д/н)'
       if ($a -notmatch '^(д|да|y|yes)$') { exit 2 }
     }
@@ -93,7 +93,7 @@ $report['GPU'] = $(if ($gpu) { "{0}, {1:N1} ГБ, драйвер {2}" -f $gpu.na
 function Install-Git {
   Update-PathFromRegistry
   if (Find-Git) { Ok ("Git: " + (& (Find-Git) --version)); return }
-  if ($script:DryRun) { Say '    [DRY] winget install Git.Git (запасной путь: github.com/git-for-windows, проверка подписи «Johannes Schindelin»)' 'DarkCyan'; return }
+  if ($script:AtomDry) { Say '    [DRY] winget install Git.Git (запасной путь: github.com/git-for-windows, проверка подписи «Johannes Schindelin»)' 'DarkCyan'; return }
   if (-not (Invoke-Winget 'Git.Git')) {
     Warn 'winget не справился — качаю Git с github.com/git-for-windows'
     $rel = Invoke-RestMethod -UseBasicParsing 'https://api.github.com/repos/git-for-windows/git/releases/latest'
@@ -117,7 +117,7 @@ function Install-Node {
     if ([int]($v.TrimStart('v').Split('.')[0]) -ge 20) { Ok "Node.js $v"; return }
     Warn "Node.js $v старый — ставлю LTS"
   }
-  if ($script:DryRun) { Say '    [DRY] winget install OpenJS.NodeJS.LTS (запасной путь: nodejs.org MSI, подпись «OpenJS Foundation»)' 'DarkCyan'; return }
+  if ($script:AtomDry) { Say '    [DRY] winget install OpenJS.NodeJS.LTS (запасной путь: nodejs.org MSI, подпись «OpenJS Foundation»)' 'DarkCyan'; return }
   if (-not (Invoke-Winget 'OpenJS.NodeJS.LTS')) {
     Warn 'winget не справился — качаю Node.js LTS с nodejs.org'
     $idx = Invoke-RestMethod -UseBasicParsing 'https://nodejs.org/dist/index.json'
@@ -138,7 +138,7 @@ function Install-Node {
 function Install-Ollama {
   $exe = Join-Path $paths.Ollama 'ollama.exe'
   if (Test-Path -LiteralPath $exe) { Ok ("Ollama: " + ((& $exe --version 2>&1 | Out-String).Trim() -replace '\s+', ' ')); return }
-  if ($script:DryRun) { Say "    [DRY] скачать github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip (~1,5 ГБ) → $($paths.Ollama), SHA-256 + подпись «Ollama Inc.»" 'DarkCyan'; return }
+  if ($script:AtomDry) { Say "    [DRY] скачать github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip (~1,5 ГБ) → $($paths.Ollama), SHA-256 + подпись «Ollama Inc.»" 'DarkCyan'; return }
   $zip = Join-Path $paths.Cache 'ollama-windows-amd64.zip'
   try {
     Say '    качаю Ollama (~1,5 ГБ, несколько минут)…'
@@ -181,7 +181,7 @@ function Stop-TrayOllama {
 function Install-Tailscale {
   $ts = Find-Tailscale
   if ($ts) { Ok ("Tailscale: " + ((& $ts version 2>&1 | Select-Object -First 1))); return }
-  if ($script:DryRun) { Say '    [DRY] winget install Tailscale.Tailscale (запасной путь: pkgs.tailscale.com MSI, подпись «Tailscale Inc.», TS_UNATTENDEDMODE=always)' 'DarkCyan'; return }
+  if ($script:AtomDry) { Say '    [DRY] winget install Tailscale.Tailscale (запасной путь: pkgs.tailscale.com MSI, подпись «Tailscale Inc.», TS_UNATTENDEDMODE=always)' 'DarkCyan'; return }
   if (-not (Invoke-Winget 'Tailscale.Tailscale')) {
     Warn 'winget не справился — качаю Tailscale с pkgs.tailscale.com'
     $msi = Join-Path $paths.Cache 'tailscale-setup-latest-amd64.msi'
@@ -229,7 +229,7 @@ if (Test-Path -LiteralPath (Join-Path $paths.Repo '.git')) {
     # origin — всегда GitHub: автообновление берёт код оттуда (даже если клонировали с локального пути)
     if ($RepoSource -notmatch '^https://') { & $git @gsafe -C $paths.Repo remote set-url origin 'https://github.com/sadykoffalan2105-dev/atomlab' }
   }
-  if (-not $script:DryRun) { Ok ("код: " + ((& $git @gsafe -C $paths.Repo log -1 --format='%h %s') -join '')) }
+  if (-not $script:AtomDry) { Ok ("код: " + ((& $git @gsafe -C $paths.Repo log -1 --format='%h %s') -join '')) }
 }
 
 # служебные скрипты → C:\ATOMLAB\bin (оттуда их запускает планировщик; автообновление обновляет их из репозитория)
@@ -243,9 +243,9 @@ Act "скрипты обслуживания → $($paths.Bin)" {
 # ---------------------------------------------------------------- 7. зависимости
 Step '7. Зависимости (tsx)'
 $depsArgs = @{ Root = $Root }
-if ($script:DryRun) { $depsArgs['DryRun'] = $true }
+if ($script:AtomDry) { $depsArgs['DryRun'] = $true }
 & (Join-Path $Pkg 'deps.ps1') @depsArgs
-$script:DryRun = [bool]$DryRun
+$script:AtomDry = [bool]$DryRun
 
 # ---------------------------------------------------------------- 8. данные
 Step '8. База знаний (снимок)'
@@ -272,10 +272,10 @@ if (-not (Test-Path -LiteralPath $snap)) {
 # ---------------------------------------------------------------- 9. config.json
 Step '9. Настройки мозга (config.json)'
 $wcArgs = @{ Root = $Root }
-if ($script:DryRun) { $wcArgs['DryRun'] = $true }
+if ($script:AtomDry) { $wcArgs['DryRun'] = $true }
 & (Join-Path $Pkg 'write-brain-config.ps1') @wcArgs
-$script:DryRun = [bool]$DryRun
-if ($ChatModel -and -not $script:DryRun) {
+$script:AtomDry = [bool]$DryRun
+if ($ChatModel -and -not $script:AtomDry) {
   # проверка на другом ПК: своя модель вместо 14b (в config.json сервера не попадает — только для этого запуска)
   $cj = Read-Json (Join-Path $paths.Data 'config.json')
   Set-StateValue $cj 'chatModels' @($ChatModel)
@@ -287,7 +287,7 @@ if ($ChatModel -and -not $script:DryRun) {
 # ---------------------------------------------------------------- code-data: запуск и один вопрос
 if (-not $full) {
   Step "10. Проверка: мозг на порту $BrainPort"
-  if ($script:DryRun) { Say '    [DRY] node --import tsx brain/server.ts; /health; один вопрос' 'DarkCyan'; exit 0 }
+  if ($script:AtomDry) { Say '    [DRY] node --import tsx brain/server.ts; /health; один вопрос' 'DarkCyan'; exit 0 }
   Set-BrainEnv $paths $BrainPort
   $env:BRAIN_NO_WARM = '1'   # чужой (общий) Ollama не прогреваем лишними моделями
   $loader = Get-TsxLoader $paths
@@ -338,7 +338,7 @@ Step '10. Ollama (служба) и модели'
 $env:OLLAMA_HOST = $cfg.ollama.host
 Register-AtomTask 'ATOMLAB Ollama' 'run-ollama.ps1'
 Act 'запустить ATOMLAB Ollama' { Start-ScheduledTask -TaskName 'ATOMLAB Ollama' }
-if (-not $script:DryRun) {
+if (-not $script:AtomDry) {
   for ($i = 0; $i -lt 60; $i++) { if (Invoke-Http 'http://127.0.0.1:11434/api/version' 2) { break }; Start-Sleep -Seconds 2 }
   if (-not (Invoke-Http 'http://127.0.0.1:11434/api/version' 2)) { throw 'Ollama не запустилась — см. C:\ATOMLAB\logs\ollama-*.log' }
   Ok 'Ollama отвечает'
@@ -350,7 +350,7 @@ foreach ($m in @($cfg.models.chat, $cfg.models.fast, $cfg.models.embed) | Select
     if ($LASTEXITCODE -ne 0) { throw "ollama pull $m не удался" }
   }
 }
-if (-not $script:DryRun) {
+if (-not $script:AtomDry) {
   $state = Read-State $paths
   Set-StateValue $state 'modelsKey' (Get-ModelsKey $cfg)
   Write-JsonNoBom $paths.State $state
@@ -383,7 +383,7 @@ Act 'powercfg: сон и гибернация от сети — никогда, 
 Step '14. Публичный адрес (Tailscale Funnel)'
 $publicUrl = $null
 $ts = Find-Tailscale
-if (-not $ts -and -not $script:DryRun) { Warn 'Tailscale не найден — шаг пропущен' }
+if (-not $ts -and -not $script:AtomDry) { Warn 'Tailscale не найден — шаг пропущен' }
 else {
   if (-not $AuthKey) {
     foreach ($kf in @((Join-Path $Pkg 'ключ.txt'), (Join-Path $Pkg 'key.txt'))) {
@@ -397,7 +397,7 @@ else {
   if ($ts) { try { $online = ((& $ts status --json 2>$null | Out-String) | ConvertFrom-Json).BackendState -eq 'Running' } catch { } }
   if ($online) { Ok 'Tailscale уже подключён' }
   else {
-    if (-not $AuthKey -and -not $script:DryRun -and -not $NoPause) { $AuthKey = (Read-Host 'Вставьте ключ Tailscale от владельца (начинается с tskey-) и нажмите Enter').Trim() }
+    if (-not $AuthKey -and -not $script:AtomDry -and -not $NoPause) { $AuthKey = (Read-Host 'Вставьте ключ Tailscale от владельца (начинается с tskey-) и нажмите Enter').Trim() }
     if (-not $AuthKey) { Warn 'ключа нет — публичный адрес не настроен. Положите ключ в ключ.txt и запустите УСТАНОВИТЬ.bat ещё раз.' }
     else {
       Act 'tailscale up --auth-key=*** --hostname=atomlab-brain --unattended' {
@@ -409,7 +409,7 @@ else {
   }
   if ($online) {
     $fOk = Act "tailscale funnel --bg $BrainPort" { Enable-Funnel $ts $BrainPort 900 }
-    if (-not $script:DryRun) {
+    if (-not $script:AtomDry) {
       if ($fOk) {
         $publicUrl = Get-FunnelUrl $ts
         $state = Read-State $paths
@@ -425,7 +425,7 @@ else {
 # ---------------------------------------------------------------- 15. удалённое управление (по согласию)
 Step '15. Удалённое управление для владельца (по желанию)'
 if (-not $Ssh) {
-  if ($script:DryRun -or $NoPause) { $Ssh = 'no' }
+  if ($script:AtomDry -or $NoPause) { $Ssh = 'no' }
   else {
     Say '    Владелец сможет заходить на этот ПК по SSH ТОЛЬКО через закрытую сеть Tailscale (из интернета — нельзя),'
     Say '    чтобы чинить сервер без вашего участия. Нужен пароль учётной записи Windows, его вы сообщаете сами.'
@@ -447,7 +447,7 @@ if ($Ssh -eq 'yes') {
 
 # ---------------------------------------------------------------- 16. самопроверка и отчёт
 Step '16. Самопроверка'
-if ($script:DryRun) {
+if ($script:AtomDry) {
   Say '    [DRY] /health локально и через Funnel, 20 живых вопросов (scripts/brain/eval.mts --sample=20), отчёт.txt на рабочий стол' 'DarkCyan'
   Say ''
   Say ("  ПРОБНЫЙ ПРОГОН ЗАВЕРШЁН за {0:N0} с — ничего не установлено и не изменено." -f ((Get-Date) - $t0).TotalSeconds) 'Green'

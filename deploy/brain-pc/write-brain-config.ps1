@@ -2,7 +2,7 @@
 # Существующий файл не заменяется целиком: меняются только поля из server-config.json, ручные правки остаются.
 param([string]$Root = 'C:\ATOMLAB', [switch]$DryRun)
 . (Join-Path $PSScriptRoot 'common.ps1')
-$script:DryRun = [bool]$DryRun
+$script:AtomDry = [bool]$DryRun
 $paths = Get-AtomPaths $Root
 $cfgPath = Join-Path $paths.Bin 'server-config.json'
 if (-not (Test-Path -LiteralPath $cfgPath)) { $cfgPath = Join-Path $PSScriptRoot 'server-config.json' }

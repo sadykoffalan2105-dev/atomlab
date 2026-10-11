@@ -6,7 +6,7 @@
 #     (после forceRestartAfterRuns попыток — всё равно). Журнал: C:\ATOMLAB\logs\update.log.
 param([string]$Root = 'C:\ATOMLAB', [switch]$DryRun, [switch]$Force)
 . (Join-Path $PSScriptRoot 'common.ps1')
-$script:DryRun = [bool]$DryRun
+$script:AtomDry = [bool]$DryRun
 $paths = Get-AtomPaths $Root
 New-Item -ItemType Directory -Force -Path $paths.Logs, $paths.Run | Out-Null
 $script:LogFile = Join-Path $paths.Logs 'update.log'
@@ -75,7 +75,7 @@ try {
     $cfg = Get-ServerConfig (Join-Path $paths.Bin 'server-config.json')
     if ($changed -contains 'package-lock.json' -or $changed -contains 'package.json') {
       Say 'package-lock.json изменился — обновляю зависимости'
-      if (-not $script:DryRun) { & (Join-Path $paths.Bin 'deps.ps1') -Root $Root }
+      if (-not $script:AtomDry) { & (Join-Path $paths.Bin 'deps.ps1') -Root $Root }
     }
     $pending = $true
   }
@@ -120,7 +120,7 @@ try {
     }
   }
   Set-StateValue $state 'lastUpdateCheck' (Get-Date).ToString('s')
-  if (-not $script:DryRun) { Write-JsonNoBom $paths.State $state }
+  if (-not $script:AtomDry) { Write-JsonNoBom $paths.State $state }
 
   # старые журналы (> 14 дней) — только наши логи в C:\ATOMLAB\logs, папку данных не трогаем
   Get-ChildItem -LiteralPath $paths.Logs -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-14) } | ForEach-Object {
