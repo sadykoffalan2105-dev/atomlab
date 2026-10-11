@@ -68,7 +68,7 @@
     "brain:smoke": "tsx scripts/brain/smoke.mts",
     "brain:selftest": "tsx scripts/brain/relevance.selftest.mts && tsx scripts/brain/retrieve.selftest.mts && tsx scripts/brain/dialog.selftest.mts",
     "brain:selftest:retrieve": "tsx scripts/brain/retrieve.selftest.mts",
-    "brain:server-selftest": "tsx scripts/brain/server.selftest.mts",
+    "brain:server-selftest": "tsx scripts/brain/server.selftest.mts && tsx scripts/brain/photo.selftest.mts",
     "brain:admin-token": "tsx scripts/brain/admin-token.mts",
     "brain:probe": "tsx scripts/brain/probe-retrieve.mts",
     "brain:package": "tsx scripts/brain/package.mts",

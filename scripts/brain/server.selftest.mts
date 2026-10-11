@@ -240,6 +240,50 @@ const ms7 = Date.now() - t7
 await p6
 ok(!q7.queue.length && q7.done?.reason === 'busy' && queue.stats().busyPredicted >= 1, 'по замерам не дождаться за queueWaitMs → сразу запасной путь (reason busy), без пустого ожидания', `${ms7} мс, оценка по ${queue.stats().served} ответам`)
 
+console.log('  фото задачи (лимиты, сигнатура, журнал)')
+{
+  // модель подменная без зрения: фото проходят проверки, а ответ — честное «фото не читаю» (reason no_vision)
+  const ph = cfg.server.photo
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(90 * 1024, 5)]).toString('base64')
+  const photoBody = (images: string[], q = 'Объясни задачу') =>
+    JSON.stringify({ sessionId: 'selftest-photo', lang: 'ru', stream: true, messages: [{ role: 'user', content: q, images }], context: { gradeId: 'g8', mode: 'chat', detail: 'brief' } })
+  const F = fwd('198.51.100.60')
+  const big = photoBody([jpeg])
+  const p1 = await call('POST', '/chat', { headers: { ...F, ...JSONH, Origin: ORIGIN }, body: big })
+  const ev1 = p1.status === 200 ? (parseSse(p1.text) as { event: string; data: Record<string, unknown> }[]) : []
+  const d1 = ev1.find((e) => e.event === 'done')?.data
+  ok(Buffer.byteLength(big) > cfg.server.bodyLimitBytes && p1.status === 200 && d1?.reason === 'no_vision' && /не умеет работать с картинками/.test(String(d1?.text)), 'фото > 64 КБ: тело принято (лимит с фото выше), модель без зрения → честно, reason no_vision', `${p1.status} ${String(d1?.reason)}`)
+  const meta1 = ev1.find((e) => e.event === 'meta')?.data
+  ok(meta1?.reason === 'no_vision', 'meta: reason no_vision')
+  const three = await call('POST', '/chat', { headers: { ...fwd('198.51.100.61'), ...JSONH }, body: photoBody([jpeg, jpeg, jpeg]) })
+  ok(three.status === 400 && (three.json?.error as { code?: string })?.code === 'too_many_images', 'три фото → 400 too_many_images')
+  const hugeImg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(ph.maxImageBytes + 10, 1)]).toString('base64')
+  const r413 = await call('POST', '/chat', { headers: { ...fwd('198.51.100.62'), ...JSONH }, body: photoBody([hugeImg]) })
+  ok(r413.status === 413 && (r413.json?.error as { code?: string })?.code === 'image_too_large', 'фото > 1,5 МБ → 413 image_too_large')
+  // тело больше лимита с фото: отказ по Content-Length сразу, без чтения (само тело не шлём — иначе сокет рвётся раньше ответа)
+  const r413b = await call('POST', '/chat', { headers: { ...fwd('198.51.100.63'), ...JSONH, 'Content-Length': String(ph.bodyLimitBytes + 1) } })
+  ok(r413b.status === 413 && (r413b.json?.error as { code?: string })?.code === 'too_large', `тело > ${Math.round(ph.bodyLimitBytes / 1048576)} МБ → 413 too_large (и с фото)`)
+  const gif = Buffer.concat([Buffer.from('GIF89a'), Buffer.alloc(200, 3)]).toString('base64')
+  const r415 = await call('POST', '/chat', { headers: { ...fwd('198.51.100.64'), ...JSONH }, body: photoBody([gif]) })
+  ok(r415.status === 415 && (r415.json?.error as { code?: string })?.code === 'bad_image', 'не JPEG/PNG/WebP (сигнатура GIF) → 415')
+  const fake = Buffer.from('<script>alert(1)</script>'.repeat(4)).toString('base64')
+  ok((await call('POST', '/chat', { headers: { ...fwd('198.51.100.65'), ...JSONH }, body: photoBody([fake]) })).status === 415, 'текст под видом фото → 415')
+  // отдельный лимит фото: perMin в минуту, дальше 429 rule photo_minute; текстовые вопросы того же ученика идут
+  const L = fwd('198.51.100.66')
+  const small = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 5)]).toString('base64')
+  let photosOk = true
+  for (let i = 0; i < ph.perMin; i++) if ((await call('POST', '/chat', { headers: { ...L, ...JSONH }, body: photoBody([small]) })).status !== 200) photosOk = false
+  const r429 = await call('POST', '/chat', { headers: { ...L, ...JSONH }, body: photoBody([small]) })
+  ok(photosOk && r429.status === 429 && r429.json?.rule === 'photo_minute' && Number(r429.headers['retry-after']) > 0, `фото: ${ph.perMin} в минуту, дальше 429 rule photo_minute`, `${r429.status} ${String(r429.json?.rule)}`)
+  const txt = await call('POST', '/chat', { headers: { ...L, ...JSONH }, body: chatBody('Что такое моль?') })
+  ok(txt.status === 200, 'тот же ученик без фото — не ограничен лимитом фото')
+  const empty = await call('POST', '/chat', { headers: { ...fwd('198.51.100.67'), ...JSONH }, body: photoBody([small], '') })
+  ok(empty.status === 200 && /не умеет работать с картинками/.test(empty.text), 'фото без подписи (content "") — принято, текст по умолчанию')
+  const logNow = fs.existsSync(FILES.dialogs) ? fs.readFileSync(FILES.dialogs, 'utf8') : ''
+  const photoLines = logNow.split('\n').filter((l) => l.includes('"hasImage":true'))
+  ok(photoLines.length >= ph.perMin + 1 && !logNow.includes(small.slice(0, 40)) && !logNow.includes(jpeg.slice(0, 40)), 'журнал: строки с фото помечены hasImage, base64 картинок нет', `${photoLines.length} строк с фото`)
+}
+
 console.log('  журнал диалогов')
 const lines = () => (fs.existsSync(FILES.dialogs) ? fs.readFileSync(FILES.dialogs, 'utf8').split('\n').filter(Boolean).length : 0)
 const log = fs.existsSync(FILES.dialogs) ? fs.readFileSync(FILES.dialogs, 'utf8') : ''

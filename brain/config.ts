@@ -93,6 +93,12 @@ export type BrainConfig = {
     rate: { chatPerMin: number; chatPerDay: number; healthPerMin: number; otherPerMin: number; exemptLocal: boolean }
     /** Журнал диалогов: 'all' — все; 'local' — только с этого ПК (ученики из интернета не пишутся); 'off' — никакие. */
     dialogLog: 'all' | 'local' | 'off'
+    /**
+     * «Сфотографируй задачу» (brain/http/photo.ts): maxImages — фото в одном сообщении; maxImageBytes — одно фото
+     * после декодирования base64; bodyLimitBytes — лимит тела ТОЛЬКО для запросов с фото (без фото — bodyLimitBytes выше);
+     * perMin/perDay — отдельный лимит фото-запросов на ученика (модель со зрением дороже текста).
+     */
+    photo: { maxImages: number; maxImageBytes: number; bodyLimitBytes: number; perMin: number; perDay: number }
   }
   // — блок SOURCES (агент B) —
   /**
@@ -183,6 +189,8 @@ export const DEFAULT_CONFIG: BrainConfig = {
     chatStreamsPerClient: 2,
     rate: { chatPerMin: 8, chatPerDay: 120, healthPerMin: 120, otherPerMin: 60, exemptLocal: true },
     dialogLog: 'all',
+    // фото сжимает сайт (≤ 1280 px, JPEG 0,8 — обычно 150–400 КБ); 1,5 МБ — запас на чужие клиенты
+    photo: { maxImages: 2, maxImageBytes: 1_572_864, bodyLimitBytes: 4 * 1024 * 1024, perMin: 3, perDay: 30 },
   },
   // — блок SOURCES (агент B) —
   retrievalV2: {

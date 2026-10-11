@@ -15,7 +15,8 @@ import http from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, loadConfig, PORT, SERVICE, VERSION, type BrainConfig } from './config.ts'
 import { clientInfo } from './http/clientIp.ts'
-import { BodyError, checkChatLimits, checkOriginWith, corsHeaders, isAdmin, json, jsonError, readJson } from './http/guard.ts'
+import { BodyError, checkChatLimits, checkOriginWith, corsHeaders, isAdmin, json, jsonError, readJson, readJsonWithSize } from './http/guard.ts'
+import { checkChatImages, fillPhotoText, photoLimits, photoRules } from './http/photo.ts'
 import { RateLimiter, StreamCounter, type RateRule } from './http/rateLimit.ts'
 import { EmbedStore } from './kb/embedStore.ts'
 import { Journal, validateAppend } from './kb/journal.ts'
@@ -95,7 +96,8 @@ export function healthBody(brain: Brain) {
     service: SERVICE,
     version: VERSION,
     contract: CONTRACT,
-    llm: { available: !!st?.available, chatModel: st?.chatModel ?? null, fastModel: st?.fastModel ?? null, embedModel: st?.embedModel ?? null },
+    // vision (сверх контракта v1): чат-модель понимает фото задачи (/api/show capabilities ∋ 'vision')
+    llm: { available: !!st?.available, chatModel: st?.chatModel ?? null, fastModel: st?.fastModel ?? null, embedModel: st?.embedModel ?? null, vision: st?.vision === true },
     kb: { docs: brain.deps.kb.docCount + brain.deps.journal.searchableCount(), journalLines: brain.deps.journal.lines, embedded: brain.deps.embeds?.size ?? 0 },
     // нагрузка (сверх контракта v1): сайт может честно сказать «много вопросов, отвечу чуть позже»
     ...(q ? { queue: { parallel: q.parallel, running: q.running, waiting: q.waiting } } : {}),
@@ -147,9 +149,11 @@ export function createServer(brain: Brain): http.Server {
     const method = req.method ?? 'GET'
     const path = url.pathname
     const admin = isAdmin(req, client, cfg.adminToken)
+    // владелец с этого ПК (и админ по ключу) не ограничен ни по частоте, ни по фото
+    const limited = !((sc.rate.exemptLocal && client.local) || (admin && cfg.adminToken))
     try {
-      // лимит частоты — до чтения тела; владелец с этого ПК (и админ по ключу) не ограничен
-      if (!((sc.rate.exemptLocal && client.local) || (admin && cfg.adminToken))) {
+      // лимит частоты — до чтения тела
+      if (limited) {
         const rr = rateRules(method, path, sc.rate)
         const v = limiter.hit(rr.group, client.key, rr.rules)
         if (!v.ok) {
@@ -203,11 +207,34 @@ export function createServer(brain: Brain): http.Server {
         return json(res, 200, { ok: true, id: record.id, line, ...(record.kind === 'dup' ? { dup: true, ref: record.meta.ref } : {}) }, cors)
       }
       if (method === 'POST' && path === '/chat') {
-        const body = await readJson(req, sc.bodyLimitBytes)
+        // фото задачи (brain/http/photo.ts): тело с фото может быть больше обычного; без фото — прежний лимит (413)
+        const ph = photoLimits(sc)
+        const { body, bytes } = await readJsonWithSize(req, Math.max(sc.bodyLimitBytes, ph.bodyLimitBytes))
+        const photo = checkChatImages(body, ph)
+        if (!photo.ok) return jsonError(res, photo.status, photo.code, photo.message, cors)
+        if (!photo.images.length && bytes > sc.bodyLimitBytes) return jsonError(res, 413, 'too_large', `тело больше ${sc.bodyLimitBytes} байт`, cors)
         const lim = checkChatLimits(body, sc)
         if (lim) return jsonError(res, 400, 'bad_request', lim, cors)
+        if (photo.images.length) fillPhotoText(body)
         const chat = validateChatRequest(body)
         if (typeof chat === 'string') return jsonError(res, 400, 'bad_request', chat, cors)
+        if (photo.images.length) {
+          // отдельный лимит фото на ученика (модель со зрением дороже текста); 429 с rule photo_* — сайт не считает мозг занятым
+          if (limited) {
+            const v = limiter.hit('photo', client.key, photoRules(ph))
+            if (!v.ok) {
+              return json(
+                res,
+                429,
+                { ok: false, error: 'rate', code: 'rate', rule: v.rule, retryAfterSec: v.retryAfterSec, message: 'Слишком много фото подряд — подождите немного или напишите условие текстом.' },
+                { ...cors, 'Retry-After': String(v.retryAfterSec) },
+              )
+            }
+          }
+          // в конвейер — только в памяти запроса; журнал получает лишь флаг hasImage (brain/pipeline/photo.ts)
+          chat.images = photo.images
+          chat.hasImage = true
+        }
         if (!streams.tryOpen(client.key, sc.chatStreamsPerClient)) {
           return json(res, 429, { ok: false, error: 'rate', code: 'rate', rule: 'streams', retryAfterSec: 5, message: 'Дождитесь ответа на предыдущий вопрос.' }, { ...cors, 'Retry-After': '5' })
         }
@@ -227,6 +254,8 @@ export function createServer(brain: Brain): http.Server {
         const mark = <T extends { reason?: string }>(e: T): T => (ticket?.busy && ticket.busy !== 'abort' ? { ...e, reason: 'busy' } : e)
         try {
           if (brain.ready) await brain.ready
+          // фото: умеет ли чат-модель картинки, узнаём до ответа (/api/show; старт сервера мог ещё не успеть)
+          if (chat.images?.length) await brain.ollama?.ensureCapabilities()
           await runChat(
             chat,
             reqDeps,
