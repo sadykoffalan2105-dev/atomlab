@@ -38,7 +38,7 @@ const massFractionElement: Solver = {
   id: 'mass_fraction_element',
   priority: 20,
   solve(ctx) {
-    if (!/(массов\p{L}* дол|\bω|w\s*\(|процентн\p{L}* (содержан|состав)|mass (fraction|percent)|percent(age)? (by mass|composition)|massa ulush|foiz (tarkib|ulush)|сколько процентов)/iu.test(ctx.cmp)) return null
+    if (!/(массов\p{L}* дол|ω|w\s*\(|процентн\p{L}* (содержан|состав)|mass (fraction|percent)|percent(age)? (by mass|composition)|massa ulush|foiz (tarkib|ulush)|сколько процентов)/iu.test(ctx.cmp)) return null
     if (/(раствор|eritma|solution|смес|aralashma|mixture|примес|выход|unum|yield)/iu.test(ctx.cmp)) return null
     const amounts = ctx.qs.filter(isAmount)
     if (amounts.length || ctx.qs.some((q) => q.unit === 'pct')) return null

@@ -188,12 +188,12 @@ export function askKinds(clause: string): AskKind[] {
     const m = re.exec(c)
     if (m) found.push({ k, i: m.index })
   }
-  add('mass', /(масс|грамм|\bг\b|\bmass|massa|gramm|weigh|\bkg\b|кг)/u)
-  add('volume', /(объ[её]м|литр|\bл\b|volume|hajm|litr|\bm3\b|м3|м³)/u)
-  add('mol', /(количеств\p{L}* веществ|\bмоль|сколько моль|\bmol\b|moles|amount of substance|modda miqdor)/u)
+  add('mass', /(масс|грамм|(?<![\p{L}])г(?![\p{L}])|\bmass|massa|gramm|weigh|\bkg\b|кг)/u)
+  add('volume', /(объ[её]м|литр|(?<![\p{L}])л(?![\p{L}])|volume|hajm|litr|\bm3\b|м3|м³)/u)
+  add('mol', /(количеств\p{L}* веществ|(?<![\p{L}])моль|сколько моль|\bmol\b|moles|amount of substance|modda miqdor)/u)
   add('particles', /(молекул|атом\p{L}*(?! масс)|частиц|molecules|atoms|particles|molekula|zarra)/u)
   add('heat', /(теплот|тепла|энерги|кдж|heat|energy|\bkj\b|issiqlik|energiya)/u)
-  add('pct', /(массов\p{L}* дол|выход|процент|\bω|долю|mass fraction|yield|percent|ulush|unum|foiz)/u)
+  add('pct', /(массов\p{L}* дол|выход|процент|ω|долю|mass fraction|yield|percent|ulush|unum|foiz)/u)
   add('conc', /(концентрац|молярност|konsentratsiya|molarity|concentration)/u)
   return found.sort((a, b) => a.i - b.i).map((x) => x.k)
 }

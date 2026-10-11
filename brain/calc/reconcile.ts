@@ -2,13 +2,13 @@
  * Школьный калькулятор: сверка ответа модели с расчётом (чистая функция).
  * Если среди инструментов есть calc:* и в предложении «Ответ/Javob/Answer» (или в последнем предложении ответа
  * модели) стоит число, которого нет в расчёте (допуск 0,5 % или 0,01), — это предложение заменяется строкой
- * «Ответ: …» инструмента. Если модель не привела ни одного шага (нет «=» и нет чисел инструмента) — в конец
- * добавляется блок «Точный расчёт: …» целиком. Хук: dialogCheck.ts selfCheck после шага (1).
+ * «Ответ: …» инструмента. Если итогового числа в ответе нет — в конец добавляется строка «Ответ: …», а если модель
+ * не привела ни одного шага (нет «=») — блок «Точный расчёт: …» целиком. Хук: dialogCheck.ts selfCheck после шага (1).
  */
 import type { Lang } from '../pipeline/normalize.ts'
 import type { ToolResult } from '../pipeline/tools.ts'
 
-const ANSWER_RE = /^(?:\s*[-•*]?\s*)(ответ|javob|answer)\b/iu
+const ANSWER_RE = /^(?:\s*[-•*]?\s*)(ответ|javob|answer)(?![\p{L}])/iu
 const EXACT_HEAD = /(Точный расчёт|Aniq hisob|Exact calculation)\s*:/u
 
 /** Числа предложения, кроме индексов формул (H2O), коэффициентов (2H₂) и степеней (10²³). */
@@ -41,7 +41,6 @@ export function reconcileCalcAnswer(text: string, tools: ToolResult[], lang: Lan
   let out = model
   const ss = sentences(model)
   const last = ss[ss.length - 1]
-  let replaced = false
   for (const s of ss) {
     const isAns = ANSWER_RE.test(s) || (s === last && numbersOf(s).length > 0 && /=|≈/.test(s))
     if (!isAns || !answerLine) continue
@@ -50,16 +49,17 @@ export function reconcileCalcAnswer(text: string, tools: ToolResult[], lang: Lan
     const bad = nums.some((n) => !known.some((k) => close(n, k)))
     if (bad) {
       out = out.replace(s, answerLine)
-      replaced = true
     }
   }
-  // модель не привела ни шага и ни одного итогового числа — добавляем расчёт целиком
-  if (!replaced && !tail) {
-    const hasStep = /=/.test(model)
-    const hasFinal = numbersOf(model).some((n) => finals.some((f) => close(n, f)))
-    if (!hasStep && !hasFinal) {
+  // итогового числа нет (или модель не привела ни шага) — строка «Ответ» / расчёт целиком в конец
+  if (!tail) {
+    const have = numbersOf(out)
+    const textAns = calc.flatMap((t) => t.numbers).filter((n) => !Number.isFinite(numOf(n)))
+    const missing = finals.some((f) => !have.some((n) => close(n, f))) || textAns.some((x) => !out.includes(x))
+    if (missing) {
       const head = lang === 'ru' ? 'Точный расчёт' : lang === 'uz' ? 'Aniq hisob' : 'Exact calculation'
-      return `${model.trim()}\n\n${head}: ${calc.map((t) => t.text).join('\n')}`
+      if (!/=/.test(model)) return `${out.trim()}\n\n${head}: ${calc.map((t) => t.text).join('\n')}`
+      if (answerLine) return `${out.trim()}\n${answerLine}`
     }
   }
   return out + tail

@@ -16,7 +16,7 @@ import { GASES, Mof, fromMoles, givenOf, toMoles, vm } from './common.ts'
 
 type Balanced = { eq: string; reactants: EquationSpecies[]; products: EquationSpecies[] }
 
-const strip = (eq: string) => eq.replace(/(→|⇄|⇌|=)\s*\([^)]*\)/g, '$1').replace(/[↑↓]/g, '').replace(/\s*[+−-]\s*\d+(?:[.,]\d+)?\s*(кДж|kJ|kj)\b.*$/iu, '')
+const strip = (eq: string) => eq.replace(/(→|⇄|⇌|=)\s*\([^)]*\)/g, '$1').replace(/[↑↓]/g, '').replace(/\s*[+−-]\s*\d+(?:[.,]\d+)?\s*(кДж|kJ|kj)(?![\p{L}]).*$/iu, '')
 
 function balance(eq: string): Balanced | null {
   const b = balanceEquation(strip(eq))

@@ -15,6 +15,7 @@ import type { Knowledge } from '../kb/shards.ts'
 import { findElements, findFormulas, findSubstances, pretty, substanceFromText, toAsciiFormula } from './entities.ts'
 import type { Lang } from './normalize.ts'
 import { obtainTool } from './obtain.ts'
+import { runSchoolCalc } from '../calc/index.ts'
 
 export type ToolResult = {
   tool: string
@@ -835,6 +836,9 @@ export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge): 
   const push = (r: ToolResult | null) => {
     if (r && out.length < 2 && !out.some((x) => x.tool === r.tool)) out.push(r)
   }
+  // школьный калькулятор Kimyo 7–11 (brain/calc) — первым; задача распознана уверенно → только его расчёт
+  const sc = runSchoolCalc(text, cmp, lang, kb)
+  if (sc) return [sc]
   const thermo = thermoTool(text, cmp, lang)
   push(thermo)
   if (!thermo) push(balanceTool(text, cmp, lang, kb))
