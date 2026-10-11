@@ -100,6 +100,8 @@ try {
     $pending = $true
   }
 
+  if (& (Join-Path $PSScriptRoot 'rebuild-corpus.ps1') -Root $Root -DryRun:$script:AtomDry -Force:$Force) { $pending = $true }  # шаг C: новые данные учебников/карты Kimyo → дописать журнал базы и векторы (append-only), см. rebuild-corpus.ps1
+
   # --- 3. перезапуск мозга, когда свободен ---
   if ($pending) {
     $runs = 0
