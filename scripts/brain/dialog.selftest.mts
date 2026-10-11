@@ -69,8 +69,8 @@ const CASES: Case[] = [
   { name: 'ru: формула: а у H2SO4?', m: msgs('Какая молярная масса у HCl?', 'M(HCl) = 36,46 г/моль.', 'а у H2SO4?'), lang: 'ru', text: /H2SO4|H₂SO₄/, followUp: 'switch_entity' },
   { name: 'uz: natriy-chi? → valentlik natriy', m: msgs('Kislorodning valentligi qanday?', A_UZ, 'natriy-chi?'), lang: 'uz', text: /natriy/i, followUp: 'switch_entity', topic: 'валентность' },
   { name: 'uz: nega? → sabab', m: msgs('Valentlik nima?', A_UZ, 'nega?'), lang: 'uz', text: /^Nega: Valentlik/, followUp: 'why' },
-  { name: 'uz: soddaroq → valentlik', m: msgs('Valentlik nima?', A_UZ, 'soddaroq tushuntir'), lang: 'uz', text: /^Soddaroq tushuntir: valentlik$/, followUp: 'simpler', topic: 'валентность' },
-  { name: 'uz: misol → valentlik', m: msgs('Valentlik nima?', A_UZ, 'misol keltir'), lang: 'uz', text: /^Misol keltir: valentlik$/, followUp: 'example' },
+  { name: 'uz: soddaroq → valentlik', m: msgs('Valentlik nima?', A_UZ, 'soddaroq tushuntir'), lang: 'uz', text: /^Valentlikni soddaroq tushuntiring$/, followUp: 'simpler', topic: 'валентность' },
+  { name: 'uz: misol → valentlik', m: msgs('Valentlik nima?', A_UZ, 'misol keltir'), lang: 'uz', text: /^Valentlikka misol keltiring$/, followUp: 'example' },
   { name: 'uz: ha → confirm', m: msgs('Valentlik nima?', A_UZ, 'ha'), lang: 'uz', text: /^Ha: masala yechamizmi/, followUp: 'confirm' },
   { name: 'uz: 8-sinfda-chi? → switch_grade', m: msgs('Valentlik nima?', A_UZ, '8-sinfda qanday tushuntiriladi?'), lang: 'uz', followUp: 'switch_grade', grade: 'g8' },
   { name: 'en: and for sodium? → valence of sodium', m: msgs('What is the valence of oxygen?', A_EN, 'and for sodium?'), lang: 'en', text: /sodium/i, followUp: 'switch_entity', topic: 'валентность' },
@@ -79,6 +79,13 @@ const CASES: Case[] = [
   { name: 'en: give an example', m: msgs('What is valence?', A_EN, 'give an example'), lang: 'en', text: /^Give an example: valence$/, followUp: 'example' },
   { name: 'en: yes → confirm', m: msgs('What is valence?', A_EN, 'yes'), lang: 'en', text: /^Yes: shall we try a problem/, followUp: 'confirm' },
   { name: 'en: in grade 8? → switch_grade', m: msgs('What is valence?', A_EN, 'and in grade 8?'), lang: 'en', followUp: 'switch_grade', grade: 'g8' },
+  { name: 'en: explain it like for grade 7 → switch_grade', m: msgs('What is a mole?', 'A mole is the amount of substance.', 'explain it like for grade 7'), lang: 'en', followUp: 'switch_grade', grade: 'g7' },
+  // партнёр по предлогу и обстоятельство места
+  { name: 'ru: «а с медью?» → меняется партнёр', m: msgs('Серная кислота реагирует с цинком?', 'Да: Zn + H₂SO₄ → ZnSO₄ + H₂↑.', 'а с медью?'), lang: 'ru', text: /^Серная кислота реагирует с медью\?$/, followUp: 'switch_entity' },
+  { name: 'ru: «а соляная кислота?» → меняется предмет', m: msgs('Серная кислота реагирует с цинком?', 'Да: Zn + H₂SO₄ → ZnSO₄ + H₂↑.', 'а соляная кислота?'), lang: 'ru', text: /^Соляная кислота реагирует с цинком\?$/, followUp: 'switch_entity' },
+  { name: 'en: and with copper? → партнёр', m: msgs('Does sulfuric acid react with zinc?', 'Yes: Zn + H₂SO₄ → ZnSO₄ + H₂↑.', 'and with copper?'), lang: 'en', text: /^Does sulfuric acid react with copper\?$/, followUp: 'switch_entity' },
+  { name: 'ru: «а в промышленности?» → то же получение', m: msgs('Как получить кислород в лаборатории?', 'Разложением KMnO₄ при нагревании.', 'а в промышленности?'), lang: 'ru', text: /^Как получают кислород в промышленности\?$/, followUp: 'deictic' },
+  { name: 'uz: sanoatda-chi? → то же получение', m: msgs('Kislorod laboratoriyada qanday olinadi?', 'KMnO₄ parchalanishi bilan.', 'sanoatda-chi?'), lang: 'uz', text: /^Kislorod sanoatda qanday olinadi\?$/, followUp: 'deictic' },
 ]
 
 console.log('самодостаточный вопрос (resolveStandalone):')
@@ -205,11 +212,11 @@ console.log('диалоги через runChat (mock-LLM / без LLM):')
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'atomlab-dialog-selftest-'))
   const journal = new Journal(path.join(tmp, 'kb-journal.jsonl'))
   const students = new StudentStore(tmp)
-  const ask = async (m: ChatMessage[], llm: InstanceType<typeof MockLlm> | null, extra: Partial<ChatRequest['context']> = {}) => {
+  const ask = async (m: ChatMessage[], llm: InstanceType<typeof MockLlm> | null, extra: Partial<ChatRequest['context']> = {}, lang: ChatRequest['lang'] = 'auto') => {
     let meta: MetaEvent | null = null
     let done: DoneEvent | null = null
     await runChat(
-      { sessionId: 'dlg', studentId: 'dlg', lang: 'auto', stream: true, messages: m, context: { ...ctx, ...extra } },
+      { sessionId: 'dlg', studentId: 'dlg', lang, stream: true, messages: m, context: { ...ctx, ...extra } },
       { kb, journal, embeds: null, llm, students, config: DEFAULT_CONFIG, noJournal: true },
       { meta: (x) => (meta = x), delta: () => {}, done: (d) => (done = d), error: () => {} },
     )
@@ -230,6 +237,13 @@ console.log('диалоги через runChat (mock-LLM / без LLM):')
     const f = await ask(msgs('Что такое органическая химия?', 'Органическая химия изучает соединения углерода.', 'а чем она отличается от неорганической?'), llm)
     ok(f.done?.text === R1, `${name}: R1 по переписанному вопросу`, f.done?.text.slice(0, 120))
     ok((a.done?.citations ?? []).every((x) => !/Википедия/.test(x)), `${name}: школьный ответ не цитирует энциклопедию`, JSON.stringify(a.done?.citations))
+    // язык разговора «липкий»: сайт для латиницы без признаков шлёт 'en' — узбекский разговор остаётся узбекским
+    const g = await ask(msgs('Valentlik nima?', A_UZ, 'natriyniki-chi?'), llm, {}, 'en')
+    ok(g.meta?.lang === 'uz' && !/(the|what|is|of)/i.test(g.done?.text ?? ''), `${name}: uz «natriyniki-chi?» при lang=en — по-узбекски`, `${g.meta?.lang} ${g.meta?.standalone} | ${g.done?.text.slice(0, 120)}`)
+    const h = await ask(msgs('Что такое валентность?', A_VAL, 'ok'), llm)
+    ok(h.meta?.lang === 'ru' && /[а-яё]/i.test(h.done?.text ?? ''), `${name}: «ok» латиницей в русском разговоре — по-русски`, `${h.meta?.lang} | ${h.done?.text.slice(0, 120)}`)
+    const i = await ask(msgs('а почему?'), llm)
+    ok(i.meta?.followUp === 'why' && /уточн/i.test(i.done?.text ?? ''), `${name}: «а почему?» без темы — уточняющий вопрос`, `${i.meta?.followUp} | ${i.done?.text.slice(0, 120)}`)
   }
   fs.rmSync(tmp, { recursive: true, force: true })
 }

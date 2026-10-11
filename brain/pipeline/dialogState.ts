@@ -49,6 +49,44 @@ function langOf(text: string, fallback: Lang): Lang {
   }
 }
 
+/** Явные английские слова: без них короткая латинская реплика в узбекском разговоре — узбекская («misol keltir», «ha»). */
+const EN_MARK =
+  /(?<![\p{L}'ʻʼ’])(the|what|is|are|was|how|why|of|which|does|do|did|you|your|hello|hi|thanks|thank|please|explain|can|could|would|i|my|and|with|in|a|an|about|for|more|detail|details|example|simpler|simply|again|yes|yeah|yep|sure|it|this|that|grade|tell|me|give|where|when|who|repeat|briefly|used|use|life|what's|it's)(?![\p{L}'ʻʼ’])/iu
+/** Формулы («HNO3», «Ca(OH)2») — не язык. */
+const FORMULA_TOKEN = /(?<![\p{L}])(?:[A-Z][a-z]?\d*|\((?:[A-Z][a-z]?\d*)+\)\d*)+(?![\p{L}])/gu
+
+/**
+ * Язык реплики с учётом разговора (lang = 'auto'): «natriyniki-chi?», «misol keltir», «ha», «HNO3 niki-chi?» после
+ * узбекского вопроса — узбекские, хотя по одной реплике детектор видит английский; «HNO3?» без букв — язык разговора.
+ * Кириллица и явные английские слова решают сами.
+ */
+export function stickyLang(text: string, detected: Lang, prev: Lang | null): Lang {
+  if (!prev || prev === detected) return detected
+  const bare = text.replace(FORMULA_TOKEN, (m) => (/\d/.test(m) || (m.match(/[A-Z]/g) ?? []).length >= 2 ? ' ' : m))
+  const cyr = (bare.match(/[а-яёўқғҳ]/giu) ?? []).length
+  const lat = (bare.match(/[a-z]/gi) ?? []).length
+  if (!cyr && !lat) return prev
+  if (cyr) return detected
+  // «ok», «okay», «hmm» латиницей посреди русского или узбекского разговора — междометие, язык разговора прежний
+  if (prev !== 'en' && /^\s*(ok|okay|okey|hmm+|lol)[\s!.,)]*$/iu.test(bare)) return prev
+  if (prev === 'uz' && detected === 'en' && !EN_MARK.test(bare)) return 'uz'
+  if (prev === 'en' && detected === 'uz' && !/[og]['ʻʼ’‘]/i.test(bare) && EN_MARK.test(bare)) return 'en'
+  return detected
+}
+
+/** Язык каждой реплики ученика (старые → новые) с «липким» языком разговора; последняя — текущий вопрос. */
+export function dialogLangs(messages: { role: string; content: string }[]): Lang[] {
+  const out: Lang[] = []
+  let prev: Lang | null = null
+  for (const m of messages) {
+    if (m.role !== 'user' || !m.content.trim()) continue
+    const l = stickyLang(m.content, langOf(m.content, prev ?? 'ru'), prev)
+    out.push(l)
+    prev = l
+  }
+  return out
+}
+
 const EMPTY: DialogState = { topic: null, entities: [], lastStandalone: null, lastAnswer: null, grade: null, lengthPref: null, summary: null, turns: 0, lastKind: null }
 
 export function buildDialogState(messages: ChatMessage[], ctx: ChatRequest['context'], kb: Knowledge, kindOf: KindOf = questionKindCompat): DialogState {
@@ -59,6 +97,8 @@ export function buildDialogState(messages: ChatMessage[], ctx: ChatRequest['cont
   let explicitGrade: GradeId | null = null
   /** формулы последнего ответа учителя — предмет для «а почему он так реагирует?», если ученик сам ничего не назвал */
   let answerEnts: string[] = []
+  const langs = dialogLangs(past)
+  let ui = 0
   for (const m of past) {
     const t = m.content.trim()
     if (!t) continue
@@ -69,7 +109,7 @@ export function buildDialogState(messages: ChatMessage[], ctx: ChatRequest['cont
       continue
     }
     st.turns++
-    const lang = langOf(t, 'ru')
+    const lang = langs[ui++] ?? langOf(t, 'ru')
     const g = gradeHint(t)
     if (g) explicitGrade = g
     const style = styleCue(t)
