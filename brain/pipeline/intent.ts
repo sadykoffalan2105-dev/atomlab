@@ -161,18 +161,18 @@ export const GRADE_HINT_RE =
 
 /** Задание в форме теста: «выбери правильный», «верно ли», «а) б) в)», «true or false», «qaysi biri». */
 const TEST_STYLE_RE =
-  /((выбери|выберите|укажи|укажите)\s+(правильн|верн)|верно ли|правда ли|какое из|какой из|варианты? ответ|(^|\s)[абвг]\)|(^|\s)[abcd]\)|true or false|which of the following|\bchoose\b|tanlang|to'g'rimi|togrimi|qaysi biri)/iu
+  ub(/((выбери|выберите|укажи|укажите)\s+(правильн|верн)|верно ли|правда ли|какое из|какой из|варианты? ответ|(^|\s)[абвг]\)|(^|\s)[abcd]\)|true or false|which of the following|\bchoose\b|tanlang|to'g'rimi|togrimi|qaysi biri)/iu)
 /** «зачем нужно / где применяют / в жизни» — применение (раньше «почему», чтобы «зачем он нужен» не стал why). */
 const USES_RE =
-  /(зачем (он |она |оно |они |это |его |их )?нуж|для чего|где (его |её |их )?(примен|использ|встреча)|в (жизни|быту|повседневн)|применени|real life|everyday|used for|uses? of|where (is|are) (it|they|\p{L}+) used|what is it used|hayotda|qayerda (ishlat|qo'llan)|qo'llanil|ishlatil)/iu
-const HOW_MANY_RE = /(сколько|how much|how many|qancha|necha)/iu
-const REPEAT_RE = /^(повтори(те)?|ещ[её] раз|скажи ещ[её] раз|repeat( that| please)?|say (it|that) again|once more|takrorla(ng)?|yana bir (bor|marta))\b/iu
-const CONFIRM_RE = /^(да|давай(те)?|конечно|ага|угу|хочу|можно|yes|yeah|yep|sure|please|ha|albatta|mayli|xohlayman|ha,? albatta)[.!)]*$/iu
+  ub(/(зачем (он |она |оно |они |это |его |их )?нуж|для чего|где (его |её |их )?(примен|использ|встреча)|в (жизни|быту|повседневн)|применени|real life|everyday|used for|uses? of|where (is|are) (it|they|\p{L}+) used|what is it used|hayotda|qayerda (ishlat|qo'llan)|qo'llanil|ishlatil)/iu)
+const HOW_MANY_RE = ub(/(сколько|how much|how many|qancha|necha)/iu)
+const REPEAT_RE = ub(/^(повтори(те)?|ещ[её] раз|скажи ещ[её] раз|repeat( that| please)?|say (it|that) again|once more|takrorla(ng)?|yana bir (bor|marta))\b/iu)
+const CONFIRM_RE = ub(/^(да|давай(те)?|конечно|ага|угу|хочу|можно|yes|yeah|yep|sure|please|ha|albatta|mayli|xohlayman|ha,? albatta)[.!)]*$/iu)
 const WHO_HISTORY_RE =
-  /(кто (открыл|изобр[её]л|придумал|создал|получил впервые|впервые)|когда (открыл|был[аио]? открыт|открыт|впервые)|истори\p{L}*|биограф|первооткрыват|who (discovered|invented|first)|when was .* discovered|histor|biograph|kim kashf|qachon kashf|tarix)/iu
+  ub(/(кто (открыл|изобр[её]л|придумал|создал|получил впервые|впервые)|когда (открыл|был[аио]? открыт|открыт|впервые)|истори\p{L}*|биограф|первооткрыват|who (discovered|invented|first)|when was .* discovered|histor|biograph|kim kashf|qachon kashf|tarix)/iu)
 const BROAD_KIND_RE =
-  /(^|\s)(расскажи(те)? (вс[её]|про|о|об|мне)|что ты знаешь|что вы знаете|tell me (all |everything )?about|what do you know|haqida (hamma|gapirib|aytib)|hammasini ayt)/iu
-const DEFINITION_FACT_RE = /^(какая|какой|какое|какие|каков|какова|каковы|what is the|what are the|qaysi)\s/iu
+  ub(/(^|\s)(расскажи(те)? (вс[её]|про|о|об|мне)|что ты знаешь|что вы знаете|tell me (all |everything )?about|what do you know|haqida (hamma|gapirib|aytib)|hammasini ayt)/iu)
+const DEFINITION_FACT_RE = ub(/^(какая|какой|какое|какие|каков|какова|каковы|what is the|what are the|qaysi)\s/iu)
 
 /** Самодостаточный ли «вопрос-определение» без чисел: «Что такое молярная масса?» — определение, а не расчёт. */
 function isPlainDefinition(cmp: string): boolean {
@@ -220,14 +220,14 @@ function cmpOf(s: string): string {
 
 /** Вузовские термины: школа о них почти не пишет — отвечаем шире (энциклопедия как источник, не только фон). */
 export const UNIV_RE =
-  /(энтроп|гиббс|энтальп|гибридиз|орбитал|молекулярн\p{L}* орбитал|буферн|лиганд|координацион|комплексн\p{L}* соедин|кинетик|порядок реакц|константа равновес|активационн|энерги\p{L}* активац|нернст|электродн\p{L}* потенциал|титрован|хроматограф|коллоид|vsepr|квантов|\bспин|entrop|gibbs|enthalp|hybridi[sz]|orbital|buffer|ligand|coordination compound|kinetic|rate law|equilibrium constant|activation energy|nernst|titrat|chromatograph|colloid|quantum|entropiya|gibridlanish|bufer)/iu
+  ub(/(энтроп|гиббс|энтальп|гибридиз|орбитал|молекулярн\p{L}* орбитал|буферн|лиганд|координацион|комплексн\p{L}* соедин|кинетик|порядок реакц|константа равновес|активационн|энерги\p{L}* активац|нернст|электродн\p{L}* потенциал|титрован|хроматограф|коллоид|vsepr|квантов|\bспин|entrop|gibbs|enthalp|hybridi[sz]|orbital|buffer|ligand|coordination compound|kinetic|rate law|equilibrium constant|activation energy|nernst|titrat|chromatograph|colloid|quantum|entropiya|gibridlanish|bufer)/iu)
 /** Энциклопедические подсказки (как STRONG_RE/SOFT_RE сайта, src/learn/kb/encyclopedia.ts) — дополняют ENCYCLO_RE. */
 const ENC_CUE_RE =
-  /(расскажи вс[её]|что ты знаешь о|интересн|в жизни|в природе|в космосе|почему в мире|экологи|озонов|парников|аккумулятор|батаре|нобелев|tell me about|what do you know|real life|in nature|in space|haqida hamma|qiziq|tabiatda|hayotda)/iu
+  ub(/(расскажи вс[её]|что ты знаешь о|интересн|в жизни|в природе|в космосе|почему в мире|экологи|озонов|парников|аккумулятор|батаре|нобелев|tell me about|what do you know|real life|in nature|in space|haqida hamma|qiziq|tabiatda|hayotda)/iu)
 /** Явная просьба о глубине: «подробно», «максимально», «как учёный», «для олимпиады». */
-const DEPTH_RE = /(подробно\b|максимально|как уч[её]н|для олимпиад|олимпиадн|olimpiada|in depth|in-depth|like a scientist|for (an |the )?olympiad)/iu
+const DEPTH_RE = ub(/(подробно\b|максимально|как уч[её]н|для олимпиад|олимпиадн|olimpiada|in depth|in-depth|like a scientist|for (an |the )?olympiad)/iu)
 /** Темы с живыми данными (погода, новости, курс) — не по химии (как LIVE_DATA в fallback.ts). */
-const LIVE_DATA_RE = /(погод|прогноз|новост|курс (доллар|валют|сум)|сч[её]т матча|который час|сегодняшн|ob-?havo|yangilik|valyuta kursi|weather|forecast|news|exchange rate|stock price|what time is it)/iu
+const LIVE_DATA_RE = ub(/(погод|прогноз|новост|курс (доллар|валют|сум)|сч[её]т матча|который час|сегодняшн|ob-?havo|yangilik|valyuta kursi|weather|forecast|news|exchange rate|stock price|what time is it)/iu)
 
 const SCHOOL_SEARCH_TYPES: KbChunkType[] = ['textbook', 'definition', 'summary', 'card', 'faq', 'misconception']
 

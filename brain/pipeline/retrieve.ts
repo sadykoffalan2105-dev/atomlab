@@ -22,7 +22,7 @@ import type { LlmClient } from '../llm/ollama.ts'
 import type { GradeId, RankedFragment, RetrievalResultV2, RetrieveOptions, Scope, SourceKind, StandaloneQuery } from './dialogTypes.ts'
 import { findFormulas } from './entities.ts'
 import { hybridScore, mmrSelect, type Candidate } from './hybrid.ts'
-import { applyRelevance } from './relevance.ts'
+import { applyRelevance, isPersonCandidate } from './relevance.ts'
 import { cmpForm, type Lang } from './normalize.ts'
 import { normalizeVec } from '../kb/embedStore.ts'
 
@@ -353,6 +353,17 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
   })
   let kept = rel.kept as RankedFragment[]
   const dropped = [...rel.dropped]
+
+  // «кто открыл / история открытия X»: учёные, энциклопедия и фрагменты, где X в заголовке (а не «Глюкоза (открытая)»)
+  if (sq.kind === 'who_history') {
+    const cue = /^(истор|откр|изобр|когд|кто|перв|расскаж|discover|invent|histor|who|when|first|kashf|tarix|kim|qachon)/u
+    const subject = new Set(analyzed.terms.filter((t) => !analyzed.terms.some((u) => u.concept === t.concept && cue.test(u.term))).map((t) => t.term))
+    if (subject.size) {
+      const fits = (f: RankedFragment) => isPersonCandidate(f) || f.sourceKind === 'encyclopedia' || [...f.titleTerms].some((t) => subject.has(t))
+      for (const f of kept) if (!fits(f)) dropped.push({ c: f, why: 'history_subject' })
+      kept = kept.filter(fits)
+    }
+  }
   const isSchoolSource = (f: RankedFragment) => f.sourceKind !== 'encyclopedia' && f.sourceKind !== 'index'
 
   // i) школа пуста, энциклопедия сильная — вопрос на деле широкий (DIALOG это увидит и смягчит формат)
