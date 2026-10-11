@@ -204,6 +204,53 @@ export function isObtainQuestion(cmp: string): boolean {
   return OBTAIN_RE.test(cmp) || INDUSTRY_SHORT_RE.test(cmp) || (FORM_RE.test(cmp) && !NOT_SUBSTANCE_FORM.test(cmp))
 }
 
+/** Условия над стрелкой в уравнениях записаны по-русски — для uz/en переводим («→(электролиз)» → «→(elektroliz)»). */
+const COND_WORDS: [RegExp, string, string][] = [
+  [/электролиз/giu, 'elektroliz', 'electrolysis'],
+  [/расплав(е|а)? в/giu, 'suyuqlanmada', 'in molten'],
+  [/расплав/giu, 'suyuqlanma', 'melt'],
+  [/кат\./giu, 'kat.', 'cat.'],
+  [/конц\./giu, 'kons.', 'conc.'],
+  [/разб\./giu, 'suyul.', 'dil.'],
+  [/свет/giu, 'yorugʻlik', 'light'],
+  [/давление/giu, 'bosim', 'pressure'],
+]
+function localizeEq(eq: string, lang: Lang): string {
+  if (lang === 'ru') return eq
+  return eq.replace(/\(([^()]*)\)/g, (m, inner: string) => {
+    if (!/\p{Script=Cyrillic}/u.test(inner)) return m
+    let out = inner
+    for (const [re, uz, en] of COND_WORDS) out = out.replace(re, lang === 'uz' ? uz : en)
+    return `(${out})`
+  })
+}
+
+/**
+ * Названия реактивов и катализаторов для uz/en: модель сама переводила MnO₂ как «magniy oksidi» (оксид магния).
+ * Строка «Moddalar: MnO₂ — marganes(IV) oksidi …» в справке задаёт верные названия.
+ */
+const REAGENT_NAMES: Record<string, { uz: string; en: string }> = {
+  'MnO₂': { uz: 'marganes(IV) oksidi', en: 'manganese(IV) oxide' },
+  'KMnO₄': { uz: 'kaliy permanganat', en: 'potassium permanganate' },
+  'K₂MnO₄': { uz: 'kaliy manganat', en: 'potassium manganate' },
+  'KClO₃': { uz: 'kaliy xlorat (bertole tuzi)', en: 'potassium chlorate' },
+  'H₂O₂': { uz: 'vodorod peroksid', en: 'hydrogen peroxide' },
+  'Na₃AlF₆': { uz: 'kriolit', en: 'cryolite' },
+  'Al₂O₃': { uz: 'alyuminiy oksidi', en: 'aluminium oxide' },
+  'NH₄Cl': { uz: 'ammoniy xlorid', en: 'ammonium chloride' },
+  'Ca(OH)₂': { uz: 'kalsiy gidroksid (soʻndirilgan ohak)', en: 'calcium hydroxide' },
+  'CaCO₃': { uz: 'kalsiy karbonat', en: 'calcium carbonate' },
+  'NaNO₃': { uz: 'natriy nitrat', en: 'sodium nitrate' },
+  'HgO': { uz: 'simob(II) oksidi', en: 'mercury(II) oxide' },
+}
+function namesLine(eqs: string[], lang: Lang): string | null {
+  if (lang === 'ru') return null
+  const all = eqs.join(' ')
+  const found = Object.entries(REAGENT_NAMES).filter(([f]) => all.includes(f))
+  if (!found.length) return null
+  return `${lang === 'uz' ? 'Moddalar nomi' : 'Names'}: ${found.map(([f, n]) => `${f} — ${lang === 'uz' ? n.uz : n.en}`).join('; ')}.`
+}
+
 export function obtainTool(text: string, cmp: string, lang: Lang, kb: Knowledge): ToolResult | null {
   const obtain = OBTAIN_RE.test(cmp) || INDUSTRY_SHORT_RE.test(cmp)
   const form = !obtain && FORM_RE.test(cmp) && !NOT_SUBSTANCE_FORM.test(cmp)
@@ -214,7 +261,7 @@ export function obtainTool(text: string, cmp: string, lang: Lang, kb: Knowledge)
   const ind = extraOf(t)?.industry
   if (!rows.length && !ind) return null
   const circ = ['①', '②', '③', '④', '⑤', '⑥']
-  const fmtRow = (r: Row, i: number) => `${circ[i] ?? `${i + 1}.`} ${r.eq}${lang === 'ru' && r.note ? ` — ${r.note}` : ''}`
+  const fmtRow = (r: Row, i: number) => `${circ[i] ?? `${i + 1}.`} ${localizeEq(r.eq, lang)}${lang === 'ru' && r.note ? ` — ${r.note}` : ''}`
   const lab = rows.filter((r) => r.kind === 'lab')
   const other = rows.filter((r) => r.kind === 'any')
   const industry = rows.filter((r) => r.kind === 'industry')
@@ -238,6 +285,8 @@ export function obtainTool(text: string, cmp: string, lang: Lang, kb: Knowledge)
   if (other.length) lines.push(`${lab.length || industry.length ? L(lang, 'Также', 'Shuningdek', 'Also') : L(lang, 'Уравнения', 'Tenglamalar', 'Equations')}: ${other.map((r) => fmtRow(r, n++)).join('; ')}.`)
   if (!indFirst) industryLine()
   const all = rows.map((r) => r.eq)
+  const names = namesLine(all, lang)
+  if (names) lines.push(names)
   return {
     tool: 'obtain',
     text: lines.join('\n'),
