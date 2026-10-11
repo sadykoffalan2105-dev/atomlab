@@ -42,7 +42,7 @@ export function solveSchoolTask(text: string, cmp: string, lang: Lang, kb: Knowl
   if (text.length > 1500 || !TASK_RE.test(cmp) || (!HAS_DIGIT.test(text) && !/[⁰¹²³⁴⁵⁶⁷⁸⁹A-Za-z]/.test(text))) return null
   const ctx = buildCtx(text, cmp, lang, kb)
   for (const s of SOLVERS) {
-    let sol: Solution | null = null
+    let sol: Solution | null
     try {
       sol = s.solve(ctx)
     } catch {
