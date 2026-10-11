@@ -219,3 +219,43 @@ export function ruToEn(ru: string): string | null {
   const k = ru.toLowerCase().replace(/ё/g, 'е')
   return UZ_GLOSSARY.find((p) => p.ru.toLowerCase().replace(/ё/g, 'е') === k)?.en ?? null
 }
+
+// ---------------------------------------------------------------- аффиксы для шаблонов standalone
+
+/** Сочетание → [начало с пробелом, последнее слово] (аффикс получает последнее слово). */
+function splitLast(term: string): [string, string] {
+  const t = term.trim()
+  const i = t.lastIndexOf(' ')
+  return [t.slice(0, i + 1), t.slice(i + 1)]
+}
+
+/**
+ * Притяжательная форма 3-го лица: valentlik → valentligi, mol → moli, molyar massa → molyar massasi;
+ * изафет уже с аффиксом («oksidlanish darajasi», «massa ulushi», «reaksiya tezligi») — как есть.
+ */
+export function uzPossessive(term: string): string {
+  const [head, w] = splitLast(term)
+  if (head && /[^aeiouʻʼ']i$/i.test(w)) return head + w
+  if (/[aeiou]$/i.test(w)) return `${head}${w}si`
+  if (/k$/i.test(w) && w.length > 3) return `${head}${w.slice(0, -1)}gi`
+  if (/q$/i.test(w) && w.length > 3) return `${head}${w.slice(0, -1)}gʻi`
+  return `${head}${w}i`
+}
+
+/** Дательный падеж: valentlik → valentlikka, toʻliq → toʻliqqa, mol → molga. */
+export function uzDative(term: string): string {
+  const [head, w] = splitLast(term)
+  if (/k$/i.test(w)) return `${head}${w}ka`
+  if (/q$/i.test(w)) return `${head}${w}qa`
+  return `${head}${w}ga`
+}
+
+/** Винительный падеж: valentlik → valentlikni. */
+export function uzAccusative(term: string): string {
+  return `${term.trim()}ni`
+}
+
+/** Родительный падеж: natriy → natriyning. */
+export function uzGenitive(term: string): string {
+  return `${term.trim()}ning`
+}
