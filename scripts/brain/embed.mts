@@ -11,6 +11,8 @@
  * Порядок: учебники/определения/карточки → megaPack → энциклопедия (самое нужное — раньше).
  * Оценка на ПК владельца (CPU, 12 ядер): учебники + карточки ≈ 5–10 тыс. записей ≈ 10–20 мин, Википедия ≈ 1–2 ч.
  */
+// модели чата для эмбеддингов не нужны — не прогреваем их (иначе 7b+3b занимают ~7 ГБ и процессор)
+process.env.BRAIN_NO_WARM = '1'
 import { DATA_DIR, loadConfig } from '../../brain/config.ts'
 import { EmbedStore } from '../../brain/kb/embedStore.ts'
 import { Journal, searchableKind, type JournalRecord } from '../../brain/kb/journal.ts'

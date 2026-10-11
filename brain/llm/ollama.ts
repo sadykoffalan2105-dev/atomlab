@@ -138,6 +138,8 @@ export class OllamaClient implements LlmClient {
    * keep_alive продлевается раз в keepAliveRefreshMs (пустой запрос: модель не считает, только остаётся в памяти).
    */
   private warm(model: string): void {
+    // скрипты без чата (brain:embed, brain:corpus) не держат модели чата в памяти
+    if (process.env.BRAIN_NO_WARM === '1') return
     if (this.warmed.has(model)) return
     this.warmed.add(model)
     const t0 = performance.now()
