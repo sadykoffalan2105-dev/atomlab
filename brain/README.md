@@ -67,6 +67,13 @@ atomlab-brain-data\
 - `POST /kb/append` {kind, lang, text, title?, tags?, source?, meta?} → `{ok, id, line}`; удаления/перезаписи нет.
 - `GET /kb/stats` → `{journalLines, bytes, byKind, embedded, lastAt, dataDir}`.
 - CORS: `https://sadykoffalan2105-dev.github.io`, `http://localhost:*`, `http://127.0.0.1:*`; чужой Origin → 403.
+- **Фото задачи** (поле необязательное, старые клиенты/серверы работают как раньше): последняя реплика может нести
+  `images: string[]` — base64 JPEG/PNG/WebP без «data:», ≤ 2 шт., каждое ≤ 1,5 МБ (сайт сжимает до 1280 px, JPEG 0,8,
+  без EXIF). Тело с фото — до 4 МБ (без фото — 64 КБ), отдельный лимит фото `config.server.photo` (3/мин, 30/сутки) →
+  429 `rule: photo_minute|photo_day`; ошибки 400 (больше 2 / не base64), 413 (`image_too_large`), 415 (`bad_image`, не та
+  сигнатура). Картинки видит только модель со зрением (`/api/show` capabilities ∋ `vision`, в `/health` — `llm.vision`);
+  без зрения — честная фраза «фото не читаю» и ответ на текст подписи (`reason: no_vision`). В журнал — только `hasImage`.
+  Конвейер — `brain/pipeline/photo.ts`, проверки — `brain/http/photo.ts`, тест — `scripts/brain/photo.selftest.mts`.
 
 ## Конвейер `/chat` (brain/pipeline)
 

@@ -1089,6 +1089,84 @@
   display: none;
 }
 
+/* «Сфотографируй задачу»: превью фото над полем (до 2), × — убрать. */
+.photoTray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.photoThumb {
+  position: relative;
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--lt-border-strong);
+  box-shadow: var(--lt-shadow-sm);
+  background: var(--lt-surface-solid);
+}
+
+.photoThumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.panel .photoRemove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--lt-surface-solid) 85%, transparent);
+  color: var(--lt-text);
+}
+
+.photoNote {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--lt-text-muted, var(--lt-text));
+}
+
+/* Фото в пузыре вопроса ученика. */
+.userPhotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.userPhotos img {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.userPhotoTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.userPhotoTag svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* Поле: многострочный ввод сверху, панель инструментов снизу. */
 .field {
   min-width: 0;
@@ -1708,7 +1786,8 @@
     min-height: 48px;
   }
 
-  .panel .scanClear {
+  .panel .scanClear,
+  .panel .photoRemove {
     width: 32px;
     min-width: 32px;
     min-height: 32px;

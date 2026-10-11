@@ -10,7 +10,8 @@ import type { Lang } from '../pipeline/normalize.ts'
 
 const WARM_GREETING: Record<Lang, string> = { ru: 'Привет', uz: 'Salom', en: 'Hello' }
 
-export type LlmMessage = { role: 'system' | 'user' | 'assistant'; content: string }
+/** images — фото задачи (base64 без «data:»): Ollama /api/chat принимает их у реплики; уходят только моделям со зрением. */
+export type LlmMessage = { role: 'system' | 'user' | 'assistant'; content: string; images?: string[] }
 
 export type LlmStatus = {
   available: boolean
@@ -21,6 +22,8 @@ export type LlmStatus = {
   error?: string
   /** чат-модель в видеопамяти (GET /api/ps: size_vram ≥ половины size) → профиль gpu; null — ещё не известно */
   gpu?: boolean | null
+  /** чат-модель понимает картинки (/api/show capabilities ∋ 'vision') — фото задачи; null — ещё не известно */
+  vision?: boolean | null
 }
 
 export type ChatStreamOptions = {
@@ -88,6 +91,8 @@ export class OllamaClient implements LlmClient {
   private keepTimer: NodeJS.Timeout | null = null
   /** умеет ли модель «мышление» (/api/show capabilities ∋ 'thinking') — только таким шлём think:false */
   private thinking = new Map<string, boolean>()
+  /** понимает ли модель картинки (/api/show capabilities ∋ 'vision') — только таким шлём фото (messages[].images) */
+  private vision = new Map<string, boolean>()
 
   constructor(cfg: BrainConfig) {
     this.cfg = cfg
@@ -127,7 +132,15 @@ export class OllamaClient implements LlmClient {
       const fastModel = pickModel(this.cfg.fastModels, chatNames) ?? chatModel
       const embedModel = pickModel([this.cfg.embedModel], names)
       const was = this.st.available
-      this.st = { available: !!chatModel, chatModel, fastModel, embedModel, checkedAt: Date.now(), gpu: this.st.chatModel === chatModel ? (this.st.gpu ?? null) : null }
+      this.st = {
+        available: !!chatModel,
+        chatModel,
+        fastModel,
+        embedModel,
+        checkedAt: Date.now(),
+        gpu: this.st.chatModel === chatModel ? (this.st.gpu ?? null) : null,
+        vision: chatModel ? (this.vision.get(chatModel) ?? null) : null,
+      }
       if (chatModel) void this.probeModel(chatModel)
       if (fastModel && fastModel !== chatModel) void this.probeModel(fastModel)
       if (this.st.available && !was) console.log(`[brain] Ollama: модели ${chatModel}${fastModel !== chatModel ? ` / ${fastModel}` : ''}${embedModel ? `, эмбеддинги ${embedModel}` : ''}`)
@@ -143,18 +156,48 @@ export class OllamaClient implements LlmClient {
     return this.st
   }
 
-  /** Узнать у Ollama, умеет ли модель «мышление» (/api/show), и лежит ли чат-модель в видеопамяти (/api/ps). */
+  /** Узнать у Ollama, умеет ли модель «мышление» и картинки (/api/show), и лежит ли чат-модель в видеопамяти (/api/ps). */
   private async probeModel(model: string): Promise<void> {
-    if (!this.thinking.has(model)) {
-      try {
-        const r = await fetch(`${this.baseUrl}/api/show`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model }) })
-        const j = r.ok ? ((await r.json()) as { capabilities?: string[] }) : null
-        this.thinking.set(model, !!j?.capabilities?.includes('thinking'))
-      } catch {
-        /* старая Ollama без capabilities в /api/show — think не шлём */
-      }
-    }
+    await this.probeCaps(model)
     if (model === this.st.chatModel) await this.probeGpu()
+  }
+
+  /** /api/show → capabilities: 'thinking' (шлём think:false) и 'vision' (шлём фото); кеш на модель. */
+  private async probeCaps(model: string, timeoutMs = 3000): Promise<void> {
+    if (this.thinking.has(model) && this.vision.has(model)) return
+    const ac = new AbortController()
+    const t = setTimeout(() => ac.abort(), timeoutMs)
+    try {
+      const r = await fetch(`${this.baseUrl}/api/show`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model }), signal: ac.signal })
+      const j = r.ok ? ((await r.json()) as { capabilities?: string[] }) : null
+      if (!j) return
+      this.thinking.set(model, !!j.capabilities?.includes('thinking'))
+      // старая Ollama без capabilities — картинок не шлём (честный ответ «фото не поддерживается»)
+      this.vision.set(model, !!j.capabilities?.includes('vision'))
+      if (model === this.st.chatModel) this.st = { ...this.st, vision: this.vision.get(model) ?? null }
+    } catch {
+      /* нет ответа /api/show — think и фото не шлём, спросим при следующем опросе */
+    } finally {
+      clearTimeout(t)
+    }
+  }
+
+  /** Фото задачи: перед ответом убедиться, что известно, умеет ли чат-модель картинки (≤ timeoutMs). */
+  async ensureCapabilities(timeoutMs = 3000): Promise<boolean> {
+    const model = this.st.chatModel
+    if (!model) return false
+    await this.probeCaps(model, timeoutMs)
+    return this.vision.get(model) === true
+  }
+
+  /** Картинки — только модели со зрением: остальным реплики уходят без images (иначе Ollama ответит ошибкой). */
+  private forModel(model: string, messages: LlmMessage[]): LlmMessage[] {
+    const ok = this.vision.get(model) === true
+    return messages.map((m) => {
+      if (!('images' in m)) return m
+      const { images, ...rest } = m
+      return ok && images?.length ? { ...rest, images } : rest
+    })
   }
 
   /** GET /api/ps: size_vram ≥ 0,5·size у чат-модели → gpu (после прогрева модель уже загружена). */
@@ -253,7 +296,7 @@ export class OllamaClient implements LlmClient {
         signal: ac.signal,
         body: JSON.stringify({
           model: o.model,
-          messages: o.messages,
+          messages: this.forModel(o.model, o.messages),
           stream: true,
           keep_alive: this.cfg.keepAlive,
           ...(o.think === false && this.thinking.get(o.model) ? { think: false } : {}),
@@ -327,7 +370,7 @@ export class OllamaClient implements LlmClient {
         signal: ac.signal,
         body: JSON.stringify({
           model: o.model,
-          messages: o.messages,
+          messages: this.forModel(o.model, o.messages),
           stream: false,
           keep_alive: this.cfg.keepAlive,
           ...(this.cfg.dialog?.think === false && this.thinking.get(o.model) ? { think: false } : {}),

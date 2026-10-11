@@ -30,6 +30,7 @@ import { llmAnswer, llmClassify, llmVerify } from './llm.ts'
 import { ASK_CHEM, moderate, R2 } from './moderation.ts'
 import { cmpForm, detectLang, GIBBERISH_REPLY, normalizeInput, type Lang } from './normalize.ts'
 import { isOwnerRuleQuestion, R1 } from './ownerRule.ts'
+import { runPhotoChat } from './photo.ts'
 import { DANGER_REPLY, ensureToolNumbers, isDangerousRequest, scrubR3, splitSentences, wordCount } from './postcheck.ts'
 import { retrieveV2, type RetrievalResult } from './retrieve.ts'
 import { checkStudentNumbers, runTools, type ToolResult } from './tools.ts'
@@ -43,6 +44,10 @@ export type ChatRequest = {
   messages: ChatMessage[]
   context: { gradeId: string; chapterId?: string; sectionId?: string; sectionTitle?: string; mode: 'chat' | 'live'; detail: 'brief' | 'more' }
   student?: { mood?: string; cameraEngagement?: number }
+  // — блок PHOTO (фото задачи, brain/pipeline/photo.ts): base64 картинок последней реплики — только в памяти запроса;
+  // hasImage — флаг для журнала (сами картинки не пишутся никогда) —
+  images?: string[]
+  hasImage?: boolean
 }
 
 export type Route = string
@@ -199,6 +204,8 @@ function qtypeOf(kind: QuestionKind): QType {
 }
 
 export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink, signal?: AbortSignal): Promise<DoneEvent> {
+  // — блок PHOTO: реплика с фото — свой конвейер (модель со зрением или честное «фото не читаю» + ответ на текст) —
+  if (req.images?.length) return runPhotoChat(req, deps, sink, signal, runChat)
   const t0 = performance.now()
   const { kb, config } = deps
   const turnId = `t-${ulid()}`
@@ -285,6 +292,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
           tools: (o.tools ?? []).map((t) => t.tool),
           retrievalMs: o.retrieval?.ms,
           vectors: o.retrieval?.usedVectors ?? false,
+          ...(req.hasImage ? { hasImage: true } : {}), // блок PHOTO: фото было, но прочитано не было (картинки не пишутся)
           // мозг v2 — только дописывание полей
           ...(sqInfo
             ? { standalone: sqInfo.text, followUp: sqInfo.followUp, scope: sqInfo.scope, kind: sqInfo.kind, lengthClass: planInfo?.lengthClass ?? sqInfo.lengthClass, sources: sources.slice(0, 3), fixes }

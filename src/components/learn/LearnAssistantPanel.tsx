@@ -31,6 +31,7 @@ import { noteNegativeFeedback } from '../../learn/brain/ml/intentStep'
 import { LiveDialogButton } from './LearnLiveTutorPanel'
 import { applyInputPolicy, ensureNoUnknown } from '../../learn/brain/policy'
 import { ensureBrainOnline, useBrainStatus } from '../../learn/brain/remote/brainClient'
+import { PHOTO_MAX_COUNT, photoDefaultText, prepareChatPhoto, type ChatPhoto } from '../../learn/brain/remote/chatPhoto'
 import { resolveStableStudentId } from '../../learn/brain/dualMode/useDualModeTeacher'
 import { getActiveStudent } from '../../learn/learnClassRosterStorage'
 import {
@@ -102,6 +103,9 @@ type ChatMessage = {
   stopped?: boolean
   /** Отзыв ученика 👍/👎 (меняет стиль следующих ответов). */
   rating?: 'up' | 'down'
+  /** «Сфотографируй задачу»: сколько фото было в вопросе (сохраняется) и миниатюры (только в памяти вкладки). */
+  photoCount?: number
+  thumbs?: string[]
 }
 
 const QUICK_KEYS = [
@@ -140,7 +144,8 @@ function loadStored(key: string): ChatMessage[] {
 
 function saveStored(key: string, messages: ChatMessage[]): void {
   try {
-    sessionStorage.setItem(key, JSON.stringify(messages.slice(-24)))
+    // миниатюры фото не сохраняем (только число): фото тетради не задерживаются в хранилище браузера
+    sessionStorage.setItem(key, JSON.stringify(messages.slice(-24).map((m) => (m.thumbs ? { ...m, thumbs: undefined } : m))))
   } catch {
     /* quota */
   }
@@ -290,6 +295,11 @@ export function LearnAssistantPanel({
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const homeworkFileRef = useRef<HTMLInputElement>(null)
+  /** «Сфотографируй задачу»: выбранные фото (до отправки) и фото отправленных вопросов (для «Ответить заново»). */
+  const photoFileRef = useRef<HTMLInputElement>(null)
+  const [photos, setPhotos] = useState<ChatPhoto[]>([])
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const photoPayloadRef = useRef(new Map<number, string[]>())
   const pendingRef = useRef<PendingRequest | null>(null)
   const requestSeqRef = useRef(0)
   const settingsId = useId()
@@ -509,16 +519,23 @@ export function LearnAssistantPanel({
       nextMessages: ChatMessage[],
       signal: AbortSignal,
       onDelta?: (fullText: string) => void,
+      images?: string[],
     ): Promise<ReplyResult> => {
       const history = nextMessages.map((m) => ({ role: m.role, content: m.text }))
       let notice: ReplyResult['notice']
       // Политика (R1/R2/светская беседа) и локальный мозг — внутри routeTeacherReply.
       const viaRouter = async (): Promise<ReplyResult> => {
-        const routed = await routeTeacherReply(history, localCtx, { signal, onDelta, studentId: resolveStableStudentId(rosterStudentId) })
+        const routed = await routeTeacherReply(history, localCtx, {
+          signal,
+          onDelta,
+          studentId: resolveStableStudentId(rosterStudentId),
+          ...(images?.length ? { images } : {}),
+        })
         return { text: filterAssistantReply(routed.text, locale), source: mapRoutedSource(routed.source), notice }
       }
       const policy = applyInputPolicy(history[history.length - 1]?.content ?? '', locale, history.length)
-      if (policy.kind === 'reply' || (await ensureBrainOnline())) return viaRouter()
+      // фото читает только мозг (маршрутизатор сам скажет, если его нет) — старые серверы фото не принимают
+      if (images?.length || policy.kind === 'reply' || (await ensureBrainOnline())) return viaRouter()
       // Ниже — старые серверы (teacher_service / шлюз): вопрос уже очищен политикой, R2 — в начало ответа.
       const payload = { messages: replaceLastUserText(history, policy.text), context: localCtx }
       const finish = (text: string) => `${policy.prefix}${ensureNoUnknown(filterAssistantReply(text, locale), locale, [localCtx.sectionTitle])}`
@@ -597,8 +614,11 @@ export function LearnAssistantPanel({
         }
       }
       let result: ReplyResult
+      // фото вопроса (если он был с фото) — и при «Ответить заново»
+      const lastQ = history[history.length - 1]
+      const images = lastQ?.role === 'user' ? photoPayloadRef.current.get(lastQ.at) : undefined
       try {
-        result = await replyFromApi(history, request.ctrl.signal, onDelta)
+        result = await replyFromApi(history, request.ctrl.signal, onDelta, images)
       } catch {
         const local = await composeLocalTeacherReply(
           history.map((x) => ({ role: x.role, content: x.text })),
@@ -635,10 +655,18 @@ export function LearnAssistantPanel({
   )
 
   const sendText = useCallback(
-    (text: string) => {
+    (text: string, withPhotos: readonly ChatPhoto[] = []) => {
       const clean = text.trim()
       if (!clean || loading) return
       const userMsg: ChatMessage = { role: 'user', text: clean, at: Date.now() }
+      if (withPhotos.length) {
+        userMsg.photoCount = withPhotos.length
+        userMsg.thumbs = withPhotos.map((p) => p.thumb)
+        const store = photoPayloadRef.current
+        store.set(userMsg.at, withPhotos.map((p) => p.base64))
+        // в памяти — фото последних трёх вопросов (для «Ответить заново»), не больше
+        while (store.size > 3) store.delete(store.keys().next().value as number)
+      }
       const history = [...messages, userMsg]
       setMessages(history)
       setStreamingAt(null)
@@ -648,16 +676,60 @@ export function LearnAssistantPanel({
   )
 
   const send = useCallback(() => {
-    const text = input.trim()
+    const typed = input.trim()
     // Поле ввода не блокируется во время ответа — текст не теряется, пока ИИ думает.
-    if (!text || loading) return
+    if ((!typed && !photos.length) || loading || photoBusy) return
+    // только фото — подпись по умолчанию («Объясни задачу»)
+    const text = typed || photoDefaultText(locale)
+    const withPhotos = photos
     setInput('')
-    sendText(text)
+    setPhotos([])
+    sendText(text, withPhotos)
     // На сенсорных экранах не поднимаем клавиатуру, если ученик нажимал кнопку.
     if (!prefersCoarsePointer() || document.activeElement === inputRef.current) {
       inputRef.current?.focus()
     }
-  }, [input, loading, sendText])
+  }, [input, loading, locale, photoBusy, photos, sendText])
+
+  /** «Сфотографируй задачу»: файлы с камеры / диска / из буфера → сжатые JPEG без EXIF (не больше двух). */
+  const addPhotoFiles = useCallback(
+    async (files: readonly File[]) => {
+      const images = files.filter((f) => !f.type || f.type.startsWith('image/'))
+      if (!images.length) return
+      const room = PHOTO_MAX_COUNT - photos.length
+      if (room <= 0) {
+        setError(t('learn.teacherUi.photoMax'))
+        return
+      }
+      setPhotoBusy(true)
+      setError(null)
+      const ready: ChatPhoto[] = []
+      let failedOne = false
+      for (const f of images.slice(0, room)) {
+        try {
+          ready.push(await prepareChatPhoto(f))
+        } catch {
+          failedOne = true
+        }
+      }
+      setPhotoBusy(false)
+      if (ready.length) setPhotos((cur) => [...cur, ...ready].slice(0, PHOTO_MAX_COUNT))
+      if (failedOne) setError(t('learn.teacherUi.photoBad'))
+      else if (images.length > room) setError(t('learn.teacherUi.photoMax'))
+      if (!prefersCoarsePointer()) inputRef.current?.focus()
+    },
+    [photos.length, t],
+  )
+
+  /** Кнопка камеры: с ИИ-сервером — фото задачи учителю; без него — прежняя проверка ДЗ по фото в браузере. */
+  const onCameraClick = useCallback(() => {
+    if (brainStatus === 'online') {
+      photoFileRef.current?.click()
+      return
+    }
+    setError(t('learn.teacherUi.photoNeedsServer'))
+    homeworkFileRef.current?.click()
+  }, [brainStatus, t])
 
   /** «Остановить»: отменяет ожидание ответа или замораживает печать и голос. */
   const stopGenerating = useCallback(() => {
@@ -734,6 +806,8 @@ export function LearnAssistantPanel({
     setLastSource(null)
     setError(null)
     setAtBottom(true)
+    setPhotos([])
+    photoPayloadRef.current.clear()
     try {
       sessionStorage.removeItem(storeKey)
     } catch {
@@ -877,6 +951,8 @@ export function LearnAssistantPanel({
     t('learn.assistant.homeworkReading'),
     t('learn.teacherUi.stoppedNotice'),
     t('learn.assistant.rateLimit'),
+    t('learn.teacherUi.photoNeedsServer'),
+    t('learn.teacherUi.photoMax'),
   ])
   const isInfoNotice = error !== null && infoNotices.has(error)
   const canSpeak = isSpeechOutputSupported()
@@ -940,7 +1016,9 @@ export function LearnAssistantPanel({
           ? { key: 'learn.studio.ai.liveHintGranted' as const, tone: 'ok', Icon: IconMic }
           : { key: 'learn.studio.ai.liveHintMic' as const, tone: 'info', Icon: IconMic }
   const LiveHintIcon = liveHint.Icon
-  const sendState = generating ? 'sending' : input.trim() ? 'ready' : 'idle'
+  const sendState = generating ? 'sending' : input.trim() || photos.length ? 'ready' : 'idle'
+  /** Фото задачи можно приложить: мозг (сервер ATOMLAB или этот ПК) на связи. */
+  const photoReady = brainStatus === 'online'
 
   return (
     <aside
@@ -1138,6 +1216,17 @@ export function LearnAssistantPanel({
                   <div key={`${m.at}-${i}`} className={styles.rowUser}>
                     <div className={styles.bubbleUser}>
                       <span className={kit.srOnly}>{t('learn.assistant.you')}: </span>
+                      {m.photoCount ? (
+                        <div className={styles.userPhotos} data-chat-photos="">
+                          {m.thumbs?.length ? (
+                            m.thumbs.map((src, j) => <img key={j} src={src} alt={t('learn.teacherUi.photoAlt', { n: j + 1 })} />)
+                          ) : (
+                            <span className={styles.userPhotoTag}>
+                              <IconCamera aria-hidden /> {t('learn.teacherUi.photoCount', { n: m.photoCount })}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
                       <p className={styles.userText}>{m.text}</p>
                     </div>
                   </div>
@@ -1304,6 +1393,44 @@ export function LearnAssistantPanel({
               </button>
             </div>
           ) : null}
+          {photos.length || photoBusy ? (
+            <div className={styles.photoTray} data-chat-photo-tray="">
+              {photos.map((p, j) => (
+                <div key={p.id} className={styles.photoThumb}>
+                  <img src={p.thumb} alt={t('learn.teacherUi.photoAlt', { n: j + 1 })} />
+                  <button
+                    type="button"
+                    className={`${kit.iconBtn} ${styles.photoRemove}`}
+                    onClick={() => setPhotos((cur) => cur.filter((x) => x.id !== p.id))}
+                    aria-label={t('learn.teacherUi.photoRemove', { n: j + 1 })}
+                    title={t('learn.teacherUi.photoRemove', { n: j + 1 })}
+                  >
+                    <IconClose />
+                  </button>
+                </div>
+              ))}
+              {photoBusy ? <span className={styles.photoNote}>{t('learn.teacherUi.photoPreparing')}</span> : null}
+              {!photoBusy && photos.length ? (
+                <span className={styles.photoNote}>{photoReady ? t('learn.teacherUi.photoHint') : t('learn.teacherUi.photoServerLost')}</span>
+              ) : null}
+            </div>
+          ) : null}
+          {/* телефон — сразу камера; компьютер — выбор файла (до двух) */}
+          <input
+            ref={photoFileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/*"
+            capture={prefersCoarsePointer() ? 'environment' : undefined}
+            multiple={!prefersCoarsePointer()}
+            className={styles.fileHidden}
+            tabIndex={-1}
+            data-chat-photo-input=""
+            onChange={(e) => {
+              const list = Array.from(e.target.files ?? [])
+              e.target.value = ''
+              void addPhotoFiles(list)
+            }}
+          />
           <input
             ref={homeworkFileRef}
             type="file"
@@ -1323,6 +1450,13 @@ export function LearnAssistantPanel({
               className={styles.input}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={(e) => {
+                // скриншот / фото из буфера обмена — как «сфотографировать задачу» (если ИИ-сервер на связи)
+                const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/'))
+                if (!files.length || !photoReady) return
+                e.preventDefault()
+                void addPhotoFiles(files)
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault()
@@ -1353,10 +1487,11 @@ export function LearnAssistantPanel({
               <button
                 type="button"
                 className={`${kit.iconBtn} ${styles.fieldBtn}`}
-                disabled={loading}
-                onClick={() => homeworkFileRef.current?.click()}
-                title={t('learn.assistant.homeworkScan')}
-                aria-label={t('learn.assistant.homeworkScan')}
+                disabled={loading || photoBusy || (photoReady && photos.length >= PHOTO_MAX_COUNT)}
+                onClick={onCameraClick}
+                title={photoReady ? t('learn.teacherUi.photoAttach') : `${t('learn.assistant.homeworkScan')} · ${t('learn.teacherUi.photoNeedsServerShort')}`}
+                aria-label={photoReady ? t('learn.teacherUi.photoAttach') : t('learn.assistant.homeworkScan')}
+                data-chat-photo-btn={photoReady ? 'photo' : 'scan'}
               >
                 <IconCamera />
               </button>
@@ -1396,7 +1531,7 @@ export function LearnAssistantPanel({
                   className={`${kit.btnPrimary} ${styles.sendBtn}`}
                   data-state={sendState}
                   onClick={() => send()}
-                  disabled={!input.trim()}
+                  disabled={(!input.trim() && !photos.length) || photoBusy}
                   aria-label={t('learn.assistant.send')}
                   title={`${t('learn.assistant.send')} (Enter)`}
                 >

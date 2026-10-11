@@ -17,6 +17,8 @@ export type MockOptions = {
   /** отвечать не на том языке (проверка перевода) */
   wrongLanguage?: boolean
   available?: boolean
+  /** «модель со зрением» (фото задачи): status().vision; по умолчанию нет — как текстовая qwen */
+  vision?: boolean
 }
 
 function hash(s: string): number {
@@ -74,10 +76,17 @@ const LOGIC_FILL = {
   uz: ['Nega shunday: hammasini atom tuzilishi belgilaydi — yadro zaryadi va tashqi qavatdagi elektronlar soni.', 'Har qanday reaksiyada atomlar yoʻqolmaydi va paydo boʻlmaydi, shuning uchun moddalar massasi saqlanadi.', 'Atom elektronlarni qanchalik kuchli tortsa, reaksiyalarda ularni shunchalik oson qabul qiladi.'],
   en: ['Why: atomic structure decides it — the nuclear charge and the number of outer-shell electrons.', 'In any reaction atoms are neither created nor destroyed, so the total mass is conserved.', 'The more strongly an atom attracts electrons, the more readily it accepts them in reactions.'],
 }
+const PHOTO_READ = {
+  ru: (n: number) => `На фото (${n}) — задача из тетради. Условие кратко: дано вещество и его количество, найти массу. Решение по шагам: 1) записываем формулу m = n·M; 2) подставляем молярную массу из таблицы; 3) считаем и пишем ответ с единицами.`,
+  uz: (n: number) => `Rasmda (${n}) — daftardagi masala. Shart qisqacha: modda va uning miqdori berilgan, massasini topish kerak. Bosqichma-bosqich yechim: 1) m = n·M formulasini yozamiz; 2) molyar massani jadvaldan qoʻyamiz; 3) hisoblab, javobni birligi bilan yozamiz.`,
+  en: (n: number) => `The photo (${n}) shows a notebook task. In short: a substance and its amount are given, find the mass. Step by step: 1) write m = n·M; 2) put in the molar mass from the table; 3) calculate and write the answer with units.`,
+}
 const R3_OPENERS ={ ru: 'Я не знаю точно, но думаю, что ', uz: 'Bilmayman, lekin menimcha, ', en: "I don't know for sure, but I think " }
 
 export class MockLlm implements LlmClient {
   calls = 0
+  /** фото последнего вызова chatStream (messages[-1].images) — тесты проверяют, что картинки дошли до «модели» */
+  lastImages: string[] | null = null
   readonly opts: MockOptions
   constructor(opts: MockOptions = {}) {
     this.opts = opts
@@ -85,7 +94,7 @@ export class MockLlm implements LlmClient {
 
   status(): LlmStatus {
     const on = this.opts.available !== false
-    return { available: on, chatModel: on ? 'mock-7b' : null, fastModel: on ? 'mock-3b' : null, embedModel: null, checkedAt: Date.now() }
+    return { available: on, chatModel: on ? 'mock-7b' : null, fastModel: on ? 'mock-3b' : null, embedModel: null, checkedAt: Date.now(), vision: on ? !!this.opts.vision : null }
   }
 
   async refresh(): Promise<LlmStatus> {
@@ -141,6 +150,9 @@ export class MockLlm implements LlmClient {
         parts.push(words.slice(0, Math.round(fw[1] * 1.1)).join(' ').replace(/[,;:]?$/, '.'))
       }
     }
+    // фото задачи (только «модель со зрением»): «читает» условие и решает по шагам — детерминированно, без новых чисел
+    const imgs = [...messages].reverse().find((m) => m.role === 'user')?.images?.length ?? 0
+    if (imgs && this.opts.vision) parts.unshift(PHOTO_READ[lang](imgs))
     let text = parts.join(' ')
     if (bad) text = R3_OPENERS[lang] + text.charAt(0).toLowerCase() + text.slice(1)
     if (this.opts.wrongLanguage) text = lang === 'en' ? 'Это ответ на русском языке вместо английского, чтобы проверить перевод и запасной путь сервера.' : 'This answer is in English instead of the expected language, to test translation and the server fallback path.'
@@ -149,6 +161,7 @@ export class MockLlm implements LlmClient {
 
   async chatStream(o: ChatStreamOptions): Promise<ChatStreamResult> {
     this.calls++
+    this.lastImages = o.messages[o.messages.length - 1]?.images ?? null
     const text = this.compose(o.messages)
     const t0 = Date.now()
     if (this.opts.firstTokenDelayMs) {

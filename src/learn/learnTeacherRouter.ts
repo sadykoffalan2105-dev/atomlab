@@ -13,8 +13,9 @@ import { askTeacherModels } from './brain/human/teacherModelRegistry'
 import { mlIntentStep, mergeIntentStyle, replaceLastUser, type IntentStepResult } from './brain/ml/intentStep'
 import type { ComposeStyle } from './brain/dualMode/localAnswerComposer'
 import { dialogStep, dialogStyleHints } from './brain/dialog/dialogManager'
-import { applyInputPolicy, detectQuestionLang, ensureNoUnknown, isReasonedLead, reasonFromBasics } from './brain/policy'
-import { brainMoodFrom, ensureBrainOnline, streamChat, takeBrainBusyNote, type BrainMood } from './brain/remote/brainClient'
+import { applyInputPolicy, detectQuestionLang, ensureNoUnknown, isReasonedLead, MODERATION_NOTICE, reasonFromBasics } from './brain/policy'
+import { BRAIN_PHOTO_NOTE, brainMoodFrom, ensureBrainOnline, streamChat, takeBrainBusyNote, takePhotoRejectNote, type BrainMood } from './brain/remote/brainClient'
+import { isPhotoDefaultText, photoDefaultText } from './brain/remote/chatPhoto'
 
 /** Кто ответил: карточка FAQ, локальная база (без сети) или локальный мозг (сервер на ПК учителя). */
 export type TeacherReplySource = 'faq' | 'local' | 'brain'
@@ -37,6 +38,8 @@ export type TeacherRouterOptions = {
   mood?: BrainMood
   cameraEngagement?: number
   detail?: 'brief' | 'more'
+  /** «Сфотографируй задачу»: фото к последней реплике (base64 без «data:», ≤ 2) — их читает только ИИ-сервер. */
+  images?: string[]
 }
 
 export type TeacherRouterResult = {
@@ -87,6 +90,7 @@ async function askLocalBrain(
     studentId: opts?.studentId,
     signal: opts?.signal,
     onDelta: opts?.onDelta ? (_d, full) => opts.onDelta?.(full) : undefined,
+    ...(opts?.images?.length ? { images: opts.images } : {}),
   })
   if (!done || isAbort(opts?.signal)) return null
   const filtered = filterAssistantReply(done.text, lang).trim() || done.text.trim()
@@ -487,6 +491,17 @@ export async function routeTeacherReply(
   if (!opts?.policyHandled) {
     const original = lastUserText(messages)
     const step = applyInputPolicy(original, ctx.locale, messages.length)
+    // фото задачи: «привет» / одна грубость рядом с фото — не повод отвечать шаблоном, разбираем фото (R1 — как всегда)
+    if (opts?.images?.length && step.kind === 'reply' && step.route !== 'rule') {
+      const prefix = step.moderated ? `${MODERATION_NOTICE[step.lang]}\n\n` : ''
+      const inner = await routeTeacherReply(replaceLastUser(messages, photoDefaultText(step.lang)), ctx, {
+        ...opts,
+        policyHandled: true,
+        knowledge: undefined,
+        onDelta: opts?.onDelta ? (full) => opts.onDelta?.(`${prefix}${full}`) : undefined,
+      })
+      return prefix ? { ...inner, text: `${prefix}${inner.text}` } : inner
+    }
     if (step.kind === 'reply') return { text: step.text, source: 'local', citations: [] }
     if (step.prefix || step.text !== original) {
       const prefix = step.prefix
@@ -500,6 +515,7 @@ export async function routeTeacherReply(
     }
   }
   const signal = opts?.signal
+  if (opts?.images?.length) return routePhoto(messages, ctx, opts)
   // 1) Мозг (сервер ATOMLAB или этот ПК) — если отвечает (проверка /health, кеш 20 с).
   let busyNote = ''
   if (!opts?.disableBrain && (await ensureBrainOnline())) {
@@ -514,6 +530,31 @@ export async function routeTeacherReply(
   if (!local.text) return local
   const text = ensureNoUnknown(local.text, ctx.locale, [ctx.sectionTitle], { query: lastUserText(messages) })
   return { ...local, text: busyNote ? `${busyNote}\n\n${text}` : text }
+}
+
+/**
+ * Реплика с фото: фото читает только мозг (сервер ATOMLAB / этот ПК; модель без зрения сервер объяснит сам).
+ * Мозга нет или он отклонил фото — короткая пометка на языке ученика; если ученик что-то написал сам — ещё и
+ * ответ на текст из базы браузера (фото браузер не читает).
+ */
+async function routePhoto(messages: { role: string; content: string }[], ctx: LearnLocalAssistantContext, opts: TeacherRouterOptions): Promise<TeacherRouterResult> {
+  const q = lastUserText(messages)
+  const lang = detectQuestionLang(q, ctx.locale)
+  if (!opts.disableBrain && (await ensureBrainOnline())) {
+    const brain = await askLocalBrain(messages, ctx, opts)
+    if (brain) return brain
+    if (isAbort(opts.signal)) return { text: '', source: 'local', citations: [] }
+  }
+  // сервер отклонил фото (лимит, размер, формат) — своя пометка; занят или недоступен — «фото читает ИИ-сервер»
+  const reject = takePhotoRejectNote(lang)
+  takeBrainBusyNote(lang)
+  const note = reject || BRAIN_PHOTO_NOTE.server[lang]
+  if (isPhotoDefaultText(q)) return { text: note, source: 'local', citations: [] }
+  const onDelta = opts.onDelta
+  const local = await routeLocal(messages, ctx, { ...opts, images: undefined, onDelta: onDelta ? (full) => onDelta(`${note}\n\n${full}`) : undefined })
+  if (!local.text) return { text: note, source: 'local', citations: [] }
+  const text = ensureNoUnknown(local.text, ctx.locale, [ctx.sectionTitle], { query: q })
+  return { ...local, text: `${note}\n\n${text}` }
 }
 
 /** Запасной путь без мозга: «человеческий» слой → база знаний → карточка FAQ. */

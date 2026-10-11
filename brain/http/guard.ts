@@ -119,10 +119,15 @@ export function readBody(req: http.IncomingMessage, limit: number): Promise<stri
 
 /** Разобрать JSON тела; BodyError 400/413/415 — готовый ответ. */
 export async function readJson(req: http.IncomingMessage, limit: number): Promise<unknown> {
+  return (await readJsonWithSize(req, limit)).body
+}
+
+/** Как readJson, но и размер тела в байтах: большое тело допустимо только с фото (brain/http/photo.ts). */
+export async function readJsonWithSize(req: http.IncomingMessage, limit: number): Promise<{ body: unknown; bytes: number }> {
   if (!isJsonContentType(req)) throw new BodyError(415, 'unsupported_media_type', 'нужен Content-Type: application/json')
   const raw = await readBody(req, limit)
   try {
-    return JSON.parse(raw)
+    return { body: JSON.parse(raw), bytes: Buffer.byteLength(raw) }
   } catch {
     throw new BodyError(400, 'bad_request', 'нужен JSON')
   }
