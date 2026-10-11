@@ -2,7 +2,12 @@
  * Шаг 4: намерение. Правила (банк ≥40 шаблонов светской беседы ru/uz/en, маркеры расчёта и проверки ДЗ);
  * спорные случаи (длинный текст без маркеров) уточняются одним быстрым вызовом LLM, если она есть.
  */
+import type { KbChunkType, KbLang } from '../../src/learn/kb/types.ts'
+import type { Knowledge } from '../kb/shards.ts'
+import type { QuestionKind, Scope } from './dialogTypes.ts'
+import { findConcepts, findElements, findFormulas, findSubstances } from './entities.ts'
 import type { Lang } from './normalize.ts'
+import { isObtainQuestion } from './obtain.ts'
 import { ub } from './rx.ts'
 
 export type Intent = 'smalltalk' | 'chemistry' | 'calc' | 'homework' | 'offtopic' | 'rule' | 'gibberish'
@@ -143,6 +148,108 @@ export function questionType(cmp: string): QType {
   if (/(примен|использ|где (встреча|нужен)|для чего|uses? of|used for|qo'llan|ishlatil)/u.test(cmp)) return 'uses'
   if (/(что так|что это|что значит|что означает|что называ|определени|дай определ|^что за|what is|what are|what does|define|meaning of|nima\b|nima degani|deb ataladi|ta'rif)/u.test(cmp)) return 'definition'
   return 'general'
+}
+
+// ———————————————————————————————————————————— мозг v2 (SOURCES): тип вопроса, охват (scope), подсказка класса
+
+/**
+ * Явный класс в реплике: «в 7 классе», «для 8-го класса», «7-sinf uchun», «grade 7», «7th grade».
+ * Группа 1 — номер класса (один регекс на три языка; DIALOG берёт его для followUp switch_grade).
+ */
+export const GRADE_HINT_RE =
+  /(?<![\p{L}\d])(?=(?:7|8|9|10|11)(?:[- ]?(?:го\s|м\s|й\s|ом\s)?класс|[- ]?sinf|th[- ]grade|[- ]?(?:го|м|й)?\s?кл\.)|(?<=(?:grade|class|year|form)\s{1,3})(?:7|8|9|10|11)(?!\d))(7|8|9|10|11)/iu
+
+/** Задание в форме теста: «выбери правильный», «верно ли», «а) б) в)», «true or false», «qaysi biri». */
+const TEST_STYLE_RE =
+  /((выбери|выберите|укажи|укажите)\s+(правильн|верн)|верно ли|правда ли|какое из|какой из|варианты? ответ|(^|\s)[абвг]\)|(^|\s)[abcd]\)|true or false|which of the following|\bchoose\b|tanlang|to'g'rimi|togrimi|qaysi biri)/iu
+/** «зачем нужно / где применяют / в жизни» — применение (раньше «почему», чтобы «зачем он нужен» не стал why). */
+const USES_RE =
+  /(зачем (он |она |оно |они |это |его |их )?нуж|для чего|где (его |её |их )?(примен|использ|встреча)|в (жизни|быту|повседневн)|применени|real life|everyday|used for|uses? of|where (is|are) (it|they|\p{L}+) used|what is it used|hayotda|qayerda (ishlat|qo'llan)|qo'llanil|ishlatil)/iu
+const HOW_MANY_RE = /(сколько|how much|how many|qancha|necha)/iu
+const REPEAT_RE = /^(повтори(те)?|ещ[её] раз|скажи ещ[её] раз|repeat( that| please)?|say (it|that) again|once more|takrorla(ng)?|yana bir (bor|marta))\b/iu
+const CONFIRM_RE = /^(да|давай(те)?|конечно|ага|угу|хочу|можно|yes|yeah|yep|sure|please|ha|albatta|mayli|xohlayman|ha,? albatta)[.!)]*$/iu
+const WHO_HISTORY_RE =
+  /(кто (открыл|изобр[её]л|придумал|создал|получил впервые|впервые)|когда (открыл|был[аио]? открыт|открыт|впервые)|истори\p{L}*|биограф|первооткрыват|who (discovered|invented|first)|when was .* discovered|histor|biograph|kim kashf|qachon kashf|tarix)/iu
+const BROAD_KIND_RE =
+  /(^|\s)(расскажи(те)? (вс[её]|про|о|об|мне)|что ты знаешь|что вы знаете|tell me (all |everything )?about|what do you know|haqida (hamma|gapirib|aytib)|hammasini ayt)/iu
+const DEFINITION_FACT_RE = /^(какая|какой|какое|какие|каков|какова|каковы|what is the|what are the|qaysi)\s/iu
+
+/** Самодостаточный ли «вопрос-определение» без чисел: «Что такое молярная масса?» — определение, а не расчёт. */
+function isPlainDefinition(cmp: string): boolean {
+  return questionType(cmp) === 'definition' && !/\d/.test(cmp)
+}
+
+/**
+ * Тип вопроса для мозга v2 (надстройка над questionType): от него DIALOG выбирает глубину и число слов.
+ * cmp — сравнительная форма (cmpForm), text — исходный (для формул и строк ДЗ).
+ */
+export function questionKind(cmp: string, text: string): QuestionKind {
+  const c = cmp.trim()
+  if (!c) return 'general'
+  if (CONFIRM_RE.test(c)) return 'confirm'
+  if (REPEAT_RE.test(c)) return 'repeat'
+  const st = matchSmalltalk(c, text)
+  if (st && !st.rest) return 'chitchat'
+  const body = st?.rest ? cmpOf(st.rest) : c
+  const raw = st?.rest || text
+  if (TEST_STYLE_RE.test(body)) return 'test_style'
+  const lines = raw.split(/\n/).filter((l) => l.trim()).length
+  const numbers = (raw.match(/\d+(?:[.,]\d+)?/g) ?? []).length
+  if (HOMEWORK_RE.some((re) => re.test(body)) || (lines >= 3 && numbers >= 2)) return 'homework'
+  if (!isPlainDefinition(body)) {
+    if (CALC_RE.some((re) => re.test(body) || re.test(raw))) return 'calc'
+    if (HOW_MANY_RE.test(body) && /\d/.test(body)) return 'calc'
+  }
+  if (isObtainQuestion(body)) return 'howto_obtain'
+  const qt = questionType(body)
+  if (qt === 'compare') return 'compare'
+  if (qt === 'who' || WHO_HISTORY_RE.test(body)) return 'who_history'
+  if (USES_RE.test(body)) return 'uses'
+  if (qt === 'how') return 'howto_obtain'
+  if (qt === 'why') return 'why'
+  if (qt === 'properties') return 'properties'
+  if (qt === 'uses') return 'uses'
+  if (qt === 'definition' || DEFINITION_FACT_RE.test(body)) return 'definition'
+  if (BROAD_KIND_RE.test(body)) return 'broad'
+  return 'general'
+}
+
+function cmpOf(s: string): string {
+  return s.normalize('NFC').toLowerCase().replace(/ё/g, 'е').replace(/[ʻʼ‘’`´]/g, "'").replace(/\s+/g, ' ').trim()
+}
+
+/** Вузовские термины: школа о них почти не пишет — отвечаем шире (энциклопедия как источник, не только фон). */
+export const UNIV_RE =
+  /(энтроп|гиббс|энтальп|гибридиз|орбитал|молекулярн\p{L}* орбитал|буферн|лиганд|координацион|комплексн\p{L}* соедин|кинетик|порядок реакц|константа равновес|активационн|энерги\p{L}* активац|нернст|электродн\p{L}* потенциал|титрован|хроматограф|коллоид|vsepr|квантов|\bспин|entrop|gibbs|enthalp|hybridi[sz]|orbital|buffer|ligand|coordination compound|kinetic|rate law|equilibrium constant|activation energy|nernst|titrat|chromatograph|colloid|quantum|entropiya|gibridlanish|bufer)/iu
+/** Энциклопедические подсказки (как STRONG_RE/SOFT_RE сайта, src/learn/kb/encyclopedia.ts) — дополняют ENCYCLO_RE. */
+const ENC_CUE_RE =
+  /(расскажи вс[её]|что ты знаешь о|интересн|в жизни|в природе|в космосе|почему в мире|экологи|озонов|парников|аккумулятор|батаре|нобелев|tell me about|what do you know|real life|in nature|in space|haqida hamma|qiziq|tabiatda|hayotda)/iu
+/** Явная просьба о глубине: «подробно», «максимально», «как учёный», «для олимпиады». */
+const DEPTH_RE = /(подробно\b|максимально|как уч[её]н|для олимпиад|олимпиадн|olimpiada|in depth|in-depth|like a scientist|for (an |the )?olympiad)/iu
+/** Темы с живыми данными (погода, новости, курс) — не по химии (как LIVE_DATA в fallback.ts). */
+const LIVE_DATA_RE = /(погод|прогноз|новост|курс (доллар|валют|сум)|сч[её]т матча|который час|сегодняшн|ob-?havo|yangilik|valyuta kursi|weather|forecast|news|exchange rate|stock price|what time is it)/iu
+
+const SCHOOL_SEARCH_TYPES: KbChunkType[] = ['textbook', 'definition', 'summary', 'card', 'faq', 'misconception']
+
+/**
+ * Охват вопроса: school — школьная программа (учебник Kimyo класса ученика первым, Википедия только фоном);
+ * broad — история, промышленность, «в жизни», вузовские термины, явная просьба о глубине или школа пуста;
+ * offtopic — не про химию. why — короткая причина для журнала и eval.
+ */
+export function classifyScope(text: string, cmp: string, lang: Lang, kb: Knowledge): { scope: Scope; why: string } {
+  const chem = hasChemVocabulary(text)
+  if (!chem && (OFFTOPIC_RE.test(cmp) || LIVE_DATA_RE.test(cmp))) return { scope: 'offtopic', why: 'offtopic' }
+  if (UNIV_RE.test(cmp)) return { scope: 'broad', why: 'univ_term' }
+  if (wantsEncyclopedia(cmp) || WHO_HISTORY_RE.test(cmp) || ENC_CUE_RE.test(cmp) || USES_RE.test(cmp)) return { scope: 'broad', why: 'enc_cue' }
+  if (DEPTH_RE.test(cmp)) return { scope: 'broad', why: 'depth' }
+  if (chem) {
+    const known = findConcepts(text).length > 0 || findSubstances(text, kb).length > 0 || findElements(text, kb).length > 0 || findFormulas(text, lang !== 'en').length > 0
+    if (!known) {
+      const top = kb.engine.search(text, { types: SCHOOL_SEARCH_TYPES, limit: 3, locale: lang as KbLang })[0]?.score ?? 0
+      if (top < 6) return { scope: 'broad', why: 'no_school_hit' }
+    }
+  }
+  return { scope: 'school', why: 'default' }
 }
 
 const BRIDGE: Record<Lang, string[]> = {

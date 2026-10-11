@@ -18,6 +18,7 @@
  * Ничего не прошло — пусто: модель отвечает из своих знаний с честной уверенностью (без мусорной «справки»).
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
+import type { Scope } from './dialogTypes.ts'
 import type { Candidate } from './hybrid.ts'
 
 export type QueryConcepts = { terms: { term: string; concept: number; weight: number }[]; conceptWeights: number[] }
@@ -80,15 +81,32 @@ function genericOccurrence(term: string, title: string, text: string): boolean {
   return false
 }
 
-export function judge(c: Candidate, q: QueryConcepts, lower: Set<string>, allowPeople: boolean): RelevanceVerdict {
+/** Сколько раз терм встречается в тексте фрагмента (частоты считаются один раз на кандидата). */
+function termFreq(c: Candidate, term: string): number {
+  if (!c.tf) {
+    c.tf = new Map()
+    for (const t of analyzeTerms(c.text.slice(0, 6000))) c.tf.set(t, (c.tf.get(t) ?? 0) + 1)
+  }
+  return c.tf.get(term) ?? 0
+}
+
+/**
+ * weakTermMinTf (мозг v2): в коротком вопросе (≤ 2 понятия) совпавший терм длинного фрагмента должен встретиться
+ * в тексте ≥ weakTermMinTf раз или в заголовке — «What is a mole?» не тянет «Угольную кислоту» с одним «моль» в тексте.
+ */
+export function judge(c: Candidate, q: QueryConcepts, lower: Set<string>, allowPeople: boolean, weakTermMinTf = 0): RelevanceVerdict {
   if (c.kind === 'correction') return { keep: true, cov: 1, titleHit: true }
-  if (!allowPeople && isPersonCandidate(c)) return { keep: false, cov: 0, titleHit: false, why: 'person' }
+  const person = isPersonCandidate(c)
+  if (!allowPeople && person) return { keep: false, cov: 0, titleHit: false, why: 'person' }
   const strong = q.conceptWeights.map((w, i) => ({ w, i })).filter((x) => x.w >= 0.5)
   const concepts = strong.length ? strong : q.conceptWeights.map((w, i) => ({ w, i }))
   if (!concepts.length) return { keep: true, cov: 1, titleHit: false }
+  const n = concepts.length
+  const checkWeak = weakTermMinTf > 1 && n <= 2 && c.text.length >= 300
   let total = 0
   let covered = 0
   let titleHit = false
+  let weak = false
   for (const { w, i } of concepts) {
     total += w
     const terms = q.terms.filter((t) => t.concept === i && t.weight >= 0.3).map((t) => t.term)
@@ -97,34 +115,51 @@ export function judge(c: Candidate, q: QueryConcepts, lower: Set<string>, allowP
     // все совпадения — по имени собственному («Голубева» на вопрос «голубое»)? тогда не в счёт
     const real = hit.some((t) => !lower.has(t) || /\d/.test(t) || t.length <= 2 || genericOccurrence(t, c.title, c.text))
     if (!real) continue
+    const inTitle = hit.some((t) => c.titleTerms.has(t))
+    if (checkWeak && !inTitle && !hit.some((t) => termFreq(c, t) >= weakTermMinTf)) {
+      weak = true
+      continue
+    }
     covered += w
-    if (hit.some((t) => c.titleTerms.has(t))) titleHit = true
+    if (inTitle) titleHit = true
   }
   const cov = total ? covered / total : 0
-  const n = concepts.length
   const school = isSchoolCandidate(c)
   let keep: boolean
   if (cov >= 0.999) keep = true
+  // персоналия на вопрос «кто/история»: фамилия в заголовке не обязана совпасть с понятием («Пристли, Джозеф» об открытии кислорода)
+  else if (allowPeople && person && cov >= 0.5) keep = true
   else if (n >= 4) keep = cov >= 0.5 || (cov >= 0.35 && (school || titleHit)) // длинный вопрос: часть слов — связки и уточнения
   else if (n === 3) keep = cov >= 0.66 && (school || titleHit)
   else keep = school && cov >= 0.5 && titleHit
-  return { keep, cov, titleHit, why: keep ? undefined : `cov ${cov.toFixed(2)}${titleHit ? '' : ', не в заголовке'}` }
+  return { keep, cov, titleHit, why: keep ? undefined : weak ? 'weak_term' : `cov ${cov.toFixed(2)}${titleHit ? '' : ', не в заголовке'}` }
 }
 
-/** Отфильтровать и перевзвесить кандидатов (после hybridScore). schoolQuestion — не «кто/история/промышленность». */
-export function applyRelevance(cands: Candidate[], q: QueryConcepts, question: string, opts: { allowPeople: boolean; schoolQuestion: boolean; pool?: number }): { kept: Candidate[]; dropped: { c: Candidate; why: string }[] } {
+/**
+ * Отфильтровать и перевзвесить кандидатов (после hybridScore). schoolQuestion — не «кто/история/промышленность».
+ * scope (мозг v2): если задан, источники перевзвешивает retrieveV2 по ярусам (config.retrievalV2.tierBoost) —
+ * здесь остаётся только множитель покрытия, чтобы не умножать дважды.
+ */
+export function applyRelevance(
+  cands: Candidate[],
+  q: QueryConcepts,
+  question: string,
+  opts: { allowPeople: boolean; schoolQuestion: boolean; pool?: number; scope?: Scope; weakTermMinTf?: number },
+): { kept: Candidate[]; dropped: { c: Candidate; why: string }[] } {
   const lower = lowercaseTerms(question)
   const pool = [...cands].sort((a, b) => b.score - a.score).slice(0, opts.pool ?? 60)
   const kept: Candidate[] = []
   const dropped: { c: Candidate; why: string }[] = []
   for (const c of pool) {
-    const v = judge(c, q, lower, opts.allowPeople)
+    const v = judge(c, q, lower, opts.allowPeople, opts.weakTermMinTf ?? 0)
+    c.cov = v.cov
+    c.titleHit = v.titleHit
     if (!v.keep) {
       dropped.push({ c, why: v.why ?? '' })
       continue
     }
     let boost = 0.6 + 0.4 * v.cov
-    if (opts.schoolQuestion) {
+    if (opts.schoolQuestion && !opts.scope) {
       if (/^Kimyo/i.test(c.source)) boost *= 1.2
       else if (/^ATOMLAB/i.test(c.source)) boost *= 1.1
       if (c.type === 'encyclopedia') boost *= 0.8
