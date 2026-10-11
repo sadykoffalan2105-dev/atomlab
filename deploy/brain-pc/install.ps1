@@ -472,7 +472,8 @@ try {
 } finally { Pop-Location }
 Add-Content -LiteralPath $script:LogFile -Value $evalOut -Encoding UTF8
 $rows = @()
-try { $rows = @(Get-Content -LiteralPath $evalJson -Raw -Encoding UTF8 | ConvertFrom-Json) } catch { }
+# PowerShell 5.1 отдаёт JSON-массив одним объектом — разворачиваем, иначе $rows.Count = 1, а поля — массивы
+try { $rows = @((Get-Content -LiteralPath $evalJson -Raw -Encoding UTF8 | ConvertFrom-Json) | ForEach-Object { $_ }) } catch { }
 function Get-Pct($vals, [double]$q) {
   $s = @($vals | Sort-Object)
   if (-not $s.Count) { return $null }
@@ -480,7 +481,7 @@ function Get-Pct($vals, [double]$q) {
 }
 if ($rows.Count) {
   $pass = @($rows | Where-Object { -not $_.why -or @($_.why).Count -eq 0 }).Count
-  $firsts = @($rows | Where-Object { $_.source -eq 'llm' -and $_.firstMs } | ForEach-Object { [int]$_.firstMs })
+  $firsts = @($rows | Where-Object { $_.source -eq 'llm' -and $_.firstMs } | ForEach-Object { try { [int][double]$_.firstMs } catch { } })
   $rate = [Math]::Round(100.0 * $pass / $rows.Count, 1)
   $p50 = Get-Pct $firsts 50
   $p95 = Get-Pct $firsts 95
