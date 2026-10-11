@@ -158,7 +158,9 @@ function cardFragment(unit: Unit, lang: Lang, g: number | null, maxChars: number
     title,
     text,
     type: 'summary',
-    lang,
+    // не 'ru': запасной путь без LLM (fallback.ts берёт предложения только из ru-фрагментов) не вставляет служебные
+    // строки карточки («Kimyo 9, §4 «…» — понятия: …») в текст ответа; модели карточка уходит как обычное знание
+    lang: `card-${lang}`,
     grade: unit.grade,
     source: `Kimyo ${unit.grade}`,
     citation: unit.pages.start ? `${unit.cite.slice(0, -1)}, стр. ${unit.pages.start}]` : unit.cite,
