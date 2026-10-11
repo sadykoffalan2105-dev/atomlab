@@ -39,6 +39,13 @@ try {
       Act 'Start-ScheduledTask ATOMLAB Brain' { Start-ScheduledTask -TaskName 'ATOMLAB Brain' -ErrorAction SilentlyContinue }
     }
   }
+  # картинки: ComfyUI установлен, включён, а /system_stats молчит — поднимаем задачу ATOMLAB Comfy
+  if ((Test-ImageEnabled $cfg) -and (Test-Path -LiteralPath (Join-Path $paths.ComfyRoot 'python_embeded\python.exe')) -and -not (Test-ComfyUp $cfg 3)) {
+    if (Get-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue) {
+      Warn 'ComfyUI не отвечает — запускаю задачу ATOMLAB Comfy'
+      Act 'Start-ScheduledTask ATOMLAB Comfy' { Start-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue }
+    }
+  }
   $ts = Find-Tailscale
   if ($ts -and $state.funnel -eq 'on') {
     $fs = (Invoke-Exe $ts funnel status | Out-String)
@@ -98,6 +105,65 @@ try {
     }
     Set-StateValue $state 'modelsKey' $key
     $pending = $true
+  }
+
+  # --- картинки (ComfyUI) ---
+  # Ключ картинок (движок|вариант|выпуск ComfyUI|версия манифеста|вкл, + ученики/ключи/порт/резерв) изменился или пришли
+  # правки deploy/brain-pc/comfy/** → comfy\image-install.ps1 (докачка ≤ 50 мин за запуск, код 3 — продолжит в следующий раз),
+  # затем перезапуск ComfyUI, когда его очередь пуста, config.json мозга и перезапуск мозга по общим правилам ниже.
+  # Подпапку bin\comfy синхронизируем здесь (старый update.ps1 копировал только верхний уровень deploy\brain-pc).
+  if ($cfg.image) {
+    $comfyTouched = (@($changed | Where-Object { $_ -like 'deploy/brain-pc/comfy/*' }).Count -gt 0)
+    $imgScript = Join-Path $paths.Bin 'comfy\image-install.ps1'
+    if ($comfyTouched -or $Force -or -not (Test-Path -LiteralPath $imgScript)) {
+      Act 'обновить C:\ATOMLAB\bin (с подпапкой comfy\) из deploy\brain-pc' { Copy-AtomScripts (Join-Path $repo 'deploy\brain-pc') $paths.Bin }
+    }
+    if (-not (Test-Path -LiteralPath $imgScript)) { $imgScript = Join-Path $repo 'deploy\brain-pc\comfy\image-install.ps1' }
+    $imgManifest = Read-Json (Join-Path (Split-Path -Parent $imgScript) 'manifest.json')
+    $ikey = Get-ImageKey $cfg $imgManifest
+    $needImg = ($state.imageKey -ne $ikey) -or $comfyTouched -or $Force
+    if (-not $needImg -and (Test-ImageEnabled $cfg) -and -not (Test-Path -LiteralPath (Join-Path $paths.ComfyRoot 'python_embeded\python.exe'))) { $needImg = $true }
+    if ($needImg) {
+      Say "картинки: $($state.imageKey) → $ikey"
+      $imgArgs = @{ Root = $Root; BudgetMinutes = 50; Quiet = $true }
+      if ($script:AtomDry) { $imgArgs['DryRun'] = $true }
+      $imgCode = 1
+      # сбой картинок не должен останавливать обновление мозга — только предупреждение
+      try {
+        if ((Test-ImageEnabled $cfg) -and -not (Get-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue)) {
+          Register-AtomTask 'ATOMLAB Comfy' 'comfy\run-comfy.ps1'   # серверы, поставленные до картинок: задачу добавляет Update
+        }
+        if (Test-Path -LiteralPath $imgScript) { & $imgScript @imgArgs; $imgCode = $LASTEXITCODE } else { Warn "нет $imgScript" }
+      } catch { Warn ("картинки: " + $_.Exception.Message) }
+      $script:AtomDry = [bool]$DryRun
+      # image-install сам пишет state.json (verified, comfyTag) — переносим, чтобы наш $state их не затёр
+      $fresh = Read-State $paths
+      foreach ($k in 'verified', 'comfyTag') { if ($fresh.PSObject.Properties[$k]) { Set-StateValue $state $k $fresh.$k } }
+      if ($imgCode -eq 0) {
+        $cport = Get-ComfyPort $cfg
+        if (Test-ComfyUp $cfg 3) {
+          # перезапуск ComfyUI, когда в его очереди пусто (окно картинок ≤ 30 с — ждём не дольше idleWaitMinutes)
+          if (-not $script:AtomDry) {
+            $qDeadline = (Get-Date).AddMinutes([int]$cfg.update.idleWaitMinutes)
+            while ((Get-Date) -lt $qDeadline) {
+              $q = Invoke-Http ("http://127.0.0.1:{0}/queue" -f $cport) 3
+              if (-not $q -or (@($q.queue_running).Count -eq 0 -and @($q.queue_pending).Count -eq 0)) { break }
+              Start-Sleep -Seconds 10
+            }
+          }
+          Act 'перезапуск ComfyUI (run\restart-comfy)' { Set-Content -LiteralPath (Join-Path $paths.Run 'restart-comfy') -Value (Get-Date).ToString('s') }
+        } elseif (Test-ImageEnabled $cfg) {
+          Act 'Start-ScheduledTask ATOMLAB Comfy' { Start-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue }
+        }
+        Act 'config.json: картинки' { & (Join-Path $paths.Bin 'write-brain-config.ps1') -Root $Root }
+        Set-StateValue $state 'imageKey' $ikey
+        $pending = $true
+      } elseif ($imgCode -eq 3) {
+        Say 'картинки докачиваются — продолжу в следующий запуск'
+      } else {
+        Warn "картинки: image-install вернул код $imgCode (см. logs\image-install.log) — повторю в следующий запуск"
+      }
+    }
   }
 
   # --- 3. перезапуск мозга, когда свободен ---

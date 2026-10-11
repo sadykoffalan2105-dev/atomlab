@@ -1,7 +1,7 @@
 /**
  * npm run brain:package — архив установки сервера мозга для ПК друга: dist-brain/ATOMLAB-brain.zip.
  *
- * Внутри (папка ATOMLAB-brain/): УСТАНОВИТЬ.bat, УДАЛИТЬ.bat, ИНСТРУКЦИЯ.txt, ключ.txt, скрипты deploy/brain-pc/*
+ * Внутри (папка ATOMLAB-brain/): УСТАНОВИТЬ.bat, УДАЛИТЬ.bat, ИНСТРУКЦИЯ.txt, ключ.txt, скрипты deploy/brain-pc/* (+ comfy/** — картинки)
  * и data/ — снимок базы знаний из atomlab-brain-data (ТОЛЬКО чтение, папка владельца не меняется):
  *   journal/kb-journal.jsonl            — без записей dialog/feedback, их dup и записей с данными учеников;
  *   derived/bm25-journal.json           — кеш индекса (если все его id остались в снимке; иначе мозг пересоберёт);
@@ -136,6 +136,22 @@ for (const name of fs.readdirSync(SRC).sort()) {
     data = withBom(toCrlf(data))
   }
   entries.push({ name: TOP + name, data })
+}
+// картинки: подпапка comfy/ целиком (image-install, run-comfy, manifest.json, узел atomlab_safety/__init__.py, README);
+// моделей и ComfyUI в архиве нет — их качает сам сервер со сверкой SHA-256
+const COMFY_EXT = new Set(['.ps1', '.json', '.py', '.md'])
+const walk = (dir: string): string[] =>
+  fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
+    .flatMap((d) => (d.isDirectory() ? walk(path.join(dir, d.name)) : [path.join(dir, d.name)]))
+const comfyDir = path.join(SRC, 'comfy')
+if (fs.existsSync(comfyDir)) {
+  for (const full of walk(comfyDir)) {
+    const ext = path.extname(full).toLowerCase()
+    if (!COMFY_EXT.has(ext)) continue
+    let data: Buffer = fs.readFileSync(full)
+    if (ext === '.ps1') data = withBom(data)
+    entries.push({ name: TOP + path.relative(SRC, full).split(path.sep).join('/'), data })
+  }
 }
 const key = arg('key')
 if (key && !/^tskey-[A-Za-z0-9_-]+$/.test(key)) throw new Error('--key: ожидается tskey-…')

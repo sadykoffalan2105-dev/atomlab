@@ -24,6 +24,13 @@ function Get-AtomPaths([string]$Root) {
     Secrets = Join-Path $Root 'secrets'
     Cache   = Join-Path $Root 'cache'
     State   = Join-Path $Root 'state.json'
+    # картинки: ComfyUI portable (архив распаковывается в comfy\ComfyUI_windows_portable), вывод и temp — отдельно.
+    # Модели — рядом, в comfy\models (extra_model_paths.yaml): обновление ComfyUI = замена папки, 12 ГБ не трогаются.
+    Comfy       = Join-Path $Root 'comfy'
+    ComfyRoot   = Join-Path $Root 'comfy\ComfyUI_windows_portable'
+    ComfyModels = Join-Path $Root 'comfy\models'
+    ComfyOut    = Join-Path $Root 'comfy-out'
+    ComfyTmp    = Join-Path $Root 'comfy-tmp'
   }
   return $p
 }
@@ -109,6 +116,94 @@ function Get-BrainModelName([string]$m) {
 # Отпечаток моделей: менялись ли они в server-config.json.
 function Get-ModelsKey($cfg) {
   return ('{0}|{1}|{2}' -f $cfg.models.chat, $cfg.models.fast, $cfg.models.embed)
+}
+
+# ---------------------------------------------------------------- картинки (ComfyUI)
+# Порт ComfyUI (только 127.0.0.1) и признак «картинки включены» из блока image в server-config.json.
+function Get-ComfyPort($cfg) {
+  if ($cfg.image -and $cfg.image.comfyPort) { return [int]$cfg.image.comfyPort }
+  return 8188
+}
+function Test-ImageEnabled($cfg) { return [bool]($cfg.image -and $cfg.image.enabled -eq $true) }
+
+# ComfyUI жив: GET /system_stats отвечает JSON.
+function Test-ComfyUp($cfg, [int]$timeoutSec = 3) {
+  return [bool](Invoke-Http ("http://127.0.0.1:{0}/system_stats" -f (Get-ComfyPort $cfg)) $timeoutSec)
+}
+
+# Отпечаток картинок: менялись ли движок/вариант/выпуск ComfyUI/манифест/вкл-выкл — тогда image-install и перезапуски.
+# Хвост (ученики, число ключей учителя, порт, резерв видеопамяти) — чтобы и эти правки доходили до config.json и ComfyUI.
+function Get-ImageKey($cfg, $manifest) {
+  $i = $cfg.image
+  if (-not $i) { return 'none' }
+  $tag = ''
+  $mv = ''
+  if ($manifest) { $tag = $manifest.comfy.tag; $mv = $manifest.version }
+  return ('{0}|{1}|{2}|{3}|{4}|s={5}|t={6}|p={7}|r={8}' -f $i.engine, $i.variant, $tag, $mv, [bool]($i.enabled -eq $true),
+    [bool]($i.students -eq $true), $i.teacherKeys, (Get-ComfyPort $cfg), $i.reserveVramGB)
+}
+
+# Аргументы запуска ComfyUI (run-comfy.ps1; копия для диагностики — run\comfy-args.txt).
+# Только наш узел (--disable-all-custom-nodes + whitelist), только 127.0.0.1, без метаданных в PNG, без автозапуска браузера.
+function Get-ComfyArgs($cfg, $paths) {
+  $reserve = 1.5
+  if ($cfg.image -and $cfg.image.reserveVramGB) { $reserve = [double]$cfg.image.reserveVramGB }
+  return @(
+    '-s', (Join-Path $paths.ComfyRoot 'ComfyUI\main.py'),
+    '--windows-standalone-build', '--listen', '127.0.0.1', '--port', ("{0}" -f (Get-ComfyPort $cfg)),
+    '--disable-auto-launch', '--disable-metadata',
+    '--reserve-vram', $reserve.ToString([Globalization.CultureInfo]::InvariantCulture),
+    '--disable-all-custom-nodes', '--whitelist-custom-nodes', 'atomlab_safety',
+    '--extra-model-paths-config', (Join-Path $paths.Comfy 'extra_model_paths.yaml'),
+    '--output-directory', $paths.ComfyOut, '--temp-directory', $paths.ComfyTmp,
+    '--dont-print-server'
+  )
+}
+
+# Аргумент командной строки в кавычках, если в нём пробел или кавычка (Start-Process склеивает массив через пробел).
+function ConvertTo-CmdArg([string]$a) {
+  if ($a -eq '' -or $a -match '[\s"]') { return ('"' + ($a -replace '"', '\"') + '"') }
+  return $a
+}
+
+# Скрипты обслуживания → C:\ATOMLAB\bin: файлы верхнего уровня и подпапка comfy\ (рекурсивно, с узлом .py и README).
+# Папку data\ (снимок базы в архиве) и прочее не берём — только перечисленные расширения.
+function Copy-AtomScripts([string]$src, [string]$dst, [string[]]$topExt = @('.ps1', '.json', '.mts')) {
+  New-Item -ItemType Directory -Force -Path $dst | Out-Null
+  Get-ChildItem -LiteralPath $src -File | Where-Object { $_.Extension -in $topExt } | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $dst -Force
+    Unblock-File -LiteralPath (Join-Path $dst $_.Name) -ErrorAction SilentlyContinue
+  }
+  $sub = Join-Path $src 'comfy'
+  if (Test-Path -LiteralPath $sub) {
+    Get-ChildItem -LiteralPath $sub -File -Recurse | Where-Object { $_.Extension -in '.ps1', '.json', '.py', '.md' } | ForEach-Object {
+      $rel = $_.FullName.Substring($src.TrimEnd('\').Length).TrimStart('\')
+      $to = Join-Path $dst $rel
+      New-Item -ItemType Directory -Force -Path (Split-Path -Parent $to) | Out-Null
+      Copy-Item -LiteralPath $_.FullName -Destination $to -Force
+      Unblock-File -LiteralPath $to -ErrorAction SilentlyContinue
+    }
+  }
+}
+
+# Задача планировщика от SYSTEM: при старте системы (с перезапуском) или каждые update.everyMinutes.
+# $file — путь внутри bin (можно с подпапкой: 'comfy\run-comfy.ps1'). Берёт $paths, $Root, $cfg вызывающего скрипта.
+function Register-AtomTask([string]$name, [string]$file, [switch]$Repeat) {
+  $ps = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+  $arg = ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Root "{1}"' -f (Join-Path $paths.Bin $file), $Root)
+  Act "задача планировщика «$name» ($file, $(if ($Repeat) { 'каждые 15 мин' } else { 'при старте системы' }), SYSTEM)" {
+    $action = New-ScheduledTaskAction -Execute $ps -Argument $arg -WorkingDirectory $paths.Bin
+    if ($Repeat) {
+      $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(3) -RepetitionInterval (New-TimeSpan -Minutes ([int]$cfg.update.everyMinutes))
+      $limit = New-TimeSpan -Hours 2
+    } else {
+      $trigger = New-ScheduledTaskTrigger -AtStartup
+      $limit = [TimeSpan]::Zero
+    }
+    $principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit $limit -MultipleInstances IgnoreNew
+    Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'ATOMLAB: сервер ИИ-учителя' -Force | Out-Null
+  }
 }
 
 # Загрузчик tsx: сначала полный node_modules репозитория, потом лёгкий runtime (только tsx).
