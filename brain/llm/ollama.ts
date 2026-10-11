@@ -19,6 +19,8 @@ export type LlmStatus = {
   embedModel: string | null
   checkedAt: number
   error?: string
+  /** чат-модель в видеопамяти (GET /api/ps: size_vram ≥ половины size) → профиль gpu; null — ещё не известно */
+  gpu?: boolean | null
 }
 
 export type ChatStreamOptions = {
@@ -34,6 +36,8 @@ export type ChatStreamOptions = {
   firstTokenMs: number
   totalMs: number
   signal?: AbortSignal
+  /** false — выключить «мышление» у моделей, которые его умеют (qwen3; поле шлётся только им, см. /api/show) */
+  think?: boolean
   /** Вернуть false — остановить генерацию (лимит длины). */
   onToken: (text: string) => boolean | void
 }
@@ -82,6 +86,8 @@ export class OllamaClient implements LlmClient {
   private timer: NodeJS.Timeout | null = null
   private warmed = new Set<string>()
   private keepTimer: NodeJS.Timeout | null = null
+  /** умеет ли модель «мышление» (/api/show capabilities ∋ 'thinking') — только таким шлём think:false */
+  private thinking = new Map<string, boolean>()
 
   constructor(cfg: BrainConfig) {
     this.cfg = cfg
@@ -121,7 +127,9 @@ export class OllamaClient implements LlmClient {
       const fastModel = pickModel(this.cfg.fastModels, chatNames) ?? chatModel
       const embedModel = pickModel([this.cfg.embedModel], names)
       const was = this.st.available
-      this.st = { available: !!chatModel, chatModel, fastModel, embedModel, checkedAt: Date.now() }
+      this.st = { available: !!chatModel, chatModel, fastModel, embedModel, checkedAt: Date.now(), gpu: this.st.chatModel === chatModel ? (this.st.gpu ?? null) : null }
+      if (chatModel) void this.probeModel(chatModel)
+      if (fastModel && fastModel !== chatModel) void this.probeModel(fastModel)
       if (this.st.available && !was) console.log(`[brain] Ollama: модели ${chatModel}${fastModel !== chatModel ? ` / ${fastModel}` : ''}${embedModel ? `, эмбеддинги ${embedModel}` : ''}`)
       // чат-модель — персонами всех языков по очереди (последний остаётся в слоте кеша), быстрая — русской (живой голос)
       if (chatModel) this.warm(chatModel, this.cfg.warmLangs)
@@ -133,6 +141,34 @@ export class OllamaClient implements LlmClient {
       clearTimeout(t)
     }
     return this.st
+  }
+
+  /** Узнать у Ollama, умеет ли модель «мышление» (/api/show), и лежит ли чат-модель в видеопамяти (/api/ps). */
+  private async probeModel(model: string): Promise<void> {
+    if (!this.thinking.has(model)) {
+      try {
+        const r = await fetch(`${this.baseUrl}/api/show`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model }) })
+        const j = r.ok ? ((await r.json()) as { capabilities?: string[] }) : null
+        this.thinking.set(model, !!j?.capabilities?.includes('thinking'))
+      } catch {
+        /* старая Ollama без capabilities в /api/show — think не шлём */
+      }
+    }
+    if (model === this.st.chatModel) await this.probeGpu()
+  }
+
+  /** GET /api/ps: size_vram ≥ 0,5·size у чат-модели → gpu (после прогрева модель уже загружена). */
+  async probeGpu(): Promise<boolean | null> {
+    try {
+      const r = await fetch(`${this.baseUrl}/api/ps`)
+      if (!r.ok) return this.st.gpu ?? null
+      const j = (await r.json()) as { models?: { name?: string; model?: string; size?: number; size_vram?: number }[] }
+      const m = (j.models ?? []).find((x) => x.name === this.st.chatModel || x.model === this.st.chatModel)
+      if (m && typeof m.size === 'number' && m.size > 0) this.st = { ...this.st, gpu: (m.size_vram ?? 0) >= 0.5 * m.size }
+    } catch {
+      /* нет /api/ps — профиль остаётся неизвестным (laptop) */
+    }
+    return this.st.gpu ?? null
   }
 
   /**
@@ -171,6 +207,7 @@ export class OllamaClient implements LlmClient {
           if (!r.ok) throw new Error(`HTTP ${r.status}`)
           await r.json().catch(() => null)
           console.log(`[brain] прогрев ${model} [${lang}]: ${Math.round(performance.now() - t0)} мс (персона прочитана, keep_alive ${this.cfg.keepAlive})`)
+          if (model === this.st.chatModel && this.st.gpu == null) void this.probeGpu()
         } catch {
           this.warmed.delete(model) // следующий опрос /api/tags попробует снова
           return
@@ -219,6 +256,7 @@ export class OllamaClient implements LlmClient {
           messages: o.messages,
           stream: true,
           keep_alive: this.cfg.keepAlive,
+          ...(o.think === false && this.thinking.get(o.model) ? { think: false } : {}),
           options: {
             temperature: o.temperature,
             top_k: o.topK ?? this.cfg.sampling.topK,
@@ -292,6 +330,7 @@ export class OllamaClient implements LlmClient {
           messages: o.messages,
           stream: false,
           keep_alive: this.cfg.keepAlive,
+          ...(this.cfg.dialog?.think === false && this.thinking.get(o.model) ? { think: false } : {}),
           options: { temperature: o.temperature ?? 0, num_predict: o.numPredict ?? 400, num_ctx: this.cfg.numCtx },
         }),
       })

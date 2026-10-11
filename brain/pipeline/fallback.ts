@@ -7,8 +7,13 @@
  *      сравнение — две колонки признаков);
  *   4) микровопрос.
  * При conf_r < 0.35 — «Разберём от основ: …» + две ближайшие темы + уточняющий вопрос. Никогда «нет в базе».
+ * Мозг v2: вход — самодостаточный вопрос (sq) и план ответа (plan): тезис строится по sq.text; школьный вопрос не
+ * берёт предложения энциклопедии и не цитирует её; «проще» — определение + бытовая аналогия (persona/analogies.ts);
+ * «пример» — уравнение с сущностью из qaBank; «а у натрия?» — факты новой сущности первыми.
  */
 import { ELEMENT_DISCOVERY_YEARS } from '../../src/data/elementDiscoveryYears.ts'
+import { analogyFor } from '../persona/analogies.ts'
+import type { AnswerPlan, StandaloneQuery } from './dialogTypes.ts'
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
 import { FIRST_PRINCIPLES, type Concept } from '../kb/concepts.ts'
 import type { Knowledge, QaElement, QaSubstance } from '../kb/shards.ts'
@@ -41,6 +46,9 @@ export type FallbackInput = {
   seed: number
   thresholds: { high: number; medium: number }
   wordLimit: number
+  /** мозг v2: самодостаточный вопрос и план (необязательно — старые вызовы работают как раньше) */
+  sq?: StandaloneQuery
+  plan?: AnswerPlan
 }
 
 export type FallbackOutput = { text: string; citations: string[]; confidence: number; concept?: string }
@@ -132,10 +140,12 @@ function goodSentence(s: string): boolean {
 
 type Sent = { s: string; terms: Set<string>; cand: Candidate; pos: number }
 
-function sentencesFrom(items: Candidate[]): Sent[] {
+function sentencesFrom(items: Candidate[], allowEncyclopedia = true): Sent[] {
   const out: Sent[] = []
   for (const c of items.slice(0, 4)) {
     if (c.lang !== 'ru' && c.type !== 'encyclopedia') continue
+    // школьный вопрос — только учебник и ATOMLAB: энциклопедия идёт фоном модели, в ответ и цитаты не попадает
+    if (!allowEncyclopedia && c.type === 'encyclopedia') continue
     const ss = splitSentences(cleanChunk(c.text, c.title)).filter(goodSentence)
     ss.slice(0, 14).forEach((s, pos) => out.push({ s, terms: new Set(analyzeTerms(s)), cand: c, pos }))
   }
@@ -328,7 +338,9 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   const substances = [...formulaSubs, ...named.filter((s) => !formulaSubs.includes(s))].filter((s) => Object.keys(s.comp).length > 1 || !elements.some((e) => e.s === s.fa.replace(/\d+$/, '')))
   // вопрос о точном числе (температура, масса, год…), а вещества/элемента/расчёта нет — числа из чужих текстов не цитируем
   const numberTrap = WANTS_NUMBER.test(inp.cmp) && !tools.length && !substances.length && !elements.length
-  const sents = (lang === 'ru' ? sentencesFrom(items) : []).filter((x) => !numberTrap || !/\d/.test(x.s))
+  const school = inp.sq ? inp.sq.scope === 'school' : false
+  const sents = (lang === 'ru' ? sentencesFrom(items, !school) : []).filter((x) => !numberTrap || !/\d/.test(x.s))
+  const fu = inp.sq?.followUp ?? 'none'
   const qTerms = r?.queryTerms ?? new Set(analyzeTerms(inp.text, { query: true }))
   const primary: Concept | undefined = concepts[0]
   const lines: string[] = []
@@ -347,6 +359,41 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       conceptId = concepts[0]?.id
       confidence = Math.max(confidence, 0.7)
     }
+  }
+
+  // 1a) «объясни проще»: определение понятия + бытовая аналогия, без терминов сверх нужного
+  if (!lines.length && fu === 'simpler' && primary) {
+    lines.push(primary.def[lang])
+    const an = analogyFor(primary.id, lang)
+    if (an) lines.push(an)
+    conceptId = primary.id
+    confidence = Math.max(confidence, 0.7)
+  }
+  // 1b) «приведи пример»: уравнения с сущностью из qaBank (или пример из закона понятия)
+  if (!lines.length && fu === 'example') {
+    const sub = substances[0] ?? (elements[0] ? (kb.substanceByFormula.get(DIATOMIC.has(elements[0].s) ? `${elements[0].s}2` : elements[0].s) ?? null) : null)
+    const eqs = sub ? kb.qa.reactions.filter((r) => r.r.includes(sub.fa) || r.p.includes(sub.fa)).slice(0, 2).map((r) => r.eq) : []
+    if (eqs.length) {
+      lines.push(T(lang, `Пример: ${eqs.join('; ')}.`, `Misol: ${eqs.join('; ')}.`, `Example: ${eqs.join('; ')}.`))
+      cite('[ATOMLAB: реакции учебника]')
+      confidence = Math.max(confidence, 0.75)
+    } else if (primary) {
+      lines.push(primary.def[lang], primary.law[lang])
+      conceptId = primary.id
+      confidence = Math.max(confidence, 0.7)
+    }
+  }
+  // 1c) «а у натрия?»: факты новой сущности первыми, затем понятие («валентность») — ответ про натрий, а не про кислород
+  if (!lines.length && fu === 'switch_entity' && (substances.length || elements.length)) {
+    if (substances[0]) lines.push(substanceFacts(substances[0], lang, qtype))
+    else lines.push(elementFacts(elements[0]!, lang, false))
+    cite(substances[0] ? '[ATOMLAB: справочник веществ]' : '[ATOMLAB: таблица элементов]')
+    if (primary) {
+      lines.push(primary.def[lang])
+      logic = primary.law[lang]
+      conceptId = primary.id
+    }
+    confidence = Math.max(confidence, 0.7)
   }
 
   if (!lines.length) {
@@ -394,12 +441,13 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
         const s = splitSentences(cleanChunk(enc.text, enc.title)).find(goodSentence)
         if (s && !lines.length) {
           lines.push(s)
-          cite(enc.citation)
+          // школьный вопрос: энциклопедия — опора, но не источник в ответе (цитируем только учебник и ATOMLAB)
+          if (!school) cite(enc.citation)
         }
       }
       if (concepts[1] && lines.length < 2) lines.push(concepts[1].def[lang])
     }
-    if (haveThesis && items[0] && (r?.confR ?? 0) >= inp.thresholds.medium) cite(items[0].citation)
+    if (haveThesis && items[0] && (r?.confR ?? 0) >= inp.thresholds.medium && !(school && items[0].type === 'encyclopedia')) cite(items[0].citation)
 
     // 4) логика по типу вопроса
     // «как получить кислород» — элемент назван, а получают простое вещество (O₂)
@@ -435,7 +483,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       .slice(0, 2)
     let body = T(lang, 'Разберём от основ: ', 'Asoslardan boshlaymiz: ', 'Let us reason from the basics: ') + FIRST_PRINCIPLES[lang]
     if (near.length) body += ' ' + T(lang, `Ближайшие темы в учебнике: «${near.join('», «')}».`, `Darslikdagi eng yaqin mavzular: «${near.join('», «')}».`, `The closest textbook topics: “${near.join('”, “')}”.`)
-    for (const c of items.slice(0, 2)) cite(c.citation)
+    for (const c of items.slice(0, 2)) if (!(school && c.type === 'encyclopedia')) cite(c.citation)
     body += ' ' + T(lang, 'Уточните, пожалуйста: о каком веществе, явлении или законе идёт речь? Тогда разберу точно и с примером.', 'Iltimos, aniqlashtiring: qaysi modda, hodisa yoki qonun haqida gap ketyapti? Shunda aniq va misol bilan tushuntiraman.', 'Could you clarify which substance, phenomenon or law you mean? Then I will go through it precisely, with an example.')
     const text = style.prefix + body + (style.suffix ? ' ' + style.suffix : '')
     return { text: trimToWords(text, inp.wordLimit), citations, confidence: Math.min(confidence, inp.thresholds.medium - 0.01) }

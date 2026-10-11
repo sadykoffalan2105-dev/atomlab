@@ -8,7 +8,8 @@
  */
 import type { BrainConfig } from '../config.ts'
 import type { ChatStreamResult, LlmClient, LlmMessage } from '../llm/ollama.ts'
-import { CLASSIFY_PROMPT, LANG_REMINDER, translatePrompt } from '../persona/systemPrompt.ts'
+import { CLASSIFY_PROMPT, LANG_REMINDER, translatePrompt, VERIFY_PROMPT } from '../persona/systemPrompt.ts'
+import type { AnswerPlan } from './dialogTypes.ts'
 import type { Intent } from './intent.ts'
 import type { Lang } from './normalize.ts'
 import { hasCjk, languageOk, scrubR3, StreamGate, trimToWords, wordCount } from './postcheck.ts'
@@ -43,6 +44,12 @@ export async function llmAnswer(a: {
   system: string
   history: LlmMessage[]
   wordLimit: number
+  /** план ответа (мозг v2): numPredict по классу длины; нет — старые numPredict.brief/more/live */
+  plan?: AnswerPlan
+  /** окно контекста (gpu-профиль — больше); нет — config.numCtx */
+  numCtx?: number
+  /** температура вместо умолчания (регенерация после проверки — 0.1) */
+  temperature?: number
   signal?: AbortSignal
   onDelta: (text: string) => void
 }): Promise<LlmAnswer> {
@@ -74,9 +81,11 @@ export async function llmAnswer(a: {
     res = await a.llm.chatStream({
       model,
       messages,
-      temperature: retry ? Math.min(baseTemp, 0.1) : baseTemp,
-      numPredict: a.mode === 'live' ? a.config.numPredict.live : a.detail === 'more' ? a.config.numPredict.more : a.config.numPredict.brief,
-      numCtx: a.config.numCtx,
+      temperature: retry ? Math.min(a.temperature ?? baseTemp, 0.1) : (a.temperature ?? baseTemp),
+      numPredict: a.plan ? a.plan.numPredict : a.mode === 'live' ? a.config.numPredict.live : a.detail === 'more' ? a.config.numPredict.more : a.config.numPredict.brief,
+      numCtx: a.numCtx ?? a.config.numCtx,
+      // модели с «мышлением» (qwen3) — без скрытых рассуждений: иначе десятки секунд до первого слова
+      think: a.config.dialog?.think ?? false,
       firstTokenMs: a.mode === 'live' ? a.config.timeouts.liveFirstTokenMs : a.config.timeouts.firstTokenMs,
       totalMs: Math.max(1000, totalMs - (Date.now() - t0)),
       signal: a.signal,
@@ -116,6 +125,44 @@ export async function llmAnswer(a: {
   const okStop = res.stopped === 'done' || res.stopped === 'limit' || res.stopped === 'total_timeout' || (cjk && wordCount(emitted) >= CJK_MIN_WORDS)
   const ok = !!emitted.trim() && okStop
   return { ok, text: emitted, stopped, translated: false, model, ...stats }
+}
+
+/**
+ * Проверочный проход (только профиль gpu): быстрая модель сверяет ответ со справкой и точными фактами.
+ * ok:false + note — «ОШИБКА: …» (одна строка); таймаут/ошибка модели — ok:true (не мешаем ответу).
+ */
+export async function llmVerify(
+  llm: LlmClient,
+  config: BrainConfig,
+  a: { answer: string; facts: string[]; tools: { text: string }[]; lang: Lang },
+  signal?: AbortSignal,
+): Promise<{ ok: boolean; note: string }> {
+  const st = llm.status()
+  const model = st.fastModel ?? st.chatModel
+  if (!st.available || !model) return { ok: true, note: '' }
+  const ref = [...a.facts, ...a.tools.map((t) => t.text)].join('\n').slice(0, 1800)
+  if (!ref.trim()) return { ok: true, note: '' }
+  const out = await llm.complete({
+    model,
+    messages: [
+      { role: 'system', content: VERIFY_PROMPT[a.lang] },
+      { role: 'user', content: `СПРАВКА / ТОЧНЫЕ ФАКТЫ:\n${ref}\n\nОТВЕТ:\n${a.answer.slice(0, 2500)}` },
+    ],
+    numPredict: 60,
+    timeoutMs: config.dialog.verifyMs,
+    signal,
+  })
+  const line = out?.trim().split('\n')[0] ?? ''
+  const m = line.match(/(?:ОШИБКА|ERROR|XATO)\s*[:：-]\s*(.+)/iu)
+  return m ? { ok: false, note: m[1]!.trim().slice(0, 200) } : { ok: true, note: '' }
+}
+
+/** Короткий вызов быстрой модели для переписывания/сжатия (null — нет модели или таймаут). */
+export async function llmRewrite(llm: LlmClient, config: BrainConfig, prompt: { system: string; user: string }, signal?: AbortSignal): Promise<string | null> {
+  const st = llm.status()
+  const model = st.fastModel ?? st.chatModel
+  if (!st.available || !model) return null
+  return llm.complete({ model, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }], numPredict: 60, timeoutMs: config.dialog.rewriteMs, signal })
 }
 
 const LABELS: Intent[] = ['smalltalk', 'chemistry', 'calc', 'homework', 'offtopic']

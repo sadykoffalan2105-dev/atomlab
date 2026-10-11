@@ -171,10 +171,37 @@ export class StreamGate {
     this.emit = emit
   }
 
+  /** внутри <think>…</think> (модели с «мышлением» на старой Ollama, которая не понимает think:false) */
+  private inThink = false
+  private thinkTail = ''
+
   /** false — пора остановить генерацию (лимит). */
   push(token: string): boolean {
     if (this.stopped) return false
+    if (this.inThink) {
+      // рассуждения модели ученику не показываем: ждём </think> (хвост держим на случай разрыва тега между токенами)
+      const t = this.thinkTail + token
+      const end = t.indexOf('</think>')
+      if (end < 0) {
+        this.thinkTail = t.slice(-16)
+        return true
+      }
+      this.inThink = false
+      this.thinkTail = ''
+      token = t.slice(end + 8).replace(/^\s+/, '')
+    }
     this.buf += token
+    const open = this.buf.indexOf('<think>')
+    if (open >= 0) {
+      const close = this.buf.indexOf('</think>', open)
+      if (close >= 0) this.buf = this.buf.slice(0, open) + this.buf.slice(close + 8).replace(/^\s+/, '')
+      else {
+        this.inThink = true
+        this.thinkTail = this.buf.slice(open + 7).slice(-16)
+        this.buf = this.buf.slice(0, open)
+        return true
+      }
+    }
     // срыв на китайский/японский/корейский: законченные предложения до него отдаём, остальное выбрасываем и останавливаем модель
     const cjkAt = this.buf.search(CJK_RE)
     if (cjkAt >= 0) {

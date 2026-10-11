@@ -1,7 +1,10 @@
 /**
- * Конвейер /chat строго по шагам: normalize → moderation → ownerRule → intent → tools → retrieve → llm|fallback →
- * postcheck → journal. Каждый шаг отражается в meta.route; ответ — события meta / delta / done (brain/sse.ts).
+ * Конвейер /chat строго по шагам: normalize → moderation → ownerRule → smalltalk → ДИАЛОГ (состояние разговора →
+ * самодостаточный вопрос → тип/охват) → intent → tools → план ответа → retrieve («сначала школа») → llm|fallback →
+ * самопроверка → postcheck → journal. Каждый шаг отражается в meta.route; ответ — события meta / delta / done (brain/sse.ts).
  * runChat не знает про HTTP: его же гоняет eval (--inproc) и тесты с подменой LLM.
+ * Мозг v2: реплика «а у натрия?» превращается в «Какая валентность у натрия?» (brain/pipeline/dialogResolve.ts), и уже
+ * этот вопрос ищется, считается и отвечается; длина — по классу (tiny/short/normal/long, dialogPlan.ts).
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
 import type { BrainConfig } from '../config.ts'
@@ -15,15 +18,20 @@ import { buildSystemPrompt, buildUserTurn } from '../persona/systemPrompt.ts'
 import { adaptationForPrompt } from '../student/adapt.ts'
 import type { StudentStore } from '../student/events.ts'
 import { detectErrorTags, snapshot, type StudentSnapshot } from '../student/model.ts'
+import { selfCheck } from './dialogCheck.ts'
+import { planAnswer } from './dialogPlan.ts'
+import { maybeLlmRewrite, resolveStandalone, trailingQuestion } from './dialogResolve.ts'
+import { buildDialogState, compressAnswer } from './dialogState.ts'
+import type { AnswerPlan, FollowUp, LengthClass, Profile, QuestionKind, RankedFragment, RetrievalResultV2, Scope, SourceKind, StandaloneQuery } from './dialogTypes.ts'
 import { composeFallback, offtopicReply, referenceFacts } from './fallback.ts'
 import { jaccard } from './hybrid.ts'
-import { classifyIntent, greetingPrefix, hasChemVocabulary, matchSmalltalk, questionType, smalltalkReply, wantsEncyclopedia, type Intent } from './intent.ts'
-import { llmAnswer, llmClassify } from './llm.ts'
+import { classifyIntent, classifyScope, greetingPrefix, hasChemVocabulary, matchSmalltalk, questionKind, smalltalkReply, type Intent, type QType } from './intent.ts'
+import { llmAnswer, llmClassify, llmVerify } from './llm.ts'
 import { ASK_CHEM, moderate, R2 } from './moderation.ts'
 import { cmpForm, detectLang, GIBBERISH_REPLY, normalizeInput, type Lang } from './normalize.ts'
 import { isOwnerRuleQuestion, R1 } from './ownerRule.ts'
 import { DANGER_REPLY, ensureToolNumbers, isDangerousRequest, scrubR3, splitSentences, wordCount } from './postcheck.ts'
-import { retrieve, type RetrievalResult } from './retrieve.ts'
+import { retrieveV2, type RetrievalResult } from './retrieve.ts'
 import { checkStudentNumbers, runTools, type ToolResult } from './tools.ts'
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
@@ -38,8 +46,23 @@ export type ChatRequest = {
 }
 
 export type Route = string
-/** reason — почему ответил запасной путь, когда LLM была (first_token_timeout, cjk, lang_mismatch, error…); поле сверх контракта v1. */
-export type MetaEvent = { turnId: string; intent: Intent; route: Route; moderated: boolean; lang: Lang; reason?: string }
+/**
+ * reason — почему ответил запасной путь, когда LLM была (first_token_timeout, cjk, lang_mismatch, error…); поле сверх контракта v1.
+ * standalone/followUp/scope/kind/lengthClass — мозг v2 (как понят вопрос); клиент их не требует.
+ */
+export type MetaEvent = {
+  turnId: string
+  intent: Intent
+  route: Route
+  moderated: boolean
+  lang: Lang
+  reason?: string
+  standalone?: string
+  followUp?: FollowUp
+  scope?: Scope
+  kind?: QuestionKind
+  lengthClass?: LengthClass
+}
 export type DoneEvent = {
   /** итоговый маршрут (= meta.route) и причина подмены — поля сверх контракта v1, клиент их не требует */
   route?: Route
@@ -51,6 +74,9 @@ export type DoneEvent = {
   confidenceLabel: 'high' | 'medium' | 'reasoned'
   student: { level: number; mood: string; pace: string; recentErrors: string[] }
   ms: number
+  /** мозг v2: откуда знания подсказки (≤ 3) и план ответа */
+  sources?: SourceKind[]
+  plan?: { kind: QuestionKind; lengthClass: LengthClass; scope: Scope }
 }
 export type ChatSink = {
   meta(m: MetaEvent): void
@@ -129,6 +155,42 @@ function streamText(text: string, sink: ChatSink): void {
   })
 }
 
+// ---------------------------------------------------------------- профиль и совместимость с SOURCES
+
+/** Профиль железа: config.dialog.profile или по Ollama /api/ps (модель в видеопамяти → gpu). */
+export function profileOf(deps: Pick<BrainDeps, 'llm' | 'config'>): Profile {
+  const p = deps.config.dialog?.profile ?? 'auto'
+  if (p === 'gpu' || p === 'laptop') return p
+  return deps.llm?.status().gpu ? 'gpu' : 'laptop'
+}
+
+/** Реплики-шаблоны (а почему? / проще / пример / подробнее / да): намерение и расчёт — по самой реплике; «повтори» — по прежнему вопросу. */
+const TEMPLATE_FU = new Set<FollowUp>(['why', 'simpler', 'example', 'more', 'confirm'])
+
+// тип вопроса — классификатор SOURCES (intent.ts); расчёт/домашка — только если инструменты что-то посчитали
+function questionKindOf(cmp: string, text: string, intent: Intent, hasTools: boolean): QuestionKind {
+  if ((intent === 'calc' || intent === 'homework') && hasTools) return intent
+  return questionKind(cmp, text)
+}
+
+/** Тип вопроса v2 → старый QType запасного пути. */
+function qtypeOf(kind: QuestionKind): QType {
+  switch (kind) {
+    case 'definition':
+    case 'why':
+    case 'compare':
+    case 'properties':
+    case 'uses':
+      return kind
+    case 'howto_obtain':
+      return 'how'
+    case 'who_history':
+      return 'who'
+    default:
+      return 'general'
+  }
+}
+
 export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink, signal?: AbortSignal): Promise<DoneEvent> {
   const t0 = performance.now()
   const { kb, config } = deps
@@ -140,7 +202,6 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   const seed = seedOf(req.sessionId + req.messages.length)
   const mode = req.context.mode
   const detail = req.context.detail
-  const wordLimit = mode === 'live' ? config.wordLimits.live : detail === 'more' ? config.wordLimits.more : config.wordLimits.brief
   const events = deps.students.events(studentId)
 
   let metaSent = false
@@ -150,11 +211,17 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   let reason: string | undefined
   /** замеры LLM для журнала (первый токен, токены подсказки после кеша, попытки, CJK) */
   let llmStats: Record<string, unknown> | undefined
+  /** мозг v2: как понят вопрос (meta, done, журнал) — заполняется после разбора диалога */
+  let sqInfo: StandaloneQuery | null = null
+  let planInfo: AnswerPlan | null = null
+  let sources: SourceKind[] = []
+  let fixes: string[] = []
   const sendMeta = (intent: Intent, route: string) => {
     if (metaSent) return
     metaSent = true
     metaRoute = routePrefix + route
-    sink.meta({ turnId, intent, route: metaRoute, moderated, lang, ...(reason ? { reason } : {}) })
+    const v2 = sqInfo ? { standalone: sqInfo.text, followUp: sqInfo.followUp, scope: sqInfo.scope, kind: sqInfo.kind, lengthClass: planInfo?.lengthClass ?? sqInfo.lengthClass } : {}
+    sink.meta({ turnId, intent, route: metaRoute, moderated, lang, ...(reason ? { reason } : {}), ...v2 })
   }
   const finish = (o: {
     text: string
@@ -167,7 +234,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     tags?: string[]
     good?: number
     streamed?: boolean
-    retrieval?: RetrievalResult | null
+    retrieval?: RetrievalResult | RetrievalResultV2 | null
     tools?: ToolResult[]
   }): DoneEvent => {
     sendMeta(o.intent, o.route)
@@ -183,6 +250,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       confidenceLabel: confidenceLabel(o.confidence, config),
       student: { level: snap.levelInt, mood: snap.mood, pace: snap.pace, recentErrors: snap.recentErrors },
       ms: Math.round(performance.now() - t0),
+      ...(sqInfo ? { sources: sources.slice(0, 3), plan: { kind: sqInfo.kind, lengthClass: planInfo?.lengthClass ?? sqInfo.lengthClass, scope: sqInfo.scope } } : {}),
     }
     sink.done(done)
     if (!deps.noJournal) {
@@ -206,6 +274,10 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
           tools: (o.tools ?? []).map((t) => t.tool),
           retrievalMs: o.retrieval?.ms,
           vectors: o.retrieval?.usedVectors ?? false,
+          // мозг v2 — только дописывание полей
+          ...(sqInfo
+            ? { standalone: sqInfo.text, followUp: sqInfo.followUp, scope: sqInfo.scope, kind: sqInfo.kind, lengthClass: planInfo?.lengthClass ?? sqInfo.lengthClass, sources: sources.slice(0, 3), fixes }
+            : {}),
         })
         deps.students.append(studentId, { type: 'turn', sessionId: req.sessionId, intent: o.intent, len: lastUser.length, good: o.good ?? 0, grade: req.context.gradeId })
         for (const tag of o.tags ?? []) deps.students.append(studentId, { type: 'error_tag', sessionId: req.sessionId, tag })
@@ -241,11 +313,16 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   // опасные инструкции — отказ с объяснением безопасности
   if (isDangerousRequest(text)) return finish({ text: head(DANGER_REPLY[lang]), intent: 'chemistry', route: 'rule', source: 'rule', confidence: 1 })
 
+  // 4a–4b) профиль железа и состояние разговора (до светской беседы: «да» после «Хотите задачу?» — согласие, а не «ок»)
+  const profile = profileOf(deps)
+  const state = buildDialogState(req.messages, req.context, kb, questionKind)
+
   // 4) светская беседа
   let cmp = cmpForm(text)
   const st = matchSmalltalk(cmp, text)
   let greeting = ''
-  if (st && !st.rest) {
+  const confirmTurn = !!st && !st.rest && st.kinds.every((k) => k === 'ok') && !!trailingQuestion(state.lastAnswer)
+  if (st && !st.rest && !confirmTurn) {
     const snap = snapshot(events, req.context.gradeId, req.student?.mood ?? (st.kinds.includes('tired') ? 'tired' : st.kinds.includes('bored') ? 'bored' : undefined), text, [])
     return finish({ text: head(smalltalkReply(st.kinds, lang, seed)), intent: 'smalltalk', route: 'fallback', source: 'local', confidence: 1, snap })
   }
@@ -255,18 +332,45 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     cmp = cmpForm(text)
   }
 
-  // намерение (+ быстрый LLM для спорных случаев)
-  const guess = classifyIntent(text, cmp)
+  // 4c) самодостаточный вопрос: «а у натрия?» → «Какая валентность у натрия?» (правила; на gpu — ещё и быстрая модель)
+  let sq = resolveStandalone(text, state, { lang, cmp, kb, gradeId: req.context.gradeId })
+  if (profile === 'gpu' && mode !== 'live' && deps.llm?.status().available) sq = await maybeLlmRewrite(sq, state, { llm: deps.llm, config, profile }, signal)
+  // правило владельца — и вместе с прошлым вопросом («Что такое органическая химия?» → «а чем она отличается от неорганической?»)
+  const ownerCombo = !!state.lastStandalone && /(органич|organik|organic)/iu.test(text) && isOwnerRuleQuestion(`${state.lastStandalone} ${text}`)
+  if (ownerCombo) return finish({ text: head(R1), intent: 'rule', route: 'rule', source: 'rule', confidence: 1 })
+  if (sq.text !== text) {
+    // правило владельца и опасность — и по переписанному вопросу
+    if (isOwnerRuleQuestion(sq.text)) return finish({ text: head(R1), intent: 'rule', route: 'rule', source: 'rule', confidence: 1 })
+    if (isDangerousRequest(sq.text)) return finish({ text: head(DANGER_REPLY[lang]), intent: 'chemistry', route: 'rule', source: 'rule', confidence: 1 })
+  }
+  const template = TEMPLATE_FU.has(sq.followUp)
+  const sqCmp = cmpForm(sq.text)
+  /** по чему считать намерение и инструменты: шаблон «Почему: <ответ учителя>…» — по самой реплике (уравнения ответа — не задача) */
+  const workText = template ? text : sq.text
+  const workCmp = template ? cmp : sqCmp
+
+  // 4e) намерение (+ быстрый LLM для спорных случаев)
+  const guess = classifyIntent(workText, workCmp)
   let intent: Intent = guess.intent
   // в живом голосе не тратим секунды на уточнение (и не сбиваем кеш быстрой модели) — хватает эвристики
   if (guess.ambiguous && mode !== 'live' && deps.llm?.status().available) {
-    const label = await llmClassify(deps.llm, config, text, signal)
+    const label = await llmClassify(deps.llm, config, workText, signal)
     if (label) intent = label
   }
-  const qtype = questionType(cmp)
+  if (template && intent === 'offtopic' && (state.topic || state.lastStandalone)) intent = 'chemistry'
 
-  // 5) инструменты
-  const tools = intent === 'offtopic' || intent === 'smalltalk' ? [] : runTools(text, cmp, lang, kb)
+  // 5) инструменты: по самодостаточному вопросу; числа задачи могли быть только в оригинале
+  let tools = intent === 'offtopic' || intent === 'smalltalk' ? [] : runTools(workText, workCmp, lang, kb)
+  if (!tools.length && !template && sq.text !== text && intent !== 'offtopic' && intent !== 'smalltalk') tools = runTools(text, cmp, lang, kb)
+
+  // 4d) тип и охват вопроса (классификаторы SOURCES)
+  // шаблоны («проще», «пример», «повтори», «да») сохраняют тип из правил (прежний вопрос / confirm / repeat)
+  if (sq.followUp === 'why') sq.kind = 'why'
+  else if (!template && sq.followUp !== 'repeat') sq.kind = questionKindOf(sqCmp, sq.text, intent, tools.length > 0)
+  sq.scope = intent === 'offtopic' ? 'offtopic' : classifyScope(sq.text, sqCmp, lang, kb).scope
+  if (template && sq.scope === 'offtopic') sq.scope = 'school'
+  sqInfo = sq
+
   const tags = new Set(detectErrorTags(text, kb))
   let good = 0
   for (const t of tools) {
@@ -282,10 +386,34 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   }
   const snap = snapshot(events, req.context.gradeId, req.student?.mood, text, [...tags])
 
-  // 6) поиск
-  const wantEnc = wantsEncyclopedia(cmp) || qtype === 'who' || intent === 'offtopic'
-  const retrieval = await retrieve(text, lang, req.context, wantEnc, { kb, journal: deps.journal, embeds: deps.embeds, llm: deps.llm, config }, signal)
-  if (intent === 'chemistry' && !tools.length && !hasChemVocabulary(text) && retrieval.confR < 0.3) intent = 'offtopic'
+  // 5a) план ответа: класс длины, каркас, бюджеты подсказки по профилю
+  let plan = planAnswer(sq, state, snap, { mode, detail, profile, config })
+  planInfo = plan
+
+  // 6) поиск «сначала школа» по самодостаточному вопросу (тема и класс — из состояния диалога)
+  const retrieval = await retrieveV2(
+    { query: sq, ctx: req.context, profile, budgetChars: plan.knowledgeChars, maxItems: plan.knowledgeItems },
+    { kb, journal: deps.journal, embeds: deps.embeds, llm: deps.llm, config },
+    signal,
+  )
+  if (retrieval.scopeUsed !== sq.scope) {
+    sq.scope = retrieval.scopeUsed
+    plan = planAnswer(sq, state, snap, { mode, detail, profile, config })
+    planInfo = plan
+  }
+  if (intent === 'chemistry' && !tools.length && !hasChemVocabulary(sq.text) && retrieval.confR < 0.3) {
+    intent = 'offtopic'
+    sq.scope = 'offtopic'
+  }
+  // 6a) знания для подсказки: школа и ATOMLAB; энциклопедия школьному вопросу — только фоном (не цитата), широкому — знанием
+  const schoolItems = retrieval.items.filter((f) => f.sourceKind !== 'encyclopedia' && f.sourceKind !== 'index')
+  const knowledge = sq.scope === 'school' ? schoolItems : retrieval.items
+  const background = sq.scope === 'school' ? retrieval.items.filter((f) => f.sourceKind === 'encyclopedia').slice(0, 1) : []
+  const overlapQ = `${sq.text} ${sq.topic ?? ''}`.trim()
+  const promptItems = promptKnowledge(knowledge, overlapQ)
+  sources = promptItems.slice(0, 3).map((f) => f.sourceKind)
+  const qtype = qtypeOf(sq.kind)
+  const wordLimit = Math.round(plan.words[1] * 1.2)
 
   // 7) LLM или запасной путь. meta уходит, когда маршрут известен честно: с первым куском текста модели
   // (route=llm) или в момент подмены запасным путём (route=fallback + reason). Пока модель думает,
@@ -305,8 +433,8 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   if (!llmOn) openStream(toolOnly ? 'tool' : 'fallback', toolOnly ? undefined : 'llm_unavailable')
   const tagsArr = [...tags]
   const fbInput = () => ({
-    text,
-    cmp,
+    text: sq.text,
+    cmp: sqCmp,
     lang,
     intent,
     qtype,
@@ -319,15 +447,20 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     seed,
     thresholds: config.thresholds,
     wordLimit,
+    sq,
+    plan,
   })
 
   if (llmOn && deps.llm) {
-    // история — коротко (последние реплики, каждая обрезана): длинная история стоит секунд чтения подсказки
-    const pc = config.prompt
-    const past = req.messages.slice(0, -1).slice(-pc.historyMessages)
-    const history: LlmMessage[] = past.map((m) => ({ role: m.role, content: m.content.length > pc.historyChars ? m.content.slice(0, pc.historyChars) + '…' : m.content }))
+    // история — по плану: на ноутбуке 2 реплики × 300 симв., на сервере с видеокартой до 8 × 900; ответы учителя — сжато
+    const past = req.messages.slice(0, -1).slice(-plan.useHistory)
+    const history: LlmMessage[] = past.map((m) => {
+      const c = m.role === 'assistant' ? compressAnswer(m.content, plan.historyChars) : m.content
+      return { role: m.role, content: c.length > plan.historyChars ? c.slice(0, plan.historyChars) + '…' : c }
+    })
     const reasoned = !tools.length && retrieval.confR < config.thresholds.medium
     const live = mode === 'live'
+    const facts = referenceFacts(sq.text, lang, kb, qtype).slice(0, live ? 1 : 3)
     const userTurn = buildUserTurn({
       lang,
       mode,
@@ -336,18 +469,22 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       sectionTitle: req.context.sectionTitle,
       chapterId: req.context.chapterId,
       sectionId: req.context.sectionId,
-      knowledge: promptKnowledge(retrieval, text),
+      knowledge: promptItems,
+      background,
+      plan,
+      standalone: sq,
       tools,
       // только действенные указания (короче/проще/успокой); строка «уровень 3/5, темп normal» — лишние токены
       studentBlock: live ? '' : adaptationForPrompt(snap, lang).split('\n').slice(1).join('\n'),
       reasoned,
-      facts: referenceFacts(text, lang, kb, qtype).slice(0, live ? 1 : 3),
-      question: text,
-      maxItems: live ? pc.liveItems : pc.chatItems,
-      maxChars: live ? pc.liveChars : pc.chatChars,
+      facts,
+      question: sq.text,
+      maxItems: plan.knowledgeItems,
+      maxChars: plan.knowledgeChars,
     })
     history.push({ role: 'user', content: userTurn })
     const system = buildSystemPrompt(lang)
+    const tLlm = Date.now()
     const ans = await llmAnswer({
       llm: deps.llm,
       config,
@@ -358,6 +495,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       system,
       history,
       wordLimit,
+      plan,
       signal,
       onDelta: (d) => {
         openStream('llm')
@@ -365,14 +503,15 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       },
     })
     const varChars = userTurn.length + history.slice(0, -1).reduce((n, m) => n + m.content.length, 0)
-    llmStats = { model: ans.model, stopped: ans.stopped, firstMs: ans.firstMs, promptTokens: ans.promptTokens, promptMs: ans.promptMs, attempts: ans.attempts, cjk: ans.cjk || undefined, varChars, retrievalMs: retrieval.ms }
+    llmStats = { model: ans.model, stopped: ans.stopped, firstMs: ans.firstMs, promptTokens: ans.promptTokens, promptMs: ans.promptMs, attempts: ans.attempts, cjk: ans.cjk || undefined, varChars, retrievalMs: retrieval.ms, profile }
     if (!deps.noJournal || process.env.BRAIN_LOG_LLM === '1')
-      console.log(`[brain] llm ${ans.model} ${mode}: ${ans.stopped}, первый токен ${ans.firstMs ?? '—'} мс, подсказка ${ans.promptTokens ?? '—'} ток/${ans.promptMs ?? '—'} мс, переменная часть ${varChars} симв., поиск ${Math.round(retrieval.ms)} мс${ans.cjk ? ', CJK' : ''}`)
+      console.log(`[brain] llm ${ans.model} ${mode}/${profile}: ${ans.stopped}, первый токен ${ans.firstMs ?? '—'} мс, подсказка ${ans.promptTokens ?? '—'} ток/${ans.promptMs ?? '—'} мс, переменная часть ${varChars} симв., поиск ${Math.round(retrieval.ms)} мс${ans.cjk ? ', CJK' : ''}${sq.resolvedBy !== 'none' ? `, вопрос «${sq.text.slice(0, 80)}»` : ''}`)
     if (signal?.aborted) {
       if (!metaSent) openStream('fallback', 'client_abort')
       return finish({ text: lead + ans.text, intent, route: ans.text ? 'llm' : 'fallback', source: ans.text ? 'llm' : 'local', confidence: 0, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
     }
-    const citations = () => [...tools.map((t) => t.cite ?? '[ATOMLAB: расчёт]'), ...relevantCitations(retrieval, text)].filter((c, i, a) => a.indexOf(c) === i)
+    // цитаты — только из знаний подсказки (учебник, ATOMLAB; энциклопедия — лишь у широкого вопроса)
+    const citations = () => [...tools.map((t) => t.cite ?? '[ATOMLAB: расчёт]'), ...relevantCitations(knowledge, overlapQ)].filter((c, i, a) => a.indexOf(c) === i)
     if (ans.ok || ans.text) {
       // ответ модели (возможно, оборванный по времени или на CJK) — договариваем недостающее из запасного пути
       openStream('llm')
@@ -387,11 +526,12 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
         body += '\n' + hwNote
       }
       const short = wordCount(body) < 25
+      let fbText: string | null = null
+      const fbOnce = () => (fbText ??= intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, sqCmp).text : composeFallback(fbInput()).text)
       if (!ans.ok || ans.stopped === 'total_timeout' || (ans.stopped === 'cjk' && short)) {
         reason = `llm_${ans.stopped}+fallback_tail`
-        const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, cmp) : composeFallback(fbInput())
         const have = splitSentences(body).map((s) => new Set(analyzeTerms(s)))
-        const extra = splitSentences(scrubR3(fb.text, lang)).filter((s) => {
+        const extra = splitSentences(scrubR3(fbOnce(), lang)).filter((s) => {
           const t = new Set(analyzeTerms(s))
           return !have.some((h) => jaccard(h, t) > 0.5)
         })
@@ -401,6 +541,31 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
           body += add
         }
       } else if (ans.stopped === 'cjk') reason = 'llm_cjk_trimmed'
+      // 7a) самопроверка по точным фактам: уравнения, новая сущность, длина, апострофы uz, противоречия
+      if (intent !== 'offtopic') {
+        const chk = selfCheck(body, { sq, tools, lang, kb, plan, fallbackText: wordCount(body) < plan.words[0] * 0.5 ? fbOnce() : undefined })
+        fixes = chk.fixes
+        if (chk.text !== body) {
+          if (chk.text.startsWith(body)) sink.delta(chk.text.slice(body.length))
+          body = chk.text // клиент берёт итог из done.text — правка внутри текста доходит и так
+        }
+        // 7b) сервер с видеокартой: проверочный проход быстрой моделью и одна регенерация, если нашлась ошибка
+        if (profile === 'gpu' && (plan.verify || fixes.includes('contradiction')) && !signal?.aborted) {
+          const v = await llmVerify(deps.llm, config, { answer: body, facts, tools, lang }, signal)
+          if (!v.ok) {
+            fixes.push('verify')
+            if (Date.now() - tLlm < 6000) {
+              const last = history[history.length - 1]!
+              const note = lang === 'ru' ? `(Проверка нашла: ${v.note}. Исправь это, остальное сохрани.)` : lang === 'uz' ? `(Tekshiruv topdi: ${v.note}. Shuni tuzat, qolganini saqla.)` : `(The check found: ${v.note}. Fix this, keep the rest.)`
+              const again = await llmAnswer({ llm: deps.llm, config, lang, mode, detail, intent, system, history: [...history.slice(0, -1), { ...last, content: `${last.content}\n\n${note}` }], wordLimit, plan, temperature: 0.1, signal, onDelta: () => {} })
+              if (again.ok && again.text.trim()) {
+                body = selfCheck(again.text, { sq, tools, lang, kb, plan }).text
+                fixes.push('regenerated')
+              }
+            }
+          }
+        }
+      }
       const conf = tools.length ? 0.95 : Math.max(retrieval.confR, reasoned ? 0.3 : retrieval.confR)
       return finish({ text: lead + body, intent, route: 'llm', source: 'llm', citations: citations(), confidence: conf, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
     }
@@ -409,7 +574,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   }
 
   // запасной путь
-  const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, cmp) : composeFallback(fbInput())
+  const fb = intent === 'offtopic' ? offtopicReply(lang, retrieval, seed, sqCmp) : composeFallback(fbInput())
   let body = scrubR3(fb.text, lang)
   if (hwNote) body += '\n' + hwNote
   streamText(body, sink)
@@ -428,14 +593,14 @@ function overlap(question: string, c: { title: string; text: string }): number {
 }
 
 /** В подсказку — только фрагменты, которые пересекаются с вопросом по смыслу (иначе модель «цитирует не к месту»). */
-function promptKnowledge(r: RetrievalResult, question: string) {
-  const items = r.items.filter((c) => overlap(question, c) >= 0.25)
-  return items.length ? items : r.items.slice(0, 1)
+function promptKnowledge(items: RankedFragment[], question: string): RankedFragment[] {
+  const kept = items.filter((c) => overlap(question, c) >= 0.25)
+  return kept.length ? kept : items.slice(0, 1)
 }
 
 /** Цитаты к ответу модели — только из фрагментов по теме вопроса. */
-function relevantCitations(r: RetrievalResult, question: string): string[] {
-  return r.items
+function relevantCitations(items: RankedFragment[], question: string): string[] {
+  return items
     .filter((c) => overlap(question, c) >= 0.34)
     .slice(0, 3)
     .map((c) => c.citation)

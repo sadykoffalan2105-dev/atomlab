@@ -79,7 +79,7 @@ const FIELDS = ['standalone', 'followUp', 'scope', 'kind', 'lengthClass', 'topSo
  * а v2-категории не входят в общий порог. При слиянии переключить в true (или запускать с --strict-dialog):
  * тогда отсутствие поля в meta — провал «нет meta.standalone».
  */
-const DIALOG_MERGED = false
+const DIALOG_MERGED = true
 
 const questions: Question[] = fs
   .readFileSync(path.join(ROOT, 'brain', 'eval', 'questions.jsonl'), 'utf8')
