@@ -5,7 +5,6 @@
  *   runChat в процессе с mock-LLM на многоходовых диалогах ru/uz/en (meta.standalone, meta.followUp, длина).
  */
 import { Knowledge } from '../../brain/kb/shards.ts'
-import { DEFAULT_CONFIG } from '../../brain/config.ts'
 import { setElementWords } from '../../brain/pipeline/normalize.ts'
 import { cmpForm } from '../../brain/pipeline/normalize.ts'
 import type { ChatMessage } from '../../brain/pipeline/chat.ts'

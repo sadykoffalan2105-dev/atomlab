@@ -41,10 +41,22 @@ function block(system: string, heads: RegExp): string {
 }
 
 function langOf(system: string): 'ru' | 'uz' | 'en' {
-  if (/^Sen — tirik/.test(system)) return 'uz'
-  if (/^You are a living/.test(system)) return 'en'
+  if (/^Sen — /.test(system)) return 'uz'
+  if (/^You are /.test(system)) return 'en'
   return 'ru'
 }
+
+/** «{min}–{max} слов» / «до {max} слов» из блока ФОРМАТ подсказки v3 (null — старый формат или живой голос). */
+function formatWords(userTurn: string): [number, number] | null {
+  const f = block(userTurn, /\n?(ФОРМАТ|FORMAT):\n/)
+  if (/живой голос|jonli ovoz|live voice/.test(f)) return null
+  const m = f.match(/^(\d+)[–-](\d+)\s+(слов|soʻz|words)/u)
+  if (m) return [Number(m[1]), Number(m[2])]
+  const u = f.match(/^(?:до|up to)\s+(\d+)\s+(?:слов|words)|^(\d+)\s+soʻzgacha/u)
+  return u ? [0, Number(u[1] ?? u[2])] : null
+}
+
+const countWords = (t: string) => t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length
 
 const OPENERS = {
   ru: ['Коротко: ', 'Смотрите: ', 'Давайте разберём. '],
@@ -56,7 +68,13 @@ const CLOSERS = {
   uz: 'Mantiq oddiy: moddaning xossalari atomlar tuzilishi va saqlanish qonunlaridan kelib chiqadi. Masala bilan misol koʻraylikmi?',
   en: 'The logic is simple: properties follow from atomic structure and the conservation laws. Shall we try a worked example?',
 }
-const R3_OPENERS = { ru: 'Я не знаю точно, но думаю, что ', uz: 'Bilmayman, lekin menimcha, ', en: "I don't know for sure, but I think " }
+/** Добивка до минимума слов (детерминированно, без новых чисел). */
+const LOGIC_FILL = {
+  ru: ['Почему так: всё определяет строение атома — заряд ядра и число электронов на внешнем слое.', 'При любой реакции атомы не исчезают и не появляются, поэтому масса веществ сохраняется.', 'Чем сильнее атом притягивает электроны, тем охотнее он их принимает в реакциях.'],
+  uz: ['Nega shunday: hammasini atom tuzilishi belgilaydi — yadro zaryadi va tashqi qavatdagi elektronlar soni.', 'Har qanday reaksiyada atomlar yoʻqolmaydi va paydo boʻlmaydi, shuning uchun moddalar massasi saqlanadi.', 'Atom elektronlarni qanchalik kuchli tortsa, reaksiyalarda ularni shunchalik oson qabul qiladi.'],
+  en: ['Why: atomic structure decides it — the nuclear charge and the number of outer-shell electrons.', 'In any reaction atoms are neither created nor destroyed, so the total mass is conserved.', 'The more strongly an atom attracts electrons, the more readily it accepts them in reactions.'],
+}
+const R3_OPENERS ={ ru: 'Я не знаю точно, но думаю, что ', uz: 'Bilmayman, lekin menimcha, ', en: "I don't know for sure, but I think " }
 
 export class MockLlm implements LlmClient {
   calls = 0
@@ -105,10 +123,24 @@ export class MockLlm implements LlmClient {
       .replace(/^(what is|what are|what's|explain|tell me about|why is|why are)\s+(an?\s+|the\s+)?/i, '')
       .replace(/\s+(nima|haqida|qanday)$/i, '')
       .trim()
-    if (fact) parts.push((parts.length ? '' : open) + fact)
+    // блок ДИАЛОГ (подсказка v3): «модель» понимает продолжение разговора — начинает с темы самодостаточного вопроса
+    // («Какая валентность у натрия?» → «…валентность у натрия: …»), чтобы проверки «упомянут натрий» шли без Ollama
+    const dialog = /\n(ДИАЛОГ|DIALOG|MULOQOT):/.test(`\n${lastUser}`)
+    if (dialog && !exact) parts.push(`${open}${topic}: ${fact || (lang === 'ru' && sent) || (lang === 'uz' ? 'bu savol kimyoning asosiy qonunlariga bogʻliq.' : lang === 'en' ? 'it rests on the basic laws of chemistry.' : 'разберём от основ, опираясь на строение атома и законы сохранения.')}`)
+    else if (fact) parts.push((parts.length ? '' : open) + fact)
     else if (sent && lang === 'ru') parts.push((parts.length ? '' : open) + sent)
     else if (!parts.length) parts.push(open + (lang === 'uz' ? `«${topic}» — bu savol kimyoning asosiy qonunlariga bogʻliq.` : lang === 'en' ? `“${topic}” rests on the basic laws of chemistry.` : `«${topic}»: разберём от основ, опираясь на строение атома и законы сохранения.`))
     parts.push(CLOSERS[lang])
+    // длина по ФОРМАТ v3: не короче минимума (повторяем вывод-«закон»), не длиннее максимума
+    const fw = formatWords(lastUser)
+    if (fw) {
+      for (let guard = 0; guard < 12 && countWords(parts.join(' ')) < fw[0]; guard++) parts.splice(parts.length - 1, 0, LOGIC_FILL[lang][guard % LOGIC_FILL[lang].length]!)
+      const words = parts.join(' ').split(/\s+/)
+      if (fw[1] && countWords(parts.join(' ')) > fw[1] * 1.15) {
+        parts.length = 0
+        parts.push(words.slice(0, Math.round(fw[1] * 1.1)).join(' ').replace(/[,;:]?$/, '.'))
+      }
+    }
     let text = parts.join(' ')
     if (bad) text = R3_OPENERS[lang] + text.charAt(0).toLowerCase() + text.slice(1)
     if (this.opts.wrongLanguage) text = lang === 'en' ? 'Это ответ на русском языке вместо английского, чтобы проверить перевод и запасной путь сервера.' : 'This answer is in English instead of the expected language, to test translation and the server fallback path.'
