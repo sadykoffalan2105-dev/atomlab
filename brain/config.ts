@@ -58,6 +58,42 @@ export type BrainConfig = {
    * персона остаётся в своём слоте кеша, при одном слоте в кеше остаётся последняя (чужая персона — +5–10 с, не тайм-аут).
    */
   warmLangs: ('ru' | 'uz' | 'en')[]
+
+  // ——— блок SERVER: публичный сервер (туннель Tailscale Funnel), очередь LLM, лимиты, CORS, админ, профиль ———
+  /**
+   * Профиль железа: 'laptop' — процессор без GPU (очередь 1, keep_alive с продлением); 'gpu' — ПК с видеокартой
+   * (очередь 4, keep_alive навсегда, окно 8192). Профиль меняет только значения, равные умолчаниям (см. applyProfile);
+   * env BRAIN_PROFILE важнее файла.
+   */
+  profile: 'laptop' | 'gpu'
+  /**
+   * Очередь к модели: parallel — сколько ответов генерируется одновременно (0 — по профилю: laptop 1, gpu 4);
+   * queueCap — сколько учеников может ждать; queueWaitMs — дольше ждать нельзя → честный запасной путь (reason 'busy').
+   */
+  llm: { parallel: number; queueCap: number; queueWaitMs: number }
+  /**
+   * Ключ админа (заголовок X-Brain-Admin) для /kb/append, /kb/stats, /admin/*. Пусто — админ только с этого же ПК
+   * напрямую (loopback без заголовков прокси). На сервере для всех — задать при установке; env BRAIN_ADMIN_TOKEN важнее.
+   */
+  adminToken: string
+  server: {
+    /** Разрешённые Origin сайта (CORS); чужой Origin → 403. */
+    corsOrigins: string[]
+    /** Разрешать http://localhost:* и http://127.0.0.1:* (разработка сайта). */
+    corsLocalhost: boolean
+    /** Читать адрес ученика из X-Forwarded-For — только если запрос пришёл с loopback (туннель на этом ПК). */
+    trustProxy: boolean
+    /** Лимиты запроса: тело (байт), сообщений в истории, символов в сообщении. */
+    bodyLimitBytes: number
+    maxMessages: number
+    maxMessageChars: number
+    /** Сколько потоков /chat один ученик держит одновременно. */
+    chatStreamsPerClient: number
+    /** Частота запросов на ученика (окна: минута и сутки). exemptLocal — владелец с этого ПК без прокси не ограничен. */
+    rate: { chatPerMin: number; chatPerDay: number; healthPerMin: number; otherPerMin: number; exemptLocal: boolean }
+    /** Журнал диалогов: 'all' — все; 'local' — только с этого ПК (ученики из интернета не пишутся); 'off' — никакие. */
+    dialogLog: 'all' | 'local' | 'off'
+  }
 }
 
 export const DEFAULT_CONFIG: BrainConfig = {
@@ -83,6 +119,23 @@ export const DEFAULT_CONFIG: BrainConfig = {
   // переменная часть подсказки читается заново каждый раз (~2,5 симв./ток., 25–50 ток/с): 600 симв. ≈ 240 ток. ≈ 5–10 с
   prompt: { chatItems: 3, chatChars: 600, liveItems: 1, liveChars: 300, historyMessages: 2, historyChars: 300 },
   warmLangs: ['ru', 'uz', 'en'],
+
+  // ——— блок SERVER (см. тип выше) ———
+  profile: 'laptop',
+  // 0 — по профилю; ждать дольше 20 с нельзя: сайт ждёт первый кусок ответа 50 с, а модели ещё нужно время
+  llm: { parallel: 0, queueCap: 40, queueWaitMs: 20_000 },
+  adminToken: '',
+  server: {
+    corsOrigins: ['https://sadykoffalan2105-dev.github.io'],
+    corsLocalhost: true,
+    trustProxy: true,
+    bodyLimitBytes: 64 * 1024,
+    maxMessages: 12,
+    maxMessageChars: 4000,
+    chatStreamsPerClient: 2,
+    rate: { chatPerMin: 8, chatPerDay: 120, healthPerMin: 120, otherPerMin: 60, exemptLocal: true },
+    dialogLog: 'all',
+  },
 }
 
 /**
@@ -185,4 +238,39 @@ export function loadConfig(): BrainConfig {
   if (process.env.OLLAMA_URL) cfg = { ...cfg, ollamaUrl: process.env.OLLAMA_URL }
   if (process.env.BRAIN_OLLAMA_POLL_MS) cfg = { ...cfg, pollMs: Number(process.env.BRAIN_OLLAMA_POLL_MS) || cfg.pollMs }
   return cfg
+}
+
+// ——— блок SERVER: профиль железа ———
+
+/** Что меняет профиль 'gpu' (только там, где в конфиге стоит умолчание 'laptop' — явные правки владельца важнее). */
+export const GPU_PROFILE: { path: string; value: unknown }[] = [
+  // модель живёт в видеопамяти всегда: продлевать keep_alive не нужно ('-1m' — отрицательная длительность = навсегда)
+  { path: 'keepAlive', value: '-1m' },
+  { path: 'keepAliveRefreshMs', value: 0 },
+  { path: 'numCtx', value: 8192 },
+  { path: 'llm.queueWaitMs', value: 30_000 },
+  // на сервере для всех запрос «без прокси» не считается владельцем: туннель без X-Forwarded-For не снимет лимиты
+  { path: 'server.rate.exemptLocal', value: false },
+]
+
+/**
+ * Итоговый конфиг с учётом профиля (env BRAIN_PROFILE важнее файла) и env BRAIN_ADMIN_TOKEN.
+ * llm.parallel = 0 → по профилю (laptop 1, gpu 4). Идемпотентно: повторный вызов ничего не меняет.
+ */
+export function applyProfile(cfg: BrainConfig): BrainConfig {
+  const env = process.env.BRAIN_PROFILE
+  const profile: BrainConfig['profile'] = env === 'gpu' || env === 'laptop' ? env : cfg.profile === 'gpu' ? 'gpu' : 'laptop'
+  const out = structuredClone(cfg) as unknown as Record<string, unknown>
+  out.profile = profile
+  if (profile === 'gpu') {
+    for (const p of GPU_PROFILE) if (getPath(out, p.path) === getPath(DEFAULT_CONFIG, p.path)) setPath(out, p.path, p.value)
+  }
+  const res = out as unknown as BrainConfig
+  const par = Math.floor(Number(res.llm?.parallel) || 0)
+  res.llm = { ...DEFAULT_CONFIG.llm, ...res.llm, parallel: par >= 1 ? Math.min(par, 32) : profile === 'gpu' ? 4 : 1 }
+  if (process.env.BRAIN_ADMIN_TOKEN) res.adminToken = process.env.BRAIN_ADMIN_TOKEN
+  if (typeof res.adminToken !== 'string') res.adminToken = ''
+  const dl = res.server?.dialogLog
+  res.server = { ...DEFAULT_CONFIG.server, ...res.server, dialogLog: dl === 'local' || dl === 'off' ? dl : 'all' }
+  return res
 }
