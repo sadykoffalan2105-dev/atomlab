@@ -90,6 +90,12 @@ try {
       Act "ollama pull $m" { Invoke-Exe $ollama pull $m | Out-Null; if ($LASTEXITCODE -ne 0) { throw "ollama pull $m не удался" } }
     }
     Act 'config.json: модели' { & (Join-Path $paths.Bin 'write-brain-config.ps1') -Root $Root }
+    # прежние модели выгружаются из видеопамяти (keep_alive у профиля gpu — навсегда), но остаются на диске:
+    # откат = вернуть строку в server-config.json, без повторной загрузки
+    $newSet = @($cfg.models.chat, $cfg.models.fast, $cfg.models.embed)
+    foreach ($m in @(([string]$state.modelsKey) -split '\|' | Where-Object { $_ -and ($newSet -notcontains $_) } | Select-Object -Unique)) {
+      Act "ollama stop $m (выгрузить из видеопамяти)" { Invoke-Exe $ollama stop $m | Out-Null }
+    }
     Set-StateValue $state 'modelsKey' $key
     $pending = $true
   }
