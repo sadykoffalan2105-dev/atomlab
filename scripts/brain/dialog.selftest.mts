@@ -15,7 +15,7 @@ import { planAnswer } from '../../brain/pipeline/dialogPlan.ts'
 import { selfCheck } from '../../brain/pipeline/dialogCheck.ts'
 import type { AnswerPlan, StandaloneQuery } from '../../brain/pipeline/dialogTypes.ts'
 import { R1 } from '../../brain/pipeline/ownerRule.ts'
-import { wordCount } from '../../brain/pipeline/postcheck.ts'
+import { StreamGate, wordCount } from '../../brain/pipeline/postcheck.ts'
 import type { StudentSnapshot } from '../../brain/student/model.ts'
 import { buildUserTurn, PERSONA, questionOf } from '../../brain/persona/systemPrompt.ts'
 import { uzToRuTerms } from '../../brain/persona/uzGlossary.ts'
@@ -158,6 +158,15 @@ const planShort = planAnswer(sqOf({}), st0, snap0, { mode: 'chat', detail: 'brie
 {
   const r = selfCheck('Медь не реагирует с соляной кислотой. Медь реагирует с соляной кислотой бурно.', { sq: sqOf({ kind: 'general' }), tools: [], lang: 'ru', kb, plan: { ...planShort, words: [0, 200] } })
   ok(r.fixes.includes('contradiction'), '«не реагирует … реагирует» — пометка противоречия', r.fixes.join(','))
+}
+
+{
+  // старая Ollama не понимает think:false — рассуждения <think>…</think> не должны дойти до ученика
+  let out = ''
+  const gate = new StreamGate('ru', 200, (s) => (out += s))
+  for (const tok of ['<thi', 'nk>Хм, ученик спрашивает про воду, ', 'подумаю…</th', 'ink>\n', 'Вода — оксид водорода H₂O. ', 'Она кипит при 100 °C.']) gate.push(tok)
+  gate.end()
+  ok(!/think|Хм|подумаю/.test(out) && /^Вода — оксид водорода H₂O\./.test(out), 'StreamGate вырезает <think>…</think>', JSON.stringify(out))
 }
 
 // ——— подсказка v3
