@@ -138,10 +138,13 @@ export function classifyIntent(text: string, cmp: string): IntentGuess {
   return { intent: 'chemistry', markers: 0, ambiguous: text.length > 60 }
 }
 
+const WHY_RE = ub(/(почему|зачем|отчего|из-за чего|в чем причина|\bwhy\b|how come|\bnega\b|nima uchun|nimaga)/u)
+
 /** Тип вопроса — от него зависит «логика от законов» в запасном ответе. */
 export function questionType(cmp: string): QType {
   if (/(сравни|отлича|отличи|разниц|различ|общего|\bvs\b|versus|differ|compar|farq|solishtir)/u.test(cmp)) return 'compare'
-  if (/(почему|зачем|отчего|из-за чего|в чем причина|why|how come|nega|nima uchun|nimaga)/u.test(cmp)) return 'why'
+  // «why/nega» — целым словом: «electro-nega-tivity» не «почему»
+  if (WHY_RE.test(cmp)) return 'why'
   if (/(как (получ|приготов|сделать|синтезир|образу)|получени|способ\p{L}* получ|how (to|do you|is it) (make|prepare|obtain|produce)|preparation of|qanday (olinadi|olish|hosil)|olinishi)/u.test(cmp)) return 'how'
   if (/(кто (открыл|изобрел|придумал|создал)|когда (открыл|был открыт|открыт)|who (discovered|invented)|kim kashf)/u.test(cmp)) return 'who'
   if (/(свойств|характеристик|properties|xossa|xususiyat)/u.test(cmp)) return 'properties'

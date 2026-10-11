@@ -208,8 +208,9 @@ export function glossaryRuTerms(text: string, lang: Lang, kb: Knowledge): string
   }
   const qw = latWords(text)
   if (!qw.length) return []
-  // слово вопроса начинается с основы варианта (uz-окончания: «valentligi», «kislotalar»); короткие слова — точно
-  const hit = (w: string, a: string) => (a.length < 4 ? w === a : w.startsWith(a.length > 6 ? a.slice(0, a.length - 2) : a))
+  // слово вопроса = вариант + окончание (uz: «valentligi», «kislotalar», «natriyniki»); короткие слова — точно;
+  // окончание не длиннее 5 букв — «elektromanfiylik» не «elektron» + хвост
+  const hit = (w: string, a: string) => (a.length < 4 ? w === a : (w.startsWith(a) || (a.length >= 6 && w.startsWith(a.slice(0, -1)))) && w.length - a.length <= 5)
   const out = new Set<string>()
   for (const e of idx) {
     if (e.lang !== lang || !e.words.length || e.words.join('').length < 4) continue
@@ -251,6 +252,9 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
   let text = sq.text
   const topicExtra = sq.topic && !coveredBy(sq.text, sq.topic) ? sq.topic : null
   if (topicExtra && sq.followUp !== 'none') text = `${sq.text} ${topicExtra}`
+  // uz/en: русские термины глоссария — в сам запрос (учебники русские; «Elektromanfiylik nima?» → «электроотрицательность»)
+  const glossRu = glossaryRuTerms(sq.text, lang, kb).filter((ru) => !coveredBy(text, ru))
+  if (glossRu.length) text = `${text} ${glossRu.slice(0, 3).join(' ')}`
 
   // b) школьные пулы: P1 — с классом ученика (глава/параграф урока — только если класс совпал с уроком), P2 — без класса
   const p1: KbHit[] = g != null
@@ -289,7 +293,7 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     const isFormula = findFormulas(e, true).length > 0
     for (const term of analyzeTerms(e, { query: true })) weighted.push({ term, weight: isFormula ? rc.formulaWeight : 1 })
   }
-  for (const ru of glossaryRuTerms(sq.text, lang, kb)) for (const term of analyzeTerms(ru, { query: true })) weighted.push({ term, weight: rc.glossaryWeight })
+  for (const ru of glossRu.slice(3)) for (const term of analyzeTerms(ru, { query: true })) weighted.push({ term, weight: rc.glossaryWeight })
   const fromJournal = journal.search(weighted, 30)
 
   // слияние с дедупликацией по началу текста (копии учебника в журнале не удваиваются)

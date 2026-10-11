@@ -117,7 +117,8 @@ export function judge(c: Candidate, q: QueryConcepts, lower: Set<string>, allowP
   if (!concepts.length) return { keep: true, cov: 1, titleHit: false }
   const n = concepts.length
   // персоналии на «кто/история» не проверяем: в статье об учёном «кислород» может встретиться один раз
-  const checkWeak = weakTermMinTf > 1 && n <= 2 && !(allowPeople && person)
+  //   и короткие карточки на uz/en (lang ≠ ru) — там термин обычно один раз
+  const checkWeak = weakTermMinTf > 1 && n <= 2 && !(allowPeople && person) && (c.lang === 'ru' || !c.lang)
   // короткий фрагмент (< 300 симв.) — хотя бы одно упоминание по существу; длинный — ≥ weakTermMinTf и не меньше
   // одного на 1000 символов («моль» только как единица в расчётах «Угольной кислоты» — не о моле)
   const minTf = c.text.length < 300 ? 1 : Math.max(weakTermMinTf, Math.ceil(Math.min(c.text.length, 6000) / 1000))
