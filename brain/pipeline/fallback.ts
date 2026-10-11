@@ -21,11 +21,13 @@ import type { StudentSnapshot } from '../student/model.ts'
 import { fallbackStyle } from '../student/adapt.ts'
 import { genitive } from './declension.ts'
 import { findConcepts, findElements, findFormulas, findSubstances } from './entities.ts'
+import { detailsFor, explainFor, trapFor, usesFor, valenceClause } from './explain.ts'
+import { obtainBrief } from './obtain.ts'
 import type { Candidate } from './hybrid.ts'
 import { jaccard } from './hybrid.ts'
 import type { Intent, QType } from './intent.ts'
 import type { Lang } from './normalize.ts'
-import { splitSentences, trimToWords } from './postcheck.ts'
+import { splitSentences, trimToWords, wordCount } from './postcheck.ts'
 import type { RetrievalResult } from './retrieve.ts'
 import { fmt, type ToolResult } from './tools.ts'
 
@@ -135,6 +137,8 @@ function goodSentence(s: string): boolean {
   if (/^[\p{Ll}(,;:)]/u.test(s)) return false
   if (/\?\s*$/u.test(s)) return false // вопросы-задания учебника («Сколько г оксида образуется…?») — не тезис
   if (/(рис\.|таблиц[аеу]\s*\d|упражнени|задани[ея]\s*\d|ответьте на вопросы|^\d+\.)/iu.test(s)) return false
+  // распознанный текст с разорванными формулами («K 2O, N 2O3») и указания учителю («Свяжи с жизнью…») — не ответ
+  if (/\b[A-Z][a-z]?\s\d(?=[A-Z,;)])/u.test(s) ||/(^|\.\s*|\s)(Свяжи|Обсуди|Предложи ученикам|Попроси)\s/u.test(s)) return false
   return true
 }
 
@@ -215,11 +219,13 @@ export function elementFacts(e: QaElement, lang: Lang, withYear: boolean): strin
   const ox = e.ox ? e.ox.replace(/-/g, '−') : ''
   const year = ELEMENT_DISCOVERY_YEARS[e.z]
   const yearText = withYear && year ? (year === 'Ancient' ? T(lang, ' Известен с древности.', ' Qadimdan maʼlum.', ' Known since antiquity.') : T(lang, ` Открыт в ${year} году.`, ` ${year}-yilda kashf etilgan.`, ` Discovered in ${year}.`)) : ''
+  // мозг v2: типичная валентность (римскими цифрами, как в учебнике) — «а у азота?» после «что такое валентность»
+  const val = valenceClause(e.s, lang)
   return T(
     lang,
-    `${e.ru} (${e.s}) — элемент №${e.z}: ${e.per}-й период, ${e.grp}-я группа, ${cat}${st ? `, при обычных условиях ${st}` : ''}; Ar = ${A}; электронная конфигурация ${supConfig(e.cfg)}${ox ? `; типичные степени окисления: ${ox}` : ''}.${yearText}`,
-    `${e.uz} (${e.s}) — №${e.z} element: ${e.per}-davr, ${e.grp}-guruh, ${cat}${st ? `, oddiy sharoitda ${st}` : ''}; Ar = ${A}; elektron konfiguratsiyasi ${supConfig(e.cfg)}${ox ? `; tipik oksidlanish darajalari: ${ox}` : ''}.${yearText}`,
-    `${e.en} (${e.s}) is element No. ${e.z}: period ${e.per}, group ${e.grp}, a ${cat}${st ? `, a ${st} under normal conditions` : ''}; Ar = ${A}; electron configuration ${supConfig(e.cfg)}${ox ? `; typical oxidation states: ${ox}` : ''}.${yearText}`,
+    `${e.ru} (${e.s}) — элемент №${e.z}: ${e.per}-й период, ${e.grp}-я группа, ${cat}${st ? `, при обычных условиях ${st}` : ''}; Ar = ${A}; электронная конфигурация ${supConfig(e.cfg)}${ox ? `; типичные степени окисления: ${ox}` : ''}${val}.${yearText}`,
+    `${e.uz} (${e.s}) — №${e.z} element: ${e.per}-davr, ${e.grp}-guruh, ${cat}${st ? `, oddiy sharoitda ${st}` : ''}; Ar = ${A}; elektron konfiguratsiyasi ${supConfig(e.cfg)}${ox ? `; tipik oksidlanish darajalari: ${ox}` : ''}${val}.${yearText}`,
+    `${e.en} (${e.s}) is element No. ${e.z}: period ${e.per}, group ${e.grp}, a ${cat}${st ? `, a ${st} under normal conditions` : ''}; Ar = ${A}; electron configuration ${supConfig(e.cfg)}${ox ? `; typical oxidation states: ${ox}` : ''}${val}.${yearText}`,
   )
 }
 
@@ -276,15 +282,30 @@ function obtainEquations(s: QaSubstance, kb: Knowledge): string[] {
  */
 export function referenceFacts(text: string, lang: Lang, kb: Knowledge, qtype: QType): string[] {
   const out: string[] = []
-  for (const c of findConcepts(text).slice(0, 2)) out.push(`${c.def[lang]} ${c.law[lang]}`)
+  // мозг v2: поправка к ловушке «если …, значит …» и точечное объяснение — первыми (модель опирается на первую строку)
+  const fix = trapFor(text, lang) ?? explainFor(text, lang)
+  if (fix) out.push(fix)
+  const concepts = findConcepts(text).slice(0, 2)
+  if (qtype === 'uses') for (const c of concepts) {
+    const u = usesFor(c.id, lang)
+    if (u) out.push(u)
+  }
+  const els = findElements(text, kb).slice(0, 1)
+  // «валентность у азота»: свойство элемента — сначала факты элемента (с валентностью), потом общее понятие
+  const elementFirst = els.length > 0 && concepts.length > 0 && concepts.every((c) => ELEMENT_PROPS.has(c.id))
+  if (elementFirst) for (const e of els) out.push(elementFacts(e.item, lang, false))
+  for (const c of concepts) out.push(`${c.def[lang]} ${c.law[lang]}`)
   const formulaSubs = findFormulas(text, lang !== 'en')
     .map((f) => kb.substanceByFormula.get(f.ascii) ?? null)
     .filter((x): x is QaSubstance => !!x)
   const subs = [...formulaSubs, ...findSubstances(text, kb).map((x) => x.item).filter((s) => !formulaSubs.includes(s))]
   for (const s of subs.slice(0, 2)) out.push(substanceFacts(s, lang, qtype))
-  for (const e of findElements(text, kb).slice(0, 1)) out.push(elementFacts(e.item, lang, false))
+  if (!elementFirst) for (const e of els) out.push(elementFacts(e.item, lang, false))
   return out.slice(0, 4)
 }
+
+/** Понятия-свойства элемента: при названном элементе отвечаем про элемент («валентность азота»). */
+const ELEMENT_PROPS = new Set(['valence', 'oxstate', 'econfig', 'electronegativity', 'atom', 'isotope', 'orbital'])
 
 // ---------------------------------------------------------------- сборка
 
@@ -346,8 +367,21 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   const lines: string[] = []
   let logic = ''
 
+  // 0a) мозг v2: ловушка «если катализатор ускоряет, значит смещает равновесие?» — сначала короткая поправка;
+  // частый «почему» с выверенным объяснением («почему медь растворяется в азотной») — им и отвечаем
+  const fixLine = trapFor(inp.text, lang) ?? explainFor(inp.text, lang)
+  if (fixLine) {
+    lines.push(fixLine)
+    if (primary) {
+      logic = primary.law[lang]
+      conceptId = primary.id
+    }
+    cite('[ATOMLAB: справочник понятий]')
+    confidence = Math.max(confidence, 0.8)
+  }
+
   // 1) сравнение — две колонки признаков
-  if (qtype === 'compare') {
+  if (!lines.length && qtype === 'compare') {
     const sides: string[] = []
     for (const c of concepts.slice(0, 2)) sides.push(`• ${c.def[lang]}`)
     for (const s of substances.slice(0, 2 - sides.length)) sides.push(`• ${substanceFacts(s, lang, 'definition')}`)
@@ -403,12 +437,16 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       lines.push(T(lang, `Реакция из учебника: ${rxEq}.`, `Darslikdagi reaksiya: ${rxEq}.`, `Textbook reaction: ${rxEq}.`))
       cite('[ATOMLAB: реакции учебника]')
       confidence = Math.max(confidence, 0.75)
-    } else if (primary && !(qtype === 'who' && elements.length)) {
+    } else if (primary && !(qtype === 'who' && elements.length) && !(substances.length && CLASS_CONCEPTS.has(primary.id))) {
       lines.push(primary.def[lang])
+      // «зачем нужен электролиз» — применение сразу после определения
+      const uses = qtype === 'uses' ? usesFor(primary.id, lang) : null
+      if (uses) lines.push(uses)
       logic = primary.law[lang]
       conceptId = primary.id
       confidence = Math.max(confidence, 0.7)
     } else if (substances.length) {
+      // «про серную кислоту»: само вещество, а не общее понятие «кислота» (оно пойдёт в добор по длине)
       lines.push(substanceFacts(substances[0]!, lang, qtype))
       cite('[ATOMLAB: справочник веществ]')
       confidence = Math.max(confidence, 0.7)
@@ -499,6 +537,25 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   let text = style.prefix + out.join(lines[0]?.endsWith(':') ? '\n' : ' ')
   if (logic && inp.mode !== 'live') text += `\n${LOGIC[lang]}${logic.charAt(0).toLowerCase() + logic.slice(1)}`
   if (tools.length) text = parts.join('\n') + '\n' + text
+  // 6a) мозг v2: класс длины normal/long — добор до минимума плана проверенными фактами (подробности понятия,
+  // реакции и получение вещества из учебника, аналогия, второе понятие, учебник); без воды и повторов
+  const plan = inp.plan
+  const longOk = plan?.lengthClass === 'long' || (plan?.lengthClass === 'normal' && style.maxSentences > 3)
+  if (plan && longOk && inp.mode !== 'live' && fu !== 'simpler' && fu !== 'example' && !tools.length) {
+    const target = plan.words[0] + 5 - MICRO_WORDS
+    if (wordCount(text) < target) {
+      const used = [...out, logic].filter(Boolean).map((l) => new Set(analyzeTerms(l)))
+      const add: string[] = []
+      for (const m of lengthMaterial({ lang, kb, qtype, primary, concepts, substances, elements, sents, qTerms })) {
+        if (wordCount(text) + wordCount(add.join(' ')) >= target) break
+        const t = new Set(analyzeTerms(m))
+        if (!t.size || used.some((u) => jaccard(u, t) > 0.45)) continue
+        used.push(t)
+        add.push(m)
+      }
+      if (add.length) text += '\n' + add.join(' ')
+    }
+  }
   if (style.offerLab) text += ' ' + T(lang, 'Хотите увидеть это вживую в лаборатории ATOMLAB?', 'Buni ATOMLAB laboratoriyasida jonli koʻrishni xohlaysizmi?', 'Want to see it live in the ATOMLAB lab?')
   else text += '\n' + pick(MICRO[qtype][lang], inp.seed)
   if (style.suffix) text += ' ' + style.suffix
@@ -506,6 +563,54 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   text = trimToWords(text, inp.wordLimit)
   if (!citations.length && conceptId) cite('[ATOMLAB: справочник понятий]')
   return { text, citations, confidence: Math.min(0.99, confidence), concept: conceptId }
+}
+
+/** Понятия-классы веществ: если названо конкретное вещество («серная кислота»), отвечаем о нём, а класс — добором. */
+const CLASS_CONCEPTS = new Set(['acid', 'base', 'salt', 'oxide'])
+/** Примерная длина микровопроса в словах (учитывается при доборе до класса длины). */
+const MICRO_WORDS = 6
+
+/**
+ * Материал для добора до класса длины — только проверенное: подробности понятия (explain.ts), реакции и способы
+ * получения вещества из учебника (qaBank, obtain.ts), класс вещества, бытовая аналогия, применение, второе понятие,
+ * предложения учебника по теме (ru). Порядок — по важности; повторы отсекает вызывающий.
+ */
+function lengthMaterial(a: {
+  lang: Lang
+  kb: Knowledge
+  qtype: QType
+  primary: Concept | undefined
+  concepts: Concept[]
+  substances: QaSubstance[]
+  elements: QaElement[]
+  sents: Sent[]
+  qTerms: Set<string>
+}): string[] {
+  const { lang, kb } = a
+  const out: string[] = []
+  const el = a.elements[0]
+  const sub = a.substances[0] ?? (el ? (kb.substanceByFormula.get(DIATOMIC.has(el.s) ? `${el.s}2` : el.s) ?? null) : null)
+  const classC = a.substances[0] ? a.concepts.find((c) => CLASS_CONCEPTS.has(c.id)) : undefined
+  if (a.primary && a.primary !== classC) out.push(...detailsFor(a.primary.id, lang))
+  if (sub) {
+    const rx = kb.qa.reactions
+      .filter((r) => r.r.includes(sub.fa))
+      .slice(0, 3)
+      .map((r) => r.eq)
+    if (rx.length) out.push(T(lang, `Реакции из учебника: ${rx.join('; ')}.`, `Darslikdagi reaksiyalar: ${rx.join('; ')}.`, `Textbook reactions: ${rx.join('; ')}.`))
+    const ob = obtainBrief(sub, el ?? null, lang, kb)
+    if (ob) out.push(ob)
+  }
+  if (classC) out.push(classC.def[lang], ...detailsFor(classC.id, lang))
+  const an = analogyFor(a.primary?.id, lang)
+  if (an) out.push(an)
+  if (a.qtype !== 'uses') {
+    const u = usesFor(a.primary?.id, lang)
+    if (u) out.push(u)
+  }
+  for (const c of a.concepts.slice(1, 3)) if (c !== classC) out.push(`${c.def[lang]} ${c.law[lang]}`)
+  if (lang === 'ru') for (const x of explanationsFrom(a.sents, null, a.qTerms, 8)) out.push(x.s)
+  return out
 }
 
 /** Вопрос не про химию: коротко и честно (энциклопедия, если нашлась) + возврат к химии. */
