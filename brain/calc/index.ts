@@ -34,12 +34,12 @@ function citeFor(type: string, kb: Knowledge): string {
 }
 
 const HAS_DIGIT = /\d/
-/** Похоже на задачу: число и вопрос/повеление «найди/вычисли/сколько…». */
-const TASK_RE = /(сколько|какая|какой|какое|каков|чему равн|найд|вычисл|рассчит|посчит|определ|составь|выведи|установи|how (much|many)|what|calculate|find|determine|compute|work out|qancha|necha|qanday|toping|hisobla|aniqla|nechta|chiqaring|\?)/iu
+/** Похоже на задачу: вопрос/повеление «найди/вычисли/сколько…» и число (или формула — для Mr и ω без чисел). */
+const TASK_RE = /(сколько|какая|какой|какое|каков|чему равн|найд|вычисл|рассчит|посчит|определ|составь|выведи|установи|how (much|many)|what|calculate|find|determine|compute|work out|привед|приведите|выразите|keltir|reduce|convert|qancha|necha|qanday|toping|hisobla|aniqla|nechta|chiqaring|\?)/iu
 
 /** Решить задачу целиком (для селфтеста и отладки). */
 export function solveSchoolTask(text: string, cmp: string, lang: Lang, kb: Knowledge): Solution | null {
-  if (!HAS_DIGIT.test(text) || text.length > 1500 || !TASK_RE.test(cmp)) return null
+  if (text.length > 1500 || !TASK_RE.test(cmp) || (!HAS_DIGIT.test(text) && !/[⁰¹²³⁴⁵⁶⁷⁸⁹A-Za-z]/.test(text))) return null
   const ctx = buildCtx(text, cmp, lang, kb)
   for (const s of SOLVERS) {
     let sol: Solution | null = null

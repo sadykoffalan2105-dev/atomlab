@@ -11,7 +11,7 @@ import type { Solver } from '../registry.ts'
 import { Mof } from './common.ts'
 
 const SOL = /(раствор|eritma|solution)/iu
-const role = (q: Qty) => (/^\s*(\p{L}+\s+)?(вод|suv|water|h2o|h₂o)/iu.test(q.after) ? 'water' : /^\s*(\p{L}+\s+)?(раствор|eritma|solution)/iu.test(q.after) || /(раствор\p{L}*|eritma\p{L}*|solution)\s*(массой|of)?\s*$/iu.test(q.before) ? 'solution' : 'solute')
+const role = (q: Qty) => (/^\s*(\p{L}+\s+)?(вод|suv|water|h2o|h₂o)/iu.test(q.after) ? 'water' : /^\s*(\p{L}+\s+)?(раствор|eritma|solution)/iu.test(q.after) || /(раствор(?:а|ом|е|у)?|eritma(?:si|ning)?|solution)\s*(массой|of)?\s*$/iu.test(q.before) ? 'solution' : 'solute')
 
 /** Растворённое вещество: первое не-вода. */
 const solute = (ctx: Ctx): Species | null => ctx.species.find((s) => s.ascii !== 'H2O') ?? null
@@ -183,6 +183,12 @@ const molarity: Solver = {
       given.push({ label: 'C₁', value: Cs[0]!.value, unit: unitC }, { label: 'V₁', value: v1.value, unit: 'l' }, { label: 'V₂', value: v2.value, unit: 'l' })
       answers.push({ label: 'C₂', value: C2, unit: unitC })
       return { type: normal ? 'normality' : 'molarity', given, find: ['C₂'], steps, answers }
+    }
+    // Cн из C_M: Cн = z · C
+    if (normal && sp && z && Cs.length === 1 && Cs[0]!.unit === 'M' && !vols.length && !masses.length) {
+      const C = Cs[0]!.value
+      steps.push((l) => `z(${sp.pretty}) = ${z}; Cн = z · C = ${z} · ${fnum(C, l)} = ${fnum(C * z, l)} ${unitLabel('eqL', l)}`)
+      return { type: 'normality', given: [{ label: `C(${sp.pretty})`, value: C, unit: 'moll' }], find: [`Cн(${sp.pretty})`], steps, answers: [{ label: `Cн(${sp.pretty})`, value: C * z, unit: 'eqL' }] }
     }
     if (vols.length !== 1 || !sp) return null
     const V = vols[0]!.value

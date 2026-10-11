@@ -165,9 +165,12 @@ export function elementFractions(ctx: Ctx): Record<string, number> | null {
     const sym = ctx.text.slice(Math.max(0, q.index - 14), q.index).match(/(?:ω|w)\s*\(\s*([A-Z][a-z]?)\s*\)\s*[=:–—-]?\s*$/)?.[1]
     let el = sym ?? null
     if (!el) {
-      const after = els.find((e) => e.index >= q.end && e.index - q.end <= 12)
-      const before = [...els].reverse().find((e) => e.index < q.index && q.index - e.index <= 22 && !/\d/.test(ctx.text.slice(e.index, q.index)))
-      el = after?.item.s ?? before?.item.s ?? null
+      // «доля углерода 85,7 %» (до числа, без запятой между) или «85,7 % углерода» (после, без запятой)
+      const before = [...els].reverse().find((e) => e.index < q.index && q.index - e.index <= 24 && !/[\d,;]/.test(ctx.text.slice(e.index, q.index)))
+      const after = els.find((e) => e.index >= q.end && e.index - q.end <= 12 && !/[,;]/.test(ctx.text.slice(q.end, e.index)))
+      // «40 % серы» — элемент сразу после числа важнее «… серы и 60 % кислорода»
+      const glued = after && /^\s*$/.test(ctx.text.slice(q.end, after.index)) ? after : null
+      el = glued?.item.s ?? before?.item.s ?? after?.item.s ?? null
     }
     if (!el) {
       const symAfter = ctx.text.slice(q.end, q.end + 6).match(/^\s*([A-Z][a-z]?)(?![a-z])/)?.[1]
@@ -276,6 +279,8 @@ const atomicStructure: Solver = {
       }
     }
     if (!/(протон|нейтрон|электрон|proton|neutron|neytron|elektron|electron)/iu.test(ctx.cmp)) return null
+    // строение атома/иона, а не «сколько электронов отдаёт» (это валентность)
+    if (!/(протон|нейтрон|proton|neutron|neytron|в атоме|атом\p{L}*|atom\p{L}*|in an atom|ион\p{L}*|ion\p{L}*|ядр|yadro|nucleus)/iu.test(ctx.cmp)) return null
     if (!/(сколько|число|количеств|how many|number of|nechta|soni|necha|определ|найд|aniqla|toping)/iu.test(ctx.cmp)) return null
     if (ctx.qs.some(isAmount)) return null
     // элемент + массовое число: ⁵⁶Fe, 56Fe, Fe-56, «железа-56»; ион: Fe³⁺, Cl⁻

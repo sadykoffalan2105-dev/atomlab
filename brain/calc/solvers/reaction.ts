@@ -213,7 +213,7 @@ export function rolesOf(ctx: Ctx): Reactionish | null {
         given.push({ label: L(ctx.lang, 'm(образца)', 'm(namuna)', 'm(sample)'), value: q.value, unit: 'g' }, { label: 'ω', value: w, unit: 'pct' })
       } else return null
       // вещество раствора/образца — после «раствора …» / «известняка, содержащего … CaCO₃»
-      sp = speciesNear(ctx, nearest) && Math.abs(nearest.index - q.index) < 70 ? (ctx.species.find((s) => s.index > Math.min(q.end, nearest.end) && s.index - Math.min(q.end, nearest.end) < 70) ?? sp) : sp
+      if (!sp) sp = ctx.species.find((s) => s.index > Math.max(q.end, nearest.end) && s.index - Math.max(q.end, nearest.end) < 70) ?? null
     }
     if (!sp) return null
     if (!given.length) given.push(givenOf(q, sp))
@@ -228,7 +228,11 @@ export function rolesOf(ctx: Ctx): Reactionish | null {
   const givenSet = new Set(roles.map((r) => r.sp.ascii))
   const askedAir = /(воздух|havo|\bair\b)/iu.test(ctx.ask.text)
   let target = ctx.species.find((s) => s.index >= ctx.ask.index && !givenSet.has(s.ascii)) ?? null
+  // узбекский порядок слов: искомое — в том же предложении до глагола-вопроса («…necha gramm magniy oksidi hosil boʻladi»)
+  if (!target) target = [...ctx.species].reverse().find((s) => s.index >= ctx.ask.sentenceIndex && s.index < ctx.ask.index && !givenSet.has(s.ascii)) ?? null
   if (!target) target = ctx.species.find((s) => !givenSet.has(s.ascii) && s.index > Math.max(...roles.map((r) => r.q.index))) ?? null
+  // «вычислите выход аммиака»: искомое — продукт среди данных (практическая масса)
+  if (!target && roles.length === 2 && YIELD_RE.test(ctx.ask.sentence)) target = roles.find((r) => r.sp.index >= ctx.ask.sentenceIndex)?.sp ?? ctx.species.find((s) => s.index >= ctx.ask.sentenceIndex && givenSet.has(s.ascii)) ?? roles[1]!.sp
   if (askedAir && !target) target = { ascii: 'O2', pretty: 'O₂', counts: { O: 2 }, index: ctx.ask.index, end: ctx.ask.index, charge: 0 }
   return { roles, yieldPct, target, askedAir }
 }
@@ -250,7 +254,7 @@ function solveReaction(ctx: Ctx): Solution | null {
   const { roles, target, yieldPct } = ri
   if (roles.some((r) => r.sp.ascii === target.ascii)) {
     // «сколько выход» — η: данное — реагент, практическая масса продукта
-    if (!(yieldPct == null && roles.length === 2 && ctx.ask.kinds.includes('pct') && YIELD_RE.test(ctx.ask.text))) return null
+    if (!(yieldPct == null && roles.length === 2 && YIELD_RE.test(ctx.ask.sentence))) return null
   }
   const must = [...new Map([...roles.map((r) => r.sp), target].map((s) => [s.ascii, s])).values()]
   if (must.length < 2) return null
@@ -263,7 +267,7 @@ function solveReaction(ctx: Ctx): Solution | null {
   let type: TaskTypeId = roles.some((r) => r.note && IMPUR_RE.test(ctx.text)) ? 'impurities' : 'equation_stoich'
   const kT = coefOf(b, target.ascii)!
   // η как искомое: реагент (теор.) + практическая масса продукта
-  if (roles.length === 2 && roles.some((r) => r.sp.ascii === target.ascii) && ctx.ask.kinds.includes('pct')) {
+  if (roles.length === 2 && roles.some((r) => r.sp.ascii === target.ascii) && YIELD_RE.test(ctx.ask.sentence)) {
     const src = roles.find((r) => r.sp.ascii !== target.ascii)!
     const prac = roles.find((r) => r.sp.ascii === target.ascii)!
     const n = roleMoles(src, steps)

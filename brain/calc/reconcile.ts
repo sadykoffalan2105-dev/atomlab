@@ -14,7 +14,7 @@ const EXACT_HEAD = /(Точный расчёт|Aniq hisob|Exact calculation)\s*:
 /** Числа предложения, кроме индексов формул (H2O), коэффициентов (2H₂) и степеней (10²³). */
 function numbersOf(s: string): number[] {
   const out: number[] = []
-  for (const m of s.replace(/[−–]/g, '-').matchAll(/(?<![\p{L}\d)₀-₉.,])-?\d+(?:[.,]\d+)?(?![\d₀-₉]*\s*[A-Z(])/gu)) {
+  for (const m of s.replace(/[−–]/g, '-').matchAll(/(?<![\p{L}\d)₀-₉.,])-?\d+(?:[.,]\d+)?(?![\d₀-₉.,]*[A-Z(])/gu)) {
     const v = Number(m[0].replace(',', '.'))
     if (Number.isFinite(v)) out.push(v)
   }
@@ -35,7 +35,8 @@ export function reconcileCalcAnswer(text: string, tools: ToolResult[], lang: Lan
   const cut = text.search(EXACT_HEAD)
   const model = cut >= 0 ? text.slice(0, cut) : text
   const tail = cut >= 0 ? text.slice(cut) : ''
-  const known = calc.flatMap((t) => numbersOf(t.text))
+  // все числа расчёта (данные, промежуточные, ответ), кроме номеров шагов «1) …»
+  const known = calc.flatMap((t) => numbersOf(t.text.replace(/^\d+\)\s/gmu, '')))
   const finals = calc.flatMap((t) => t.numbers.map(numOf)).filter((x) => Number.isFinite(x))
   const answerLine = calc.map((t) => t.text.split('\n').find((l) => ANSWER_RE.test(l))).filter(Boolean).join(' ')
   let out = model

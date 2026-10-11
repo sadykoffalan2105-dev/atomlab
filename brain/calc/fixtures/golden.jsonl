@@ -1,0 +1,60 @@
+{"id":"gd01","type":"molar_mass","lang":"ru","statement":"Вычислите относительную молекулярную массу Na2CO3","expect":[{"value":106}]}
+{"id":"gd02","type":"molar_mass","lang":"uz","statement":"BaSO4 ning nisbiy molekulyar massasini hisoblang","expect":[{"value":233}]}
+{"id":"gd03","type":"mass_fraction_element","lang":"ru","statement":"Вычислите массовую долю азота в нитрате аммония NH4NO3","expect":[{"value":35}]}
+{"id":"gd04","type":"mass_fraction_element","lang":"en","statement":"Find the mass fraction of copper in CuO","expect":[{"value":80}]}
+{"id":"gd05","type":"formula_from_fractions","lang":"ru","statement":"Выведите формулу углеводорода, если массовая доля углерода 85,7 %, водорода 14,3 %, а плотность по водороду равна 14.","expect":[{"text":"C₂H₄"}]}
+{"id":"gd06","type":"formula_from_fractions","lang":"ru","statement":"Определите формулу оксида, содержащего 40 % серы и 60 % кислорода.","expect":[{"text":"SO₃"}]}
+{"id":"gd07","type":"moles_mass_volume_particles","lang":"ru","statement":"Сколько молекул содержится в 4,4 г углекислого газа CO2?","expect":[{"value":6.02e22}]}
+{"id":"gd08","type":"moles_mass_volume_particles","lang":"uz","statement":"5,6 l kislorod (n.sh.) necha mol boʻladi?","expect":[{"value":0.25}]}
+{"id":"gd09","type":"moles_mass_volume_particles","lang":"en","statement":"What is the mass of 3 mol of water H2O?","expect":[{"value":54}]}
+{"id":"gd10","type":"gas_density","lang":"ru","statement":"Плотность газа по водороду равна 32. Найдите молярную массу газа.","expect":[{"value":64}]}
+{"id":"gd11","type":"gas_density","lang":"ru","statement":"Вычислите плотность углекислого газа CO2 по воздуху.","expect":[{"value":1.517}]}
+{"id":"gd12","type":"clapeyron","lang":"ru","statement":"Какой объём займут 2 моль азота при температуре 27 °C и давлении 200 кПа?","expect":[{"value":24.94}]}
+{"id":"gd13","type":"clapeyron","lang":"ru","statement":"Газ занимает объём 10 л при 25 °C и давлении 120 кПа. Приведите объём газа к нормальным условиям.","expect":[{"value":10.85}]}
+{"id":"gd14","type":"equation_stoich","lang":"ru","statement":"Сколько литров водорода (н.у.) выделится при взаимодействии 13 г цинка с соляной кислотой?","expect":[{"value":4.48}]}
+{"id":"gd15","type":"equation_stoich","lang":"ru","statement":"Какая масса оксида кальция образуется при разложении 200 г карбоната кальция?","expect":[{"value":112}]}
+{"id":"gd16","type":"equation_stoich","lang":"uz","statement":"6,5 g rux xlorid kislota bilan reaksiyaga kirishganda necha litr vodorod (n.sh.) ajralib chiqadi?","expect":[{"value":2.24}]}
+{"id":"gd17","type":"equation_stoich","lang":"en","statement":"What mass of water is formed when 4 g of hydrogen burns in oxygen?","expect":[{"value":36}]}
+{"id":"gd18","type":"equation_stoich","lang":"ru","statement":"Сколько граммов кислорода потребуется для сжигания 12 г углерода?","expect":[{"value":32}]}
+{"id":"gd19","type":"excess_limiting","lang":"ru","statement":"Смешали 4 г водорода и 64 г кислорода и подожгли. Какая масса воды образовалась?","expect":[{"value":36},{"text":"O₂"}]}
+{"id":"gd20","type":"excess_limiting","lang":"ru","statement":"К раствору, содержащему 20 г гидроксида натрия, добавили 49 г серной кислоты. Сколько граммов сульфата натрия образовалось?","expect":[{"value":35.5}]}
+{"id":"gd21","type":"yield","lang":"ru","statement":"Из 56 г азота получили 48 г аммиака. Вычислите выход аммиака от теоретически возможного.","expect":[{"value":70.6}]}
+{"id":"gd22","type":"yield","lang":"ru","statement":"Какую массу оксида кальция можно получить из 50 г карбоната кальция, если выход составляет 80 %?","expect":[{"value":22.4}]}
+{"id":"gd23","type":"impurities","lang":"ru","statement":"Какой объём углекислого газа (н.у.) выделится при обжиге 250 г карбоната кальция, содержащего 20 % примесей?","expect":[{"value":44.8}]}
+{"id":"gd24","type":"impurities","lang":"ru","statement":"Технический цинк массой 20 г, содержащий 35 % примесей, растворили в соляной кислоте. Какой объём водорода (н.у.) выделился?","expect":[{"value":4.48}]}
+{"id":"gd25","type":"air_volume","lang":"ru","statement":"Какой объём воздуха (н.у.) потребуется для сжигания 16 г метана CH4?","expect":[{"value":213.33}]}
+{"id":"gd26","type":"air_volume","lang":"en","statement":"What volume of air (STP) is needed to burn 12 g of carbon?","expect":[{"value":106.67}]}
+{"id":"gd27","type":"solution_mass_fraction","lang":"ru","statement":"В 180 г воды растворили 20 г соли. Вычислите массовую долю соли в растворе.","expect":[{"value":10}]}
+{"id":"gd28","type":"solution_mass_fraction","lang":"ru","statement":"Сколько граммов соли и воды нужно для приготовления 300 г 15%-го раствора?","expect":[{"value":45},{"value":255}]}
+{"id":"gd29","type":"solution_mass_fraction","lang":"uz","statement":"200 g 10 % li eritmaga 50 g suv qoʻshildi. Hosil boʻlgan eritmadagi tuzning massa ulushini toping.","expect":[{"value":8}]}
+{"id":"gd30","type":"solution_mass_fraction","lang":"en","statement":"100 g of a 20 % solution was mixed with 300 g of a 10 % solution. Find the mass fraction of the solute in the new solution.","expect":[{"value":12.5}]}
+{"id":"gd31","type":"solution_density_volume","lang":"ru","statement":"Какая масса серной кислоты содержится в 500 мл 20%-го раствора плотностью 1,14 г/мл?","expect":[{"value":114}]}
+{"id":"gd32","type":"molarity","lang":"ru","statement":"Рассчитайте молярную концентрацию раствора, в 500 мл которого содержится 20 г гидроксида натрия.","expect":[{"value":1}]}
+{"id":"gd33","type":"molarity","lang":"en","statement":"What mass of NaCl is needed to prepare 250 mL of a 0.2 mol/L solution?","expect":[{"value":2.925}]}
+{"id":"gd34","type":"molarity","lang":"ru","statement":"Вычислите молярную концентрацию 20%-го раствора серной кислоты плотностью 1,14 г/мл.","expect":[{"value":2.33}]}
+{"id":"gd35","type":"normality","lang":"ru","statement":"Вычислите нормальную концентрацию раствора, в 2 л которого содержится 49 г серной кислоты.","expect":[{"value":0.5}]}
+{"id":"gd36","type":"normality","lang":"uz","statement":"0,1 M H2SO4 eritmasining normal konsentratsiyasini toping.","expect":[{"value":0.2}]}
+{"id":"gd37","type":"equivalent","lang":"ru","statement":"Вычислите молярную массу эквивалента серной кислоты H2SO4.","expect":[{"value":49}]}
+{"id":"gd38","type":"equivalent","lang":"ru","statement":"1,2 г металла вытеснили из кислоты 1,12 л водорода (н.у.). Вычислите молярную массу эквивалента металла.","expect":[{"value":12}]}
+{"id":"gd39","type":"solubility","lang":"ru","statement":"Растворимость нитрата калия при 20 °C равна 31,6 г на 100 г воды. Вычислите массовую долю соли в насыщенном растворе.","expect":[{"value":24.0}]}
+{"id":"gd40","type":"solubility","lang":"ru","statement":"Растворимость хлорида натрия 36 г на 100 г воды. Сколько граммов соли можно растворить в 250 г воды?","expect":[{"value":90}]}
+{"id":"gd41","type":"crystal_hydrate","lang":"ru","statement":"Вычислите массовую долю воды в медном купоросе CuSO4·5H2O.","expect":[{"value":36}]}
+{"id":"gd42","type":"crystal_hydrate","lang":"ru","statement":"Сколько граммов медного купороса CuSO4·5H2O и воды нужно для приготовления 200 г 8%-го раствора сульфата меди?","expect":[{"value":25},{"value":175}]}
+{"id":"gd43","type":"thermochem","lang":"ru","statement":"По термохимическому уравнению C + O2 = CO2 + 393 кДж вычислите количество теплоты, выделившейся при сгорании 24 г углерода.","expect":[{"value":786}]}
+{"id":"gd44","type":"thermochem","lang":"en","statement":"2H2 + O2 = 2H2O + 572 kJ. How much heat is released when 8 g of hydrogen burns?","expect":[{"value":1144}]}
+{"id":"gd45","type":"reaction_rate","lang":"ru","statement":"Температурный коэффициент скорости реакции равен 2. Во сколько раз увеличится скорость реакции при повышении температуры с 20 °C до 50 °C?","expect":[{"value":8}]}
+{"id":"gd46","type":"reaction_rate","lang":"uz","statement":"Reaksiyaning temperatura koeffitsiyenti 3 ga teng. Harorat 10 °C dan 40 °C gacha oshirilsa, reaksiya tezligi necha marta ortadi?","expect":[{"value":27}]}
+{"id":"gd47","type":"electrolysis_faraday","lang":"ru","statement":"Какая масса меди выделится на катоде при электролизе раствора CuSO4 током 5 А в течение 1930 с?","expect":[{"value":3.2}]}
+{"id":"gd48","type":"electrolysis_faraday","lang":"en","statement":"What mass of silver is deposited from AgNO3 solution by a current of 2 A in 965 s?","expect":[{"value":2.16}]}
+{"id":"gd49","type":"dissociation_degree","lang":"ru","statement":"Из каждых 200 молекул электролита на ионы распалось 30. Вычислите степень диссоциации.","expect":[{"value":15}]}
+{"id":"gd50","type":"water_hardness","lang":"ru","statement":"В 1 л воды содержится 162 мг гидрокарбоната кальция Ca(HCO3)2. Вычислите жёсткость воды.","expect":[{"value":2}]}
+{"id":"gd51","type":"atomic_structure_counts","lang":"ru","statement":"Сколько протонов, нейтронов и электронов в атоме ⁵⁶Fe?","expect":[{"value":26},{"value":30}]}
+{"id":"gd52","type":"atomic_structure_counts","lang":"ru","statement":"Вычислите среднюю относительную атомную массу хлора, если изотоп ³⁵Cl составляет 75 %, а изотоп ³⁷Cl — 25 %.","expect":[{"value":35.5}]}
+{"id":"gd53","type":"atomic_structure_counts","lang":"en","statement":"How many protons, neutrons and electrons are in an atom of chlorine-37?","expect":[{"value":17},{"value":20}]}
+{"id":"gd54","type":"moles_mass_volume_particles","lang":"ru","statement":"Какую массу имеют 11,2 л кислорода (н.у.)?","expect":[{"value":16}]}
+{"id":"gd55","type":"equation_stoich","lang":"uz","statement":"4,8 g magniy kislorodda yonganda necha gramm magniy oksidi hosil boʻladi?","expect":[{"value":8}]}
+{"id":"gd56","type":"mass_fraction_element","lang":"uz","statement":"H2SO4 dagi oltingugurtning massa ulushini hisoblang.","expect":[{"value":32.7}]}
+{"id":"gd57","type":"gas_density","lang":"uz","statement":"Gazning vodorodga nisbatan zichligi 8 ga teng. Uning molyar massasini toping.","expect":[{"value":16}]}
+{"id":"gd58","type":"molarity","lang":"uz","statement":"500 ml eritmada 4 g NaOH erigan. Eritmaning molyar konsentratsiyasini hisoblang.","expect":[{"value":0.2}]}
+{"id":"gd59","type":"clapeyron","lang":"en","statement":"Find the volume of 0.5 mol of a gas at 27 °C and 100 kPa.","expect":[{"value":12.47}]}
+{"id":"gd60","type":"yield","lang":"uz","statement":"28 g azotdan 30 g ammiak olindi. Ammiakning amaliy unumini hisoblang.","expect":[{"value":88.2}]}

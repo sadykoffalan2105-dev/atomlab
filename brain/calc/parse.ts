@@ -79,7 +79,7 @@ export function extractQuantities(text: string): Qty[] {
     else if (/^(г\/л|g\/l)/.test(u)) push(v, v, m[2]!, 'gl', index, end)
     else if (/^(кдж|kj)$/.test(u)) push(v, v, m[2]!, 'kj', index, end)
     else if (/^(кл|кулон|coulomb|kulon)/.test(u)) push(v, v, m[2]!, 'coul', index, end)
-    else if (/^(ампер|amper|amp)/.test(u) || (/^(а|a)$/.test(u) && /(ток|tok|current|сил)/iu.test(lower.slice(Math.max(0, index - 40), index)))) push(v, v, m[2]!, 'A', index, end)
+    else if (/^(ампер|amper|amp)/.test(u) || (/^(а|a)$/.test(u) && /(ток|tok|current|сил)/iu.test(lower.slice(Math.max(0, index - 40), end + 12)))) push(v, v, m[2]!, 'A', index, end)
     else if (/^(сек|sec|soniya)/.test(u) || (/^(с|s)$/.test(u) && TIME_CTX.test(lower.slice(Math.max(0, index - 50), index)))) push(v, v, m[2]!, 's', index, end)
     else if (/^(мин|min|daqiqa)/.test(u)) push(v * 60, v, m[2]!, 's', index, end)
     else if (/^(час|hour|soat)/.test(u) || (/^(ч|h)$/.test(u) && TIME_CTX.test(lower.slice(Math.max(0, index - 50), index)))) push(v * 3600, v, m[2]!, 's', index, end)
@@ -91,7 +91,8 @@ export function extractQuantities(text: string): Qty[] {
   }
   for (const q of quantities(text)) {
     const index = q.index
-    const tail = text.slice(index).match(/^\S+(?:\s*[·x×*]\s*10\S*)?\s*\S+/)?.[0] ?? ''
+    // конец величины — сразу после единицы (запятая/точка после «%» — уже не величина)
+    const tail = text.slice(index).match(/^\d+(?:[.,]\d+)?(?:\s*[·x×*]\s*10\s*\^?\s*[-−]?\d+|\s*[·x×*]\s*10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?\s*(?:%|°\s*[CcСс]?|мм\s*рт\.?\s*ст\.?|[\p{L}³/]+)/u)?.[0] ?? ''
     const end = index + Math.max(1, tail.length)
     if (index > 0 && /[A-Za-zА-Яа-я₀-₉)(]/.test(text[index - 1]!)) continue
     const u = q.unit
@@ -121,15 +122,35 @@ export function labeled(text: string, re: RegExp): number | null {
 
 const DIATOMIC = new Set(['H', 'O', 'N', 'F', 'Cl', 'Br', 'I'])
 
+/** Названия, которых нет в qaBank на uz/en (или вовсе нет): «ammiak», «metan», «ammonia»… */
+const ALIASES: [RegExp, string][] = [
+  [/(?<![\p{L}])(ammiak|ammonia|аммиак)\p{L}{0,7}/giu, 'NH3'],
+  [/(?<![\p{L}])(metan|methane|метан)\p{L}{0,7}/giu, 'CH4'],
+  [/(?<![\p{L}])(etilen|ethylene|ethene|этилен)\p{L}{0,7}/giu, 'C2H4'],
+  [/(?<![\p{L}])(asetilen|acetylene|ацетилен)\p{L}{0,7}/giu, 'C2H2'],
+  [/(?<![\p{L}])(etan|ethane|этан)(?![\p{L}])/giu, 'C2H6'],
+  [/(?<![\p{L}])(propan|propane|пропан)\p{L}{0,7}/giu, 'C3H8'],
+  [/(?<![\p{L}])(ozon|ozone|озон)\p{L}{0,7}/giu, 'O3'],
+  [/(?<![\p{L}])(karbonat angidrid|carbon dioxide|углекисл\p{L}* газ)\p{L}{0,7}/giu, 'CO2'],
+  [/(?<![\p{L}])(известняк|ohaktosh|limestone|мрамор)\p{L}{0,4}/giu, 'CaCO3'],
+  [/(?<![\p{L}])(негашён\p{L}* извест\p{L}*|so['ʻ’]ndirilmagan ohak|quicklime)/giu, 'CaO'],
+]
+
 /** Вещества с позициями: формулы, названия веществ, элементы (элемент → простое вещество). */
-export function findSpecies(text: string, kb: Knowledge): Species[] {
+export function findSpecies(raw: string, kb: Knowledge): Species[] {
+  // «Mr(CO2)», «m(Zn)», «V(H₂)» — обозначение величины, внутри — формула (длина текста сохраняется)
+  const text = raw.replace(/(?<![A-Za-z])(Mr|Mэ|M|m|n|V|N|C|ρ)\s*\(([^()]{1,20})\)/g, (all: string, _p: string, inner: string) => ' '.repeat(all.length - inner.length - 1) + inner + ' ')
   const out: Species[] = []
   const add = (ascii: string, index: number, end: number, counts: Record<string, number> | null, charge = 0) => {
     if (!counts || out.some((x) => x.index === index || (x.ascii === ascii && Math.abs(x.index - index) < 3))) return
     if (out.some((x) => index >= x.index && index < x.end)) return
     out.push({ ascii, pretty: pretty(ascii), counts, index, end, charge })
   }
-  for (const f of findFormulas(text, true)) add(f.ascii, f.index, f.index + f.raw.length, f.counts, f.charge)
+  for (const f of findFormulas(text, true)) {
+    // «25 °C», «300 K» — единицы, а не углерод/калий
+    if (/^(C|K|F)$/.test(f.ascii) && /°\s*$/.test(text.slice(Math.max(0, f.index - 2), f.index))) continue
+    add(f.ascii, f.index, f.index + f.raw.length, f.counts, f.charge)
+  }
   const wordEnd = (index: number, nWords: number) => {
     const m = text.slice(index).match(new RegExp(String.raw`^\S+(?:\s+\S+){${Math.max(0, nWords - 1)}}`, 'u'))
     return index + (m?.[0].length ?? 1)
@@ -137,6 +158,12 @@ export function findSpecies(text: string, kb: Knowledge): Species[] {
   for (const s of findSubstances(text, kb)) {
     const f = findFormulas(s.item.fa, true)[0]
     add(s.item.fa, s.index, wordEnd(s.index, s.item.ru.split(/\s+/).length), f?.counts ?? null)
+  }
+  for (const [re, ascii] of ALIASES) {
+    for (const m of text.matchAll(re)) {
+      const f = findFormulas(ascii, true)[0]
+      add(ascii, m.index ?? 0, (m.index ?? 0) + m[0].length, f?.counts ?? null)
+    }
   }
   for (const e of findElements(text, kb)) {
     const ascii = DIATOMIC.has(e.item.s) ? `${e.item.s}2` : e.item.s
@@ -163,21 +190,25 @@ export function speciesOf(q: Qty, sp: Species[], text: string): Species | null {
 
 export type AskKind = 'mass' | 'volume' | 'mol' | 'particles' | 'pct' | 'conc' | 'heat' | 'formula' | 'M' | 'density' | 'time' | 'current' | 'times'
 
-const ASK_START = /(сколько|какая|какой|какое|каков|чему равн|найд|вычисл|рассчит|определ|how (much|many)|what|calculate|find|determine|compute|qancha|necha|qanday|toping|hisobla|aniqla|nechta)/iu
+const ASK_START = /(сколько|какая|какой|какое|какую|каких|каков|привед|чему равн|найд|вычисл|рассчит|определ|how (much|many)|what|calculate|find|determine|compute|qancha|necha|qanday|toping|hisobla|aniqla|nechta)/iu
 
-/** Вопросная часть задачи: от слова-вопроса до конца (или последнее предложение). */
-export function askClause(text: string): { text: string; index: number } {
-  const sentences = [...text.matchAll(/[^.?!]+[.?!]?/g)]
+/**
+ * Вопросная часть задачи: от слова-вопроса до конца (или последнее предложение); sentence — всё предложение с вопросом
+ * (в узбекском глагол-вопрос стоит в конце: «Ammiakning amaliy unumini hisoblang»).
+ */
+export function askClause(text: string): { text: string; index: number; sentence: string; sentenceIndex: number } {
+  // предложения: точка/знак + пробел + заглавная (сокращения «н.у.», «n.sh.» не режут)
+  const sentences = [...text.matchAll(/.+?(?:[.?!](?=\s+[A-ZА-ЯЁ«]|\s*$)|$)/gsu)]
   for (let i = sentences.length - 1; i >= 0; i--) {
     const s = sentences[i]![0]
     const m = ASK_START.exec(s)
     if (m) {
       const index = (sentences[i]!.index ?? 0) + (m.index ?? 0)
-      return { text: text.slice(index), index }
+      return { text: text.slice(index), index, sentence: s, sentenceIndex: sentences[i]!.index ?? 0 }
     }
   }
   const last = sentences[sentences.length - 1]
-  return { text: last?.[0] ?? text, index: last?.index ?? 0 }
+  return { text: last?.[0] ?? text, index: last?.index ?? 0, sentence: last?.[0] ?? text, sentenceIndex: last?.index ?? 0 }
 }
 
 /** Что спрашивают: масса, объём, количество… (в порядке упоминания). */
@@ -205,7 +236,8 @@ export type Ctx = {
   kb: Knowledge
   qs: Qty[]
   species: Species[]
-  ask: { text: string; index: number; kinds: AskKind[] }
+  /** text — от слова-вопроса; sentence — всё предложение; kinds — по предложению без «число + единица» */
+  ask: { text: string; index: number; sentence: string; sentenceIndex: number; kinds: AskKind[] }
 }
 
 /** Разбор целиком (ParsedTask строит каждый решатель сам по Ctx). */
@@ -214,7 +246,8 @@ export function buildCtx(rawText: string, cmp: string, lang: Lang, kb: Knowledge
   const qs = extractQuantities(text)
   const species = findSpecies(text, kb)
   const a = askClause(text)
-  return { text, cmp, lang, kb, qs, species, ask: { ...a, kinds: askKinds(a.text) } }
+  const bare = a.sentence.replace(/\d+(?:[.,]\d+)?(?:\s*[·x×*]\s*10\S*)?\s*[^\s,.;:!?()]+/gu, ' ')
+  return { text, cmp, lang, kb, qs, species, ask: { ...a, kinds: askKinds(bare) } }
 }
 
 export const isAmount = (q: Qty) => q.unit === 'g' || q.unit === 'l' || q.unit === 'mol' || q.unit === 'particles'
