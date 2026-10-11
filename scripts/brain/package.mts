@@ -66,7 +66,7 @@ function writeZip(file: string, entries: Entry[]): void {
   for (const e of entries) {
     const name = Buffer.from(e.name, 'utf8')
     const crc = crc32(e.data)
-    let comp = zlib.deflateRawSync(e.data, { level: e.level ?? 6 })
+    let comp: Buffer = zlib.deflateRawSync(e.data, { level: e.level ?? 6 })
     let method = 8
     if (comp.length >= e.data.length) {
       comp = e.data
@@ -125,7 +125,7 @@ const entries: Entry[] = []
 for (const name of fs.readdirSync(SRC).sort()) {
   const full = path.join(SRC, name)
   if (!fs.statSync(full).isFile()) continue
-  let data = fs.readFileSync(full)
+  let data: Buffer = fs.readFileSync(full)
   const ext = path.extname(name).toLowerCase()
   if (ext === '.bat') {
     if (/[^\x00-\x7f]/.test(data.toString('latin1'))) throw new Error(`${name}: в .bat только ASCII`)
