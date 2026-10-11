@@ -161,6 +161,10 @@ const planShort = planAnswer(sqOf({}), st0, snap0, { mode: 'chat', detail: 'brie
 }
 
 {
+  const r = selfCheck('Валентность у натрия равна I: у атома один неспаренный elektron во внешнем слое, и он легко отдаёт этот электрон.', { sq: sqOf({ kind: 'general' }), tools: [], lang: 'ru', kb, plan: { ...planShort, words: [0, 200] } })
+  ok(/неспаренный электрон/.test(r.text) && r.fixes.includes('ru_latin_term'), 'ru: латинский «elektron» → «электрон»', r.text)
+}
+{
   // старая Ollama не понимает think:false — рассуждения <think>…</think> не должны дойти до ученика
   let out = ''
   const gate = new StreamGate('ru', 200, (s) => (out += s))

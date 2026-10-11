@@ -52,7 +52,11 @@ export function normalizeUzApostrophes(text: string): string {
   return text.replace(/(?<=[oOgG])['’‘`ʼ](?=\p{L})/gu, 'ʻ')
 }
 
-const NEG_VERB = /(?<!\p{L})не\s+(реагиру\p{L}*|растворя\p{L}*|проводит|проводят|является|являются|горит|горят)/iu
+/** Узбекская латиница терминов в русском ответе → кириллица (замечено вживую на qwen2.5:7b). */
+const RU_FROM_LAT: Record<string, string> = { elektron: 'электрон', proton: 'протон', neytron: 'нейтрон', molekula: 'молекула', valentlik: 'валентность', kislota: 'кислота', kislorod: 'кислород', vodorod: 'водород' }
+const RU_PLURAL: Record<string, string> = { elektron: 'электроны', proton: 'протоны', neytron: 'нейтроны', molekula: 'молекулы', kislota: 'кислоты' }
+
+const NEG_VERB =/(?<!\p{L})не\s+(реагиру\p{L}*|растворя\p{L}*|проводит|проводят|является|являются|горит|горят)/iu
 
 /** Пары «не реагирует … реагирует» в пределах трёх предложений (про одну и ту же сущность). */
 function contradiction(ss: string[]): boolean {
@@ -141,6 +145,17 @@ export function selfCheck(
     const letters = (text.match(/\p{L}/gu) ?? []).length
     const cyr = (text.match(/[а-яё]/giu) ?? []).length
     if (letters && cyr / letters > 0.1) fixes.push('uz_cyrillic')
+  }
+  // (4а) русский ответ: узбекская латиница терминов, которую qwen иногда вставляет («один неспаренный elektron»)
+  if (a.lang === 'ru') {
+    const n = text.replace(/(?<![\p{L}])(elektron|proton|neytron|molekula|valentlik|kislota|kislorod|vodorod)(lar|i|ni|ning)?(?![\p{L}])/gu, (_m, w: string, suf?: string) => {
+      const ru = RU_FROM_LAT[w]!
+      return suf === 'lar' ? RU_PLURAL[w] ?? ru : ru
+    })
+    if (n !== text) {
+      text = n
+      fixes.push('ru_latin_term')
+    }
   }
   // (5) длина по плану
   const [minW, maxW] = a.plan.words
