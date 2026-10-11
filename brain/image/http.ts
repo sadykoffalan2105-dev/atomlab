@@ -6,7 +6,8 @@
  *   GET  /image/<jobId>      — готовая картинка image/webp (в памяти cacheTtlMs);
  *   GET  /admin/image/status — арбитр, счётчики, видеопамять, последние задания (без текстов) — только админ;
  *   POST /admin/image/test   — синхронная проверка одной темы (установщик, live-приёмка) — только админ;
- *                              работает и при image.enabled=false: проверить ComfyUI до включения.
+ *                              работает и при image.enabled=false: проверить ComfyUI до включения;
+ *   GET  /admin/image/verify — сверка графа с живым ComfyUI (/object_info) — только админ (live --verify-graph).
  * Ошибки до потока (disabled / forbidden / not_ready / bad_request / busy) — JSON со статусом, если клиент не просил
  * text/event-stream; иначе одно событие error. 429 по лимитам — всегда JSON (как у /chat).
  */
@@ -18,6 +19,7 @@ import { sseComment, sseHeaders, sseSend } from '../sse.ts'
 import { GRADES, PRESETS, presetFitsGrade } from './presets.ts'
 import { permit, resolveRole } from './roles.ts'
 import { ImageService, type ImageSink } from './service.ts'
+import { normalizeVariant, verifyGraph } from './workflows.ts'
 import { ERROR_STATUS, IMAGE_MESSAGES, IMAGE_SIZES, IMAGE_STYLES, type ImageErrorCode, type ImageLang, type ImageRequest, type ImageRole } from './types.ts'
 
 export type ImageHttpContext = {
@@ -161,7 +163,13 @@ export async function handleImageRequest(c: ImageHttpContext): Promise<void> {
     return void res.end(bytes)
   }
 
-  if (method === 'GET' && path === '/admin/image/status') return json(res, 200, image.status(), cors)
+  if (method === 'GET' && path === '/admin/image/status') return json(res, 200, await image.statusFull(), cors)
+  if (method === 'GET' && path === '/admin/image/verify') {
+    const engine = ic.engine
+    const variant = normalizeVariant(engine, ic.variant)
+    const v = await verifyGraph(engine, variant, (cls) => image.comfy().objectInfo(cls))
+    return json(res, 200, { ok: v.ok, engine, variant, checks: v.checks }, cors)
+  }
 
   const isTest = method === 'POST' && path === '/admin/image/test'
   if (!(method === 'POST' && path === '/image') && !isTest) {

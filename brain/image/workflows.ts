@@ -113,3 +113,37 @@ export function graphClasses(engine: ImageEngine): string[] {
   const g = buildGraph({ engine, variant: engine === 'flux2-klein-4b' ? 'fp8' : 'int8', prompt: 'x', width: 1024, height: 1024, seed: 1, steps: 0, jobId: 'verify' }).graph
   return [...new Set(Object.values(g).map((n) => n.class_type))]
 }
+
+export type GraphCheck = { class: string; ok: boolean; missing: string[]; unknown: string[]; absent?: boolean }
+type ObjectInfoFn = (cls: string) => Promise<Record<string, { input?: { required?: Record<string, unknown>; optional?: Record<string, unknown> } }>>
+
+/**
+ * Сверить граф движка с живым ComfyUI (GET /object_info/<класс>): у каждого узла должны быть все required-входы
+ * сервера, и не должно быть входов, которых узел не знает. objectInfo — метод клиента (ComfyClient.objectInfo).
+ */
+export async function verifyGraph(engine: ImageEngine, variant: ImageVariant, objectInfo: ObjectInfoFn): Promise<{ ok: boolean; checks: GraphCheck[] }> {
+  const g = buildGraph({ engine, variant, prompt: 'verify', width: 1024, height: 1024, seed: 1, steps: 0, jobId: 'verify' }).graph
+  const checks: GraphCheck[] = []
+  const seen = new Set<string>()
+  for (const n of Object.values(g)) {
+    if (seen.has(n.class_type)) continue
+    seen.add(n.class_type)
+    let info: Awaited<ReturnType<ObjectInfoFn>> = {}
+    try {
+      info = await objectInfo(n.class_type)
+    } catch {
+      info = {}
+    }
+    const def = info[n.class_type]
+    if (!def) {
+      checks.push({ class: n.class_type, ok: false, missing: [], unknown: [], absent: true })
+      continue
+    }
+    const required = Object.keys(def.input?.required ?? {})
+    const known = new Set([...required, ...Object.keys(def.input?.optional ?? {})])
+    const missing = required.filter((k) => !(k in n.inputs))
+    const unknown = Object.keys(n.inputs).filter((k) => !known.has(k))
+    checks.push({ class: n.class_type, ok: !missing.length && !unknown.length, missing, unknown })
+  }
+  return { ok: checks.every((c) => c.ok), checks }
+}

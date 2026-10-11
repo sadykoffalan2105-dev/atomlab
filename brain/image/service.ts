@@ -18,7 +18,7 @@ import type { LlmQueue } from '../llm/queue.ts'
 import { detectLang } from '../pipeline/normalize.ts'
 import { ImageCache } from './cache.ts'
 import { ComfyClient } from './comfyClient.ts'
-import { journalImage, type ImageJournalRow } from './journal.ts'
+import { imagesJournalPath, journalImage, type ImageJournalRow } from './journal.ts'
 import { checkFreeText, presetPrompt } from './prompt.ts'
 import type { Permit } from './roles.ts'
 import { emptyTimings, IMAGE_MESSAGES, type ImageDone, type ImageErrorCode, type ImageJob, type ImageLang, type ImageRequest, type ImageRole, type JobOutcome } from './types.ts'
@@ -228,6 +228,22 @@ export class ImageService {
       cache: { items: this.cache.size, bytes: this.cache.bytes },
       recent: this.recent.slice(-20),
     }
+  }
+
+  /**
+   * Статус для админа + что сейчас в памяти Ollama (/api/ps: вернулась ли Gemma в видеопамять после окна)
+   * и сколько строк в журнале картинок (live-приёмка сверяет с числом заданий).
+   */
+  async statusFull() {
+    const ps = await this.ollama().loaded()
+    let journalLines: number | null = null
+    try {
+      const f = imagesJournalPath()
+      journalLines = fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).length : 0
+    } catch {
+      journalLines = null
+    }
+    return { ...this.status(), ollama: ps ? ps.map((m) => ({ name: m.name, size: m.size, size_vram: m.size_vram })) : null, journalLines }
   }
 
   /**

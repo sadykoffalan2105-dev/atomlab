@@ -106,7 +106,8 @@ const fakeServer = http.createServer(async (req, res) => {
     if (cls === SAFETY_CLASS && fake.noSafetyNode) return sendJson(res, 200, {})
     const req2 = NODE_INPUTS[cls]
     if (!req2) return sendJson(res, 200, {})
-    return sendJson(res, 200, { [cls]: { input: { required: Object.fromEntries(req2.map((k) => [k, ['*']])) }, output_node: cls === SAFETY_CLASS || cls === 'SaveImage' } })
+    const optional = cls === 'CLIPLoader' ? { device: [['default', 'cpu']] } : {}
+    return sendJson(res, 200, { [cls]: { input: { required: Object.fromEntries(req2.map((k) => [k, ['*']])), optional }, output_node: cls === SAFETY_CLASS || cls === 'SaveImage' } })
   }
   if (p === '/prompt' && req.method === 'POST') {
     const b = JSON.parse(await readBody(req)) as { prompt: Record<string, { class_type: string; inputs: Record<string, unknown> }>; client_id?: string }
@@ -385,7 +386,8 @@ fake.noSafety = false
 fake.noSafetyNode = true
 await image.refreshReady()
 const nn = await img({ presetId: 'g8-zinc-acid' }, OWNER, false)
-ok(nn.status === 503 && (nn.json?.error as { code?: string })?.code === 'not_ready' && (await call('GET', '/health')).json?.image && ((await call('GET', '/health')).json?.image as { ready?: boolean }).ready === false, 'узла безопасности нет в ComfyUI → not_ready (503), /health.image.ready=false')
+const hNoNode = (await call('GET', '/health')).json?.image as { ready?: boolean } | undefined
+ok(nn.status === 503 && (nn.json?.error as { code?: string })?.code === 'not_ready' && hNoNode?.ready === false,'узла безопасности нет в ComfyUI → not_ready (503), /health.image.ready=false')
 fake.noSafetyNode = false
 await image.refreshReady()
 
@@ -500,6 +502,9 @@ const as1 = await call('GET', '/admin/image/status', { headers: fwd('198.51.100.
 const as2 = await call('GET', '/admin/image/status', { headers: OWNER })
 ok(as1.status === 403 && as2.status === 200 && typeof (as2.json?.counters as { windows?: number })?.windows === 'number' && !!(as2.json?.device as { vram_total?: number })?.vram_total, '/admin/image/status: без ключа 403, с ключом — счётчики и видеопамять')
 ok(!/колба|кристаллы|серной/.test(as2.text), 'в статусе нет текстов запросов')
+ok(Array.isArray(as2.json?.ollama) && (as2.json?.ollama as { name: string }[]).some((m) => m.name === 'mock-7b') && typeof as2.json?.journalLines === 'number', 'статус: что в памяти Ollama (/api/ps) и строк в журнале картинок')
+const vf = await call('GET', '/admin/image/verify', { headers: OWNER })
+ok(vf.status === 200 && vf.json?.ok === true && ((vf.json?.checks ?? []) as unknown[]).length >= 10, '/admin/image/verify: граф сходится с /object_info', JSON.stringify((vf.json?.checks as { ok: boolean }[] | undefined)?.filter((c) => !c.ok)))
 ic.enabled = false
 const at = await call('POST', '/admin/image/test', { headers: { ...JSONH, ...OWNER }, body: JSON.stringify({ presetId: 'g8-zinc-acid' }) })
 const atj = JSON.parse(at.text.trim()) as Record<string, unknown>
