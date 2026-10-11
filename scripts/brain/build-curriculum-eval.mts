@@ -473,7 +473,6 @@ for (const u of units) {
   const before = cases.length
   const r = rngFor(u.id)
   const withEn = r() < EN_SHARE
-  const gid = `g${u.grade}`
   const genOnly = u.kind === 'review' // повторение — только тесты (спецификация)
 
   // вопрос «о чём §» — проверка ссылки на § (sectionRef A)
