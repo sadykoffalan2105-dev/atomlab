@@ -14,7 +14,7 @@ import { mlIntentStep, mergeIntentStyle, replaceLastUser, type IntentStepResult 
 import type { ComposeStyle } from './brain/dualMode/localAnswerComposer'
 import { dialogStep, dialogStyleHints } from './brain/dialog/dialogManager'
 import { applyInputPolicy, detectQuestionLang, ensureNoUnknown, isReasonedLead, reasonFromBasics } from './brain/policy'
-import { brainMoodFrom, ensureBrainOnline, streamChat, type BrainMood } from './brain/remote/brainClient'
+import { brainMoodFrom, ensureBrainOnline, streamChat, takeBrainBusyNote, type BrainMood } from './brain/remote/brainClient'
 
 /** Кто ответил: карточка FAQ, локальная база (без сети) или локальный мозг (сервер на ПК учителя). */
 export type TeacherReplySource = 'faq' | 'local' | 'brain'
@@ -500,15 +500,20 @@ export async function routeTeacherReply(
     }
   }
   const signal = opts?.signal
-  // 1) Локальный мозг — если запущен (проверка /health ≤ 800 мс, кеш 20 с).
+  // 1) Мозг (сервер ATOMLAB или этот ПК) — если отвечает (проверка /health, кеш 20 с).
+  let busyNote = ''
   if (!opts?.disableBrain && (await ensureBrainOnline())) {
     const brain = await askLocalBrain(messages, ctx, opts)
     if (brain) return brain
     if (isAbort(signal)) return { text: '', source: 'local', citations: [] }
+    // сервер занят (429 / очередь полна) — ответ из базы браузера с короткой пометкой
+    busyNote = takeBrainBusyNote(detectQuestionLang(lastUserText(messages), ctx.locale))
   }
-  const local = await routeLocal(messages, ctx, opts)
+  const onDelta = opts?.onDelta
+  const local = await routeLocal(messages, ctx, busyNote && onDelta ? { ...opts, onDelta: (full) => onDelta(`${busyNote}\n\n${full}`) } : opts)
   if (!local.text) return local
-  return { ...local, text: ensureNoUnknown(local.text, ctx.locale, [ctx.sectionTitle], { query: lastUserText(messages) }) }
+  const text = ensureNoUnknown(local.text, ctx.locale, [ctx.sectionTitle], { query: lastUserText(messages) })
+  return { ...local, text: busyNote ? `${busyNote}\n\n${text}` : text }
 }
 
 /** Запасной путь без мозга: «человеческий» слой → база знаний → карточка FAQ. */

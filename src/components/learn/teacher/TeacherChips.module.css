@@ -87,6 +87,26 @@
   display: none;
 }
 
+/* Чип мозга + «Использовать мозг на этом компьютере» (мозг на сервере не найден). */
+.brainGroup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.brainGroup > .brain {
+  max-width: 100%;
+}
+
+/* «· вы 2-й в очереди» в индикаторе «Думаю…». */
+.queue {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Телефон: короткая подпись «База знаний» вместо обрезанной «Локальная баз…». */
 @media (max-width: 480px) {
   .brainLabel[data-has-short='1'] {
