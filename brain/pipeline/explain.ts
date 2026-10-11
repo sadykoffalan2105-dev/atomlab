@@ -184,6 +184,33 @@ export const EXPLAINS: Explain[] = [
       en: 'Aluminium is an active metal, but in air it is at once covered with a thin dense film of the oxide Al₂O₃: 4Al + 3O₂ → 2Al₂O₃. The film keeps oxygen and water away from the metal, so the aluminium is not destroyed further. Rust on iron (Fe₂O₃·nH₂O, Fe(OH)₃) is loose and porous, it does not protect, and corrosion goes deeper.',
     },
   },
+  {
+    // типы реакций (Kimyo 7–8): соединение, разложение, замещение, обмен
+    re: /((тип|вид|класс)\p{L}*\s+(химическ\p{L}*\s+)?реакци|types?\s+of\s+(chemical\s+)?reactions?|reaksiya\p{L}*\s+(tur|xil))/iu,
+    text: {
+      ru: 'По числу и составу веществ реакции делят на четыре типа: соединения (2H₂ + O₂ → 2H₂O), разложения (CaCO₃ → CaO + CO₂↑), замещения (Zn + 2HCl → ZnCl₂ + H₂↑) и обмена (NaOH + HCl → NaCl + H₂O). Ещё их делят по тепловому эффекту на экзо- и эндотермические, по изменению степеней окисления — на окислительно-восстановительные и без её изменения, а также на обратимые и необратимые.',
+      uz: 'Moddalar soni va tarkibiga koʻra reaksiyalar toʻrt turga boʻlinadi: birikish (2H₂ + O₂ → 2H₂O), parchalanish (CaCO₃ → CaO + CO₂↑), oʻrin olish (Zn + 2HCl → ZnCl₂ + H₂↑) va almashinish (NaOH + HCl → NaCl + H₂O). Ular issiqlik effektiga koʻra ekzo- va endotermik, oksidlanish darajasi oʻzgarishiga koʻra oksidlanish-qaytarilish va oʻzgarmaydigan, shuningdek qaytar va qaytmas reaksiyalarga ham boʻlinadi.',
+      en: 'By the number and make-up of the substances, reactions are of four types: combination (2H₂ + O₂ → 2H₂O), decomposition (CaCO₃ → CaO + CO₂↑), substitution (Zn + 2HCl → ZnCl₂ + H₂↑) and exchange (NaOH + HCl → NaCl + H₂O). They are also divided by heat effect into exo- and endothermic, by change of oxidation states into redox and non-redox, and into reversible and irreversible.',
+    },
+  },
+  {
+    // HF — слабая кислота: прочная связь H–F и водородные связи
+    re: /((\bHF\b|фтороводород|плавиков|hydrofluoric|ftorid kislota)[^?.!]{0,80}(слаб|weak|kuchsiz)|(слаб|weak|kuchsiz)[^?.!]{0,80}(\bHF\b|фтороводород|плавиков|hydrofluoric))/iu,
+    text: {
+      ru: 'HF — слабая кислота, хотя фтор самый электроотрицательный: связь H–F очень короткая и прочная (атом фтора маленький), поэтому в воде она рвётся с трудом и ионов H⁺ мало. Кроме того, молекулы HF и ионы F⁻ прочно связаны водородными связями (F⁻ + HF → HF₂⁻). В ряду HF → HCl → HBr → HI радиус галогена растёт, связь H–Hal слабеет, и сила кислот растёт.',
+      uz: 'HF — kuchsiz kislota, garchi ftor eng elektromanfiy boʻlsa ham: H–F bogʻi juda qisqa va mustahkam (ftor atomi kichik), shuning uchun suvda qiyin uziladi va H⁺ ionlari kam. Bundan tashqari, HF molekulalari va F⁻ ionlari vodorod bogʻlari bilan mustahkam bogʻlangan (F⁻ + HF → HF₂⁻). HF → HCl → HBr → HI qatorida galogen radiusi ortadi, H–Hal bogʻi zaiflashadi va kislotalar kuchi ortadi.',
+      en: 'HF is a weak acid even though fluorine is the most electronegative element: the H–F bond is very short and strong (the fluorine atom is small), so in water it breaks with difficulty and gives few H⁺ ions. Besides, HF molecules and F⁻ ions are held by strong hydrogen bonds (F⁻ + HF → HF₂⁻). Along HF → HCl → HBr → HI the halogen radius grows, the H–Hal bond weakens and acid strength rises.',
+    },
+  },
+  {
+    // гидролиз соли слабого основания: NH₄Cl — кислая среда
+    re: /^(?=[\s\S]*(NH₄Cl|NH4Cl|хлорид\p{L}*\s+аммони|ammonium chloride|ammoniy xlorid))(?=[\s\S]*(сред|pH|гидролиз|кисл|лакмус|medium|acidic|hydroly|muhit|gidroliz|kislotali))/iu,
+    text: {
+      ru: 'NH₄Cl — соль слабого основания (NH₃·H₂O) и сильной кислоты (HCl), поэтому в воде идёт гидролиз по катиону аммония: NH₄⁺ + H₂O ⇄ NH₃·H₂O + H⁺. Ионов H⁺ становится больше, чем OH⁻, среда кислая (pH < 7), лакмус краснеет. Ион Cl⁻ — остаток сильной кислоты, он не гидролизуется.',
+      uz: 'NH₄Cl — kuchsiz asos (NH₃·H₂O) va kuchli kislota (HCl) tuzi, shuning uchun suvda ammoniy kationi boʻyicha gidroliz boradi: NH₄⁺ + H₂O ⇄ NH₃·H₂O + H⁺. H⁺ ionlari OH⁻ dan koʻp boʻladi, muhit kislotali (pH < 7), lakmus qizaradi. Cl⁻ ioni — kuchli kislota qoldigʻi, u gidrolizlanmaydi.',
+      en: 'NH₄Cl is a salt of a weak base (NH₃·H₂O) and a strong acid (HCl), so in water the ammonium cation is hydrolysed: NH₄⁺ + H₂O ⇄ NH₃·H₂O + H⁺. There are more H⁺ than OH⁻ ions, the medium is acidic (pH < 7) and litmus turns red. The Cl⁻ ion, the residue of a strong acid, is not hydrolysed.',
+    },
+  },
 ]
 
 type Trap = { re: RegExp; trap: RegExp; text: Tri }
@@ -238,4 +265,65 @@ export function valenceClause(symbol: string, lang: Lang): string {
   const v = VALENCE[symbol]
   if (!v) return ''
   return lang === 'ru' ? `; валентность: ${v}` : lang === 'uz' ? `; valentligi: ${v}` : `; valence: ${v}`
+}
+
+/** Реплика из одного вопросительного слова («а почему?», «why?», «nega?», «как это?») — тема не названа. */
+export const BARE_FOLLOW_UP = /^[\s,.!?…]*(а|и|но|and|but|xoʻsh|xo'sh)?[\s,]*(почему|зачем|отчего|как это|как так|в смысле|why|how come|how so|what for|nega|nima uchun|qanday qilib)[\s,.!?…]*(же|so|unda)?[\s.!?…]*$/iu
+export const CLARIFY: Record<Lang, string> = {
+  ru: 'Уточните, пожалуйста, что именно объяснить: о каком веществе, реакции или законе идёт речь? Например: «Почему натрий хранят под керосином?» — тогда разберу причину по шагам.',
+  uz: 'Iltimos, aniqlashtiring: aynan nimani tushuntiray — qaysi modda, reaksiya yoki qonun haqida? Masalan: «Nega natriy kerosin ostida saqlanadi?» — shunda sababini bosqichma-bosqich tushuntiraman.',
+  en: 'Could you clarify what exactly I should explain — which substance, reaction or law? For example: “Why is sodium stored under kerosene?” Then I will go through the cause step by step.',
+}
+
+/** Кто и когда открыл элемент (школьный курс; только общепринятые факты истории химии) — «Кто открыл кислород?». */
+export const DISCOVERY: Record<string, Tri> = {
+  O: {
+    ru: 'Кислород открыли независимо К. В. Шееле (Швеция, около 1771–1772 гг., опубликовано в 1777 г.) и Дж. Пристли (Англия, 1774 г., нагревая оксид ртути HgO); А. Лавуазье понял, что это элемент, дал ему название и объяснил горение как соединение с кислородом.',
+    uz: 'Kislorodni bir-biridan mustaqil ravishda K. V. Sheele (Shvetsiya, taxminan 1771–1772-yillar, 1777-yilda nashr etilgan) va J. Pristli (Angliya, 1774-yil, simob oksidi HgO ni qizdirib) kashf etgan; A. Lavuazye uning element ekanini tushunib, nom bergan va yonishni kislorod bilan birikish deb tushuntirgan.',
+    en: 'Oxygen was discovered independently by C. W. Scheele (Sweden, about 1771–1772, published 1777) and J. Priestley (England, 1774, by heating mercury oxide HgO); A. Lavoisier recognised it as an element, named it and explained combustion as combination with oxygen.',
+  },
+  H: {
+    ru: 'Водород как особый «горючий воздух» описал Г. Кавендиш в 1766 г.; название hydrogène («рождающий воду») дал А. Лавуазье в 1783 г.',
+    uz: 'Vodorodni alohida «yonuvchi havo» sifatida G. Kavendish 1766-yilda tasvirlagan; hydrogène («suv hosil qiluvchi») nomini A. Lavuazye 1783-yilda bergan.',
+    en: 'Hydrogen was described as a distinct “inflammable air” by H. Cavendish in 1766; A. Lavoisier named it hydrogène (“water-former”) in 1783.',
+  },
+  N: {
+    ru: 'Азот открыл Д. Резерфорд в 1772 г. как часть воздуха, не поддерживающую горение и дыхание.',
+    uz: 'Azotni D. Rezerford 1772-yilda havoning yonish va nafas olishni quvvatlamaydigan qismi sifatida kashf etgan.',
+    en: 'Nitrogen was discovered by D. Rutherford in 1772 as the part of air that does not support burning or breathing.',
+  },
+  Cl: {
+    ru: 'Хлор получил К. В. Шееле в 1774 г. (из соляной кислоты и MnO₂); то, что это элемент, доказал Г. Дэви в 1810 г.',
+    uz: 'Xlorni K. V. Sheele 1774-yilda (xlorid kislota va MnO₂ dan) olgan; uning element ekanini G. Devi 1810-yilda isbotlagan.',
+    en: 'Chlorine was made by C. W. Scheele in 1774 (from hydrochloric acid and MnO₂); H. Davy proved it was an element in 1810.',
+  },
+  Na: {
+    ru: 'Натрий (и калий) впервые получил Г. Дэви в 1807 г. электролизом расплавленных гидроксидов.',
+    uz: 'Natriyni (va kaliyni) birinchi boʻlib G. Devi 1807-yilda suyuqlantirilgan gidroksidlarni elektroliz qilib olgan.',
+    en: 'Sodium (and potassium) were first isolated by H. Davy in 1807 by electrolysis of molten hydroxides.',
+  },
+  K: {
+    ru: 'Калий (и натрий) впервые получил Г. Дэви в 1807 г. электролизом расплавленных гидроксидов.',
+    uz: 'Kaliyni (va natriyni) birinchi boʻlib G. Devi 1807-yilda suyuqlantirilgan gidroksidlarni elektroliz qilib olgan.',
+    en: 'Potassium (and sodium) were first isolated by H. Davy in 1807 by electrolysis of molten hydroxides.',
+  },
+  P: {
+    ru: 'Фосфор открыл Х. Бранд в 1669 г. — это первый элемент, у которого известен открыватель.',
+    uz: 'Fosforni X. Brand 1669-yilda kashf etgan — bu kashfiyotchisi maʼlum boʻlgan birinchi element.',
+    en: 'Phosphorus was discovered by H. Brand in 1669 — the first element whose discoverer is known.',
+  },
+  F: {
+    ru: 'Свободный фтор впервые получил А. Муассан в 1886 г. электролизом.',
+    uz: 'Erkin ftorni birinchi boʻlib A. Muassan 1886-yilda elektroliz bilan olgan.',
+    en: 'Free fluorine was first isolated by H. Moissan in 1886 by electrolysis.',
+  },
+  Ra: {
+    ru: 'Радий (и полоний) открыли Мария и Пьер Кюри в 1898 г.',
+    uz: 'Radiy (va poloniy)ni Mariya va Pyer Kyuri 1898-yilda kashf etgan.',
+    en: 'Radium (and polonium) were discovered by Marie and Pierre Curie in 1898.',
+  },
+}
+
+export function discoveryFor(symbol: string, lang: Lang): string | null {
+  return DISCOVERY[symbol]?.[lang] ?? null
 }

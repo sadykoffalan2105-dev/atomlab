@@ -21,7 +21,7 @@ import type { StudentSnapshot } from '../student/model.ts'
 import { fallbackStyle } from '../student/adapt.ts'
 import { genitive } from './declension.ts'
 import { findConcepts, findElements, findFormulas, findSubstances } from './entities.ts'
-import { detailsFor, explainFor, trapFor, usesFor, valenceClause } from './explain.ts'
+import { BARE_FOLLOW_UP, CLARIFY, detailsFor, discoveryFor, explainFor, trapFor, usesFor, valenceClause } from './explain.ts'
 import { obtainBrief } from './obtain.ts'
 import type { Candidate } from './hybrid.ts'
 import { jaccard } from './hybrid.ts'
@@ -284,6 +284,8 @@ function obtainEquations(s: QaSubstance, kb: Knowledge): string[] {
  * карточка вещества (M из qaBank), карточка элемента — на языке вопроса. До 4 строк.
  */
 export function referenceFacts(text: string, lang: Lang, kb: Knowledge, qtype: QType): string[] {
+  // «а почему?» без темы и истории: проверенный ответ — попросить уточнить (модель опирается на первую строку справки)
+  if (BARE_FOLLOW_UP.test(text)) return [CLARIFY[lang]]
   const out: string[] = []
   // мозг v2: поправка к ловушке «если …, значит …» и точечное объяснение — первыми (модель опирается на первую строку)
   const fix = trapFor(text, lang) ?? explainFor(text, lang)
@@ -294,6 +296,11 @@ export function referenceFacts(text: string, lang: Lang, kb: Knowledge, qtype: Q
     if (u) out.push(u)
   }
   const els = findElements(text, kb).slice(0, 1)
+  // «Кто открыл кислород?», «история открытия» — кто и когда, первой строкой
+  if (els[0] && (qtype === 'who' || /(открыл|открыт|открыти|discover|kashf)/iu.test(text))) {
+    const d = discoveryFor(els[0].item.s, lang)
+    if (d) out.unshift(d)
+  }
   // «валентность у азота»: свойство элемента — сначала факты элемента (с валентностью), потом общее понятие
   const elementFirst = els.length > 0 && concepts.length > 0 && concepts.every((c) => ELEMENT_PROPS.has(c.id))
   if (elementFirst) for (const e of els) out.push(elementFacts(e.item, lang, false))
@@ -642,14 +649,6 @@ function lengthMaterial(a: {
       if (x.cand.type !== 'encyclopedia' && hits >= Math.min(2, a.qTerms.size)) out.push(x.s)
     }
   return out
-}
-
-/** Реплика из одного вопросительного слова («а почему?», «why?», «nega?», «как это?») — тема не названа. */
-const BARE_FOLLOW_UP = /^[\s,.!?…]*(а|и|но|and|but|xoʻsh|xo'sh)?[\s,]*(почему|зачем|отчего|как это|как так|в смысле|why|how come|how so|what for|nega|nima uchun|qanday qilib)[\s,.!?…]*(же|so|unda)?[\s.!?…]*$/iu
-const CLARIFY: Record<Lang, string> = {
-  ru: 'Уточните, пожалуйста, что именно объяснить: о каком веществе, реакции или законе идёт речь? Например: «Почему натрий хранят под керосином?» — тогда разберу причину по шагам.',
-  uz: 'Iltimos, aniqlashtiring: aynan nimani tushuntiray — qaysi modda, reaksiya yoki qonun haqida? Masalan: «Nega natriy kerosin ostida saqlanadi?» — shunda sababini bosqichma-bosqich tushuntiraman.',
-  en: 'Could you clarify what exactly I should explain — which substance, reaction or law? For example: “Why is sodium stored under kerosene?” Then I will go through the cause step by step.',
 }
 
 /** Вопрос не про химию: коротко и честно (энциклопедия, если нашлась) + возврат к химии. */
