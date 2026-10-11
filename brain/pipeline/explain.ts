@@ -175,6 +175,15 @@ export const EXPLAINS: Explain[] = [
       en: 'Copper does not react with dilute sulfuric acid because it lies below hydrogen in the activity series. Concentrated H₂SO₄ is an oxidiser thanks to sulfur (+6) and, when heated, dissolves copper, releasing sulfur dioxide rather than hydrogen: Cu + 2H₂SO₄(conc.) → CuSO₄ + SO₂↑ + 2H₂O.',
     },
   },
+  {
+    // алюминий и коррозия: защитная оксидная плёнка Al₂O₃ (а железо ржавеет — рыхлая ржавчина не защищает)
+    re: /((алюмини|\bAl\b|alumin|alyumin)[^?.!]{0,60}(ржав|корроз|окисл|rust|corro|zang|korroziya)|(ржав|корроз|rust|corro|zang|korroziya)[^?.!]{0,60}(алюмини|\bAl\b|alumin|alyumin))/iu,
+    text: {
+      ru: 'Алюминий — активный металл, но на воздухе он сразу покрывается тонкой плотной плёнкой оксида Al₂O₃: 4Al + 3O₂ → 2Al₂O₃. Плёнка не пропускает кислород и воду к металлу, поэтому дальше алюминий не разрушается. У железа ржавчина (Fe₂O₃·nH₂O, Fe(OH)₃) рыхлая и пористая, она не защищает, и коррозия идёт вглубь.',
+      uz: 'Alyuminiy faol metall, lekin havoda darhol yupqa zich Al₂O₃ oksid pardasi bilan qoplanadi: 4Al + 3O₂ → 2Al₂O₃. Bu parda kislorod va suvni metallga oʻtkazmaydi, shuning uchun alyuminiy boshqa yemirilmaydi. Temirda esa zang (Fe₂O₃·nH₂O, Fe(OH)₃) gʻovak va boʻsh, u himoya qilmaydi, korroziya ichkariga ketadi.',
+      en: 'Aluminium is an active metal, but in air it is at once covered with a thin dense film of the oxide Al₂O₃: 4Al + 3O₂ → 2Al₂O₃. The film keeps oxygen and water away from the metal, so the aluminium is not destroyed further. Rust on iron (Fe₂O₃·nH₂O, Fe(OH)₃) is loose and porous, it does not protect, and corrosion goes deeper.',
+    },
+  },
 ]
 
 type Trap = { re: RegExp; trap: RegExp; text: Tri }

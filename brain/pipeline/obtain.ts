@@ -95,6 +95,11 @@ const EXTRA: Record<string, { lab?: Row[]; industry?: Record<Lang, string>; indu
 
 type Target = { ascii: string; prettyF: string; sub: QaSubstance | null; el: QaElement | null }
 
+/** Дополнения для цели: по id вещества qaBank, иначе по формуле (алюминия-вещества в qaBank нет). */
+function extraOf(t: Target): (typeof EXTRA)[string] | undefined {
+  return (t.sub ? EXTRA[t.sub.id] : undefined) ?? EXTRA[t.ascii] ?? (t.el ? EXTRA[t.el.s] : undefined)
+}
+
 function simpleSubstance(el: QaElement, kb: Knowledge): QaSubstance | null {
   const tries = DIATOMIC.has(el.s) ? [`${el.s}2`, el.s] : [el.s, `${el.s}4`, `${el.s}8`]
   for (const t of tries) {
@@ -233,4 +238,22 @@ export function obtainTool(text: string, cmp: string, lang: Lang, kb: Knowledge)
     numbers: [],
     cite: '[ATOMLAB: способы получения]',
   }
+}
+
+/**
+ * Мозг v2: одна строка «как получают» для добора ответа до класса длины (запасной путь) — те же проверенные
+ * уравнения, что у инструмента, но короче: до двух уравнений и промышленный способ словами. null — нечего сказать.
+ */
+export function obtainBrief(sub: QaSubstance | null, el: QaElement | null, lang: Lang, kb: Knowledge): string | null {
+  const ascii = sub?.fa ?? (el ? (DIATOMIC.has(el.s) ? `${el.s}2` : el.s) : '')
+  if (!ascii) return null
+  const t: Target = { ascii, prettyF: sub?.f ?? pretty(ascii), sub, el }
+  const rows = rowsFor(t, kb).filter((r) => r.kind !== 'industry').slice(0, 2)
+  const ind = extraOf(t)?.industry
+  if (!rows.length && !ind) return null
+  const name = nameOf(t, lang)
+  const parts: string[] = []
+  if (rows.length) parts.push(rows.map((r) => r.eq).join('; '))
+  if (ind) parts.push(L(lang, `в промышленности — ${ind.ru}`, `sanoatda — ${ind.uz}`, `in industry — ${ind.en}`))
+  return L(lang, `Получение ${genitive(name).toLowerCase()}: ${parts.join('; ')}.`, `${name} qanday olinadi: ${parts.join('; ')}.`, `How ${name.toLowerCase()} is obtained: ${parts.join('; ')}.`)
 }

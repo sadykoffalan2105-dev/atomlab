@@ -221,11 +221,14 @@ export function elementFacts(e: QaElement, lang: Lang, withYear: boolean): strin
   const yearText = withYear && year ? (year === 'Ancient' ? T(lang, ' Известен с древности.', ' Qadimdan maʼlum.', ' Known since antiquity.') : T(lang, ` Открыт в ${year} году.`, ` ${year}-yilda kashf etilgan.`, ` Discovered in ${year}.`)) : ''
   // мозг v2: типичная валентность (римскими цифрами, как в учебнике) — «а у азота?» после «что такое валентность»
   const val = valenceClause(e.s, lang)
+  // у лантаноидов и актиноидов группы в данных нет («null-я группа» — не пишем)
+  const g = e.grp != null
+  const an = /^[aeiou]/i.test(cat) ? 'an' : 'a'
   return T(
     lang,
-    `${e.ru} (${e.s}) — элемент №${e.z}: ${e.per}-й период, ${e.grp}-я группа, ${cat}${st ? `, при обычных условиях ${st}` : ''}; Ar = ${A}; электронная конфигурация ${supConfig(e.cfg)}${ox ? `; типичные степени окисления: ${ox}` : ''}${val}.${yearText}`,
-    `${e.uz} (${e.s}) — №${e.z} element: ${e.per}-davr, ${e.grp}-guruh, ${cat}${st ? `, oddiy sharoitda ${st}` : ''}; Ar = ${A}; elektron konfiguratsiyasi ${supConfig(e.cfg)}${ox ? `; tipik oksidlanish darajalari: ${ox}` : ''}${val}.${yearText}`,
-    `${e.en} (${e.s}) is element No. ${e.z}: period ${e.per}, group ${e.grp}, a ${cat}${st ? `, a ${st} under normal conditions` : ''}; Ar = ${A}; electron configuration ${supConfig(e.cfg)}${ox ? `; typical oxidation states: ${ox}` : ''}${val}.${yearText}`,
+    `${e.ru} (${e.s}) — элемент №${e.z}: ${e.per}-й период, ${g ? `${e.grp}-я группа, ` : ''}${cat}${st ? `, при обычных условиях ${st}` : ''}; Ar = ${A}; электронная конфигурация ${supConfig(e.cfg)}${ox ? `; типичные степени окисления: ${ox}` : ''}${val}.${yearText}`,
+    `${e.uz} (${e.s}) — №${e.z} element: ${e.per}-davr, ${g ? `${e.grp}-guruh, ` : ''}${cat}${st ? `, oddiy sharoitda ${st}` : ''}; Ar = ${A}; elektron konfiguratsiyasi ${supConfig(e.cfg)}${ox ? `; tipik oksidlanish darajalari: ${ox}` : ''}${val}.${yearText}`,
+    `${e.en} (${e.s}) is element No. ${e.z}: period ${e.per}, ${g ? `group ${e.grp}, ` : ''}${an} ${cat}${st ? `, a ${st} under normal conditions` : ''}; Ar = ${A}; electron configuration ${supConfig(e.cfg)}${ox ? `; typical oxidation states: ${ox}` : ''}${val}.${yearText}`,
   )
 }
 
@@ -419,9 +422,13 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   }
   // 1c) «а у натрия?»: факты новой сущности первыми, затем понятие («валентность») — ответ про натрий, а не про кислород
   if (!lines.length && fu === 'switch_entity' && (substances.length || elements.length)) {
-    if (substances[0]) lines.push(substanceFacts(substances[0], lang, qtype))
+    // новая сущность — названная последней («Почему железо ржавеет — для алюминия?» → алюминий, а не железо)
+    const last = newestEntity(inp.text, kb, lang)
+    if (last && 'fa' in last) lines.push(substanceFacts(last, lang, qtype))
+    else if (last) lines.push(elementFacts(last, lang, false))
+    else if (substances[0]) lines.push(substanceFacts(substances[0], lang, qtype))
     else lines.push(elementFacts(elements[0]!, lang, false))
-    cite(substances[0] ? '[ATOMLAB: справочник веществ]' : '[ATOMLAB: таблица элементов]')
+    cite(last ? ('fa' in last ? '[ATOMLAB: справочник веществ]' : '[ATOMLAB: таблица элементов]') : substances[0] ? '[ATOMLAB: справочник веществ]' : '[ATOMLAB: таблица элементов]')
     if (primary) {
       lines.push(primary.def[lang])
       logic = primary.law[lang]
@@ -506,7 +513,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     }
     if (!logic && (substances.length || elements.length)) {
       const e = elements[0]
-      if (e) logic = T(lang, `свойства ${genitive(e.ru)} задаёт строение атома: заряд ядра +${e.z} и конфигурация внешнего слоя определяют его место в ${e.grp}-й группе и типичные степени окисления.`, `${e.uz} xossalarini atom tuzilishi belgilaydi: yadro zaryadi +${e.z} va tashqi qavat konfiguratsiyasi uning ${e.grp}-guruhdagi oʻrnini va tipik oksidlanish darajalarini belgilaydi.`, `the properties of ${e.en.toLowerCase()} follow from its atomic structure: nuclear charge +${e.z} and the outer-shell configuration set its place in group ${e.grp} and its typical oxidation states.`)
+      if (e) logic = T(lang, `свойства ${genitive(e.ru)} задаёт строение атома: заряд ядра +${e.z} и конфигурация внешнего слоя определяют его место ${e.grp != null ? `в ${e.grp}-й группе` : 'в периодической системе'} и типичные степени окисления.`, `${e.uz} xossalarini atom tuzilishi belgilaydi: yadro zaryadi +${e.z} va tashqi qavat konfiguratsiyasi uning ${e.grp != null ? `${e.grp}-guruhdagi` : 'davriy sistemadagi'} oʻrnini va tipik oksidlanish darajalarini belgilaydi.`, `the properties of ${e.en.toLowerCase()} follow from its atomic structure: nuclear charge +${e.z} and the outer-shell configuration set its place ${e.grp != null ? `in group ${e.grp}` : 'in the periodic table'} and its typical oxidation states.`)
       else if (substances[0]) logic = T(lang, 'свойства вещества определяются его составом и типом химической связи, а превращения подчиняются закону сохранения массы.', 'moddaning xossalari uning tarkibi va kimyoviy bogʻ turi bilan belgilanadi, oʻzgarishlar esa massaning saqlanish qonuniga boʻysunadi.', 'a substance’s properties come from its composition and bonding, and its reactions obey conservation of mass.')
     }
   }
@@ -546,7 +553,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     if (wordCount(text) < target) {
       const used = [...out, logic].filter(Boolean).map((l) => new Set(analyzeTerms(l)))
       const add: string[] = []
-      for (const m of lengthMaterial({ lang, kb, qtype, primary, concepts, substances, elements, sents, qTerms })) {
+      for (const m of lengthMaterial({ lang, kb, qtype, primary, concepts, substances, elements, sents, qTerms, school })) {
         if (wordCount(text) + wordCount(add.join(' ')) >= target) break
         const t = new Set(analyzeTerms(m))
         if (!t.size || used.some((u) => jaccard(u, t) > 0.45)) continue
@@ -563,6 +570,21 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   text = trimToWords(text, inp.wordLimit)
   if (!citations.length && conceptId) cite('[ATOMLAB: справочник понятий]')
   return { text, citations, confidence: Math.min(0.99, confidence), concept: conceptId }
+}
+
+/** Сущность, названная в тексте последней (вещество или элемент); простое вещество элемента — как элемент. */
+function newestEntity(text: string, kb: Knowledge, lang: Lang): QaSubstance | QaElement | null {
+  let best: { at: number; item: QaSubstance | QaElement } | null = null
+  const consider = (at: number, item: QaSubstance | QaElement) => {
+    if (!best || at > best.at) best = { at, item }
+  }
+  for (const f of findFormulas(text, lang !== 'en')) {
+    const sub = kb.substanceByFormula.get(f.ascii)
+    if (sub && Object.keys(sub.comp).length > 1) consider(f.index, sub)
+  }
+  for (const x of findSubstances(text, kb)) if (Object.keys(x.item.comp).length > 1) consider(x.index, x.item)
+  for (const x of findElements(text, kb)) consider(x.index, x.item)
+  return (best as { at: number; item: QaSubstance | QaElement } | null)?.item ?? null
 }
 
 /** Понятия-классы веществ: если названо конкретное вещество («серная кислота»), отвечаем о нём, а класс — добором. */
@@ -585,6 +607,7 @@ function lengthMaterial(a: {
   elements: QaElement[]
   sents: Sent[]
   qTerms: Set<string>
+  school: boolean
 }): string[] {
   const { lang, kb } = a
   const out: string[] = []
@@ -609,12 +632,23 @@ function lengthMaterial(a: {
     if (u) out.push(u)
   }
   for (const c of a.concepts.slice(1, 3)) if (c !== classC) out.push(`${c.def[lang]} ${c.law[lang]}`)
-  if (lang === 'ru') for (const x of explanationsFrom(a.sents, null, a.qTerms, 8)) out.push(x.s)
+  // предложения учебника — только для школьного вопроса (энциклопедия и чужие главы — не добор: там бывают даты и шум)
+  if (lang === 'ru' && a.school) for (const x of explanationsFrom(a.sents, null, a.qTerms, 8)) if (x.cand.type !== 'encyclopedia') out.push(x.s)
   return out
+}
+
+/** Реплика из одного вопросительного слова («а почему?», «why?», «nega?», «как это?») — тема не названа. */
+const BARE_FOLLOW_UP = /^[\s,.!?…]*(а|и|но|and|but|xoʻsh|xo'sh)?[\s,]*(почему|зачем|отчего|как это|как так|в смысле|why|how come|how so|what for|nega|nima uchun|qanday qilib)[\s,.!?…]*(же|so|unda)?[\s.!?…]*$/iu
+const CLARIFY: Record<Lang, string> = {
+  ru: 'Уточните, пожалуйста, что именно объяснить: о каком веществе, реакции или законе идёт речь? Например: «Почему натрий хранят под керосином?» — тогда разберу причину по шагам.',
+  uz: 'Iltimos, aniqlashtiring: aynan nimani tushuntiray — qaysi modda, reaksiya yoki qonun haqida? Masalan: «Nega natriy kerosin ostida saqlanadi?» — shunda sababini bosqichma-bosqich tushuntiraman.',
+  en: 'Could you clarify what exactly I should explain — which substance, reaction or law? For example: “Why is sodium stored under kerosene?” Then I will go through the cause step by step.',
 }
 
 /** Вопрос не про химию: коротко и честно (энциклопедия, если нашлась) + возврат к химии. */
 export function offtopicReply(lang: Lang, retrieval: RetrievalResult | null, seed: number, cmp = ''): FallbackOutput {
+  // мозг v2: «а почему?» / «why?» без темы и без истории — не офтоп, а просьба уточнить, что объяснить
+  if (BARE_FOLLOW_UP.test(cmp)) return { text: CLARIFY[lang], citations: [], confidence: 0.3 }
   // свежие данные (погода, новости, курсы, счёт матча) — честно: интернета у мозга нет; мост к химии по теме
   if (LIVE_DATA.test(cmp)) {
     const weather = /(погод|дожд|снег|гроз|ob-?havo|yomg|weather|rain|snow|storm)/iu.test(cmp)
