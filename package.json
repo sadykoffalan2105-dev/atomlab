@@ -66,6 +66,8 @@
     "brain:embed": "tsx scripts/brain/embed.mts",
     "brain:eval": "tsx scripts/brain/eval.mts",
     "brain:smoke": "tsx scripts/brain/smoke.mts",
+    "brain:selftest": "tsx scripts/brain/relevance.selftest.mts",
+    "brain:probe": "tsx scripts/brain/probe-retrieve.mts",
     "teacher:qa-bank": "tsx scripts/teacher-ml/build-qa-bank.mts",
     "test:teacher-qa": "tsx scripts/test-teacher-qa.mts",
     "kb:eval:old": "tsx scripts/kb/eval-old.mts",

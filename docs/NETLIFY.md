@@ -8,15 +8,18 @@
 
 При нажатии «Озвучить» клиент пробует **по порядку**:
 
-1. **Edge Neural в браузере** — `ru-RU-DmitryNeural` (мужской Dmitry), без сервера
-2. **Puter Polly Maxim** — мужской голос через `js.puter.com` (может показать popup входа Puter при первом разе)
+1. **Десктоп (Electron)** — локальный синтез через IPC, если сайт открыт в приложении ATOMLAB
+2. **Edge Neural в браузере** — `ru-RU-DmitryNeural` (мужской Dmitry), без сервера
 3. **Serverless-бэкенд** — Netlify / Render / Vercel (`/api/learn/tts`)
 
-Только если все три не сработали — системный робот Web Speech.
+Только если ничего не сработало — системный голос Web Speech.
+
+Ответы учителя (текст) даёт локальный мозг на ПК владельца (`npm run brain:start`, `http://127.0.0.1:8787`,
+см. [brain/README.md](../brain/README.md)); сторонние облачные ИИ-сервисы сайт не использует.
 
 ### Автодеплой TTS (Netlify CLI) — для serverless Dmitry
 
-Без этого шага GitHub Pages полагается на браузерный Edge и Puter.
+Без этого шага GitHub Pages полагается на браузерный Edge Neural.
 
 Workflow `.github/workflows/publish-site.yml` загружает функцию `netlify/functions/learn-tts` через Netlify CLI.
 

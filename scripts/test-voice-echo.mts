@@ -151,7 +151,7 @@ function fakeOutput(s: FakeScheduler) {
   let finish: (() => void) | null = null
   const backend: LiveSpeechBackend = {
     ready: async () => {},
-    environment: () => ({ electronAvailable: false, edgeAvailable: false, puterAvailable: false, browserSupported: true }),
+    environment: () => ({ desktop: false, edge: false, browserSupported: true, browserVoices: 0 }),
     prepare: (text) =>
       text
         .replace(/H₂O/g, 'аш два о')
