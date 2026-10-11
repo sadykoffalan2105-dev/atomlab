@@ -21,7 +21,7 @@ import { detectErrorTags, snapshot, type StudentSnapshot } from '../student/mode
 import { selfCheck } from './dialogCheck.ts'
 import { planAnswer } from './dialogPlan.ts'
 import { maybeLlmRewrite, resolveStandalone, trailingQuestion } from './dialogResolve.ts'
-import { buildDialogState, compressAnswer, dialogLangs } from './dialogState.ts'
+import { buildDialogState, compressAnswer, dialogLangs, stickyLang } from './dialogState.ts'
 import type { AnswerPlan, FollowUp, LengthClass, Profile, QuestionKind, RankedFragment, RetrievalResultV2, Scope, SourceKind, StandaloneQuery } from './dialogTypes.ts'
 import { composeFallback, offtopicReply, referenceFacts } from './fallback.ts'
 import { jaccard } from './hybrid.ts'
@@ -205,8 +205,10 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   const studentId = req.studentId || `s-${req.sessionId}`
   const lastUser = req.messages[req.messages.length - 1]!.content
   let norm = normalizeInput(lastUser, req.lang)
-  // «natriyniki-chi?», «ha», «misol keltir» после узбекского вопроса — по-узбекски: язык разговора «липкий»
-  if (req.lang === 'auto' && req.messages.length > 1) norm = { ...norm, lang: dialogLangs(req.messages).at(-1) ?? norm.lang }
+  // «natriyniki-chi?», «ha», «misol keltir» после узбекского вопроса — по-узбекски: язык разговора «липкий».
+  // Сайт угадывает язык сам и латиницу без признаков шлёт как 'en' — узбекский разговор это не ломает.
+  const sticky = req.messages.length > 1 && (req.lang === 'auto' || req.lang === 'en') ? dialogLangs(req.messages).at(-1) : undefined
+  if (sticky && (req.lang === 'auto' || sticky === 'uz')) norm = { ...norm, lang: sticky }
   let lang = norm.lang
   const seed = seedOf(req.sessionId + req.messages.length)
   const mode = req.context.mode
@@ -309,7 +311,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     moderated = true
     routePrefix = 'moderation+'
     text = mod.cleaned
-    if (req.lang === 'auto' && text) lang = detectLang(text)
+    if (req.lang === 'auto' && text) lang = stickyLang(text, detectLang(text), req.messages.length > 1 ? (dialogLangs(req.messages.slice(0, -1)).at(-1) ?? null) : null)
     prefix = R2[lang]
     if (!text) return finish({ text: `${prefix}\n\n${ASK_CHEM[lang]}`, intent: 'offtopic', route: 'rule', source: 'rule', confidence: 1 })
     norm = { ...normalizeInput(text, lang), lang }

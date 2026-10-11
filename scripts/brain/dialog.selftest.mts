@@ -212,11 +212,11 @@ console.log('диалоги через runChat (mock-LLM / без LLM):')
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'atomlab-dialog-selftest-'))
   const journal = new Journal(path.join(tmp, 'kb-journal.jsonl'))
   const students = new StudentStore(tmp)
-  const ask = async (m: ChatMessage[], llm: InstanceType<typeof MockLlm> | null, extra: Partial<ChatRequest['context']> = {}) => {
+  const ask = async (m: ChatMessage[], llm: InstanceType<typeof MockLlm> | null, extra: Partial<ChatRequest['context']> = {}, lang: ChatRequest['lang'] = 'auto') => {
     let meta: MetaEvent | null = null
     let done: DoneEvent | null = null
     await runChat(
-      { sessionId: 'dlg', studentId: 'dlg', lang: 'auto', stream: true, messages: m, context: { ...ctx, ...extra } },
+      { sessionId: 'dlg', studentId: 'dlg', lang, stream: true, messages: m, context: { ...ctx, ...extra } },
       { kb, journal, embeds: null, llm, students, config: DEFAULT_CONFIG, noJournal: true },
       { meta: (x) => (meta = x), delta: () => {}, done: (d) => (done = d), error: () => {} },
     )
@@ -237,6 +237,13 @@ console.log('диалоги через runChat (mock-LLM / без LLM):')
     const f = await ask(msgs('Что такое органическая химия?', 'Органическая химия изучает соединения углерода.', 'а чем она отличается от неорганической?'), llm)
     ok(f.done?.text === R1, `${name}: R1 по переписанному вопросу`, f.done?.text.slice(0, 120))
     ok((a.done?.citations ?? []).every((x) => !/Википедия/.test(x)), `${name}: школьный ответ не цитирует энциклопедию`, JSON.stringify(a.done?.citations))
+    // язык разговора «липкий»: сайт для латиницы без признаков шлёт 'en' — узбекский разговор остаётся узбекским
+    const g = await ask(msgs('Valentlik nima?', A_UZ, 'natriyniki-chi?'), llm, {}, 'en')
+    ok(g.meta?.lang === 'uz' && !/(the|what|is|of)/i.test(g.done?.text ?? ''), `${name}: uz «natriyniki-chi?» при lang=en — по-узбекски`, `${g.meta?.lang} ${g.meta?.standalone} | ${g.done?.text.slice(0, 120)}`)
+    const h = await ask(msgs('Что такое валентность?', A_VAL, 'ok'), llm)
+    ok(h.meta?.lang === 'ru' && /[а-яё]/i.test(h.done?.text ?? ''), `${name}: «ok» латиницей в русском разговоре — по-русски`, `${h.meta?.lang} | ${h.done?.text.slice(0, 120)}`)
+    const i = await ask(msgs('а почему?'), llm)
+    ok(i.meta?.followUp === 'why' && /уточн/i.test(i.done?.text ?? ''), `${name}: «а почему?» без темы — уточняющий вопрос`, `${i.meta?.followUp} | ${i.done?.text.slice(0, 120)}`)
   }
   fs.rmSync(tmp, { recursive: true, force: true })
 }

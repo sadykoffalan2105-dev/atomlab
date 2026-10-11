@@ -67,6 +67,8 @@ export function stickyLang(text: string, detected: Lang, prev: Lang | null): Lan
   const lat = (bare.match(/[a-z]/gi) ?? []).length
   if (!cyr && !lat) return prev
   if (cyr) return detected
+  // «ok», «okay», «hmm» латиницей посреди русского или узбекского разговора — междометие, язык разговора прежний
+  if (prev !== 'en' && /^\s*(ok|okay|okey|hmm+|lol)[\s!.,)]*$/iu.test(bare)) return prev
   if (prev === 'uz' && detected === 'en' && !EN_MARK.test(bare)) return 'uz'
   if (prev === 'en' && detected === 'uz' && !/[og]['ʻʼ’‘]/i.test(bare) && EN_MARK.test(bare)) return 'en'
   return detected
