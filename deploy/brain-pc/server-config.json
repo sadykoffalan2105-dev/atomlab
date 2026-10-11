@@ -1,0 +1,38 @@
+{
+  "_comment": "Сервер мозга ATOMLAB на ПК с GPU (RTX 5080, 16 ГБ). Владелец меняет модели здесь и пушит в main — задача автообновления сама сделает ollama pull и перезапустит мозг, когда он свободен.",
+  "version": 1,
+  "profile": "gpu",
+  "models": {
+    "chat": "qwen2.5:14b-instruct",
+    "fast": "qwen2.5:14b-instruct",
+    "embed": "bge-m3:latest"
+  },
+  "ollama": {
+    "host": "127.0.0.1:11434",
+    "numParallel": 4,
+    "keepAlive": "24h",
+    "maxLoadedModels": 2,
+    "maxQueue": 64,
+    "flashAttention": true,
+    "kvCacheType": "q8_0"
+  },
+  "brain": {
+    "port": 8787,
+    "configOverrides": {
+      "numCtx": 8192,
+      "keepAlive": "24h"
+    }
+  },
+  "update": {
+    "branch": "main",
+    "everyMinutes": 15,
+    "idleWaitMinutes": 10,
+    "forceRestartAfterRuns": 4
+  },
+  "selfTest": {
+    "sample": 20
+  },
+  "sparse": ["brain", "src", "scripts/brain", "deploy"],
+  "minDiskGB": 30,
+  "minDriver": 572.16
+}

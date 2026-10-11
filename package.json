@@ -70,6 +70,7 @@
     "brain:server-selftest": "tsx scripts/brain/server.selftest.mts",
     "brain:admin-token": "tsx scripts/brain/admin-token.mts",
     "brain:probe": "tsx scripts/brain/probe-retrieve.mts",
+    "brain:package": "tsx scripts/brain/package.mts",
     "teacher:qa-bank": "tsx scripts/teacher-ml/build-qa-bank.mts",
     "test:teacher-qa": "tsx scripts/test-teacher-qa.mts",
     "kb:eval:old": "tsx scripts/kb/eval-old.mts",
