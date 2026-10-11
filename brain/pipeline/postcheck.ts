@@ -152,6 +152,19 @@ export function languageOk(text: string, lang: Lang): boolean {
  * Поток LLM → предложения: копит токены, отдаёт наружу только законченные и проверенные предложения
  * (R3, лимит слов). До первой отдачи проверяет язык (≥ 60 букв): не тот — молчит до конца, дальше перевод.
  */
+/**
+ * Пересказ служебного плана вместо ответа (замечено у gemma4: «Qaror: Valentlik tushunchasini 7-sinf darajasida
+ * tushuntirish… Soʻz soni: 40-90.»). Срабатывает только на предложения в самом начале ответа (см. StreamGate.flush):
+ * метка «Qaror/Решение/Decision/План/Plan:» + признак плана (класс, «слов», уровень) или строка «Soʻz soni: 40-90».
+ */
+const PLAN_LABEL_RE = /^\s*(qaror|reja|решение|план|decision|plan)\s*:/iu
+const PLAN_HINT_RE = /(sinf|класс|grade|so[ʻ'’]z|слов|words?|daraja|уров|level)/iu
+const WORDCOUNT_RE = /^\s*(so[ʻ'’]z soni|число слов|слов|word count|words)\s*:\s*\d+(\s*[-–]\s*\d+)?\s*\.?\s*$/iu
+export function isPlanLeak(sentence: string): boolean {
+  const t = sentence.trim()
+  return (PLAN_LABEL_RE.test(t) && PLAN_HINT_RE.test(t)) || WORDCOUNT_RE.test(t)
+}
+
 export class StreamGate {
   private buf = ''
   emitted = ''
@@ -230,6 +243,8 @@ export class StreamGate {
     // splitSentences обрезает пробелы по краям: пробел в конце буфера — граница слова, его нельзя терять («the logic» + «is»)
     const lastRaw = final ? '' : ss[ss.length - 1]! + (/[ \t]$/.test(this.buf) ? ' ' : '')
     for (const s of complete) {
+      // утечка плана в начале ответа («Qaror: … 7-sinf darajasida … Soʻz soni: 40-90.») — модель вслух пересказывает блок ФОРМАТ
+      if (!this.emitted && isPlanLeak(s)) continue
       const body = scrubR3(delatex(s.trim()), this.lang)
       if (!body) continue
       const clean = body + (s.endsWith('\n') ? '\n' : '')
