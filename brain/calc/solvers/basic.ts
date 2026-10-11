@@ -3,6 +3,7 @@
  * формула по массовым долям (простейшая и истинная по M/D), строение атома (p, n, e; средняя Ar изотопов).
  */
 import { findElements, findFormulas } from '../../pipeline/entities.ts'
+import type { Lang } from '../../pipeline/normalize.ts'
 import { M_AIR, VM, molarMass, schoolAr } from '../constants.ts'
 import { L, fnum, molarMassLine, unitLabel, type CalcValue, type Line, type Solution } from '../format.ts'
 import { isAmount, labeled, speciesOf, type Ctx, type Species } from '../parse.ts'
@@ -95,11 +96,11 @@ const molesSolver: Solver = {
 const D_H2 = /(?:D\s*\(?\s*(?:H2|H₂)\s*\)?\s*=\s*|(?:плотност\p{L}*|density|zichlig\p{L}*)[^\d]{0,40}?(?:по водороду|vodorodga nisbatan|relative to hydrogen|to hydrogen)[^\d]{0,15}?|(?:по водороду|vodorodga nisbatan|relative to hydrogen)[^\d]{0,25}?)(\d+(?:[.,]\d+)?)/iu
 const D_AIR = /(?:D\s*\(?\s*(?:возд\p{L}*|air|havo)\s*\)?\s*=\s*|(?:плотност\p{L}*|density|zichlig\p{L}*)[^\d]{0,40}?(?:по воздуху|havoga nisbatan|relative to air|to air)[^\d]{0,15}?|(?:по воздуху|havoga nisbatan|relative to air)[^\d]{0,25}?)(\d+(?:[.,]\d+)?)/iu
 
-export function relDensity(text: string): { M: number; line: Line; given: CalcValue } | null {
+export function relDensity(text: string, lang: Lang = 'ru'): { M: number; line: Line; given: CalcValue } | null {
   const dh = labeled(text, D_H2)
   if (dh != null) return { M: dh * 2, line: (l) => `M = D(H₂) · M(H₂) = ${fnum(dh, l)} · 2 = ${fnum(dh * 2, l, 'M')} ${unitLabel('gmol', l)}`, given: { label: 'D(H₂)', value: dh, unit: 'none' } }
   const da = labeled(text, D_AIR)
-  if (da != null) return { M: da * M_AIR, line: (l) => `M = D(${L(l, 'возд.', 'havo', 'air')}) · 29 = ${fnum(da, l)} · 29 = ${fnum(da * M_AIR, l, 'M')} ${unitLabel('gmol', l)}`, given: { label: L('ru', 'D(возд.)', '', ''), value: da, unit: 'none' } }
+  if (da != null) return { M: da * M_AIR, line: (l) => `M = D(${L(l, 'возд.', 'havo', 'air')}) · 29 = ${fnum(da, l)} · 29 = ${fnum(da * M_AIR, l, 'M')} ${unitLabel('gmol', l)}`, given: { label: L(lang, 'D(возд.)', 'D(havo)', 'D(air)'), value: da, unit: 'none' } }
   return null
 }
 
@@ -108,7 +109,7 @@ const gasDensity: Solver = {
   priority: 35,
   solve(ctx) {
     const wantsD = /(плотност\p{L}*|density|zichlig\p{L}*)/iu.test(ctx.ask.text)
-    const rel = relDensity(ctx.text)
+    const rel = relDensity(ctx.text, ctx.lang)
     if (ctx.qs.some((q) => q.unit === 'pct')) return null // формула по ω % — formula_from_fractions
     if (rel) {
       // M по D; если спрашивают массу/объём/плотность — дальше по M
@@ -230,7 +231,7 @@ const formulaFromFractions: Solver = {
     ]
     const given: CalcValue[] = Object.entries(fr).map(([el, w]) => ({ label: `ω(${el})`, value: w, unit: 'pct' }))
     let counts = sf.counts
-    const rel = relDensity(ctx.text)
+    const rel = relDensity(ctx.text, ctx.lang)
     const Mq = ctx.qs.find((q) => q.unit === 'gmol')?.value
     const Mtrue = rel?.M ?? Mq ?? null
     if (Mtrue != null) {

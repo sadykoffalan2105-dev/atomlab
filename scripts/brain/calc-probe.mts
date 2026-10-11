@@ -1,5 +1,5 @@
 /**
- * Ручная проба калькулятора: npx tsx scripts/brain/calc-probe.mts "задача" [ru|uz|en]
+ * Ручная проба калькулятора: npx tsx scripts/brain/calc-probe.mts "задача 1" "задача 2" …
  * (без аргументов — несколько типовых задач).
  */
 import { solveSchoolTask, runSchoolCalc } from '../../brain/calc/index.ts'
@@ -9,7 +9,7 @@ import { lightKnowledge } from './calcKb.mts'
 const kb = lightKnowledge()
 const args = process.argv.slice(2)
 const list = args.length
-  ? [args[0]!]
+  ? args
   : [
       'Сколько литров водорода (н.у.) выделится при взаимодействии 13 г цинка с соляной кислотой?',
       'Вычислите массу оксида кальция, полученного при разложении 200 г карбоната кальция.',
@@ -20,7 +20,7 @@ const list = args.length
       'Вычислите относительную молекулярную массу H2SO4',
     ]
 for (const q of list) {
-  const lang = (args[1] as 'ru' | 'uz' | 'en' | undefined) ?? detectLang(q)
+  const lang = detectLang(q)
   const t0 = performance.now()
   const r = runSchoolCalc(q, cmpForm(q), lang, kb)
   const ms = performance.now() - t0
