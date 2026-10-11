@@ -175,6 +175,55 @@ export function substanceName(s: QaSubstance, lang: Lang): string {
   return lang === 'ru' ? s.ru : lang === 'uz' ? s.uz : s.en
 }
 
+/**
+ * Упомянута ли сущность в тексте (самопроверка ответа DIALOG, eval): формула — точно (H₂SO₄ = H2SO4);
+ * элемент/вещество по формуле — ещё и по названию на любом языке («Na» ↔ «натрия», «natriy», «sodium»);
+ * название — по общей основе (ru) или по началу слова (uz/en), плюс формула этого вещества/элемента.
+ */
+export function entityMentioned(text: string, entity: string, kb: Knowledge): boolean {
+  const e = entity.trim()
+  if (!e || !text) return false
+  const asciiText = toAsciiFormula(text)
+  const formulas = findFormulas(e, true)
+  const asFormula = formulas.length === 1 && toAsciiFormula(e).replace(/\s+/g, '') === formulas[0]!.ascii ? formulas[0]! : null
+  if (asFormula) {
+    if (findFormulas(text, true).some((f) => f.ascii === asFormula.ascii)) return true
+    // «H2SO4» внутри «2H2SO4» или после стрелки — граница слева может быть цифрой
+    if (asFormula.ascii.length >= 3 && new RegExp(`(^|[^A-Za-z])\\d*${asFormula.ascii.replace(/[()[\]*+]/g, '\\$&')}(?![a-z0-9])`).test(asciiText)) return true
+    const el = kb.elementBySymbol.get(asFormula.ascii)
+    if (el && findElements(text, kb).some((x) => x.item.s === el.s)) return true
+    const sub = kb.substanceByFormula.get(asFormula.ascii)
+    if (sub && findSubstances(text, kb).some((x) => x.item.id === sub.id)) return true
+    return false
+  }
+  // название: последовательность слов сущности в тексте (ru — основа, uz/en — начало слова)
+  const ew = words(e).map((x) => x.w)
+  const tw = words(text).map((x) => x.w)
+  if (ew.length) {
+    for (let i = 0; i + ew.length <= tw.length; i++) {
+      let ok = true
+      for (let k = 0; k < ew.length && ok; k++) {
+        const nw = ew[k]!
+        const w = tw[i + k]!
+        ok = /[а-я]/.test(nw) ? ruMatch(w, nw) || (nw.length >= 5 && w.startsWith(nw.slice(0, -2))) : latMatch(w, nw)
+      }
+      if (ok) return true
+    }
+  }
+  // название вещества/элемента → его формула или название на другом языке
+  const sub = findSubstances(e, kb)[0]?.item
+  if (sub) {
+    if (findFormulas(text, true).some((f) => f.ascii === sub.fa)) return true
+    if (findSubstances(text, kb).some((x) => x.item.id === sub.id)) return true
+  }
+  const el = findElements(e, kb)[0]?.item
+  if (el) {
+    if (findFormulas(text, true).some((f) => f.ascii === el.s || Object.keys(f.counts).includes(el.s))) return true
+    if (findElements(text, kb).some((x) => x.item.s === el.s)) return true
+  }
+  return false
+}
+
 // ---------------------------------------------------------------- понятия (brain/kb/concepts.ts)
 
 const GENERIC_CONCEPTS = new Set(['element', 'atom', 'reaction', 'molecule', 'solution', 'metals', 'bond'])
