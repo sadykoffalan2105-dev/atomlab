@@ -164,8 +164,8 @@ export function profileOf(deps: Pick<BrainDeps, 'llm' | 'config'>): Profile {
   return deps.llm?.status().gpu ? 'gpu' : 'laptop'
 }
 
-/** Реплики-шаблоны (а почему? / проще / пример / подробнее / повтори / да): намерение и расчёт — по самой реплике. */
-const TEMPLATE_FU = new Set<FollowUp>(['why', 'simpler', 'example', 'more', 'repeat', 'confirm'])
+/** Реплики-шаблоны (а почему? / проще / пример / подробнее / да): намерение и расчёт — по самой реплике; «повтори» — по прежнему вопросу. */
+const TEMPLATE_FU = new Set<FollowUp>(['why', 'simpler', 'example', 'more', 'confirm'])
 
 const TEST_STYLE = /(выбер\p{L}* (правильн|верн)|верно ли|какое из (утвержд|перечисл)|какие из (утвержд|перечисл)|(^|\s)[абвг]\)\s|(^|\s)[a-d]\)\s|tanlang|to[ʻ'’]?g[ʻ'’]?rimi|which of the following|true or false)/iu
 
@@ -405,8 +405,8 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   // 4d) тип и охват вопроса (функции SOURCES; пока — совместимые заглушки)
   // шаблоны («проще», «пример», «повтори», «да») сохраняют тип из правил (прежний вопрос / confirm / repeat)
   if (sq.followUp === 'why') sq.kind = 'why'
-  else if (!template) sq.kind = questionKindCompatFull(sqCmp, sq.text, intent, tools.length > 0)
-  sq.scope = intent === 'offtopic' ? 'offtopic' : classifyScopeCompat(template ? `${sq.text}` : sq.text, sqCmp, lang, kb).scope
+  else if (!template && sq.followUp !== 'repeat') sq.kind = questionKindCompatFull(sqCmp, sq.text, intent, tools.length > 0)
+  sq.scope = intent === 'offtopic' ? 'offtopic' : classifyScopeCompat(sq.text, sqCmp, lang, kb).scope
   if (template && sq.scope === 'offtopic') sq.scope = 'school'
   sqInfo = sq
 
