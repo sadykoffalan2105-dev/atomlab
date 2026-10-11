@@ -119,7 +119,8 @@ const INTRODUCED: Record<string, string[]> = {
 
 const dehyph = (s: string) => s.replace(/(\p{L})- (\p{L})/gu, '$1$2').replace(/\s+/g, ' ').trim()
 const DEF_LINE = /^([А-ЯЁ][А-Яа-яЁё\- ]{2,45}?)\s+[—–-]\s+(?:это\s+)?(.{20,})$/u
-const goodTerm = (t: string) => t.length >= 3 && t.length <= 45 && t.split(/\s+/).length <= 4 && !/\d/.test(t)
+/** термин в именительном падеже: без цифр/скобок и без творительного падежа из «… называется оксидами / молярной массой» */
+const goodTerm = (t: string) => t.length >= 3 && t.length <= 45 && t.split(/\s+/).length <= 4 && !/[\d()]/.test(t) && !/(ой|ью|ами|ями|ыми|ими|ым)$/u.test(t)
 const asciiFormula = (s: string) => s.replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080))
 
 // ——— заглушка карты (до слияния A): те же источники, без майнинга примеров
@@ -390,7 +391,7 @@ const GEN: Record<string, Gen> = {
     const m = between(r, 10, 200, 2)
     const n = round(m / molar(f)!, 2)
     if (n < 0.05) return null
-    return { q: { ru: `Какое количество вещества (моль) составляют ${m} г ${F}?`, uz: `${m} g ${F} necha mol boʻladi?`, en: `How many moles are there in ${m} g of ${F}?` }, value: n, decimals: 2, needsB: false }
+    return { q: { ru: `Сколько моль составляют ${m} г ${F}?`, uz: `${m} g ${F} necha mol boʻladi?`, en: `How many moles are there in ${m} g of ${F}?` }, value: n, decimals: 2, needsB: false }
   },
   solution_mass_fraction: (_u, r) => {
     const F = pretty(pick(r, SALTS))
@@ -620,10 +621,10 @@ for (const u of units) {
 
   // «Изучаемые понятия» § — добрать определения до 4 (и до 5 случаев на §): ru, uz — если термин есть в глоссарии
   if (u.kind === 'paragraph') {
-    const room = Math.max(MAX.def - u.definitions.length, 5 - (cases.length - before))
+    const room = Math.max(MAX.def - u.definitions.length, 5 - (cases.length - before), 2)
     const defTerms = new Set(u.definitions.map((d) => d.term.ru.toLowerCase()))
     u.concepts
-      .filter((c) => !defTerms.has(c.ru.toLowerCase()) && c.ru.length <= 50 && c.ru.split(/\s+/).length <= 4)
+      .filter((c) => !defTerms.has(c.ru.toLowerCase()) && goodTerm(c.ru))
       .slice(0, Math.max(0, room))
       .forEach((c, i) => {
         const t = lowerTerm(c.ru)
