@@ -1,13 +1,14 @@
 /**
- * Общие «чипы» ИИ-учителя: источники ответа, какой «мозг» отвечает и индикатор
- * локального мозга. Используются и в чате урока, и в онлайн-уроке.
+ * Общие «чипы» ИИ-учителя: источники ответа, какой «мозг» отвечает и индикатор мозга
+ * (сервер ATOMLAB для всех учеников или мозг на этом компьютере). Используются и в чате урока,
+ * и в онлайн-уроке.
  */
 import { useT } from '../../../i18n/useT'
-import { checkHealth, useBrainAccess, useBrainStatus } from '../../../learn/brain/remote/brainClient'
+import { checkHealth, optInLocalBrain, useBrainInfo } from '../../../learn/brain/remote/brainClient'
 import { IconBook, IconBrainSpark, IconDatabase } from './TeacherIcons'
 import styles from './TeacherChips.module.css'
 
-/** 'brain' — локальный мозг на ПК учителя; 'local' — база знаний в браузере; 'server' — сервер учителя. */
+/** 'brain' — мозг ATOMLAB (сервер или ПК учителя); 'local' — база знаний в браузере; 'server' — сервер учителя. */
 export type TeacherBrain = 'brain' | 'local' | 'server'
 
 export function SourceChips({ citations, className }: { citations: readonly string[]; className?: string }) {
@@ -35,9 +36,12 @@ export function BrainChip({
   className?: string
 }) {
   const { t } = useT()
+  const { kind } = useBrainInfo()
   const label =
     brain === 'brain'
-      ? t('learn.teacherUi.brainLocalAi')
+      ? kind === 'remote'
+        ? t('learn.teacherUi.brainRemoteAi')
+        : t('learn.teacherUi.brainLocalAi')
       : brain === 'server'
         ? t('learn.teacherUi.brainServer')
         : t('learn.teacherUi.brainLocal')
@@ -63,39 +67,53 @@ export function BrainChip({
 }
 
 /**
- * Индикатор локального мозга: «Локальный мозг: подключён» / «Локальный мозг: не найден»;
- * подсказка — как запустить мозг (`npm run brain:start`). Проверка /health ≤ 800 мс, опрос раз в 30 с.
+ * Индикатор мозга: «Мозг ATOMLAB: подключён» (сервер) / «Локальный мозг: подключён» (этот ПК) /
+ * «Мозг недоступен — отвечаю из базы браузера». Сервер в brain.json проверяется первым; к мозгу на этом ПК
+ * сайт из интернета стучится только с разрешения браузера или после щелчка «Использовать мозг на этом
+ * компьютере» (не в компактном виде) — иначе браузер показывал бы окно «Разрешить» каждому ученику.
  */
 export function BrainStatusChip({ compact = false, className }: { compact?: boolean; className?: string }) {
   const { t } = useT()
-  const status = useBrainStatus()
-  const access = useBrainAccess()
+  const info = useBrainInfo()
+  const { status } = info
   const online = status === 'online'
-  // браузер спрашивает или запретил доступ сайта к программе на этом ПК — подсказываем, что нажать
-  const askAccess = !online && access === 'prompt'
-  const denied = !online && access === 'denied'
-  const label = online
-    ? t('learn.teacherUi.brainOnline')
-    : denied
-      ? t('learn.teacherUi.brainDenied')
-      : askAccess
-        ? t('learn.teacherUi.brainAllow')
-        : status === 'checking'
-          ? t('learn.teacherUi.brainChecking')
-          : t('learn.teacherUi.brainOfflineShort')
-  const title = online
-    ? label
-    : denied
-      ? `${label}. ${t('learn.teacherUi.brainDeniedHint')}`
-      : askAccess
-        ? `${label}. ${t('learn.teacherUi.brainAllowHint')}`
-        : `${t('learn.teacherUi.brainOffline')}. ${t('learn.teacherUi.brainHint')}`
+  const remote = online && info.kind === 'remote'
+  const busy = online && info.busy
+  // ученик выбрал мозг на этом ПК: браузер спрашивает или запретил доступ — подсказываем, что нажать
+  const askAccess = !online && info.localOptIn && (info.waitingPermission || info.access === 'prompt')
+  const denied = !online && info.localOptIn && info.access === 'denied'
+  const label = busy
+    ? t('learn.teacherUi.brainBusy')
+    : online
+      ? remote
+        ? t('learn.teacherUi.brainRemoteOnline')
+        : t('learn.teacherUi.brainOnline')
+      : denied
+        ? t('learn.teacherUi.brainDenied')
+        : askAccess
+          ? t('learn.teacherUi.brainAllow')
+          : status === 'checking'
+            ? t('learn.teacherUi.brainChecking')
+            : t('learn.teacherUi.brainUnavailable')
+  const title = busy
+    ? `${label}. ${t('learn.teacherUi.brainBusyHint')}`
+    : online
+      ? label
+      : denied
+        ? `${label}. ${t('learn.teacherUi.brainDeniedHint')}`
+        : askAccess
+          ? `${label}. ${t('learn.teacherUi.brainAllowHint')}`
+          : info.remoteConfigured
+            ? t('learn.teacherUi.brainRemoteHint')
+            : `${t('learn.teacherUi.brainOffline')}. ${t('learn.teacherUi.brainHint')}`
   const Icon = online ? IconBrainSpark : IconDatabase
-  return (
+  const showOptIn = !compact && !online && info.canUseLocal && status !== 'checking'
+  const chip = (
     <span
-      className={`${styles.brain} ${className ?? ''}`}
-      data-brain={online ? 'brain' : 'local'}
-      data-status={status}
+      className={`${styles.brain} ${showOptIn ? '' : (className ?? '')}`}
+      data-brain={online && !busy ? 'brain' : 'local'}
+      data-kind={online ? (remote ? 'remote' : 'local') : undefined}
+      data-status={busy ? 'busy' : status}
       data-access={denied ? 'denied' : askAccess ? 'prompt' : undefined}
       data-compact={compact ? '1' : undefined}
       title={title}
@@ -103,11 +121,39 @@ export function BrainStatusChip({ compact = false, className }: { compact?: bool
       aria-live="polite"
       // не найден / окно разрешения закрыли — щелчок проверяет снова (и снова показывает окно браузера);
       // доступ запрещён — щелчок объясняет, где его включить (сам сайт снять запрет не может)
-      onClick={online ? undefined : denied ? () => window.alert(t('learn.teacherUi.brainDeniedHint')) : () => void checkHealth(true)}
-      style={online ? undefined : { cursor: 'pointer' }}
+      onClick={online && !busy ? undefined : denied ? () => window.alert(t('learn.teacherUi.brainDeniedHint')) : () => void checkHealth(true)}
+      style={online && !busy ? undefined : { cursor: 'pointer' }}
     >
       <Icon className={styles.brainIcon} />
       <span className={styles.brainLabel}>{label}</span>
+    </span>
+  )
+  if (!showOptIn) return chip
+  return (
+    <span className={`${styles.brainGroup} ${className ?? ''}`}>
+      {chip}
+      <button
+        type="button"
+        className={styles.ctaInline}
+        title={t('learn.teacherUi.brainUseLocalHint')}
+        onClick={() => void optInLocalBrain()}
+      >
+        <IconBrainSpark className={styles.ctaIcon} />
+        <span>{t('learn.teacherUi.brainUseLocal')}</span>
+      </button>
+    </span>
+  )
+}
+
+/** Место в очереди сервера мозга — дописывается к «Думаю…» (ничего, если вопрос не в очереди). */
+export function BrainQueueNote({ className }: { className?: string }) {
+  const { t } = useT()
+  const { queue } = useBrainInfo()
+  if (!queue) return null
+  return (
+    <span className={`${styles.queue} ${className ?? ''}`} data-brain-queue={queue}>
+      {' · '}
+      {t('learn.teacherUi.brainQueue', { n: queue })}
     </span>
   )
 }

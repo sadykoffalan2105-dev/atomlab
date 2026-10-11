@@ -63,7 +63,7 @@ import {
 } from './LearnAiIcons'
 import { AiCoreAvatar } from './hub/HubArt'
 import { extractCitations } from './teacher/citations'
-import { BrainChip, BrainStatusChip, SourceChips, type TeacherBrain } from './teacher/TeacherChips'
+import { BrainChip, BrainQueueNote, BrainStatusChip, SourceChips, type TeacherBrain } from './teacher/TeacherChips'
 import {
   IconCheck,
   IconChevronDown,
@@ -1253,7 +1253,10 @@ export function LearnAssistantPanel({
                     <i />
                     <i />
                   </span>
-                  <span className={styles.typingText}>{t('learn.assistant.thinking')}</span>
+                  <span className={styles.typingText}>
+                    {t('learn.assistant.thinking')}
+                    <BrainQueueNote />
+                  </span>
                 </div>
               </div>
             ) : null}
