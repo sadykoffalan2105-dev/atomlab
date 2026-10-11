@@ -67,8 +67,9 @@ $gpu = $null
 if ($full) {
   $smi = Find-Exe 'nvidia-smi.exe' @("$env:SystemRoot\System32\nvidia-smi.exe", "$env:ProgramFiles\NVIDIA Corporation\NVSMI\nvidia-smi.exe")
   if ($smi) {
-    $line = (Invoke-Exe $smi --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits | Select-Object -First 1)
-    if ($line) {
+    # аргументы в кавычках: без них PowerShell режет «name,memory.total,…» по запятым на отдельные аргументы
+    $line = (Invoke-Exe $smi '--query-gpu=name,memory.total,driver_version' '--format=csv,noheader,nounits' | Select-Object -First 1)
+    if ($line -and $line -notmatch '^(ERROR|Failed|NVIDIA-SMI has failed)') {
       $f = $line -split ',\s*'
       $gpu = [ordered]@{ name = $f[0]; vramMB = [int]$f[1]; driver = $f[2] }
       Ok ("видеокарта: {0}, {1:N1} ГБ, драйвер {2}" -f $gpu.name, ($gpu.vramMB / 1024), $gpu.driver)
