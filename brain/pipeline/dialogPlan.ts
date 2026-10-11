@@ -8,6 +8,7 @@ import type { BrainConfig } from '../config.ts'
 import type { StudentSnapshot } from '../student/model.ts'
 import { cueLength, firstSentence } from './dialogResolve.ts'
 import type { AnswerPlan, DialogState, LengthClass, Profile, QuestionKind, Scope, StandaloneQuery } from './dialogTypes.ts'
+import { BARE_FOLLOW_UP } from './explain.ts'
 import type { Lang } from './normalize.ts'
 
 const ORDER: LengthClass[] = ['tiny', 'short', 'normal', 'long']
@@ -163,6 +164,12 @@ export function planAnswer(
   else if (sq.followUp === 'switch_grade' && sq.grade) {
     const g = sq.grade.slice(1)
     structure += T(sq.lang, ` Объясни на уровне ${g} класса, как в учебнике Kimyo ${g}.`, ` ${g}-sinf darajasida, Kimyo ${g} darsligidagidek tushuntir.`, ` Explain at the grade ${g} level, as in the Kimyo ${g} textbook.`)
+  }
+  // «а почему?» / «why?» без темы и без истории — не гадать о теме, а коротко попросить уточнить
+  if (state.turns < 1 && BARE_FOLLOW_UP.test(sq.original)) {
+    lc = 'tiny'
+    words = [...d.lengthWords.tiny] as [number, number]
+    structure = T(sq.lang, 'тема не названа и истории нет: одной-двумя фразами попроси уточнить, о каком веществе, реакции или законе речь, и дай пример вопроса; не объясняй наугад.', 'mavzu aytilmagan va tarix yoʻq: bir-ikki jumlada qaysi modda, reaksiya yoki qonun haqida ekanini aniqlashtirishni soʻra va savolga misol keltir; taxminan tushuntirma.', 'no topic and no history: in one or two sentences ask which substance, reaction or law they mean and give a sample question; do not guess.')
   }
   const verifyKinds: QuestionKind[] = ['why', 'compare', 'calc', 'homework', 'howto_obtain', 'broad']
   return {

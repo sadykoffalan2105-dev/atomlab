@@ -239,6 +239,97 @@ function stoichTool(text: string, cmp: string, lang: Lang, kb: Knowledge): ToolR
   return { tool: 'stoich', text: `${head}\n${steps.join('\n')}.`, facts: `${head} ${steps.join('; ')}`, numbers }
 }
 
+/** Простое вещество элемента: водород → H₂, натрий → Na. */
+const DIATOMIC_EL = new Set(['H', 'O', 'N', 'F', 'Cl', 'Br', 'I'])
+
+type Species = { ascii: string; pretty: string; counts: Record<string, number>; index: number }
+
+/** Вещества в тексте с позициями: формулы, названия веществ и элементов (элемент → простое вещество). */
+function speciesIn(text: string, kb: Knowledge): Species[] {
+  const out: Species[] = []
+  const add = (ascii: string, index: number) => {
+    const parsed = findFormulas(ascii, true)[0]
+    if (!parsed || out.some((x) => x.ascii === ascii)) return
+    out.push({ ascii, pretty: pretty(ascii), counts: parsed.counts, index })
+  }
+  for (const f of findFormulas(text, true)) add(f.ascii, f.index)
+  for (const s of findSubstances(text, kb)) add(s.item.fa, s.index)
+  for (const e of findElements(text, kb)) add(DIATOMIC_EL.has(e.item.s) ? `${e.item.s}2` : e.item.s, e.index)
+  return out.sort((a, b) => a.index - b.index)
+}
+
+const ASK_RE = /(сколько|какая масса|какой объ[её]м|какое количество|how (much|many)|what (mass|volume|amount)|qancha|necha)/iu
+
+/**
+ * Мозг v2: расчёт по уравнению реакции — «а если взять 4 моль водорода, сколько воды?» (после 2H₂ + O₂ → 2H₂O).
+ * Одна величина в тексте, два вещества (данное — рядом с величиной, искомое — после «сколько»); уравнение — из текста,
+ * иначе реакция учебника (qaBank), где есть оба вещества (меньше участников — проще). n(иск) = n(дано) · k(иск) / k(дано).
+ */
+function reactionStoichTool(text: string, cmp: string, lang: Lang, kb: Knowledge): ToolResult | null {
+  const qs = quantities(text).filter((q) => isMass(q) || q.unit === 'mol' || isVol(q))
+  if (qs.length !== 1) return null
+  const ask = ASK_RE.exec(cmp)
+  if (!ask) return null
+  const q = qs[0]!
+  const sp = speciesIn(text, kb)
+  if (sp.length < 2) return null
+  // данное — первое вещество сразу после величины («4 моль водорода»), иначе ближайшее к ней
+  const given = sp.find((x) => x.index > q.index && x.index - q.index < 40) ?? [...sp].sort((a, b) => Math.abs(a.index - q.index) - Math.abs(b.index - q.index))[0]!
+  const askAt = ASK_RE.exec(text)?.index ?? -1
+  const rest = sp.filter((x) => x !== given)
+  const asked = rest.find((x) => askAt >= 0 && x.index > askAt) ?? rest[0]!
+  const strip = (eq: string) => eq.replace(/(→|⇄|⇌|=)\s*\([^)]*\)/g, '$1').replace(/[↑↓]/g, '')
+  const candidates: string[] = []
+  const inText = extractEquation(text)
+  if (inText) candidates.push(inText)
+  const mentioned = new Set(sp.map((x) => x.ascii))
+  const needs = /(нужн|потребу|необходим|затрат|израсход|needed|required|need|kerak|sarflan)/iu.test(cmp)
+  const fromKb = kb.qa.reactions
+    .filter((r) => [...r.r, ...r.p].includes(given.ascii) && [...r.r, ...r.p].includes(asked.ascii))
+    // «сколько воды получится из водорода»: данное — среди исходных, искомое — среди продуктов (не разложение воды);
+    // «сколько нужно / потребуется» — наоборот
+    .map((r) => ({ eq: r.eq, score: [...r.r, ...r.p].filter((x) => mentioned.has(x)).length * 10 + (needs ? (r.p.includes(given.ascii) || r.r.includes(asked.ascii) ? 5 : 0) : r.r.includes(given.ascii) && r.p.includes(asked.ascii) ? 5 : 0) - r.r.length - r.p.length }))
+    .sort((a, b) => b.score - a.score)
+  for (const r of fromKb.slice(0, 5)) candidates.push(r.eq)
+  for (const eq of candidates) {
+    const b = balanceEquation(strip(eq))
+    if (!b || typeof b === 'string') continue
+    const all = [...b.reactants, ...b.products]
+    const g = all.find((x) => x.formula === given.ascii)
+    const a = all.find((x) => x.formula === asked.ascii)
+    if (!g || !a) continue
+    const Mg = massOf(given.counts)
+    const Ma = massOf(asked.counts)
+    if (Mg == null || Ma == null) return null
+    const steps: string[] = []
+    let n: number
+    if (isMass(q)) {
+      n = toGrams(q) / Mg
+      steps.push(`n(${given.pretty}) = m / M = ${fmt(toGrams(q), lang)} / ${fmt(Mg, lang)} = ${fmt(n, lang)} ${U.mol(lang)}`)
+    } else if (q.unit === 'mol') n = q.value
+    else {
+      n = toLiters(q) / 22.4
+      steps.push(`n(${given.pretty}) = V / Vm = ${fmt(toLiters(q), lang)} / ${lang === 'en' ? '22.4' : '22,4'} = ${fmt(n, lang)} ${U.mol(lang)}`)
+    }
+    const na = (n * a.coeff) / g.coeff
+    steps.push(`n(${asked.pretty}) = n(${given.pretty}) · ${a.coeff}/${g.coeff} = ${fmt(na, lang)} ${U.mol(lang)}`)
+    const numbers = [fmt(na, lang)]
+    const wantVol = /(объ[её]м|литр|volume|litre|liter|hajm)/iu.test(cmp.replace(UNIT_RE, ' '))
+    if (wantVol) {
+      const V = na * 22.4
+      steps.push(`V(${asked.pretty}) = n · Vm = ${fmt(na, lang)} · ${lang === 'en' ? '22.4' : '22,4'} = ${fmt(V, lang)} ${U.l(lang)} ${L(lang, '(газ, н. у.)', '(gaz, n. sh.)', '(gas at STP)')}`)
+      numbers.push(fmt(V, lang))
+    } else {
+      const m = na * Ma
+      steps.push(`m(${asked.pretty}) = n · M = ${fmt(na, lang)} · ${fmt(Ma, lang)} = ${fmt(m, lang)} ${U.g(lang)}`)
+      numbers.push(fmt(m, lang))
+    }
+    const head = L(lang, `По уравнению ${b.eq} (на ${g.coeff} моль ${given.pretty} — ${a.coeff} моль ${asked.pretty}):`, `${b.eq} tenglamasi boʻyicha (${g.coeff} mol ${given.pretty} ga ${a.coeff} mol ${asked.pretty}):`, `From the equation ${b.eq} (${g.coeff} mol ${given.pretty} to ${a.coeff} mol ${asked.pretty}):`)
+    return { tool: 'stoich', text: `${head}\n${steps.join('\n')}.`, facts: `${head} ${steps.join('; ')}`, numbers }
+  }
+  return null
+}
+
 // ---------------------------------------------------------------- уравнения
 
 /** Вырезать уравнение из текста: формулы и «+» вокруг первой стрелки. */
@@ -756,6 +847,8 @@ export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge): 
   if (!out.some((r) => r.tool === 'solution' || r.tool === 'dilution')) push(massFractionTool(text, cmp, lang, kb))
   // «как получить X» без чисел — проверенные уравнения получения (brain/pipeline/obtain.ts)
   if (!out.length && !quantities(text).length) push(obtainTool(text, cmp, lang, kb))
+  // мозг v2: расчёт по уравнению реакции (два вещества, одна величина) — раньше расчёта «моль ↔ масса» одного вещества
+  if (!out.some((r) => r.tool === 'solution' || r.tool === 'dilution' || r.tool === 'gas' || r.tool === 'thermo')) push(reactionStoichTool(text, cmp, lang, kb))
   if (!out.length) push(stoichTool(text, cmp, lang, kb))
   if (!out.length) push(molarMassTool(text, cmp, lang, kb))
   if (!out.length) push(elementGuardTool(cmp, lang, kb))
