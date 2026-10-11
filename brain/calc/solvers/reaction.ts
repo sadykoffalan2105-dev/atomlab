@@ -103,6 +103,14 @@ function templates(sp: Species[]): string[] {
     if (hy) for (const a of acids) out.push(`${s.ascii} + ${a.ascii} → ${salt(hy.m, hy.v, a.ascii)} + H2O`)
     const ca = carbonateMetal(s)
     if (ca) for (const a of acids) out.push(`${s.ascii} + ${a.ascii} → ${salt(ca.m, ca.v, a.ascii)} + H2O + CO2`)
+    // качественные реакции-осадки: хлорид + AgNO₃ → AgCl↓; сульфат/H₂SO₄ + BaCl₂ → BaSO₄↓
+    const ks = Object.keys(s.counts)
+    const metal = ks.find((k) => valence(k) != null)
+    if (metal && ks.length === 2 && s.counts.Cl && metal !== 'Ag' && sp.some((x) => x.ascii === 'AgNO3')) {
+      const v = s.counts.Cl / s.counts[metal]!
+      if (Number.isInteger(v)) out.push(`${s.ascii} + AgNO3 → AgCl + ${salt(metal, v, 'HNO3')}`)
+    }
+    if (/SO4/.test(s.ascii) && s.ascii !== 'BaSO4' && sp.some((x) => x.ascii === 'BaCl2')) out.push(`${s.ascii} + BaCl2 → BaSO4 + ${s.ascii === 'H2SO4' ? 'HCl' : metal ? salt(metal, (2 * (s.ascii.match(/\(SO4\)(\d)/)?.[1] ? Number(s.ascii.match(/\(SO4\)(\d)/)![1]) : 1)) / s.counts[metal]!, 'HCl') : 'HCl'}`)
   }
   return out
 }

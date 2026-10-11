@@ -23,7 +23,7 @@ let failed = false
 const times: number[] = []
 
 type Expect = { value?: number; text?: string; tol?: { rel?: number; abs?: number } }
-type Case = { id: string; type?: string; lang: Lang; statement: string; expect: Expect[]; grade?: number; checked?: boolean; loose?: boolean }
+type Case = { id: string; type?: string; lang: Lang; statement: string; expect: Expect[]; grade?: number; checked?: boolean; unsupported?: boolean; loose?: boolean }
 
 const SUP: Record<string, string> = { '⁻': '-', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' }
 /** «6,02·10²²» → 6.02e22; «−2» → −2 */
@@ -84,7 +84,18 @@ if (!only || only === 'golden') {
 // ---------------------------------------------------------------- (б) задачи учебников
 if (!only || only === 'textbook') {
   const cases = readJsonl(path.join(REPO_ROOT, 'brain', 'calc', 'fixtures', 'textbook.jsonl'))
-  const groups = { checked: cases.filter((c) => c.checked), raw: cases.filter((c) => !c.checked) }
+  // unsupported — выверенные задачи типов, которых калькулятор пока не решает: обязаны давать null (не неверный ответ)
+  const unsup = cases.filter((c) => c.checked && c.unsupported)
+  if (unsup.length) {
+    const wrong = unsup.filter((c) => {
+      const r = solve(c.statement, c.lang)
+      return r && matches(r, c.expect, c.loose) != null
+    })
+    console.log(`(б) учебники, не поддержанные типы: ${unsup.length} задач, неверных ответов ${wrong.length} (должно быть 0)`)
+    for (const c of wrong) console.log(`  ✗ ${c.id}: калькулятор ответил, но не так, как книга`)
+    if (wrong.length) failed = true
+  }
+  const groups = { checked: cases.filter((c) => c.checked && !c.unsupported), raw: cases.filter((c) => !c.checked) }
   for (const [name, list] of Object.entries(groups)) {
     if (!list.length) continue
     let rec = 0

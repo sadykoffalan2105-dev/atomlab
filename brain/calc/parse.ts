@@ -242,7 +242,7 @@ export type Ctx = {
 
 /** Разбор целиком (ParsedTask строит каждый решатель сам по Ctx). */
 export function buildCtx(rawText: string, cmp: string, lang: Lang, kb: Knowledge): Ctx {
-  const text = stripStudentAnswer(rawText)
+  const text = stripStudentAnswer(rawText).replace(/(?<=[A-Za-z0-9)])\.(\d*H2O)(?![a-z])/g, '·$1')
   const qs = extractQuantities(text)
   const species = findSpecies(text, kb)
   const a = askClause(text)

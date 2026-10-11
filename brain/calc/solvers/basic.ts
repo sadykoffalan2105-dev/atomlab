@@ -5,7 +5,7 @@
 import { findElements, findFormulas } from '../../pipeline/entities.ts'
 import { M_AIR, VM, molarMass, schoolAr } from '../constants.ts'
 import { L, fnum, molarMassLine, unitLabel, type CalcValue, type Line, type Solution } from '../format.ts'
-import { isAmount, labeled, type Ctx, type Species } from '../parse.ts'
+import { isAmount, labeled, speciesOf, type Ctx, type Species } from '../parse.ts'
 import type { Solver } from '../registry.ts'
 import { GASES, Mof, formulaOf, fromMoles, givenOf, kindOf, nearInt, toMoles, vm } from './common.ts'
 
@@ -74,9 +74,10 @@ const molesSolver: Solver = {
     if (amounts.length !== 1) return null
     if (ctx.qs.some((q) => q.unit === 'pct' || q.unit === 'M' || q.unit === 'kPa' || q.unit === 'gml' || q.unit === 'kj')) return null
     const distinct = [...new Map(ctx.species.map((s) => [s.ascii, s])).values()]
-    if (distinct.length !== 1) return null
-    const sp = distinct[0]!
     const q = amounts[0]!
+    let sp = distinct.length === 1 ? distinct[0]! : null
+    if (!sp && distinct.length > 1 && !ctx.species.some((s) => s.index >= ctx.ask.index)) sp = speciesOf(q, ctx.species, ctx.text)
+    if (!sp) return null
     const given = kindOf(q)!
     const kinds = ctx.ask.kinds.filter((k) => (k === 'mass' || k === 'volume' || k === 'mol' || k === 'particles') && k !== given)
     if (!kinds.length) return null

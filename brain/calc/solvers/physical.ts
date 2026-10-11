@@ -142,6 +142,18 @@ const rate: Solver = {
       const dt = t2.value - t1.value
       const k = gamma ** (dt / 10)
       const steps: Line[] = [(l) => `v₂ / v₁ = γ^((t₂ − t₁)/10) = ${fnum(gamma, l)}^(${fnum(dt, l)}/10) = ${fnum(k, l)}`]
+      const v1 = ctx.qs.find((q) => q.unit === 'M')
+      if (v1) {
+        const v2 = v1.value * k
+        steps.push((l) => `v₂ = v₁ · ${fnum(k, l)} = ${fnum(v1.value, l)} · ${fnum(k, l)} = ${fnum(v2, l)}`)
+        return {
+          type: 'reaction_rate',
+          given: [{ label: 'v₁', value: v1.value, unit: 'none' }, { label: 'γ', value: gamma, unit: 'none' }],
+          find: ['v₂'],
+          steps,
+          answers: [{ label: 'v₂', value: v2, unit: 'none' }],
+        }
+      }
       return {
         type: 'reaction_rate',
         given: [{ label: 'γ', value: gamma, unit: 'none' }, { label: 't₁', value: t1.raw, unit: t1.rawUnit === '°C' ? 'degC' : 'K', kind: 'int' }, { label: 't₂', value: t2.raw, unit: t2.rawUnit === '°C' ? 'degC' : 'K', kind: 'int' }],

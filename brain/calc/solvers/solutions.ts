@@ -24,6 +24,8 @@ const solutionMassFraction: Solver = {
     if (!SOL.test(ctx.cmp)) return null
     if (ctx.qs.some((q) => q.unit === 'mol' || q.unit === 'M' || q.unit === 'N' || q.unit === 'kPa')) return null
     if (/(растворимост|eruvchanlik|solubility|насыщенн|to['ʻ’]yingan|saturated)/iu.test(ctx.cmp)) return null
+    // в воду бросили металл/оксид и спрашивают про «образовавшийся» продукт — это задача на реакцию, не на ω
+    if (/(образовавш|образуется|образовал|hosil bo['ʻ’]lgan|formed|реакц|reaksiya)/iu.test(ctx.cmp) && ctx.species.some((s) => s.ascii !== 'H2O')) return null
     let masses = ctx.qs.filter((q) => q.unit === 'g')
     const pcts = ctx.qs.filter((q) => q.unit === 'pct')
     const vols = ctx.qs.filter((q) => q.unit === 'l')
@@ -245,9 +247,9 @@ const solubility: Solver = {
     const steps: Line[] = []
     const answers: CalcValue[] = []
     if (per100) {
-      const s = masses.find((q) => q.value !== 100 || !/^\s*(г|g)?\s*(вод|suv|water)/iu.test(q.after))
+      const s = masses.find((q) => /^\s*(на|в|per|\/)\s*100\s*(г|g)/iu.test(q.after)) ?? masses.find((q) => q.value !== 100 || !/^\s*(г|g)?\s*(вод|suv|water)/iu.test(q.after))
       if (!s) return null
-      const rest = masses.filter((q) => q !== s && !(q.value === 100 && /(вод|suv|water)/iu.test(q.after.slice(0, 12))))
+      const rest = masses.filter((q) => q !== s && !(q.value === 100 && /(вод|suv|water)/iu.test(q.after.slice(0, 12))) && !(q.value === 100 && /(на|в|per)\s*$/iu.test(q.before)))
       if (rest.length === 0) {
         const w = (s.value / (100 + s.value)) * 100
         steps.push((l) => `ω = s / (100 + s) · 100 % = ${fnum(s.value, l)} / ${fnum(100 + s.value, l)} · 100 % = ${pctOf(l, w)}`)
@@ -309,6 +311,20 @@ const crystalHydrate: Solver = {
       steps.push((l) => `ω(H₂O) = ${k}·18 / ${fnum(Mh, l, 'M')} · 100 % = ${pctOf(l, w)}`)
       answers.push({ label: 'ω(H₂O)', value: w, unit: 'pct' })
       return { type: 'crystal_hydrate', given: [], find: ['ω(H₂O)'], steps, answers }
+    }
+    // дана масса самого кристаллогидрата («из 54 г кристаллической соды Na₂CO₃·10H₂O») → сколько воды добавить до ω
+    const hydrateGiven = masses.length === 1 && f.index > masses[0]!.end && f.index - masses[0]!.end <= 40 && !/раствор|eritma|solution/iu.test(ctx.text.slice(masses[0]!.end, f.index))
+    if (hydrateGiven && pcts.length === 1 && SOL.test(ctx.cmp)) {
+      const mH = masses[0]!.value
+      const w = pcts[0]!.value
+      const mA = (mH * Ma) / Mh
+      const mSol = mA / (w / 100)
+      steps.push(molarMassLine(anh.pretty, anh.counts))
+      steps.push((l) => `m(${anh.pretty}) = ${fnum(mH, l)} · ${fnum(Ma, l, 'M')} / ${fnum(Mh, l, 'M')} = ${fnum(mA, l)} ${unitLabel('g', l)}`)
+      steps.push((l) => `m(${L(l, 'р-ра', 'eritma', 'solution')}) = ${fnum(mA, l)} / ${fnum(w / 100, l)} = ${fnum(mSol, l)} ${unitLabel('g', l)}`)
+      steps.push((l) => `m(H₂O) = ${fnum(mSol, l)} − ${fnum(mH, l)} = ${fnum(mSol - mH, l)} ${unitLabel('g', l)}`)
+      answers.push({ label: 'm(H₂O)', value: mSol - mH, unit: 'g' })
+      return { type: 'crystal_hydrate', given: [{ label: `m(${f.pretty})`, value: mH, unit: 'g' }, { label: 'ω', value: w, unit: 'pct' }], find: ['m(H₂O)'], steps, answers }
     }
     if (masses.length === 1 && pcts.length === 1 && SOL.test(ctx.cmp)) {
       const m = masses[0]!.value

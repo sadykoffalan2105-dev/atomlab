@@ -39,7 +39,18 @@ export function toMoles(q: Qty, sp: Species, steps: Line[]): number | null {
     steps.push((l) => `n(${sp.pretty}) = m / M = ${fnum(q.value, l)} / ${fnum(M, l, 'M')} = ${fnum(n, l)} ${unitLabel('mol', l)}`)
     return n
   }
+  if (q.unit === 'l' && sp.ascii === 'H2O') {
+    // вода — жидкость: m = ρ·V (1 г/мл), а не Vm
+    if (M == null) return null
+    const m = q.value * 1000
+    const n = m / M
+    steps.push((l) => `m(H₂O) = ρ · V = 1 · ${fnum(m, l)} = ${fnum(m, l)} ${unitLabel('g', l)}`)
+    steps.push(molarMassLine(sp.pretty, sp.counts))
+    steps.push((l) => `n(H₂O) = ${fnum(m, l)} / ${fnum(M, l, 'M')} = ${fnum(n, l)} ${unitLabel('mol', l)}`)
+    return n
+  }
   if (q.unit === 'l') {
+    if (!GASES.has(sp.ascii)) return null
     const n = q.value / VM
     steps.push((l) => `n(${sp.pretty}) = V / Vm = ${fnum(q.value, l)} / ${vm(l)} = ${fnum(n, l)} ${unitLabel('mol', l)}`)
     return n
