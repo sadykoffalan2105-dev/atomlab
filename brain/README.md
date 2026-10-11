@@ -88,3 +88,32 @@ Kimyo/ATOMLAB выше Википедии; ничего по теме — мод
 - **Склонение названия** (исключение вроде «свинец → свинца») — `IRREGULAR` в `brain/pipeline/declension.ts`.
 - **Факт или правка учителя** — без кода: `POST /kb/append {"kind":"correction","lang":"ru","text":"…"}`.
 - **Контрольный вопрос** — строка в `brain/eval/questions.jsonl` (`{id, cat, lang, q, expect:{exact?, startsWith?, mustMatch?, mustNotMatch?, lang?, maxWords?, number?:{value,tol}, intent?}}`).
+
+## Публичный сервер для всех учеников (туннель)
+
+Сервер по-прежнему слушает только `127.0.0.1`; в интернет его выводит туннель (Tailscale Funnel:
+`https://<имя>.ts.net` → `http://127.0.0.1:8787`). Код: `brain/http/*` (адрес, лимиты, CORS, админ), `brain/llm/queue.ts`.
+
+- **Адрес ученика** — из `X-Forwarded-For` (правый адрес), `Forwarded`, `CF-Connecting-IP`, `X-Real-IP`, и **только**
+  если сокет — loopback (туннель на этом ПК); из сети заголовки игнорируются. Funnel ставит `X-Forwarded-For` и
+  `Tailscale-Funnel-Request: ?1` сам (подделку клиента стирает). Адрес нигде не хранится: в памяти — солёный хеш
+  (соль случайная на запуск), IPv6 — по сети /64. В журнал диалогов адрес не пишется никогда.
+- **Лимиты** (`config.server`): `/chat` 8 в минуту и 120 в сутки на ученика, `/health` 120 в минуту, прочее 60;
+  не больше 2 потоков `/chat` одновременно. Превышение → `429 {ok:false, error:"rate", retryAfterSec}` + `Retry-After`.
+  Тело ≤ 64 КБ (иначе 413), только `Content-Type: application/json` (иначе 415), сообщений ≤ 12, символов ≤ 4000 (400).
+  Владелец с этого ПК напрямую (loopback, без заголовков прокси, Host localhost) не ограничен (`rate.exemptLocal`).
+- **Очередь к модели** (`config.llm`): одновременно `parallel` ответов (0 — по профилю: ноутбук 1, GPU 4), ждут до
+  `queueCap` (40) не дольше `queueWaitMs` (20 с; GPU 30 с). Пока ждут — SSE `event: queue` `{position, waiting, etaSec?}`
+  (и `position: 0`, когда дошла очередь) + «сердцебиение». Очередь полна или ждали дольше → честный запасной путь,
+  `meta.reason = done.reason = "busy"`. Ожидание вычитается из срока первого токена (сайт ждёт первый кусок 50 с).
+- **Админ** — `POST /kb/append`, `GET /kb/stats`, `GET /admin/status` (очередь, лимиты, профиль). `config.adminToken`
+  (или env `BRAIN_ADMIN_TOKEN`) задан → нужен заголовок `X-Brain-Admin: <ключ>`; пуст → только с этого ПК напрямую.
+  Иначе 403. Ключ: `npm run brain:admin-token` (печатает, ничего не пишет).
+- **CORS** — `config.server.corsOrigins` (по умолчанию GitHub Pages) + `corsLocalhost` (`http://localhost:*`,
+  `http://127.0.0.1:*`); `Access-Control-Allow-Private-Network` для сайта → ноутбук остаётся.
+- **Журнал диалогов** — `config.server.dialogLog`: `all` (как раньше) | `local` (ученики из интернета не пишутся) | `off`.
+- **Профиль** — `config.profile` или env `BRAIN_PROFILE`: `laptop` | `gpu`. `gpu` меняет только значения, равные
+  умолчаниям: `keepAlive "-1m"` (модель в видеопамяти навсегда), без периодического продления, `numCtx 8192`,
+  очередь 4, ожидание 30 с, «без прокси» не считается владельцем. Модели — по-прежнему `chatModels`/`fastModels`.
+- **`/health`** публичный и быстрый: без путей, ключей и адресов; есть `queue {parallel, running, waiting}`.
+- Проверка: `npm run brain:server-selftest` (порт 8790, подмена модели, временная папка).
