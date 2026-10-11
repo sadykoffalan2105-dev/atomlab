@@ -58,6 +58,32 @@ export type BrainConfig = {
    * персона остаётся в своём слоте кеша, при одном слоте в кеше остаётся последняя (чужая персона — +5–10 с, не тайм-аут).
    */
   warmLangs: ('ru' | 'uz' | 'en')[]
+  // — блок DIALOG (агент A) —
+  /**
+   * Мозг v2, диалог: профиль железа (laptop — CPU, gpu — сервер с видеокартой; auto — по /api/ps size_vram),
+   * классы длины ответа и бюджеты подсказки по профилю. Профили различаются только числами.
+   */
+  dialog: DialogConfig
+}
+
+// — блок DIALOG (агент A) —
+export type DialogProfileConfig = { historyMessages: number; historyChars: number; knowledgeChars: number; knowledgeItems: number; numPredictLong: number; numCtx?: number }
+export type DialogConfig = {
+  profile: 'auto' | 'laptop' | 'gpu'
+  /** false — слать Ollama think:false моделям с «мышлением» (qwen3) — без скрытых рассуждений и задержки */
+  think: boolean
+  /** бюджет переписывания реплики быстрой моделью и проверочного прохода (только gpu), мс */
+  rewriteMs: number
+  verifyMs: number
+  /** классы длины: [мин, макс] слов */
+  lengthWords: { tiny: [number, number]; short: [number, number]; normal: [number, number]; long: [number, number] }
+  numPredictByClass: { tiny: number; short: number; normal: number; long: number }
+  gpu: DialogProfileConfig
+  laptop: DialogProfileConfig
+  /** длина блока ДИАЛОГ в подсказке */
+  dialogBlockChars: number
+  /** после скольких реплик строить сжатую сводку истории */
+  summaryAfterTurns: number
 }
 
 export const DEFAULT_CONFIG: BrainConfig = {
@@ -83,6 +109,19 @@ export const DEFAULT_CONFIG: BrainConfig = {
   // переменная часть подсказки читается заново каждый раз (~2,5 симв./ток., 25–50 ток/с): 600 симв. ≈ 240 ток. ≈ 5–10 с
   prompt: { chatItems: 3, chatChars: 600, liveItems: 1, liveChars: 300, historyMessages: 2, historyChars: 300 },
   warmLangs: ['ru', 'uz', 'en'],
+  // — блок DIALOG (агент A) —
+  dialog: {
+    profile: 'auto',
+    think: false,
+    rewriteMs: 2500,
+    verifyMs: 4000,
+    lengthWords: { tiny: [15, 40], short: [40, 90], normal: [90, 160], long: [160, 300] },
+    numPredictByClass: { tiny: 80, short: 180, normal: 320, long: 650 },
+    gpu: { historyMessages: 8, historyChars: 900, knowledgeChars: 2400, knowledgeItems: 6, numPredictLong: 900, numCtx: 8192 },
+    laptop: { historyMessages: 2, historyChars: 300, knowledgeChars: 600, knowledgeItems: 3, numPredictLong: 650 },
+    dialogBlockChars: 220,
+    summaryAfterTurns: 6,
+  },
 }
 
 /**
