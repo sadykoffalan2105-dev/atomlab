@@ -232,7 +232,8 @@ function formulaTspans(tokens: FormulaToken[], fs: number): string {
   const supDy = r1(-fs * 0.42)
   let offset = 0
   const parts: string[] = []
-  for (const t of tokens) {
+  for (let k = 0; k < tokens.length; k++) {
+    const t = tokens[k]!
     const want = t.kind === 'sub' ? subDy : t.kind === 'sup' ? supDy : 0
     const dy = r1(want - offset)
     offset = want
@@ -244,7 +245,12 @@ function formulaTspans(tokens: FormulaToken[], fs: number): string {
     ]
       .filter(Boolean)
       .join(' ')
-    const text = t.kind === 'arrow' && t.text !== '↑' && t.text !== '↓' ? ` ${t.text} ` : t.text
+    // стрелка реакции — с пробелами по бокам, но без двойных («A -> B» уже с пробелами, «A->B» — без)
+    let text = t.text
+    if (t.kind === 'arrow' && t.text !== '↑' && t.text !== '↓') {
+      if (!/\s$/.test(tokens[k - 1]?.text ?? ' ')) text = ` ${text}`
+      if (!/^\s/.test(tokens[k + 1]?.text ?? ' ')) text = `${text} `
+    }
     parts.push(`<tspan ${attrs}>${esc(text).replace(/ /g, '&#160;')}</tspan>`.replace('<tspan >', '<tspan>'))
   }
   return parts.join('')

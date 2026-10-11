@@ -520,7 +520,6 @@
 
 .resultFrame {
   max-width: min(100%, 520px);
-  max-height: 56dvh;
 }
 
 .resultFrame > img,
@@ -579,4 +578,15 @@
   .btnPrimary {
     padding: 0 12px;
   }
+}
+
+/* прогресс / ошибка / подсказка — один блок, который окно прокручивает в поле зрения */
+.statusSlot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statusSlot:empty {
+  display: none;
 }

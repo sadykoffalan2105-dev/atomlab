@@ -7,7 +7,7 @@
  * Портал поверх страницы (в 3D-лаборатории на весь экран — внутрь полноэкранного элемента), role=dialog,
  * фокус не уходит из окна (Tab по кругу), Esc закрывает и отменяет рисование.
  */
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT, type MessageKey } from '../../../i18n/useT'
 import { brainGradeId } from '../../../learn/brain/remote/brainClient'
@@ -119,6 +119,8 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const statusRef = useRef<HTMLDivElement>(null)
 
   const grade = brainGradeId(context.gradeId)
   const gradeN = gradeNum(grade)
@@ -171,6 +173,13 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
       alive = false
     }
   }, [lang, subjectHint])
+
+  // прогресс, ошибка и подсказка — в поле зрения (они под формой); готовая картинка — наверху окна
+  const runKind = run.kind
+  useEffect(() => {
+    if (runKind === 'done') bodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    else if (runKind !== 'idle' || hint) statusRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [runKind, hint])
 
   // закрытие окна отменяет рисование
   useEffect(() => () => abortRef.current?.abort(), [])
@@ -262,25 +271,36 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
     onClose()
   }, [onClose])
 
-  const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation()
-      close()
-      return
+  // Esc и Tab ловим на документе: фокус может «упасть» на body, когда исчезает нажатая кнопка (сохранили ключ)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const panel = panelRef.current
+      if (!panel) return
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        close()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const list = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null || el === document.activeElement)
+      if (!list.length) return
+      const first = list[0]!
+      const last = list[list.length - 1]!
+      const active = document.activeElement
+      if (!active || !panel.contains(active)) {
+        e.preventDefault()
+        ;(e.shiftKey ? last : first).focus()
+      } else if (e.shiftKey && (active === first || active === panel)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
-    if (e.key !== 'Tab' || !panelRef.current) return
-    const list = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null || el === document.activeElement)
-    if (!list.length) return
-    const first = list[0]!
-    const last = list[list.length - 1]!
-    if (e.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) {
-      e.preventDefault()
-      last.focus()
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault()
-      first.focus()
-    }
-  }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [close])
 
   const altText = (subject: string): string => {
     const f = formula.trim() ? formulaToUnicode(formula.trim()) : ''
@@ -332,6 +352,8 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
     setKeyInput('')
     setKeySaved(true)
     setTab('custom')
+    // кнопка «Сохранить ключ» исчезает — фокус в окно, а не на body
+    window.setTimeout(() => panelRef.current?.focus(), 0)
   }
 
   const forgetKey = () => {
@@ -339,6 +361,7 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
     setImageKey('teacher', '')
     setKeySaved(false)
     setTab('presets')
+    window.setTimeout(() => panelRef.current?.focus(), 0)
   }
 
   /** Текст ошибки и можно ли предложить «описать словами». */
@@ -399,7 +422,7 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
 
   return createPortal(
     <div className={s.backdrop} onMouseDown={(e) => e.target === e.currentTarget && close()} data-draw-dialog={place}>
-      <div ref={panelRef} className={s.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} onKeyDown={onKeyDown}>
+      <div ref={panelRef} className={s.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className={s.head}>
           <h2 id={titleId} className={s.title}>
             {title}
@@ -409,11 +432,15 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
           </button>
         </div>
 
-        <div className={s.body}>
+        <div ref={bodyRef} className={s.body}>
           {result ? (
             <section className={s.resultBlock} aria-live="polite">
               <figure className={s.result}>
-                <div className={s.resultFrame} style={{ aspectRatio: `${result.img.width} / ${result.img.height}` }}>
+                <div
+                  className={s.resultFrame}
+                  // ширина по высоте окна — пропорции картинки сохраняются (без белых полей по бокам)
+                  style={{ aspectRatio: `${result.img.width} / ${result.img.height}`, width: `min(100%, calc(56dvh * ${(result.img.width / result.img.height).toFixed(4)}))` }}
+                >
                   <img src={result.img.dataUrl} alt={altText(result.subject)} width={result.img.width} height={result.img.height} />
                   {resultSvg ? <div className={s.overlay} aria-hidden dangerouslySetInnerHTML={{ __html: resultSvg }} /> : null}
                 </div>
@@ -633,6 +660,7 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
             </div>
           ) : null}
 
+          <div ref={statusRef} className={s.statusSlot}>
           {run.kind === 'running' ? (
             <div className={s.progress} role="status" aria-live="polite">
               <div className={s.bar} aria-hidden>
@@ -656,6 +684,7 @@ export function DrawDialog({ place, context, initialSubject, keyEntry, onClose, 
               {hint}
             </p>
           ) : null}
+          </div>
         </div>
 
         <div className={s.foot}>

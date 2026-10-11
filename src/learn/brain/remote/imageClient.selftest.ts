@@ -408,6 +408,13 @@ console.log('[formula] parseFormula / renderOverlaySvg')
   check('svg: sub/sup tspans at 0.7 of formula size', /data-k="sub"/.test(svg) && /data-k="arrow"/.test(svg) && fsMain > 0 && Math.abs(fsSub / fsMain - 0.7) < 0.01, `${fsMain}/${fsSub}`)
   check('svg: formula size = width/26 for a short formula', Math.abs(Number(/font-size="([\d.]+)" font-weight="600"/.exec(renderOverlaySvg({ width: 1040, height: 1040, formula: 'H2SO4' }))?.[1]) - 40) < 0.11)
   check('svg: «H2^» → gas arrow ↑', formulaToUnicode('Zn + 2HCl -> ZnCl2 + H2^') === 'Zn + 2HCl → ZnCl₂ + H₂↑', formulaToUnicode('Zn + 2HCl -> ZnCl2 + H2^'))
+  const spaced = renderOverlaySvg({ width: 1024, height: 1024, formula: 'H2 + Cl2 -> 2HCl' })
+  const tight = renderOverlaySvg({ width: 1024, height: 1024, formula: 'H2+Cl2->2HCl' })
+  check(
+    'svg: arrow spacing — no double spaces, tight input gets padded',
+    !/&#160;<\/tspan><tspan [^>]*data-k="arrow">&#160;/.test(spaced) && /<tspan [^>]*data-k="arrow">→<\/tspan>/.test(spaced) && /<tspan [^>]*data-k="arrow">&#160;→&#160;<\/tspan>/.test(tight),
+    tight.slice(tight.indexOf('arrow') - 40, tight.indexOf('arrow') + 40),
+  )
   const ionSvg = renderOverlaySvg({ width: 1024, height: 1024, formula: 'SO4^2-' })
   check('svg: charge tspan raised (negative dy)', /<tspan dy="-[\d.]+" font-size="[\d.]+" data-k="sup">2−<\/tspan>/.test(ionSvg), ionSvg.slice(0, 400))
   check('svg: system font only', /font-family='"Segoe UI", Roboto, Arial, sans-serif'/.test(svg))

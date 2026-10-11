@@ -76,9 +76,16 @@ export function DrawButton({ place, context, onInsert, onDescribeInstead, classN
   const { t } = useT()
   const info = useImageInfo()
   const r = useImageRole()
-  const [keyEntry] = useState(wantsKeyEntry)
+  const [keyEntry, setKeyEntry] = useState(wantsKeyEntry)
   const [open, setOpen] = useState<{ subject?: string; key?: boolean } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
+
+  // «?draw=key» дописали в адрес на открытой странице (переход по # без перезагрузки)
+  useEffect(() => {
+    const onHash = () => setKeyEntry(wantsKeyEntry())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   useEffect(() => {
     if (!openRef) return
