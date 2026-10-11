@@ -29,9 +29,12 @@ $manifest = Read-Json (Join-Path $PSScriptRoot 'manifest.json')
 if (-not $manifest) { Fail 'нет comfy\manifest.json рядом со скриптом'; exit 1 }
 
 # ---------------------------------------------------------------- проверка манифеста
+# только https; file:// — лишь для офлайн-проверки установщика (ATOMLAB_IMAGE_TEST=1, поддельный манифест в temp)
+$urlRx = '^https://'
+if ($env:ATOMLAB_IMAGE_TEST -eq '1') { $urlRx = '^(https|file)://' }
 function Test-Entry($e) {
   if (-not $e) { return 'нет записи' }
-  if ([string]$e.url -notmatch '^https://') { return 'нет url' }
+  if ([string]$e.url -notmatch $urlRx) { return 'нет url' }
   if (-not ([int64]$e.size -gt 0)) { return 'нет size' }
   if ([string]$e.sha256 -cnotmatch '^[0-9a-f]{64}$') { return 'нет sha256 (64 строчных hex)' }
   return ''
@@ -101,7 +104,11 @@ if ($BudgetMinutes -gt 0) { $deadline = (Get-Date).AddMinutes($BudgetMinutes) }
 $curl = Join-Path $env:SystemRoot 'System32\curl.exe'
 if (-not (Test-Path -LiteralPath $curl)) { $curl = Find-Exe 'curl.exe' }
 
-function Format-GB([int64]$b) { return ("{0:N2} ГБ" -f ($b / 1GB)) }
+function Format-GB([int64]$b) {
+  if ($b -ge 1GB) { return ("{0:N2} ГБ" -f ($b / 1GB)) }
+  if ($b -ge 1MB) { return ("{0:N0} МБ" -f ($b / 1MB)) }
+  return ("{0:N1} КБ" -f ($b / 1KB))
+}
 
 # ---------------------------------------------------------------- state.verified: size|mtime|sha уже проверенных файлов
 function Get-Verified([string]$key) {
@@ -317,7 +324,8 @@ try {
   $nodeDst = Join-Path $paths.ComfyRoot 'ComfyUI\custom_nodes\atomlab_safety\__init__.py'
   $yaml = Join-Path $paths.Comfy 'extra_model_paths.yaml'
   $mfw = ($models -replace '\\', '/')
-  $yamlText = "# ATOMLAB (image-install.ps1): модели лежат вне папки ComfyUI — обновление ComfyUI их не трогает`n" +
+  # только ASCII: ComfyUI может читать yaml в кодировке системы (cp1251), кириллица в комментарии его уронила бы
+  $yamlText = "# ATOMLAB (image-install.ps1): models live outside the ComfyUI folder, so ComfyUI upgrades keep them`n" +
     "atomlab:`n    base_path: `"$mfw`"`n    is_default: true`n    diffusion_models: diffusion_models`n    text_encoders: text_encoders`n    vae: vae`n    atomlab_safety: atomlab_safety`n"
   $argsTxt = (@((ConvertTo-CmdArg $py)) + @(Get-ComfyArgs $cfg $paths | ForEach-Object { ConvertTo-CmdArg $_ })) -join ' '
   if ($script:AtomDry) {
@@ -350,8 +358,11 @@ try {
 # старая папка ComfyUI после обновления: удаляем, когда новый ComfyUI поднялся (задача ATOMLAB Comfy стартует его сама)
 $old = $paths.ComfyRoot + '.old'
 if (-not $script:AtomDry -and (Test-Path -LiteralPath $old)) {
-  if (Get-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue) { Start-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue }
-  for ($i = 0; $i -lt 90 -and -not (Test-ComfyUp $cfg 2); $i++) { Start-Sleep -Seconds 2 }
+  $upTask = Get-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue
+  if ($upTask) { Start-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue }
+  # без задачи (первая установка: её регистрирует install.ps1 позже) ждать некого — .old удалит следующий запуск
+  $upUntil = (Get-Date).AddSeconds($(if ($upTask) { 180 } else { 0 }))
+  while ((Get-Date) -lt $upUntil -and -not (Test-ComfyUp $cfg 2)) { Start-Sleep -Seconds 3 }
   if (Test-ComfyUp $cfg 2) {
     Remove-Item -LiteralPath $old -Recurse -Force -ErrorAction SilentlyContinue
     Ok 'новый ComfyUI отвечает — старая папка удалена'
