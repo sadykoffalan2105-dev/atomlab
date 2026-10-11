@@ -213,9 +213,21 @@ function Get-ActiveConnections([int]$port) {
 }
 
 # Публичный адрес узла: https://<имя>.<tailnet>.ts.net (из tailscale status --json → Self.DNSName).
+# tailscale status --json: только stdout — предупреждения tailscale в stderr (Invoke-Exe склеивает 2>&1) ломали разбор JSON
+function Get-TsStatus([string]$ts) {
+  $old = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    $raw = (& $ts status --json 2>$null | Out-String)
+    $i = $raw.IndexOf('{')
+    if ($i -lt 0) { return $null }
+    return ($raw.Substring($i) | ConvertFrom-Json)
+  } catch { return $null } finally { $ErrorActionPreference = $old }
+}
+
 function Get-FunnelUrl([string]$ts) {
   try {
-    $j = (Invoke-Exe $ts status --json | Out-String) | ConvertFrom-Json
+    $j = Get-TsStatus $ts
     $dns = [string]$j.Self.DNSName
     if ($dns) { return ('https://' + $dns.TrimEnd('.')) }
   } catch { }

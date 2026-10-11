@@ -395,7 +395,7 @@ else {
     }
   }
   $online = $false
-  if ($ts) { try { $online = ((Invoke-Exe $ts status --json | Out-String) | ConvertFrom-Json).BackendState -eq 'Running' } catch { } }
+  if ($ts) { $st = Get-TsStatus $ts; $online = [bool]($st -and $st.BackendState -eq 'Running') }
   if ($online) { Ok 'Tailscale уже подключён' }
   else {
     if (-not $AuthKey -and -not $script:AtomDry -and -not $NoPause) { $AuthKey = (Read-Host 'Вставьте ключ Tailscale от владельца (начинается с tskey-) и нажмите Enter').Trim() }
