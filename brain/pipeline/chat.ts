@@ -21,7 +21,7 @@ import { detectErrorTags, snapshot, type StudentSnapshot } from '../student/mode
 import { selfCheck } from './dialogCheck.ts'
 import { planAnswer } from './dialogPlan.ts'
 import { maybeLlmRewrite, resolveStandalone, trailingQuestion } from './dialogResolve.ts'
-import { buildDialogState, compressAnswer } from './dialogState.ts'
+import { buildDialogState, compressAnswer, dialogLangs } from './dialogState.ts'
 import type { AnswerPlan, FollowUp, LengthClass, Profile, QuestionKind, RankedFragment, RetrievalResultV2, Scope, SourceKind, StandaloneQuery } from './dialogTypes.ts'
 import { composeFallback, offtopicReply, referenceFacts } from './fallback.ts'
 import { jaccard } from './hybrid.ts'
@@ -164,6 +164,13 @@ export function profileOf(deps: Pick<BrainDeps, 'llm' | 'config'>): Profile {
   return deps.llm?.status().gpu ? 'gpu' : 'laptop'
 }
 
+/** Уточняющий вопрос на «а почему?» / «why?» без прошлой темы. */
+const CLARIFY: Record<Lang, string> = {
+  ru: 'Уточните, пожалуйста, о какой теме речь — что именно объяснить? Назовите вещество, реакцию или понятие, например: «почему натрий реагирует с водой?» или «что такое валентность?».',
+  uz: 'Iltimos, aniqlashtiring: qaysi mavzu haqida — aynan nimani tushuntiray? Modda, reaksiya yoki tushunchani ayting, masalan: «natriy nega suv bilan reaksiyaga kirishadi?» yoki «valentlik nima?».',
+  en: 'Could you clarify which topic you mean — what exactly should I explain? Name a substance, a reaction or a concept, for example: “why does sodium react with water?” or “what is valence?”.',
+}
+
 /** Реплики-шаблоны (а почему? / проще / пример / подробнее / да): намерение и расчёт — по самой реплике; «повтори» — по прежнему вопросу. */
 const TEMPLATE_FU = new Set<FollowUp>(['why', 'simpler', 'example', 'more', 'confirm'])
 
@@ -198,6 +205,8 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   const studentId = req.studentId || `s-${req.sessionId}`
   const lastUser = req.messages[req.messages.length - 1]!.content
   let norm = normalizeInput(lastUser, req.lang)
+  // «natriyniki-chi?», «ha», «misol keltir» после узбекского вопроса — по-узбекски: язык разговора «липкий»
+  if (req.lang === 'auto' && req.messages.length > 1) norm = { ...norm, lang: dialogLangs(req.messages).at(-1) ?? norm.lang }
   let lang = norm.lang
   const seed = seedOf(req.sessionId + req.messages.length)
   const mode = req.context.mode
@@ -342,6 +351,11 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     // правило владельца и опасность — и по переписанному вопросу
     if (isOwnerRuleQuestion(sq.text)) return finish({ text: head(R1), intent: 'rule', route: 'rule', source: 'rule', confidence: 1 })
     if (isDangerousRequest(sq.text)) return finish({ text: head(DANGER_REPLY[lang]), intent: 'chemistry', route: 'rule', source: 'rule', confidence: 1 })
+  }
+  // 4c') «а почему?», «why?», «подробнее» в самом начале разговора — опереться не на что: уточняющий вопрос, а не случайный ответ
+  if (sq.followUp !== 'none' && sq.followUp !== 'confirm' && !state.lastStandalone && !state.topic && !state.entities.length && !state.lastAnswer) {
+    sqInfo = sq
+    return finish({ text: head(greeting + CLARIFY[lang]), intent: 'chemistry', route: 'fallback', source: 'local', confidence: 1 })
   }
   const template = TEMPLATE_FU.has(sq.followUp)
   const sqCmp = cmpForm(sq.text)

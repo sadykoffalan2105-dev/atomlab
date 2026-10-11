@@ -44,10 +44,10 @@ const SMALLTALK_RAW: [SmalltalkKind, RegExp][] = [
   ['sorry', /^(извини(те)?|прости(те)?|сорри|виноват)\b/],
   ['sorry', /^(sorry|my bad|apologies)\b/],
   ['sorry', /^(kechirasiz|kechir|uzr)\b/],
-  // согласие
-  ['ok', /^(ок|окей|ладно|хорошо|понятно|ясно|понял|поняла|договорились|ага|угу|да)$/],
-  ['ok', /^(ok|okay|got it|alright|sure|fine|yes|yep|understood)$/],
-  ['ok', /^(xo'p|xop|tushunarli|tushundim|mayli|ha|albatta)$/],
+  // согласие — целиком или перед благодарностью/прощанием («ок, спасибо», «ok thanks», «xo'p, rahmat»)
+  ['ok', /^(ок|окей|ладно|хорошо|понятно|ясно|понял|поняла|договорились|ага|угу|да)(?=$|[\s,.!]+(спасибо|спс|благодарю|пасиб|пока|до свидания))/],
+  ['ok', /^(ok|okay|got it|alright|sure|fine|yes|yep|understood)(?=$|[\s,.!]+(thanks|thank you|thx|ty|bye|goodbye))/],
+  ['ok', /^(xo'p|xop|tushunarli|tushundim|mayli|ha|albatta)(?=$|[\s,.!]+(rahmat|raxmat|katta rahmat|tashakkur|xayr))/],
   // усталость и скука
   ['tired', /^(я )?(устал|устала|утомился|утомилась|нет сил|хочу спать)\b/],
   ['tired', /^(i('?m| am) (tired|exhausted|sleepy))\b/],

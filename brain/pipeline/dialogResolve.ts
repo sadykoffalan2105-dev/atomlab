@@ -14,12 +14,13 @@ import type { BrainConfig } from '../config.ts'
 import { CONCEPTS, type Concept } from '../kb/concepts.ts'
 import type { Knowledge } from '../kb/shards.ts'
 import type { LlmClient } from '../llm/ollama.ts'
-import { ruToEn, ruToUz, uzTopicTerms } from '../persona/uzGlossary.ts'
+import { ruToEn, ruToUz, uzAccusative, uzDative, uzGenitive, uzPossessive, uzTopicTerms } from '../persona/uzGlossary.ts'
 import { genitive } from './declension.ts'
 import type { DialogState, FollowUp, GradeId, LengthClass, Profile, QuestionKind, StandaloneQuery } from './dialogTypes.ts'
 import { findConcepts, findElements, findFormulas, findSubstances } from './entities.ts'
 import type { Lang } from './normalize.ts'
 import { hasCjk, languageOk, splitSentences } from './postcheck.ts'
+import { extractEquation } from './tools.ts'
 
 // ---------------------------------------------------------------- слова
 
@@ -52,11 +53,14 @@ const FILLER = new Set([
   'example', 'examples', 'simpler', 'simply', 'more', 'detail', 'details', 'repeat', 'again', 'explain', 'tell', 'me',
   'deeper', 'understand', 'dont', "don't", 'not', 'once', 'grade', 'th', 'can', 'you', 'give', 'say', 'so', 'come',
   'yes', 'ok', 'okay', 'sure', 'briefly', 'short', 'shorter', 'detailed', 'school', 'level', 'taught', 'explained',
+  'would', 'could', 'should', 'will', 'your', 'be', 'then', 'now',
   // uz
   'nega', 'nima', 'uchun', 'nimaga', 'qanday', 'qanaqa', 'qaysi', 'qachon', 'qayerda', 'kim', 'necha', 'qancha', 'bu', 'u',
   'ular', 'uni', 'buni', 'bunda', 'shu', 'misol', 'keltir', 'keltiring', 'batafsil', 'takrorla', 'qayta', 'soddaroq',
   'oddiyroq', 'tushuntir', 'tushuntiring', 'tushunmadim', 'chi', 'va', 'yoki', 'ham', 'esa', 'da', 'haqida', 'sinf', 'sinfda',
   'sinfi', 'ha', 'mayli', 'albatta', 'iltimos', 'yana', 'aytib', 'ber', 'bering', "ko'proq", 'qisqa', 'qisqacha',
+  // uz: аффиксы, написанные отдельно от формулы («HNO3 niki-chi?», «H2SO4 ning»)
+  'niki', 'ning', 'dagi', 'ni', 'ga', 'dan',
 ])
 
 /** Местоимения-указатели без собственного предмета: «а почему он так реагирует?». */
@@ -77,6 +81,24 @@ const FU = {
 const SWITCH_MARK = /^((ну|так)\s+)?(а|и|and|what about|how about|а что насч[её]т|а как насч[её]т)(?!\p{L})|(?<=\p{L})-?chi\s*[?？.!]*$/iu
 /** Вопрос со своей постановкой — не обрывок: «а что такое моль?», «what is…», «… nima?». */
 const FULL_Q = /(что так|что это|что значит|что называ|какие свойства|как получ|what is|what are|what does|define|nima(\s|$|\?)|nima degani)/iu
+
+/** Вопрос-определение («Что такое валентность?», «Valentlik nima?») — для «а у натрия?» строим «Какая валентность у натрия?». */
+const DEF_Q = /^(что так\p{L}*|что это|что значит|что называ\p{L}*|what is|what are|what's|define)(?!\p{L})|(?<!\p{L})nima(\s+degani)?\s*$/iu
+/** Обрывок-обстоятельство без предмета: «а в промышленности?», «а при нагревании?», «and in industry?». */
+const MODIFIER_FRAG = /^(в|во|на|при|без|из|для|in|at|under|without|on)\s+\p{L}/iu
+/** Обстоятельство места в прежнем вопросе — заменяется новым («в лаборатории» → «в промышленности»). */
+const PLACE_IN_Q = /(?<!\p{L})(в|во|на|in|at)\s+(лаборатор\p{L}*|промышленн\p{L}*|природ\p{L}*|быту|жизни|организм\p{L}*|школ\p{L}*|the lab(oratory)?|industry|nature|everyday life)(?!\p{L})/iu
+/** Расчётная величина в реплике («а теперь массовую долю серы») — продолжение расчёта по прежней формуле. */
+const CALC_QTY = /(массов\p{L}* дол|молярн\p{L}* масс|количеств\p{L}* веществ|степен\p{L}* окислен|mass fraction|molar mass|oxidation (state|number)|amount of substance|massa ulush|molyar massa|oksidlanish daraja)/iu
+/** Глагол расчёта в начале прежнего вопроса («Вычисли …», «Calculate …»). */
+const CALC_VERB = /^(вычисли(те)?|рассчитай(те)?|посчитай(те)?|найди(те)?|определи(те)?|calculate|compute|find|determine)(?!\p{L})/iu
+/** Задача «сколько…» с числом и единицей: «если взять 4 моль водорода, сколько воды?» — по уравнению прошлого шага. */
+const AMOUNT_Q = /\d+(?:[.,]\d+)?\s*(моль|г|кг|л|мл|mol|g|kg|l|ml|gramm|litr)(?!\p{L})/iu
+const HOW_MUCH = /(сколько|какая масса|какой объ[её]м|how (much|many)|what (mass|volume)|necha|qancha)/iu
+/** Стрелка/знак уравнения. */
+const EQ_MARK = /(→|->|⟶|=|⇄|⇌)/u
+/** Прилагательное кислоты без слова «кислота»: «растворяется в азотной?» → «в азотной кислоте». */
+const ACID_ELLIPSIS = /(?<!\p{L})(в|во|на|о|об|к|с|со|из|от|до|у|без|для)?(\s*)(азотн|серн|солян|угольн|фосфорн|уксусн|кремниев|сернист|азотист|плавиков|бромоводородн|иодоводородн|хлорн|муравьин)(ой|ая|ую)(?=\s*(?:[?.!,;:)…]|$))/giu
 
 /** Явная длина в текущей реплике. */
 const SHORT_RE = /(кратко|коротко|короче|покороче|в двух словах|одним предложением|в одном предложении|briefly|in short|in brief|one sentence|shorter|qisqa(cha|roq)?|bir jumla)/iu
@@ -176,7 +198,7 @@ export function contentWords(text: string, ents: FoundEntity[] = [], concepts: C
   return toks(text)
     .filter((t) => !ents.some((e) => t.i >= e.at && t.i < e.end))
     .map((t) => t.w)
-    .filter((w) => w.length >= 3 && !FILLER.has(w) && !/^(почем|объясн|поясн|расскаж|подробн|пример|tushunt|izohla)/u.test(w) && !conceptWordHit(w, concepts))
+    .filter((w) => w.length >= 3 && !FILLER.has(w) && !/^(почем|объясн|поясн|расскаж|подробн|пример|tushunt|izohla|bo'l)/u.test(w) && !conceptWordHit(w, concepts))
 }
 
 /** Тема по-русски: первое понятие (names.ru[0]), иначе русский термин из узбекского словаря. */
@@ -231,7 +253,8 @@ export function replaceEntity(text: string, oldName: string, newName: string, la
   // формула — точное совпадение (и с индексами-цифрами)
   if (/^[A-Z]/.test(oldName)) {
     const pretty = oldName.replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[Number(d)]!)
-    for (const v of [oldName, pretty]) {
+    const ascii = oldName.replace(/[₀-₉]/g, (d) => String(d.charCodeAt(0) - 0x2080))
+    for (const v of [oldName, pretty, ascii]) {
       const re = new RegExp(`(?<![A-Za-z])${v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-z0-9₀-₉])`)
       if (re.test(text)) return text.replace(re, newName)
     }
@@ -278,6 +301,37 @@ export function styleCue(text: string): LengthClass | null {
 
 // ---------------------------------------------------------------- разбор реплики
 
+/** Снять связки в начале обрывка: «а теперь массовую долю…» → «массовую долю…», «and in industry» → «in industry». */
+function dropLead(s: string): string {
+  return s.replace(/^((а|и|но|ну|теперь|тогда|ещ[её]|and|but|now|then|so|endi|xo'sh|xoʻsh)(?!\p{L})[\s,]*)+/iu, '').trim() || s.trim()
+}
+
+/** Формула прошлого расчёта («Вычисли молярную массу H2SO4» → «H2SO4»): сложное вещество, а не символ элемента. */
+function calcFormula(state: Pick<DialogState, 'entities' | 'lastStandalone'>): string | null {
+  if (!state.lastStandalone || !(CALC_QTY.test(state.lastStandalone) || CALC_VERB.test(state.lastStandalone.trim()))) return null
+  return state.entities.find((e) => /^[A-Z]/.test(e) && (/\d|[₀-₉]/.test(e) || (e.match(/[A-Z]/g) ?? []).length >= 2)) ?? null
+}
+
+/** Уравнение прошлого шага: из ответа учителя (уравненное) или из прошлого вопроса. */
+function prevEquation(state: Pick<DialogState, 'lastAnswer' | 'lastStandalone'>): string | null {
+  for (const s of [state.lastAnswer, state.lastStandalone]) {
+    if (!s || !EQ_MARK.test(s)) continue
+    const eq = extractEquation(s)
+    if (eq && /\+/.test(eq)) return eq.replace(/\d/g, (d, i: number, all: string) => (i > 0 && /[A-Za-z)₀-₉]/.test(all[i - 1]!) ? '₀₁₂₃₄₅₆₇₈₉'[Number(d)]! : d))
+  }
+  return null
+}
+
+/** «в азотной» → «в азотной кислоте» (падеж «кислоты» — по предлогу). */
+export function expandAcidEllipsis(text: string): string {
+  return text.replace(ACID_ELLIPSIS, (_m, prep: string | undefined, sp: string, stem: string, end: string) => {
+    const p = (prep ?? '').toLowerCase()
+    const noun =
+      end === 'ая' ? 'кислота' : end === 'ую' ? 'кислоту' : /^(с|со)$/.test(p) ? 'кислотой' : /^(из|от|до|у|без|для)$/.test(p) ? 'кислоты' : 'кислоте'
+    return `${prep ?? ''}${sp}${stem}${end} ${noun}`
+  })
+}
+
 export type ReplyShape = {
   clean: string
   followUp: FollowUp
@@ -302,7 +356,10 @@ export function analyzeReply(text: string, state: DialogState, lang: Lang, kb: K
   const hasPrev = !!(state.lastStandalone || state.topic || state.entities.length)
   // «да», «давай», «ha» после ответа, который закончился предложением-вопросом
   if (words.length && words.length <= 2 && words.every((w) => CONFIRM.has(w)) && trailingQuestion(state.lastAnswer)) return { ...shape, followUp: 'confirm' }
-  if (!hasPrev) return { ...shape, followUp: 'none' }
+  const bareCue = !ents.length && !concepts.length && !own.length && cues.length > 0
+  const pick: (keyof typeof FU)[] = ['repeat', 'simpler', 'example', 'more', 'why']
+  // «а почему?», «why?», «подробнее» без прошлой темы — это всё равно follow-up (ответ — уточняющий вопрос, chat.ts)
+  if (!hasPrev) return { ...shape, followUp: bareCue && !state.lastAnswer ? pick.find((k) => cues.includes(k))! : 'none' }
   const newSubject = ents.length > 0 || concepts.length > 0
   if (newSubject) {
     // «а у натрия?», «natriy-chi?», «and for sodium?», «а степень окисления?» — та же постановка, другой предмет.
@@ -312,13 +369,17 @@ export function analyzeReply(text: string, state: DialogState, lang: Lang, kb: K
     const oneSubject = (ents.length > 0) !== (concepts.length > 0)
     const fragment = SWITCH_MARK.test(text.trim()) && words.length <= 6 && !FULL_Q.test(clean)
     if (fragment && oneSubject && !own.length && !cues.length && !knownEnt && !sameTopic && state.lastStandalone) return { ...shape, followUp: 'switch_entity' }
+    // «а теперь массовую долю серы» после «Вычисли молярную массу H2SO4» — та же формула, другая величина
+    if (calcFormula(state) && CALC_QTY.test(clean) && !ents.some((e) => e.kind !== 'element') && words.length <= 8) return { ...shape, followUp: 'deictic' }
+    // «а если взять 4 моль водорода, сколько воды?» после уравнения — задача по тому же уравнению
+    if (prevEquation(state) && AMOUNT_Q.test(clean) && HOW_MUCH.test(clean) && !EQ_MARK.test(clean)) return { ...shape, followUp: 'deictic' }
+    // «а она реагирует с медью?» — местоимение вместо прежнего предмета плюс новая сущность
+    const prevSubj = state.entities[0] ?? state.topic
+    if (deictic && prevSubj && !ents.some((e) => e.ru === prevSubj) && words.length <= 8 && !FULL_Q.test(clean) && !concepts.length) return { ...shape, followUp: 'deictic' }
     return { ...shape, followUp: 'none' }
   }
   if (grade && !own.length) return { ...shape, followUp: 'switch_grade' }
-  if (!own.length && cues.length) {
-    const pick: (keyof typeof FU)[] = ['repeat', 'simpler', 'example', 'more', 'why']
-    return { ...shape, followUp: pick.find((k) => cues.includes(k))! }
-  }
+  if (!own.length && cues.length) return { ...shape, followUp: pick.find((k) => cues.includes(k))! }
   if (deictic && own.length <= 3 && (state.entities[0] || state.topic)) return { ...shape, followUp: 'deictic' }
   // короткий обрывок без предмета: «а как получить?», «где применяется?» — предмет из прошлого вопроса
   if (own.length <= 2 && words.length <= 5 && (state.entities[0] || state.topic) && (/\?\s*$/.test(clean) || SWITCH_MARK.test(text.trim()))) return { ...shape, followUp: 'deictic' }
@@ -327,14 +388,40 @@ export function analyzeReply(text: string, state: DialogState, lang: Lang, kb: K
 
 // ---------------------------------------------------------------- самодостаточный вопрос
 
+/** Термин, а не целый вопрос: к нему можно приставить узбекский аффикс («valentlik» → «valentlikka»). */
+const isTerm = (t: string) => !!t && t.split(/\s+/).length <= 3 && !/[?？!.:]/.test(t)
+
 const TPL = {
-  why: { ru: (s: string) => `Почему: ${s} Объясни причину.`, uz: (s: string) => `Nega: ${s} Sababini tushuntir.`, en: (s: string) => `Why: ${s} Explain the reason.` },
-  whyTopic: { ru: (t: string) => `Почему так устроено: ${t}? Объясни причину.`, uz: (t: string) => `Nega shunday: ${t}? Sababini tushuntir.`, en: (t: string) => `Why is it so: ${t}? Explain the reason.` },
-  simpler: { ru: (t: string) => `Объясни проще: ${t}`, uz: (t: string) => `Soddaroq tushuntir: ${t}`, en: (t: string) => `Explain more simply: ${t}` },
-  example: { ru: (t: string) => `Приведи пример: ${t}`, uz: (t: string) => `Misol keltir: ${t}`, en: (t: string) => `Give an example: ${t}` },
-  more: { ru: (t: string) => `Расскажи подробнее: ${t}`, uz: (t: string) => `Batafsil aytib ber: ${t}`, en: (t: string) => `Tell me more about: ${t}` },
+  why: { ru: (s: string) => `Почему: ${s} Объясни причину.`, uz: (s: string) => `Nega: ${s} Sababini tushuntiring.`, en: (s: string) => `Why: ${s} Explain the reason.` },
+  whyTopic: { ru: (t: string) => `Почему так устроено: ${t}? Объясни причину.`, uz: (t: string) => `Nega shunday: ${t}? Sababini tushuntiring.`, en: (t: string) => `Why is it so: ${t}? Explain the reason.` },
+  // uz — естественный порядок слов с аффиксом: «Valentlikni soddaroq tushuntiring», «Valentlikka misol keltiring»
+  simpler: { ru: (t: string) => `Объясни проще: ${t}`, uz: (t: string) => (isTerm(t) ? `${cap(uzAccusative(t))} soddaroq tushuntiring` : `Soddaroq tushuntiring: ${t}`), en: (t: string) => `Explain more simply: ${t}` },
+  example: { ru: (t: string) => `Приведи пример: ${t}`, uz: (t: string) => (isTerm(t) ? `${cap(uzDative(t))} misol keltiring` : `Misol keltiring: ${t}`), en: (t: string) => `Give an example: ${t}` },
+  more: { ru: (t: string) => `Расскажи подробнее: ${t}`, uz: (t: string) => (isTerm(t) ? `${cap(t)} haqida batafsil aytib bering` : `Batafsil aytib bering: ${t}`), en: (t: string) => `Tell me more about: ${t}` },
   confirm: { ru: (q: string, t: string) => `Да: ${q}${t ? ` — по теме «${t}»` : ''}`, uz: (q: string, t: string) => `Ha: ${q}${t ? ` — «${t}» mavzusida` : ''}`, en: (q: string, t: string) => `Yes: ${q}${t ? ` — on “${t}”` : ''}` },
   forEntity: { ru: (b: string, x: string) => `${b} — у ${genitive(x)}?`, uz: (b: string, x: string) => `${x} uchun: ${b}?`, en: (b: string, x: string) => `${b} — for ${x}?` },
+  /** «Что такое валентность?» + «а у натрия?» → «Какая валентность у натрия?» / «Natriyning valentligi qanday?» / «What is the valence of sodium?» */
+  property: {
+    ru: (t: string, x: string) => `${ruWhich(t)} ${t} у ${genitive(x)}?`,
+    uz: (t: string, x: string) => `${cap(uzGenitive(x))} ${uzPossessive(t)} qanday?`,
+    en: (t: string, x: string) => `What is the ${t} of ${x}?`,
+  },
+  /** «а теперь массовую долю серы» → «Вычисли массовую долю серы в H₂SO₄» */
+  calc: { ru: (v: string, q: string, f: string) => `${v} ${q} в ${f}`, uz: (_v: string, q: string, f: string) => `${f} dagi ${q} — hisoblang`, en: (v: string, q: string, f: string) => `${v} ${q} in ${f}` },
+  /** «если взять 4 моль водорода, сколько воды?» → «По уравнению 2H₂ + O₂ → 2H₂O: …» */
+  byEquation: { ru: (eq: string, q: string) => `По уравнению ${eq}: ${q}`, uz: (eq: string, q: string) => `${eq} tenglamasi boʻyicha: ${q}`, en: (eq: string, q: string) => `By the equation ${eq}: ${q}` },
+}
+
+/** Женский род на -ь (кроме -ость/-сть, которые и так женские). */
+const FEM_SOFT = new Set(['степень', 'соль', 'связь', 'медь', 'ртуть', 'сталь', 'смесь', 'взвесь', 'накипь', 'ржавчина', 'окись', 'закись', 'гидроокись', 'плотность'])
+
+/** «Какая валентность», «Какой заряд», «Какое строение», «Какие изотопы» — по первому слову темы. */
+function ruWhich(topic: string): string {
+  const w = (topic.split(/\s+/)[0] ?? '').toLowerCase()
+  if (/(ость|сть|знь)$/.test(w) || FEM_SOFT.has(w) || /(ая|яя|а|я)$/.test(w)) return 'Какая'
+  if (/(ое|ее|ие|ье|о|е)$/.test(w)) return 'Какое'
+  if (/(ые|ы|и)$/.test(w)) return 'Какие'
+  return 'Какой'
 }
 
 /** «Натрий» → «натрий» (формулы и аббревиатуры как есть). */
@@ -367,17 +454,19 @@ export function resolveStandalone(text: string, state: DialogState, env: { lang:
   const { lang, kb } = env
   const shape = analyzeReply(text, state, lang, kb)
   const ctxGrade = /^g(7|8|9|10|11)$/.test(env.gradeId) ? (env.gradeId as GradeId) : null
+  // «растворяется в азотной?» → «… в азотной кислоте?» (только ru; идемпотентно: «кислоте» уже стоит — не трогаем)
+  const expanded = lang === 'ru' ? expandAcidEllipsis(text) : text
   const base: StandaloneQuery = {
-    text,
+    text: expanded,
     lang,
     topic: topicOf(shape.clean, lang),
-    entities: shape.ents.map((e) => e.ru),
+    entities: (expanded !== text ? entitiesOf(stripLeadingDiscourse(expanded), kb, lang) : shape.ents).map((e) => e.ru),
     grade: shape.grade ?? state.grade ?? ctxGrade,
     scope: 'school',
     kind: 'general',
     lengthClass: 'short',
     followUp: 'none',
-    resolvedBy: 'none',
+    resolvedBy: expanded !== text ? 'rules' : 'none',
     original: text,
   }
   const done = (sq: StandaloneQuery): StandaloneQuery => ({ ...sq, lengthClass: cueLength(text, sq.followUp, state) ?? sq.lengthClass })
@@ -386,6 +475,11 @@ export function resolveStandalone(text: string, state: DialogState, env: { lang:
   const lastQ = state.lastStandalone ? noQ(state.lastStandalone) : null
   const rules = (t: string, extra: Partial<StandaloneQuery>): StandaloneQuery =>
     done({ ...base, text: t, topic: state.topic, entities: state.entities.slice(0, 3), resolvedBy: 'rules', ...extra })
+
+  // «а почему?», «why?», «подробнее» в самом начале разговора: опереться не на что — вопрос как есть, ответ — уточнение
+  if (shape.followUp !== 'none' && shape.followUp !== 'confirm' && !lastQ && !subj && !state.lastAnswer) {
+    return done({ ...base, followUp: shape.followUp, kind: shape.followUp === 'why' ? 'why' : shape.followUp === 'repeat' ? 'repeat' : 'general' })
+  }
 
   switch (shape.followUp) {
     case 'none':
@@ -400,7 +494,11 @@ export function resolveStandalone(text: string, state: DialogState, env: { lang:
         const old = state.entities[0] ? localName(state.entities[0], lang, kb) : null
         const xName = lang === 'ru' ? x.ru : x.local
         const swapped = lastQ && old ? replaceEntity(lastQ, old, xName, lang) : null
-        const t = swapped ? `${cap(swapped)}?` : lastQ ? TPL.forEntity[lang](lastQ, lowerFirst(xName)) : text
+        let t: string
+        if (swapped) t = `${cap(swapped)}?`
+        // «Что такое валентность?» → «а у натрия?»: «Какая валентность у натрия?», а не «Что такое валентность — у натрия?»
+        else if (lastQ && tLocal && !state.entities.length && DEF_Q.test(lastQ.trim())) t = TPL.property[lang](tLocal, lowerFirst(xName))
+        else t = lastQ ? TPL.forEntity[lang](lastQ, lowerFirst(xName)) : text
         return rules(t, { followUp: 'switch_entity', entities: [x.ru], topic: state.topic })
       }
       // новое понятие в той же постановке: «а степень окисления?» после «Какая валентность у натрия?»
@@ -414,7 +512,28 @@ export function resolveStandalone(text: string, state: DialogState, env: { lang:
       if (!lastQ) return done(base)
       return rules(`${cap(lastQ)}?`, { followUp: 'switch_grade', grade: shape.grade })
     case 'deictic': {
+      const newEnts = shape.ents.map((e) => e.ru)
+      const withNew = (xs: string[]) => [...xs, ...newEnts].filter((x, i, a) => a.indexOf(x) === i).slice(0, 4)
+      const ask = noQ(dropLead(shape.clean))
+      // расчёт по прежней формуле: «а теперь массовую долю серы» → «Вычисли массовую долю серы в H₂SO₄»
+      const f = calcFormula(state)
+      if (f && CALC_QTY.test(shape.clean) && !shape.ents.some((e) => e.kind !== 'element')) {
+        const verb = lastQ?.trim().match(CALC_VERB)?.[0] ?? (lang === 'en' ? 'Calculate' : 'Вычисли')
+        const q = lang === 'uz' ? `${ask.replace(/-?chi$/iu, '')}ni` : ask.charAt(0).toLowerCase() + ask.slice(1)
+        return rules(TPL.calc[lang](cap(verb), q, localName(f, lang, kb)), { followUp: 'deictic', kind: 'calc', entities: withNew([f]) })
+      }
+      // задача по уравнению прошлого шага: «а если взять 4 моль водорода, сколько воды?»
+      const eq = prevEquation(state)
+      if (eq && AMOUNT_Q.test(shape.clean) && HOW_MUCH.test(shape.clean) && !EQ_MARK.test(shape.clean)) {
+        return rules(TPL.byEquation[lang](eq, `${ask.charAt(0).toLowerCase()}${ask.slice(1)}?`), { followUp: 'deictic', kind: 'calc', entities: withNew(state.entities.slice(0, 3)) })
+      }
       if (!subj) return done(base)
+      // обстоятельство к прежнему вопросу: «а в промышленности?» → «Как получают кислород в промышленности?»
+      if (!shape.deictic && lastQ && MODIFIER_FRAG.test(ask) && lang !== 'uz') {
+        let q = PLACE_IN_Q.test(lastQ) ? lastQ.replace(PLACE_IN_Q, ask) : `${lastQ} ${ask}`
+        if (lang === 'ru') q = q.replace(/^как получить(?!\p{L})/iu, 'Как получают')
+        return rules(`${cap(q)}?`, { followUp: 'deictic', entities: withNew(state.entities.slice(0, 3)) })
+      }
       const words = shape.clean.split(/\s+/)
       const k = shape.deictic ? words.findIndex((w) => fold(w.replace(/[^\p{L}'ʻʼ’]/gu, '')) === shape.deictic) : -1
       let t: string
@@ -424,7 +543,7 @@ export function resolveStandalone(text: string, state: DialogState, env: { lang:
         t = words.join(' ')
       } else t = `${noQ(shape.clean)} ${subj}?`
       t = cap(t.replace(/^(а|and)\s+/iu, ''))
-      return rules(t, { followUp: 'deictic' })
+      return rules(lang === 'ru' ? expandAcidEllipsis(t) : t, { followUp: 'deictic', entities: withNew(state.entities.slice(0, 3)) })
     }
     case 'why': {
       const s = firstSentence(state.lastAnswer)
