@@ -147,9 +147,9 @@ export type RetrievalResultV2x = RetrievalResultV2 & {
 const NO_CARD_KINDS = new Set(['who_history', 'broad', 'chitchat', 'confirm', 'repeat'])
 
 /** §-карточка единицы как фрагмент поиска: первое знание школьного ответа с точной подписью «[Kimyo 8, §12, стр. 50]». */
-function cardFragment(unit: Unit, lang: Lang, g: number | null, maxChars: number, bm: number, score: number): RankedFragment {
+function cardFragment(unit: Unit, lang: Lang, g: number | null, maxChars: number, bm: number, score: number, queryTerms?: Set<string>): RankedFragment {
   const title = `${unit.label.ru}: ${unit.title.ru}`
-  const text = unitCard(unit, lang, maxChars)
+  const text = unitCard(unit, lang, maxChars, queryTerms)
   const sourceKind: SourceKind = g != null && unit.grade === g ? 'textbook_grade' : 'textbook_other'
   const gradeDelta = g != null ? Math.abs(unit.grade - g) : null
   return {
@@ -534,7 +534,7 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
       // тема целиком в названии единицы → она; иначе единица лучшего фрагмента учебника класса; иначе по понятиям
       const unit = byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null))
       if (unit) {
-        const card = cardFragment(unit, lang, g, cardChars, Math.max(0, ...items.map((f) => f.bm)) + 1, (items[0]?.score ?? 0) + 1)
+        const card = cardFragment(unit, lang, g, cardChars, Math.max(0, ...items.map((f) => f.bm)) + 1, (items[0]?.score ?? 0) + 1, queryTerms)
         items = [card, ...items.filter((f) => f.id !== card.id)].slice(0, maxItems)
         curriculum = { unitId: unit.id, cite: unit.cite, viaRef: false }
       }

@@ -13,7 +13,9 @@
  *   src/data/teacher/qaBank.json               — вещества, элементы, реакции, определения;
  *   src/data/teacher/scientistsIndex.json      — учёные;
  *   src/data/teacherKnowledge/megaPack.json    — 28 тыс. учебных чанков (topic / ru / keywords);
- *   public/kb/wiki/{meta.json,s/*.json}        — вступления статей Википедии, только химические теги.
+ *   public/kb/wiki/{meta.json,s/*.json}        — вступления статей Википедии, только химические теги;
+ *   src/data/kb/curriculum/kimyo-map.json      — карта программы Kimyo 7–11: §-карточки, разобранные задачи, определения
+ *                                                 (источник 'curriculum'; на сервере — npm run brain:corpus -- --only=curriculum).
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -23,8 +25,10 @@ import type { AppendInput, Journal, JournalRecord } from './journal.ts'
 import { REPO_ROOT } from './shards.ts'
 import { textHash } from './storage.ts'
 import { classifyTopic, topicTags } from './topicMap.ts'
+import { unitCard } from '../curriculum/card.ts'
+import { sharedCurriculum } from '../curriculum/map.ts'
 
-export const SOURCE_NAMES = ['textbooks', 'book-index', 'common', 'kb-wiki', 'qabank', 'scientists', 'megapack', 'wiki'] as const
+export const SOURCE_NAMES = ['textbooks', 'book-index', 'common', 'kb-wiki', 'qabank', 'scientists', 'megapack', 'wiki', 'curriculum'] as const
 export type SourceName = (typeof SOURCE_NAMES)[number]
 
 type Item = AppendInput & { kind: 'fact' | 'qa' | 'note' }
@@ -179,6 +183,56 @@ function* wiki(): Generator<Item> {
   }
 }
 
+/**
+ * Карта программы: на единицу — §-карточка (fact, type:curriculum), на разобранный пример с ответом — qa (type:task),
+ * на определение учебника, которого нет в qaBank, — fact (type:definition). Цитаты — точный § из карты.
+ */
+function* curriculum(): Generator<Item> {
+  const map = sharedCurriculum()
+  if (!map) return
+  const qaDefs = new Set(readJson<QaBankRaw>('src/data/teacher/qaBank.json').definitions.map((d) => `${d.g}|${analyzeTerms(d.term).join(' ')}`))
+  for (const u of map.units) {
+    const conceptsRu = u.concepts.map((c) => c.ru).join(', ')
+    const card = unitCard(u, 'ru', 900)
+    const text = conceptsRu && !/понятия:/iu.test(card) ? `${card} Понятия: ${conceptsRu}.` : card
+    const base = [`unit:${u.id}`]
+    yield {
+      kind: 'fact',
+      lang: 'ru',
+      title: `${u.label.ru} — ${u.title.ru}`,
+      text,
+      tags: tagged(u.title.ru, conceptsRu, text, u.grade, ['type:curriculum', ...base]),
+      source: `Kimyo ${u.grade}`,
+      meta: { srcId: `cur-${u.id}`, type: 'curriculum', cite: u.cite, unit: u.id },
+    }
+    for (const [i, x] of u.tasks.examples.entries()) {
+      if (!x.answer) continue
+      const t = `${x.statement} Ответ: ${x.answer.replace(/\.$/, '')}.`
+      yield {
+        kind: 'qa',
+        lang: 'ru',
+        title: `Задача из ${u.label.ru}`,
+        text: t,
+        tags: tagged(u.title.ru, x.typeGuess ?? '', t, u.grade, ['type:task', ...(x.typeGuess ? [`task:${x.typeGuess}`] : []), ...base]),
+        source: `Kimyo ${u.grade}`,
+        meta: { srcId: `cur-${u.id}-ex${i + 1}`, type: 'task', cite: x.page ? `${u.cite.slice(0, -1)}, стр. ${x.page}]` : u.cite, unit: u.id, ...(x.typeGuess ? { taskType: x.typeGuess } : {}) },
+      }
+    }
+    for (const [i, d] of u.definitions.entries()) {
+      if (d.source !== 'textbook' || qaDefs.has(`${u.grade}|${analyzeTerms(d.term.ru).join(' ')}`)) continue
+      yield {
+        kind: 'fact',
+        lang: 'ru',
+        title: d.term.ru,
+        text: d.text.ru,
+        tags: tagged(d.term.ru, '', d.text.ru, u.grade, ['type:definition', ...base]),
+        source: `Kimyo ${u.grade}`,
+        meta: { srcId: `cur-${u.id}-def${i + 1}`, type: 'definition', cite: d.page ? `${u.cite.slice(0, -1)}, стр. ${d.page}]` : u.cite, unit: u.id },
+      }
+    }
+  }
+}
+
 const READERS: Record<SourceName, () => Generator<Item>> = {
   textbooks,
   'book-index': bookIndex,
@@ -188,6 +242,7 @@ const READERS: Record<SourceName, () => Generator<Item>> = {
   scientists,
   megapack: megaPack,
   wiki,
+  curriculum,
 }
 
 /** Почти-дубликаты: MinHash (8 хешей, 4 полосы по 2) → кандидаты → точный Жаккар стемов. */

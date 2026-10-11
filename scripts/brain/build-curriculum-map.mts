@@ -39,6 +39,8 @@ const letterShare = (s: string) => {
   return ns.length ? (ns.match(/\p{L}/gu) ?? []).length / ns.length : 0
 }
 const CYR = /[А-Яа-яЁё]/u
+/** разорванное OCR-слово: два и больше коротких кусков подряд («Бри лл иа н тами») */
+const SPACED_OCR = /(?:^|\s)\p{L}{1,2}(?:\s\p{L}{1,2}){1,}(?:\s|$)/u
 /** битый OCR («Р åзульòàòы») */
 const MOJIBAKE = /[À-ÿ]{2}|[åòàîâûñ][а-я]?[åòàîâûñ]/u
 
@@ -268,7 +270,8 @@ function definitionsOf(chunks: Chunk[], unitTitle: string): Unit['definitions'] 
       const byStem = terms.find((t) => { const ts = analyzeTerms(t); return ts.length > 0 && ts.every((x) => ls.has(x)) })
       const byDash = line.match(/^(.{2,60}?)\s[—–-]\s(это\s)?/u)?.[1]
       const term = byStem ?? (terms.length === lines.length ? terms[i] : undefined) ?? byDash
-      if (!term) return
+      // «Бри лл иа н тами» — разорванный OCR, не термин
+      if (!term || SPACED_OCR.test(term)) return
       out.push({ term: { ru: cap(term) }, text: { ru: clip(line, 420) }, ...(c.pageStart ? { page: c.pageStart } : {}), chunkId: c.id, source: 'textbook' })
     })
   }
