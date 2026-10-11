@@ -1,31 +1,35 @@
 /**
- * «Мозг» ИИ-учителя ATOMLAB — локальный HTTP-сервер (контракт v1, см. brain/README.md).
- *   GET  /health     — состояние: LLM (Ollama), база;
- *   POST /chat       — ответ потоком SSE (meta / delta / done / error);
- *   POST /kb/append  — дописать запись в журнал базы (только append);
- *   GET  /kb/stats   — статистика журнала.
+ * «Мозг» ИИ-учителя ATOMLAB — HTTP-сервер (контракт v1, см. brain/README.md).
+ *   GET  /health        — состояние: LLM (Ollama), база, очередь (публично, без путей и секретов);
+ *   POST /chat          — ответ потоком SSE (queue / meta / delta / done / error);
+ *   POST /kb/append     — дописать запись в журнал базы (только append) — ТОЛЬКО админ;
+ *   GET  /kb/stats      — статистика журнала (с путём папки данных) — ТОЛЬКО админ;
+ *   GET  /admin/status  — очередь, лимиты, профиль — ТОЛЬКО админ.
  * Запуск: npx tsx brain/server.ts (или npm run brain:start). Без Ollama работает запасным путём.
+ *
+ * Публичный режим (туннель Tailscale Funnel → http://127.0.0.1:8787): адрес ученика — из заголовков прокси
+ * (brain/http/clientIp.ts, только солёный хеш), лимиты частоты и размера (brain/http/rateLimit.ts, guard.ts),
+ * очередь к модели (brain/llm/queue.ts), админ — по ключу X-Brain-Admin (config.adminToken).
  */
 import http from 'node:http'
 import { pathToFileURL } from 'node:url'
-import { CONTRACT, DATA_DIR, loadConfig, PORT, SERVICE, VERSION, type BrainConfig } from './config.ts'
+import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, loadConfig, PORT, SERVICE, VERSION, type BrainConfig } from './config.ts'
+import { clientInfo } from './http/clientIp.ts'
+import { BodyError, checkChatLimits, checkOriginWith, corsHeaders, isAdmin, json, jsonError, readJson } from './http/guard.ts'
+import { RateLimiter, StreamCounter, type RateRule } from './http/rateLimit.ts'
 import { EmbedStore } from './kb/embedStore.ts'
 import { Journal, validateAppend } from './kb/journal.ts'
 import { Knowledge } from './kb/shards.ts'
 import { OllamaClient, type LlmClient } from './llm/ollama.ts'
+import { LlmQueue, QueueTicket } from './llm/queue.ts'
 import { runChat, validateChatRequest, type BrainDeps } from './pipeline/chat.ts'
 import { setElementWords } from './pipeline/normalize.ts'
 import { sseComment, sseHeaders, sseSend } from './sse.ts'
 import { StudentStore } from './student/events.ts'
 
-const ALLOWED_ORIGIN = 'https://sadykoffalan2105-dev.github.io'
-
-/** null — запроса без Origin (curl, скрипты): CORS не нужен; false — чужой сайт (403). */
-export function checkOrigin(origin: string | undefined): string | null | false {
-  if (!origin) return null
-  if (origin === ALLOWED_ORIGIN) return origin
-  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(origin)) return origin
-  return false
+/** null — запроса без Origin (curl, скрипты): CORS не нужен; false — чужой сайт (403). Списки — config.server. */
+export function checkOrigin(origin: string | undefined, cfg: Pick<BrainConfig['server'], 'corsOrigins' | 'corsLocalhost'> = DEFAULT_CONFIG.server): string | null | false {
+  return checkOriginWith(origin, cfg)
 }
 
 export type Brain = {
@@ -35,11 +39,13 @@ export type Brain = {
   /** Пока знания грузятся (быстрый старт сервера) — промис; /chat ждёт его, /health отвечает сразу. */
   ready?: Promise<void>
   loading?: boolean
+  /** очередь к модели (создаёт createServer по config.llm) */
+  queue?: LlmQueue
 }
 
 /** Собрать зависимости: конфиг, знания, журнал, векторы, ученики, клиент Ollama (llm: null — без LLM). */
 export function createBrain(opts: { llm?: LlmClient | null; config?: BrainConfig } = {}): Brain {
-  const config = opts.config ?? loadConfig()
+  const config = applyProfile(opts.config ?? loadConfig())
   const kb = new Knowledge().load()
   setElementWords(kb.qa.elements.flatMap((e) => [e.s, e.ru, e.en, e.uz]))
   const journal = new Journal().load()
@@ -55,7 +61,7 @@ export function createBrain(opts: { llm?: LlmClient | null; config?: BrainConfig
  * порциями в фоне; brain.ready завершается, когда загружены шарды, журнал, векторы и индекс BM25 журнала.
  */
 export function createBrainLazy(opts: { llm?: LlmClient | null; config?: BrainConfig; log?: (s: string) => void } = {}): Brain {
-  const config = opts.config ?? loadConfig()
+  const config = applyProfile(opts.config ?? loadConfig())
   const log = opts.log ?? (() => {})
   const kb = new Knowledge()
   const journal = new Journal()
@@ -80,32 +86,10 @@ export function createBrainLazy(opts: { llm?: LlmClient | null; config?: BrainCo
   return brain
 }
 
-function json(res: http.ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
-  const data = JSON.stringify(body)
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(data), ...headers })
-  res.end(data)
-}
-
-function readBody(req: http.IncomingMessage, limit: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let size = 0
-    const chunks: Buffer[] = []
-    req.on('data', (c: Buffer) => {
-      size += c.length
-      if (size > limit) {
-        reject(new Error('too_large'))
-        req.destroy()
-        return
-      }
-      chunks.push(c)
-    })
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
-    req.on('error', reject)
-  })
-}
-
+/** /health — публично: ни путей, ни ключей, ни адресов. */
 export function healthBody(brain: Brain) {
   const st = brain.deps.llm?.status()
+  const q = brain.queue?.stats()
   return {
     ok: true,
     service: SERVICE,
@@ -113,97 +97,172 @@ export function healthBody(brain: Brain) {
     contract: CONTRACT,
     llm: { available: !!st?.available, chatModel: st?.chatModel ?? null, fastModel: st?.fastModel ?? null, embedModel: st?.embedModel ?? null },
     kb: { docs: brain.deps.kb.docCount + brain.deps.journal.searchableCount(), journalLines: brain.deps.journal.lines, embedded: brain.deps.embeds?.size ?? 0 },
+    // нагрузка (сверх контракта v1): сайт может честно сказать «много вопросов, отвечу чуть позже»
+    ...(q ? { queue: { parallel: q.parallel, running: q.running, waiting: q.waiting } } : {}),
     uptimeMs: Date.now() - brain.startedAt,
     ...(brain.loading ? { loading: true } : {}),
   }
 }
 
+const MIN = 60_000
+const DAY = 24 * 60 * MIN
+
+/** Группа лимитов по пути запроса. */
+function rateRules(method: string, path: string, r: BrainConfig['server']['rate']): { group: string; rules: RateRule[] } {
+  if (method === 'POST' && path === '/chat')
+    return {
+      group: 'chat',
+      rules: [
+        { name: 'chat_minute', windowMs: MIN, max: r.chatPerMin },
+        { name: 'chat_day', windowMs: DAY, max: r.chatPerDay },
+      ],
+    }
+  if (method === 'GET' && path === '/health') return { group: 'health', rules: [{ name: 'health_minute', windowMs: MIN, max: r.healthPerMin }] }
+  return { group: 'other', rules: [{ name: 'other_minute', windowMs: MIN, max: r.otherPerMin }] }
+}
+
+/** Пути, которые пишут или показывают внутренности: только админ. */
+const ADMIN_PATHS = new Set(['/kb/append', '/kb/stats', '/admin/status'])
+
 export function createServer(brain: Brain): http.Server {
   const { deps } = brain
-  return http.createServer(async (req, res) => {
-    const origin = checkOrigin(req.headers.origin)
-    if (origin === false) return json(res, 403, { ok: false, error: { code: 'forbidden_origin', message: 'Origin не разрешён' } })
-    const cors: Record<string, string> = origin
-      ? {
-          'Access-Control-Allow-Origin': origin,
-          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-          'Access-Control-Max-Age': '86400',
-          Vary: 'Origin',
-          ...(req.headers['access-control-request-private-network'] ? { 'Access-Control-Allow-Private-Network': 'true' } : {}),
-        }
-      : {}
-    const url = new URL(req.url ?? '/', 'http://127.0.0.1')
+  const queue = (brain.queue ??= new LlmQueue(deps.config.llm))
+  const limiter = new RateLimiter()
+  const streams = new StreamCounter()
+
+  const server = http.createServer(async (req, res) => {
+    // конфиг читаем на каждый запрос (selftest меняет лимиты на ходу)
+    const cfg = deps.config
+    const sc = cfg.server
+    const client = clientInfo(req, sc.trustProxy)
+    const origin = checkOriginWith(req.headers.origin, sc)
+    if (origin === false) return jsonError(res, 403, 'forbidden_origin', 'Origin не разрешён')
+    const cors = corsHeaders(origin, req)
+    let url: URL
     try {
-      if (req.method === 'OPTIONS') {
+      url = new URL(req.url ?? '/', 'http://127.0.0.1')
+    } catch {
+      return jsonError(res, 400, 'bad_request', 'неверный адрес', cors)
+    }
+    const method = req.method ?? 'GET'
+    const path = url.pathname
+    const admin = isAdmin(req, client, cfg.adminToken)
+    try {
+      // лимит частоты — до чтения тела; владелец с этого ПК (и админ по ключу) не ограничен
+      if (!((sc.rate.exemptLocal && client.local) || (admin && cfg.adminToken))) {
+        const rr = rateRules(method, path, sc.rate)
+        const v = limiter.hit(rr.group, client.key, rr.rules)
+        if (!v.ok) {
+          req.resume()
+          return json(
+            res,
+            429,
+            { ok: false, error: 'rate', code: 'rate', rule: v.rule, retryAfterSec: v.retryAfterSec, message: 'Слишком много вопросов подряд — подождите немного.' },
+            { ...cors, 'Retry-After': String(v.retryAfterSec) },
+          )
+        }
+      }
+      if (method === 'OPTIONS') {
         res.writeHead(204, cors)
         return res.end()
       }
-      if (req.method === 'GET' && url.pathname === '/health') return json(res, 200, healthBody(brain), cors)
-      if (req.method === 'GET' && url.pathname === '/kb/stats') {
+      if (method === 'GET' && path === '/health') return json(res, 200, healthBody(brain), cors)
+      if (ADMIN_PATHS.has(path) && !admin) {
+        req.resume()
+        return jsonError(res, 403, 'forbidden', 'только для администратора мозга', cors)
+      }
+      if (method === 'GET' && path === '/kb/stats') {
         const s = deps.journal.stats()
         return json(res, 200, { ...s, embedded: deps.embeds?.size ?? 0, dataDir: DATA_DIR }, cors)
       }
-      if (req.method === 'POST' && url.pathname === '/kb/append') {
-        let body: unknown
-        try {
-          body = JSON.parse(await readBody(req, 512 * 1024))
-        } catch {
-          return json(res, 400, { ok: false, error: { code: 'bad_request', message: 'нужен JSON' } }, cors)
-        }
+      if (method === 'GET' && path === '/admin/status') {
+        return json(
+          res,
+          200,
+          {
+            ok: true,
+            profile: cfg.profile,
+            queue: queue.stats(),
+            rate: { clients: limiter.size, openStreams: streams.total, limits: sc.rate },
+            dialogLog: deps.noJournal ? 'off' : sc.dialogLog,
+            adminToken: cfg.adminToken ? 'set' : 'empty',
+            keepAlive: cfg.keepAlive,
+            numCtx: cfg.numCtx,
+            uptimeMs: Date.now() - brain.startedAt,
+          },
+          cors,
+        )
+      }
+      if (method === 'POST' && path === '/kb/append') {
+        const body = await readJson(req, 512 * 1024)
         const v = validateAppend(body)
-        if (typeof v === 'string') return json(res, 400, { ok: false, error: { code: 'bad_request', message: v } }, cors)
+        if (typeof v === 'string') return jsonError(res, 400, 'bad_request', v, cors)
         // дописываем только после загрузки журнала: иначе счётчик строк и проверка дубликатов были бы неполными
         if (brain.ready) await brain.ready
         const { record, line } = deps.journal.append(v)
         return json(res, 200, { ok: true, id: record.id, line, ...(record.kind === 'dup' ? { dup: true, ref: record.meta.ref } : {}) }, cors)
       }
-      if (req.method === 'POST' && url.pathname === '/chat') {
-        let body: unknown
-        try {
-          body = JSON.parse(await readBody(req, 256 * 1024))
-        } catch {
-          return json(res, 400, { ok: false, error: { code: 'bad_request', message: 'нужен JSON' } }, cors)
-        }
+      if (method === 'POST' && path === '/chat') {
+        const body = await readJson(req, sc.bodyLimitBytes)
+        const lim = checkChatLimits(body, sc)
+        if (lim) return jsonError(res, 400, 'bad_request', lim, cors)
         const chat = validateChatRequest(body)
-        if (typeof chat === 'string') return json(res, 400, { ok: false, error: { code: 'bad_request', message: chat } }, cors)
-        if (brain.ready) await brain.ready
+        if (typeof chat === 'string') return jsonError(res, 400, 'bad_request', chat, cors)
+        if (!streams.tryOpen(client.key, sc.chatStreamsPerClient)) {
+          return json(res, 429, { ok: false, error: 'rate', code: 'rate', rule: 'streams', retryAfterSec: 5, message: 'Дождитесь ответа на предыдущий вопрос.' }, { ...cors, 'Retry-After': '5' })
+        }
         const ac = new AbortController()
         res.on('close', () => {
           if (!res.writableEnded) ac.abort()
         })
+        // заголовки и «сердцебиение» — сразу (до загрузки знаний и очереди): сайт ждёт первый байт 6 с
         sseHeaders(res, cors)
-        // «сердцебиение»: SSE-комментарий сразу и каждые 5 с, пока модель читает подсказку (до 45 с) —
-        // соединение живое, клиент показывает «Думаю…» и не уходит в запасной путь раньше времени
         sseComment(res, 'thinking')
         const hb = setInterval(() => sseComment(res, 'hb'), 5000)
+        const ticket = deps.llm ? new QueueTicket(deps.llm, queue, { signal: ac.signal, onPosition: (p) => sseSend(res, 'queue', p) }) : null
+        // журнал диалогов: адрес не пишется никогда; 'local' — только владелец с этого ПК, 'off' — никто
+        const noJournal = !!deps.noJournal || sc.dialogLog === 'off' || (sc.dialogLog === 'local' && !client.local)
+        const reqDeps: BrainDeps = { ...deps, llm: ticket ?? deps.llm, noJournal }
+        // модель занята (очередь полна / ждали слишком долго) — запасной путь честно помечен reason 'busy'
+        const mark = <T extends { reason?: string }>(e: T): T => (ticket?.busy === 'overflow' || ticket?.busy === 'timeout' ? { ...e, reason: 'busy' } : e)
         try {
+          if (brain.ready) await brain.ready
           await runChat(
             chat,
-            deps,
+            reqDeps,
             {
-              meta: (m) => sseSend(res, 'meta', m),
+              meta: (m) => sseSend(res, 'meta', mark(m)),
               delta: (t) => sseSend(res, 'delta', { text: t }),
-              done: (d) => sseSend(res, 'done', d),
+              done: (d) => sseSend(res, 'done', mark(d)),
               error: (e) => sseSend(res, 'error', e),
             },
             ac.signal,
           )
         } catch (err) {
           console.error('[brain] /chat:', err)
-          sseSend(res, 'error', { code: 'internal', message: (err as Error).message })
+          sseSend(res, 'error', { code: 'internal', message: 'внутренняя ошибка мозга' })
         } finally {
           clearInterval(hb)
+          ticket?.release()
+          streams.close(client.key)
         }
         return res.end()
       }
-      return json(res, 404, { ok: false, error: { code: 'not_found', message: `${req.method} ${url.pathname}` } }, cors)
+      return jsonError(res, 404, 'not_found', `${method} ${path.slice(0, 80)}`, cors)
     } catch (err) {
+      if (err instanceof BodyError) {
+        return jsonError(res, err.status, err.code, err.message, err.status === 413 ? { ...cors, Connection: 'close' } : cors)
+      }
       console.error('[brain]', err)
-      if (!res.headersSent) return json(res, 500, { ok: false, error: { code: 'internal', message: (err as Error).message } }, cors)
+      // наружу — без текста исключения (пути, стеки)
+      if (!res.headersSent) return jsonError(res, 500, 'internal', 'внутренняя ошибка мозга', cors)
       res.end()
     }
   })
+  // медленные клиенты не держат сокеты: заголовки — 15 с, всё тело запроса — 30 с (поток ответа SSE не ограничен)
+  server.headersTimeout = 15_000
+  server.requestTimeout = 30_000
+  return server
 }
 
 export async function main(): Promise<void> {
@@ -215,7 +274,11 @@ export async function main(): Promise<void> {
     server.listen(PORT, '127.0.0.1', () => resolve())
   })
   brain.ollama?.start() // первый опрос /api/tags сразу прогревает чат- и быструю модели (персона в кеше)
-  console.log(`[brain] ${SERVICE} ${VERSION} слушает http://127.0.0.1:${PORT} за ${Math.round(performance.now() - t0)} мс · данные: ${DATA_DIR} · Ollama: ${brain.deps.config.ollamaUrl} (опрос каждые ${Math.round(brain.deps.config.pollMs / 1000)} с)`)
+  const cfg = brain.deps.config
+  console.log(`[brain] ${SERVICE} ${VERSION} слушает http://127.0.0.1:${PORT} за ${Math.round(performance.now() - t0)} мс · данные: ${DATA_DIR} · Ollama: ${cfg.ollamaUrl} (опрос каждые ${Math.round(cfg.pollMs / 1000)} с)`)
+  console.log(
+    `[brain] профиль ${cfg.profile}: очередь ${cfg.llm.parallel} одновременно, ждут до ${cfg.llm.queueCap} (≤ ${Math.round(cfg.llm.queueWaitMs / 1000)} с), keep_alive ${cfg.keepAlive}, окно ${cfg.numCtx} · лимит /chat ${cfg.server.rate.chatPerMin}/мин и ${cfg.server.rate.chatPerDay}/сутки · журнал диалогов: ${brain.deps.noJournal ? 'off' : cfg.server.dialogLog} · ключ админа: ${cfg.adminToken ? 'задан' : 'пуст (админ только с этого ПК)'}`,
+  )
   await brain.ready
   const st = await (brain.ollama?.refresh() ?? Promise.resolve(null))
   console.log(

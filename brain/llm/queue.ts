@@ -1,0 +1,212 @@
+/**
+ * Очередь к модели: одновременно генерируют не больше llm.parallel ответов (ноутбук без GPU — 1, ПК с RTX — 4),
+ * остальные ждут по порядку. Пока ждут — сервер шлёт в SSE событие 'queue' {position, etaSec} и «сердцебиение».
+ * Очередь полна (queueCap) или ждать дольше queueWaitMs → ученик сразу получает честный запасной путь
+ * (поиск + расчёты + шаблоны) с done.reason 'busy' — а не тишину и не тайм-аут.
+ *
+ * Конвейер (brain/pipeline) об очереди не знает: на каждый запрос сервер даёт ему QueueTicket — обёртку LlmClient,
+ * которая занимает слот при первом обращении к модели (классификация или ответ) и держит его до конца запроса.
+ * Эмбеддинги (поиск, доли секунды) идут мимо очереди.
+ */
+import type { ChatStreamOptions, ChatStreamResult, LlmClient, LlmMessage, LlmStatus } from './ollama.ts'
+
+export type QueueOptions = { parallel: number; queueCap: number; queueWaitMs: number }
+export type QueueBusy = 'overflow' | 'timeout' | 'abort'
+export type QueuePosition = { position: number; waiting: number; etaSec?: number }
+
+type Waiter = {
+  grant: () => void
+  fail: (why: QueueBusy) => void
+  onPosition?: (p: QueuePosition) => void
+  lastPos: number
+}
+
+/** Минимум на первый токен после ожидания в очереди (ожидание вычитается из config.timeouts.firstTokenMs). */
+const MIN_FIRST_TOKEN_MS = 8000
+
+export class LlmQueue {
+  opts: QueueOptions
+  running = 0
+  private waiting: Waiter[] = []
+  /** скользящее среднее времени, которое запрос держит слот (для оценки ожидания) */
+  private avgHoldMs = 0
+  readonly counters = { served: 0, queued: 0, busyOverflow: 0, busyTimeout: 0, aborted: 0, maxWaitingSeen: 0 }
+
+  constructor(opts: QueueOptions) {
+    this.opts = { ...opts }
+  }
+
+  stats() {
+    return { parallel: this.opts.parallel, running: this.running, waiting: this.waiting.length, cap: this.opts.queueCap, ...this.counters }
+  }
+
+  private eta(position: number): number | undefined {
+    if (!this.avgHoldMs) return undefined
+    return Math.max(1, Math.round((Math.ceil(position / Math.max(1, this.opts.parallel)) * this.avgHoldMs) / 1000))
+  }
+
+  private notify(): void {
+    this.waiting.forEach((w, i) => {
+      const position = i + 1
+      if (position === w.lastPos) return
+      w.lastPos = position
+      const eta = this.eta(position)
+      w.onPosition?.({ position, waiting: this.waiting.length, ...(eta ? { etaSec: eta } : {}) })
+    })
+  }
+
+  /**
+   * Занять слот. Успех — { release, waitedMs } (release вызвать ровно один раз); иначе — причина отказа.
+   * onPosition вызывается при постановке в очередь и при каждом продвижении.
+   */
+  acquire(o: { onPosition?: (p: QueuePosition) => void; signal?: AbortSignal } = {}): Promise<{ release: () => void; waitedMs: number } | { busy: QueueBusy }> {
+    const t0 = Date.now()
+    const slot = () => {
+      this.running++
+      let done = false
+      const held = Date.now()
+      return {
+        waitedMs: Date.now() - t0,
+        release: () => {
+          if (done) return
+          done = true
+          this.running--
+          const hold = Date.now() - held
+          this.avgHoldMs = this.avgHoldMs ? this.avgHoldMs * 0.8 + hold * 0.2 : hold
+          this.counters.served++
+          this.next()
+        },
+      }
+    }
+    if (o.signal?.aborted) return Promise.resolve({ busy: 'abort' as const })
+    if (this.running < Math.max(1, this.opts.parallel) && !this.waiting.length) return Promise.resolve(slot())
+    if (this.waiting.length >= this.opts.queueCap) {
+      this.counters.busyOverflow++
+      return Promise.resolve({ busy: 'overflow' as const })
+    }
+    return new Promise((resolve) => {
+      let timer: NodeJS.Timeout | null = null
+      const cleanup = () => {
+        if (timer) clearTimeout(timer)
+        o.signal?.removeEventListener('abort', onAbort)
+        const i = this.waiting.indexOf(w)
+        if (i >= 0) this.waiting.splice(i, 1)
+      }
+      const w: Waiter = {
+        lastPos: 0,
+        onPosition: o.onPosition,
+        grant: () => {
+          cleanup()
+          resolve(slot())
+        },
+        fail: (why) => {
+          cleanup()
+          if (why === 'timeout') this.counters.busyTimeout++
+          if (why === 'abort') this.counters.aborted++
+          resolve({ busy: why })
+          this.notify()
+        },
+      }
+      const onAbort = () => w.fail('abort')
+      o.signal?.addEventListener('abort', onAbort, { once: true })
+      timer = setTimeout(() => w.fail('timeout'), Math.max(0, this.opts.queueWaitMs))
+      timer.unref?.()
+      this.waiting.push(w)
+      this.counters.queued++
+      this.counters.maxWaitingSeen = Math.max(this.counters.maxWaitingSeen, this.waiting.length)
+      this.notify()
+    })
+  }
+
+  private next(): void {
+    while (this.running < Math.max(1, this.opts.parallel) && this.waiting.length) {
+      const w = this.waiting[0]!
+      w.grant() // grant убирает его из списка и занимает слот
+    }
+    this.notify()
+  }
+}
+
+/**
+ * LlmClient одного запроса /chat: первый вызов модели занимает слот очереди, release() (сервер, в конце запроса)
+ * его отдаёт. Не дождался — busy: status() дальше говорит «модели нет», и конвейер честно отвечает запасным путём.
+ */
+export class QueueTicket implements LlmClient {
+  busy: QueueBusy | null = null
+  waitedMs = 0
+  private slot: Promise<boolean> | null = null
+  private releaseFn: (() => void) | null = null
+  private released = false
+  private base: LlmClient
+  private queue: LlmQueue
+  private hooks: { onPosition?: (p: QueuePosition) => void; signal?: AbortSignal }
+
+  constructor(base: LlmClient, queue: LlmQueue, hooks: { onPosition?: (p: QueuePosition) => void; signal?: AbortSignal } = {}) {
+    this.base = base
+    this.queue = queue
+    this.hooks = hooks
+  }
+
+  status(): LlmStatus {
+    const st = this.base.status()
+    return this.busy ? { ...st, available: false } : st
+  }
+
+  refresh(): Promise<LlmStatus> {
+    return this.base.refresh()
+  }
+
+  /** Занять слот один раз на весь запрос. */
+  private ensureSlot(signal?: AbortSignal): Promise<boolean> {
+    if (this.busy) return Promise.resolve(false)
+    if (this.released) return Promise.resolve(false)
+    if (!this.slot) {
+      let queued = false
+      const onPosition = (p: QueuePosition) => {
+        queued = true
+        this.hooks.onPosition?.(p)
+      }
+      this.slot = this.queue.acquire({ onPosition, signal: signal ?? this.hooks.signal }).then((r) => {
+        if ('busy' in r) {
+          this.busy = r.busy
+          return false
+        }
+        this.waitedMs = r.waitedMs
+        // дождался — position 0: сайт убирает «в очереди» и показывает «Думаю…»
+        if (queued) this.hooks.onPosition?.({ position: 0, waiting: this.queue.stats().waiting })
+        if (this.released) {
+          r.release() // запрос уже закончился, пока ждали
+          return false
+        }
+        this.releaseFn = r.release
+        return true
+      })
+    }
+    return this.slot
+  }
+
+  /** Отдать слот (сервер зовёт в finally запроса). Повторный вызов безопасен. */
+  release(): void {
+    this.released = true
+    this.releaseFn?.()
+    this.releaseFn = null
+  }
+
+  async chatStream(o: ChatStreamOptions): Promise<ChatStreamResult> {
+    if (!(await this.ensureSlot(o.signal))) {
+      return { text: '', stopped: this.busy === 'abort' || o.signal?.aborted ? 'client_abort' : 'error', error: `busy:${this.busy ?? 'released'}` }
+    }
+    // ожидание в очереди съедает срок первого токена: сайт ждёт первый кусок ответа фиксированное время
+    const firstTokenMs = this.waitedMs > 0 ? Math.min(o.firstTokenMs, Math.max(MIN_FIRST_TOKEN_MS, o.firstTokenMs - this.waitedMs)) : o.firstTokenMs
+    return this.base.chatStream({ ...o, firstTokenMs })
+  }
+
+  async complete(o: { model: string; messages: LlmMessage[]; temperature?: number; numPredict?: number; timeoutMs: number; signal?: AbortSignal }): Promise<string | null> {
+    if (!(await this.ensureSlot(o.signal))) return null
+    return this.base.complete(o)
+  }
+
+  embed(texts: string[], timeoutMs: number, signal?: AbortSignal): Promise<number[][] | null> {
+    return this.base.embed(texts, timeoutMs, signal)
+  }
+}
