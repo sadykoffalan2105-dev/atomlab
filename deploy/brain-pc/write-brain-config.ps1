@@ -45,8 +45,9 @@ Act "записать $file (профиль $($cfg.profile), модели $chat 
   New-Item -ItemType Directory -Force -Path $paths.Data, $paths.Secrets | Out-Null
   if (-not (Test-Path -LiteralPath $tokFile)) {
     [IO.File]::WriteAllText($tokFile, $token, (New-Object System.Text.UTF8Encoding($false)))
-    # только администраторы и SYSTEM (SID — не зависят от языка Windows)
-    Invoke-Exe icacls.exe $paths.Secrets /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null
+    # только администраторы и SYSTEM (SID — не зависят от языка Windows); без прав админа (проверка code-data) — не трогаем,
+    # иначе сам создатель потерял бы доступ к папке
+    if (Test-Admin) { Invoke-Exe icacls.exe $paths.Secrets /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null }
   }
   Write-JsonNoBom $file $conf
 }

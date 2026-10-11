@@ -495,7 +495,7 @@ if ($publicUrl) {
   Invoke-Exe $node --import $loader (Join-Path $paths.Repo 'deploy\brain-pc\selftest.mts') ("--url=" + $publicUrl) ("--json=" + $pj) | Out-Null
   $fj = Read-Json $pj
   if ($fj -and $fj.ok) {
-    Ok ("через интернет: {0}/health ok, первое слово {1} мс (кусков {2} — поток идёт)" -f $publicUrl, $fj.firstMs, $fj.chunks)
+    Ok ("через интернет: {0}/health ok, первое слово {1} мс, всего {2} мс (кусков {3})" -f $publicUrl, $fj.firstMs, $fj.totalMs, $fj.chunks)
     $report['Через интернет'] = ("ok, первое слово {0} мс, кусков {1}" -f $fj.firstMs, $fj.chunks)
   } else {
     Warn ("через интернет не ответил: " + $(if ($fj) { $fj.error } else { 'нет ответа' }) + ' (новому адресу иногда нужно 1–10 мин на HTTPS-сертификат и DNS)')
