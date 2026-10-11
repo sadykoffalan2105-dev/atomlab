@@ -223,8 +223,8 @@ export function createServer(brain: Brain): http.Server {
         // журнал диалогов: адрес не пишется никогда; 'local' — только владелец с этого ПК, 'off' — никто
         const noJournal = !!deps.noJournal || sc.dialogLog === 'off' || (sc.dialogLog === 'local' && !client.local)
         const reqDeps: BrainDeps = { ...deps, llm: ticket ?? deps.llm, noJournal }
-        // модель занята (очередь полна / ждали слишком долго) — запасной путь честно помечен reason 'busy'
-        const mark = <T extends { reason?: string }>(e: T): T => (ticket?.busy === 'overflow' || ticket?.busy === 'timeout' ? { ...e, reason: 'busy' } : e)
+        // модель занята (очередь полна / по оценке не дождаться / ждали слишком долго) — запасной путь, reason 'busy'
+        const mark = <T extends { reason?: string }>(e: T): T => (ticket?.busy && ticket.busy !== 'abort' ? { ...e, reason: 'busy' } : e)
         try {
           if (brain.ready) await brain.ready
           await runChat(

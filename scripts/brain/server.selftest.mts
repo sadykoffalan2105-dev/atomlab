@@ -71,21 +71,30 @@ delete process.env.BRAIN_PROFILE
 delete process.env.BRAIN_ADMIN_TOKEN
 
 // ——— 3) сервер
-console.log(`3) сервер на 127.0.0.1:${PORT} (данные: ${dataDir})`)
+console.log(`3) сервер на 127.0.0.1 (данные: ${dataDir})`)
 const mock = new MockLlm({ tokenDelayMs: 40 })
 const brain = createBrainLazy({ llm: mock, config: { ...loadConfig(), profile: 'laptop' } })
 const server = createServer(brain)
-await new Promise<void>((resolve, reject) => {
-  server.once('error', reject)
-  server.listen(PORT, '127.0.0.1', () => resolve())
+// порт 8790 занят (например, забытый тестовый сервер) — берём свободный: проверка не должна падать из-за порта
+// (порт — из server.address() после 'listening': колбэк первого listen сработал бы и после второго)
+const port = await new Promise<number>((resolve, reject) => {
+  server.once('listening', () => resolve((server.address() as { port: number }).port))
+  server.once('error', (err: NodeJS.ErrnoException) => {
+    if (err.code !== 'EADDRINUSE') return reject(err)
+    console.log(`  (порт ${PORT} занят — беру свободный)`)
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1')
+  })
+  server.listen(PORT, '127.0.0.1')
 })
+console.log(`  слушает 127.0.0.1:${port}`)
 const cfg = brain.deps.config
 const queue = brain.queue!
 
 type Res = { status: number; headers: http.IncomingHttpHeaders; text: string; json: Record<string, unknown> | null }
 function call(method: string, p: string, o: { headers?: Record<string, string>; body?: string | Buffer } = {}): Promise<Res> {
   return new Promise((resolve, reject) => {
-    const r = http.request({ host: '127.0.0.1', port: PORT, method, path: p, headers: { ...(o.body !== undefined ? { 'Content-Length': String(Buffer.byteLength(o.body)) } : {}), ...o.headers } }, (res) => {
+    const r = http.request({ host: '127.0.0.1', port, method, path: p, headers: { ...(o.body !== undefined ? { 'Content-Length': String(Buffer.byteLength(o.body)) } : {}), ...o.headers } }, (res) => {
       const chunks: Buffer[] = []
       res.on('data', (c: Buffer) => chunks.push(c))
       res.on('end', () => {
@@ -122,6 +131,11 @@ async function chat(q: string, headers: Record<string, string>): Promise<Chat> {
 }
 
 const h0 = await call('GET', '/health', { headers: { Origin: ORIGIN } })
+// защита: отвечает именно наш экземпляр (а не другой сервер на том же порту) — иначе проверки бессмысленны
+if (Math.abs(Number(h0.json?.uptimeMs) - (Date.now() - brain.startedAt)) > 3000) {
+  console.error(`[brain:server-selftest] на порту ${port} отвечает чужой сервер — остановите его или задайте BRAIN_SELFTEST_PORT`)
+  process.exit(1)
+}
 await brain.ready
 const hs = h0.text
 ok(h0.status === 200 && h0.json?.ok === true && typeof h0.json?.queue === 'object', '/health отвечает (и пока знания грузятся), есть нагрузка очереди')
@@ -207,13 +221,24 @@ const qs = queue.stats()
 ok(qs.running === 0 && qs.waiting === 0 && qs.busyOverflow >= 1 && qs.busyTimeout >= 1, 'очередь пуста после ответов, счётчики busy', JSON.stringify({ served: qs.served, overflow: qs.busyOverflow, timeout: qs.busyTimeout }))
 
 console.log('  потоки на ученика')
-queue.opts = { parallel: 1, queueCap: 5, queueWaitMs: 2000 }
+// ждать можно долго: второй поток ученика стоит в очереди (не уходит сразу в busy), пока приходит третий
+queue.opts = { parallel: 1, queueCap: 5, queueWaitMs: 15_000 }
 const S = fwd('198.51.100.30')
 const sp = [chat(Q, S), chat(Q, S)]
 await new Promise((r) => setTimeout(r, 100))
 const s3 = await chat(Q, S)
 await Promise.all(sp)
 ok(s3.status === 429 && s3.json?.rule === 'streams', `третий одновременный поток одного ученика → 429 (лимит ${cfg.server.chatStreamsPerClient})`)
+
+console.log('  оценка ожидания')
+queue.opts = { parallel: 1, queueCap: 5, queueWaitMs: 600 }
+const p6 = chat(Q, fwd('198.51.100.26'))
+await new Promise((r) => setTimeout(r, 150))
+const t7 = Date.now()
+const q7 = await chat(Q, fwd('198.51.100.27'))
+const ms7 = Date.now() - t7
+await p6
+ok(!q7.queue.length && q7.done?.reason === 'busy' && queue.stats().busyPredicted >= 1, 'по замерам не дождаться за queueWaitMs → сразу запасной путь (reason busy), без пустого ожидания', `${ms7} мс, оценка по ${queue.stats().served} ответам`)
 
 console.log('  журнал диалогов')
 const lines = () => (fs.existsSync(FILES.dialogs) ? fs.readFileSync(FILES.dialogs, 'utf8').split('\n').filter(Boolean).length : 0)

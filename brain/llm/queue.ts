@@ -11,7 +11,8 @@
 import type { ChatStreamOptions, ChatStreamResult, LlmClient, LlmMessage, LlmStatus } from './ollama.ts'
 
 export type QueueOptions = { parallel: number; queueCap: number; queueWaitMs: number }
-export type QueueBusy = 'overflow' | 'timeout' | 'abort'
+/** overflow — очередь полна; predicted — по оценке ждать дольше queueWaitMs (не томим зря); timeout — ждали; abort — ушёл */
+export type QueueBusy = 'overflow' | 'predicted' | 'timeout' | 'abort'
 export type QueuePosition = { position: number; waiting: number; etaSec?: number }
 
 type Waiter = {
@@ -30,7 +31,10 @@ export class LlmQueue {
   private waiting: Waiter[] = []
   /** скользящее среднее времени, которое запрос держит слот (для оценки ожидания) */
   private avgHoldMs = 0
-  readonly counters = { served: 0, queued: 0, busyOverflow: 0, busyTimeout: 0, aborted: 0, maxWaitingSeen: 0 }
+  /** когда заняты текущие слоты (id → мс) — сколько им ещё осталось по среднему */
+  private holding = new Map<number, number>()
+  private nextId = 1
+  readonly counters = { served: 0, queued: 0, busyOverflow: 0, busyPredicted: 0, busyTimeout: 0, aborted: 0, maxWaitingSeen: 0 }
 
   constructor(opts: QueueOptions) {
     this.opts = { ...opts }
@@ -40,9 +44,28 @@ export class LlmQueue {
     return { parallel: this.opts.parallel, running: this.running, waiting: this.waiting.length, cap: this.opts.queueCap, ...this.counters }
   }
 
+  /**
+   * Оценка ожидания для места position (1 — следующий), мс: слоты освобождаются через «среднее − уже прошло»,
+   * дальше каждый ждущий занимает слот на среднее время. undefined — замеров мало (меньше 3 ответов).
+   */
+  estimateWaitMs(position: number, now = Date.now()): number | undefined {
+    if (!this.avgHoldMs || this.counters.served < 3) return undefined
+    const par = Math.max(1, this.opts.parallel)
+    const free = [...this.holding.values()].map((t) => Math.max(0, this.avgHoldMs - (now - t)))
+    while (free.length < par) free.push(0)
+    free.sort((a, b) => a - b)
+    let at = 0
+    for (let i = 0; i < position; i++) {
+      at = free.shift()!
+      free.push(at + this.avgHoldMs)
+      free.sort((a, b) => a - b)
+    }
+    return at
+  }
+
   private eta(position: number): number | undefined {
-    if (!this.avgHoldMs) return undefined
-    return Math.max(1, Math.round((Math.ceil(position / Math.max(1, this.opts.parallel)) * this.avgHoldMs) / 1000))
+    const ms = this.estimateWaitMs(position)
+    return ms === undefined ? undefined : Math.max(1, Math.round(ms / 1000))
   }
 
   private notify(): void {
@@ -65,12 +88,15 @@ export class LlmQueue {
       this.running++
       let done = false
       const held = Date.now()
+      const id = this.nextId++
+      this.holding.set(id, held)
       return {
         waitedMs: Date.now() - t0,
         release: () => {
           if (done) return
           done = true
           this.running--
+          this.holding.delete(id)
           const hold = Date.now() - held
           this.avgHoldMs = this.avgHoldMs ? this.avgHoldMs * 0.8 + hold * 0.2 : hold
           this.counters.served++
@@ -83,6 +109,12 @@ export class LlmQueue {
     if (this.waiting.length >= this.opts.queueCap) {
       this.counters.busyOverflow++
       return Promise.resolve({ busy: 'overflow' as const })
+    }
+    // по замерам очередь не дойдёт за queueWaitMs (с запасом 25 %) — сразу честный запасной путь, без пустого ожидания
+    const est = this.estimateWaitMs(this.waiting.length + 1)
+    if (est !== undefined && est > this.opts.queueWaitMs * 1.25) {
+      this.counters.busyPredicted++
+      return Promise.resolve({ busy: 'predicted' as const })
     }
     return new Promise((resolve) => {
       let timer: NodeJS.Timeout | null = null
