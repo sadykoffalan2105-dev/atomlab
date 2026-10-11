@@ -23,7 +23,9 @@ npm run brain:start    # сервер: «atomlab-brain http://127.0.0.1:8787, ll
 | `npm run brain:start` | сервер (порт слушается сразу, знания догружаются в фоне ≈ 5 с; `/chat` ждёт загрузки) |
 | `npm run brain:corpus` | учебники Kimyo 7–11, указатель, карточки ATOMLAB, qaBank, учёные, megaPack, химическая Википедия → журнал (`--only=…`, `--skip=wiki`, `--dry`) |
 | `npm run brain:embed` | векторы bge-m3 в `derived/embeddings/` (`--only=school`, `--limit=N`); возобновляемо, печатает ETA |
-| `npm run brain:eval` | 164 контрольных вопроса по 9 категориям через HTTP; `-- --inproc` без сервера, `-- --mock-llm` с подменой Ollama, `-- --fails` / `--verbose` |
+| `npm run brain:eval` | 177 контрольных вопросов по 10 категориям (в т. ч. `obtain` — «как получить X» с проверкой уравнений) через HTTP; `-- --inproc` без сервера, `-- --mock-llm` с подменой Ollama, `-- --ids=ob01,tr12` выборочно, `-- --fails` / `--verbose` |
+| `npm run brain:selftest` | юнит-проверки без LLM: тема найденного, способы получения, падежи названий, ложный мат |
+| `npm run brain:probe -- "вопрос" --why` | что находит поиск: источники, баллы, уверенность; `--why` — что отброшено проверкой темы и почему |
 | `npm run brain:smoke` | живая проверка контракта на временной папке: /health, CORS, SSE, R1/R2, /kb/append, появление «Ollama», эмбеддинги, обрыв клиента |
 
 ## Переменные среды
@@ -70,8 +72,10 @@ atomlab-brain-data\
 
 normalize (язык ru/uz/en, набор букв) → moderation (мат с маскировкой → R2 + ответ по сути) → ownerRule (R1) →
 опасные инструкции → беседа → intent → tools (молярная масса, ω, моль↔масса↔объём, уравнивание, степени окисления,
-растворы, разбавление, газы, ΔH, pH, элемент > 118) → retrieve (BM25F шардов + BM25 журнала + bge-m3, hybrid 0.55/0.45,
-бонусы, MMR) → LLM (Ollama, поток, StreamGate: R3, язык, лимит слов) или запасной путь (fallback.ts) → postcheck
+растворы, разбавление, газы, ΔH, pH, элемент > 118, способы получения — проверенные уравнения каталога 200 / учебника /
+200 основных реакций, `obtain.ts`) → retrieve (BM25F шардов + BM25 журнала + bge-m3, hybrid 0.55/0.45, бонусы,
+проверка темы `relevance.ts`: понятия вопроса во фрагменте, совпадение по фамилии не в счёт, учёные — только для «кто»,
+Kimyo/ATOMLAB выше Википедии; ничего по теме — модель отвечает от законов без «справки», MMR) → LLM (Ollama, поток, StreamGate: R3, язык, лимит слов) или запасной путь (fallback.ts) → postcheck
 (R3, числа инструментов, длина) → журналы.
 
 ## Как добавить правило
@@ -80,5 +84,7 @@ normalize (язык ru/uz/en, набор букв) → moderation (мат с м�
 - **Мат** — корень в `brain/pipeline/moderation.ts` (словари ru/uz/en; белый список там же), проверка: `npm run brain:eval -- --inproc --cat=profanity`.
 - **Правило владельца / тексты R1–R3** — `brain/pipeline/ownerRule.ts`, `moderation.ts` (R2), `postcheck.ts` (R3); менять только вместе с сайтом (`src/learn/brain/policy/*`).
 - **Понятие для запасного пути** (определение + «логика от законов» на 3 языках) — `brain/kb/concepts.ts`.
+- **Способ получения вещества** — шаг в `src/data/catalog/catalogObtaining200.ts` (каталог) или дополнение `EXTRA` в `brain/pipeline/obtain.ts`; бытовое название — `ALIASES` там же; проверка: `npm run brain:selftest`.
+- **Склонение названия** (исключение вроде «свинец → свинца») — `IRREGULAR` в `brain/pipeline/declension.ts`.
 - **Факт или правка учителя** — без кода: `POST /kb/append {"kind":"correction","lang":"ru","text":"…"}`.
 - **Контрольный вопрос** — строка в `brain/eval/questions.jsonl` (`{id, cat, lang, q, expect:{exact?, startsWith?, mustMatch?, mustNotMatch?, lang?, maxWords?, number?:{value,tol}, intent?}}`).

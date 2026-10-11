@@ -4,7 +4,8 @@
  *   по умолчанию     — через HTTP на запущенный сервер http://127.0.0.1:8787 (env BRAIN_PORT / --url=…)
  *   --inproc         — без сервера: конвейер в этом процессе (без LLM — запасной путь)
  *   --mock-llm       — в процессе с подменой Ollama (brain/llm/mock.ts; часть ответов «капризные»: R3 и испорченные числа)
- *   --cat=calc,rule  — только эти категории;  --verbose — печатать ответы;  --fails — печатать провалы
+ *   --cat=calc,rule  — только эти категории;  --ids=ob01,sr24 — только эти вопросы (живая модель: несколько штук)
+ *   --verbose — печатать ответы;  --fails — печатать провалы
  *   --json=путь      — сохранить подробный отчёт
  *   --sample=N       — стратифицированная подвыборка ~N вопросов (равномерно по категориям) для быстрых замеров на живой модели
  *
@@ -46,7 +47,8 @@ const questions: Question[] = fs
   .filter(Boolean)
   .map((s) => JSON.parse(s) as Question)
 const cats = arg('cat')?.split(',')
-const pool = cats ? questions.filter((q) => cats.includes(q.cat)) : questions
+const ids = arg('ids')?.split(',')
+const pool = ids ? questions.filter((q) => ids.includes(q.id)) : cats ? questions.filter((q) => cats.includes(q.cat)) : questions
 /** Подвыборка: из каждой категории берём долю, пропорциональную её размеру, равномерно по списку (детерминированно). */
 function sample(list: Question[], n: number): Question[] {
   if (!n || n >= list.length) return list

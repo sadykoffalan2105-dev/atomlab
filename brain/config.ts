@@ -47,12 +47,21 @@ export type BrainConfig = {
   /** Сколько Ollama держит модели в памяти после запроса; сервер продлевает его, пока работает (keepAliveRefreshMs). */
   keepAlive: string
   keepAliveRefreshMs: number
-  /** Бюджет подсказки: найденное и история идут в конец (после неизменной персоны) и ограничены. */
+  /**
+   * Бюджет подсказки: найденное и история идут в конец (после неизменной персоны) и ограничены.
+   * chatChars — длина переменной части в чате (справка + знания): меньше — быстрее первое слово (≈ 2,5 симв./ток., 25–50 ток/с).
+   */
   prompt: { chatItems: number; chatChars: number; liveItems: number; liveChars: number; historyMessages: number; historyChars: number }
+  /**
+   * Прогрев чат-модели персонами языков (по очереди, в фоне, когда /health уже отвечает): первый вопрос на uz/en не
+   * упирается в загрузку модели. ru — первым (самый частый язык готов раньше всех); при OLLAMA_NUM_PARALLEL ≥ 3 каждая
+   * персона остаётся в своём слоте кеша, при одном слоте в кеше остаётся последняя (чужая персона — +5–10 с, не тайм-аут).
+   */
+  warmLangs: ('ru' | 'uz' | 'en')[]
 }
 
 export const DEFAULT_CONFIG: BrainConfig = {
-  configVersion: 2,
+  configVersion: 3,
   ollamaUrl: 'http://127.0.0.1:11434',
   chatModels: ['qwen2.5:7b-instruct', 'qwen2.5:7b', 'qwen2.5:14b-instruct', 'qwen2.5:3b-instruct'],
   fastModels: ['qwen2.5:3b-instruct', 'qwen2.5:3b', 'qwen2.5:1.5b-instruct'],
@@ -71,8 +80,9 @@ export const DEFAULT_CONFIG: BrainConfig = {
   numCtx: 4096,
   keepAlive: '2h',
   keepAliveRefreshMs: 15 * 60_000,
-  // переменная часть подсказки читается заново каждый раз (~2,5 симв./ток., 25–50 ток/с) — ≤ ~1000 симв. ≈ 8–15 с
-  prompt: { chatItems: 3, chatChars: 750, liveItems: 1, liveChars: 300, historyMessages: 2, historyChars: 300 },
+  // переменная часть подсказки читается заново каждый раз (~2,5 симв./ток., 25–50 ток/с): 600 симв. ≈ 240 ток. ≈ 5–10 с
+  prompt: { chatItems: 3, chatChars: 600, liveItems: 1, liveChars: 300, historyMessages: 2, historyChars: 300 },
+  warmLangs: ['ru', 'uz', 'en'],
 }
 
 /**
@@ -90,6 +100,7 @@ export const CONFIG_MIGRATIONS: { version: number; path: string; old: unknown }[
   { version: 2, path: 'numPredict.live', old: 220 },
   { version: 2, path: 'numCtx', old: 8192 },
   { version: 2, path: 'temperature.chat', old: 0.3 },
+  { version: 3, path: 'prompt.chatChars', old: 750 },
 ]
 
 function getPath(o: unknown, p: string): unknown {

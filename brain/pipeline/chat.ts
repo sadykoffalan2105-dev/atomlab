@@ -372,7 +372,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       if (!metaSent) openStream('fallback', 'client_abort')
       return finish({ text: lead + ans.text, intent, route: ans.text ? 'llm' : 'fallback', source: ans.text ? 'llm' : 'local', confidence: 0, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
     }
-    const citations = () => [...(tools.length ? ['[ATOMLAB: расчёт]'] : []), ...relevantCitations(retrieval, text)].filter((c, i, a) => a.indexOf(c) === i)
+    const citations = () => [...tools.map((t) => t.cite ?? '[ATOMLAB: расчёт]'), ...relevantCitations(retrieval, text)].filter((c, i, a) => a.indexOf(c) === i)
     if (ans.ok || ans.text) {
       // ответ модели (возможно, оборванный по времени или на CJK) — договариваем недостающее из запасного пути
       openStream('llm')

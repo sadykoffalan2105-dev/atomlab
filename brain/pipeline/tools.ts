@@ -4,7 +4,7 @@
  *
  * molarMass · massFraction · stoich (моль ↔ масса ↔ объём, 22,4 л/моль н.у.) · balance · oxidation ·
  * solution (ω, C) · dilution · gas (pV = nRT) · thermo (ΔH = ΣΔfH прод − ΣΔfH исх) · pH (сильные кислоты/щёлочи) ·
- * элемент с номером > 118 · перевод единиц · арифметика.
+ * элемент с номером > 118 · перевод единиц · арифметика · способы получения вещества (obtain.ts: проверенные уравнения).
  */
 import { molarMassGMol, type ElementSymbol, isElementSymbol, atomicMassU } from '../../src/chemistry/data/atomicData.ts'
 import { equationImbalance, formatEquationUnicode, parseEquationText, type EquationSpecies } from '../../src/chemistry/equationFormula.ts'
@@ -14,6 +14,7 @@ import { convertUnitsQuery } from '../../src/learn/brain/human/unitConvert.ts'
 import type { Knowledge } from '../kb/shards.ts'
 import { findElements, findFormulas, findSubstances, pretty, substanceFromText, toAsciiFormula } from './entities.ts'
 import type { Lang } from './normalize.ts'
+import { obtainTool } from './obtain.ts'
 
 export type ToolResult = {
   tool: string
@@ -25,6 +26,8 @@ export type ToolResult = {
   numbers: string[]
   errorTags?: string[]
   good?: number
+  /** метка источника для ответа (по умолчанию «[ATOMLAB: расчёт]») */
+  cite?: string
 }
 
 const L = (lang: Lang, ru: string, uz: string, en: string) => (lang === 'ru' ? ru : lang === 'uz' ? uz : en)
@@ -751,6 +754,8 @@ export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge): 
   push(dil)
   if (!dil) push(solutionTool(text, cmp, lang, kb))
   if (!out.some((r) => r.tool === 'solution' || r.tool === 'dilution')) push(massFractionTool(text, cmp, lang, kb))
+  // «как получить X» без чисел — проверенные уравнения получения (brain/pipeline/obtain.ts)
+  if (!out.length && !quantities(text).length) push(obtainTool(text, cmp, lang, kb))
   if (!out.length) push(stoichTool(text, cmp, lang, kb))
   if (!out.length) push(molarMassTool(text, cmp, lang, kb))
   if (!out.length) push(elementGuardTool(cmp, lang, kb))
