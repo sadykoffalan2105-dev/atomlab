@@ -76,6 +76,8 @@ export type BrainConfig = {
     formulaWeight: number
     glossaryWeight: number
     minMmrChars: number
+    /** учебник класса ученика ставится первым, только если его балл ≥ этой доли от лучшего фрагмента */
+    tier1MinShare: number
   }
   // — конец блока SOURCES —
 }
@@ -112,6 +114,7 @@ export const DEFAULT_CONFIG: BrainConfig = {
     formulaWeight: 1.5,
     glossaryWeight: 0.75,
     minMmrChars: 3600,
+    tier1MinShare: 0.6,
   },
   // — конец блока SOURCES —
 }

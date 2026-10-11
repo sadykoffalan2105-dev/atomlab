@@ -218,6 +218,13 @@ export function glossaryRuTerms(text: string, lang: Lang, kb: Knowledge): string
   return [...out].sort((a, b) => b.length - a.length).slice(0, 6)
 }
 
+/** Заголовок (без «Понятие:/Реакция:/Пример:» и «(§57)») состоит только из термов вопроса. */
+function titleIsTopic(title: string, queryTerms: Set<string>): boolean {
+  const core = title.replace(/^(понятие|реакция|пример|проверка|как понять|к экзамену)\s*:\s*/iu, '').replace(/\(\s*§[^)]*\)\s*$/u, '')
+  const ts = analyzeTerms(core)
+  return ts.length > 0 && ts.length <= 3 && ts.every((t) => queryTerms.has(t))
+}
+
 /** Все термы темы уже есть в тексте вопроса? Тогда тему не дописываем (иначе лишнее «понятие» в проверке темы). */
 function coveredBy(text: string, extra: string): boolean {
   const have = new Set(analyzeTerms(text))
@@ -361,14 +368,31 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     kept = kept.filter(isSchoolSource)
   }
 
-  // e) ярусные множители (правка учителя ×1.25 — уже в hybridScore), затем MMR
-  for (const f of kept) f.score *= tierBoost(f, scopeUsed, rc)
+  // e) ярусные множители (правка учителя ×1.25 — уже в hybridScore), затем MMR;
+  //    заголовок целиком о вопросе («Кислоты», «Понятие: Моль», «Валентность (§57)») — ×1.2 к «Соляной кислоте» на «что такое кислоты»
+  for (const f of kept) {
+    f.score *= tierBoost(f, scopeUsed, rc)
+    if (titleIsTopic(f.title, queryTerms)) f.score *= 1.2
+  }
+  // один фрагмент на заголовок источника (четыре «Реакция: Оксиды» подряд вытесняют учебник)
+  const byTitle = new Map<string, RankedFragment>()
+  for (const f of kept) {
+    const k = `${f.source}|${f.title}`
+    const prev = byTitle.get(k)
+    if (!prev || prev.score < f.score) byTitle.set(k, f)
+  }
+  kept = [...byTitle.values()]
   const mmrChars = Math.max(opts.budgetChars * 2, rc.minMmrChars)
   let items = mmrSelect(kept, config.hybrid.mmrLambda, Math.max(1, opts.maxItems), mmrChars)
 
   // f) гарантия школы: лучший учебник класса ученика по теме — первым; энциклопедия в школьном вопросе — не первой,
   //    не больше maxEncyclopediaSchool и не выше 3-го места
-  const tier1 = kept.filter((f) => f.tier === 1 && (f.cov ?? 0) >= 0.5).sort((a, b) => b.score - a.score)[0]
+  //    (учебник по теме: cov = 1 или cov ≥ 0.5 и тема в заголовке; балл ≥ tier1MinShare от лучшего — слабое случайное
+  //    совпадение «Хлорид водорода» на «кислород в лаборатории» вперёд не тащим)
+  const topScore = items[0]?.score ?? 0
+  const tier1 = kept
+    .filter((f) => f.tier === 1 && ((f.cov ?? 0) >= 0.999 || ((f.cov ?? 0) >= 0.5 && f.titleHit)) && f.score >= rc.tier1MinShare * topScore)
+    .sort((a, b) => b.score - a.score)[0]
   if (tier1 && items[0] !== tier1) {
     items = [tier1, ...items.filter((f) => f !== tier1)].slice(0, Math.max(1, opts.maxItems))
   }

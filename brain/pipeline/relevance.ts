@@ -81,13 +81,27 @@ function genericOccurrence(term: string, title: string, text: string): boolean {
   return false
 }
 
-/** Сколько раз терм встречается в тексте фрагмента (частоты считаются один раз на кандидата). */
+/**
+ * Сколько раз терм встречается в тексте фрагмента «по существу»: употребление как единицы измерения не в счёт
+ * («1 моль», «0,5 моль», «г/моль», «моль/л» — расчёт, а не рассказ о моле). Кеш — на кандидате.
+ */
 function termFreq(c: Candidate, term: string): number {
-  if (!c.tf) {
-    c.tf = new Map()
-    for (const t of analyzeTerms(c.text.slice(0, 6000))) c.tf.set(t, (c.tf.get(t) ?? 0) + 1)
+  c.tf ??= new Map()
+  const cached = c.tf.get(term)
+  if (cached !== undefined) return cached
+  const text = c.text.slice(0, 6000)
+  let n = 0
+  for (const m of text.matchAll(/\p{L}[\p{L}-]*/gu)) {
+    if (!stemsOf(m[0]).includes(term)) continue
+    const i = m.index ?? 0
+    const before = text.slice(Math.max(0, i - 12), i)
+    const after = text.slice(i + m[0].length, i + m[0].length + 2)
+    // число или переменная перед словом («0,1 моля», «x молей»), «сколько молей», «(моль)», «г/моль», «моль/л»
+    if (/(\d[\d.,]*\s*(\p{L}{1,3}\s*)?|\/\s*|(^|[\s(=])[a-zA-Z]\s*|сколько\s+|\(\s*)$/iu.test(before) || /^\s*[/)]/.test(after)) continue
+    n++
   }
-  return c.tf.get(term) ?? 0
+  c.tf.set(term, n)
+  return n
 }
 
 /**
@@ -102,7 +116,11 @@ export function judge(c: Candidate, q: QueryConcepts, lower: Set<string>, allowP
   const concepts = strong.length ? strong : q.conceptWeights.map((w, i) => ({ w, i }))
   if (!concepts.length) return { keep: true, cov: 1, titleHit: false }
   const n = concepts.length
-  const checkWeak = weakTermMinTf > 1 && n <= 2 && c.text.length >= 300
+  // персоналии на «кто/история» не проверяем: в статье об учёном «кислород» может встретиться один раз
+  const checkWeak = weakTermMinTf > 1 && n <= 2 && !(allowPeople && person)
+  // короткий фрагмент (< 300 симв.) — хотя бы одно упоминание по существу; длинный — ≥ weakTermMinTf и не меньше
+  // одного на 1000 символов («моль» только как единица в расчётах «Угольной кислоты» — не о моле)
+  const minTf = c.text.length < 300 ? 1 : Math.max(weakTermMinTf, Math.ceil(Math.min(c.text.length, 6000) / 1000))
   let total = 0
   let covered = 0
   let titleHit = false
@@ -116,7 +134,7 @@ export function judge(c: Candidate, q: QueryConcepts, lower: Set<string>, allowP
     const real = hit.some((t) => !lower.has(t) || /\d/.test(t) || t.length <= 2 || genericOccurrence(t, c.title, c.text))
     if (!real) continue
     const inTitle = hit.some((t) => c.titleTerms.has(t))
-    if (checkWeak && !inTitle && !hit.some((t) => termFreq(c, t) >= weakTermMinTf)) {
+    if (checkWeak && !inTitle && !hit.some((t) => termFreq(c, t) >= minTf)) {
       weak = true
       continue
     }
