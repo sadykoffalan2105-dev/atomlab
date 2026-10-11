@@ -56,8 +56,7 @@ const questions: Question[] = fs
   .map((s) => JSON.parse(s) as Question)
 // --extra=путь.jsonl (можно несколько): случаи других наборов (покрытие программы Kimyo — cat curriculum)
 for (const file of process.argv.filter((a) => a.startsWith('--extra=')).map((a) => a.slice(8)))
-  for (const line of fs.readFileSync(path.resolve(file), 'utf8').split('
-')) if (line.trim()) questions.push(JSON.parse(line) as Question)
+  for (const line of fs.readFileSync(path.resolve(file), 'utf8').split('\n')) if (line.trim()) questions.push(JSON.parse(line) as Question)
 /** Категории наборов --extra: в живом прогоне — свой порог, без LLM — вне общего порога (печатаются отдельно). */
 const EXTRA_CATS = ['curriculum']
 const EXTRA_LIVE_MIN = 0.85
