@@ -20,6 +20,8 @@ const L = (lang: Lang, ru: string, uz: string, en: string) => (lang === 'ru' ? r
 /** Вопрос о получении (любой язык). «как образуется» — отдельно: там нужно именно вещество, не элемент и не ион. */
 export const OBTAIN_RE =
   /(как\s+(можно\s+|их\s+|его\s+|е[её]\s+)?(получ|добы|производ|синтезир|приготов|выдел)|способ\p{L}*\s+(получ|добыч|производ)|получени\p{L}*|получа[ею]т|получить|добыва[ею]т|в\s+промышленности\s+получ|how\s+(is|are|do|does|can|to|we|you)\b[^?]{0,40}\b(made|produced|obtained|prepared|make|produce|obtain|prepare|get)|preparation\s+of|production\s+of|ways?\s+to\s+(make|obtain|produce|prepare)|qanday\s+(olin|hosil\s+qilin|ishlab\s+chiqar)|olish\s+usul|olinishi|olinadi|ishlab\s+chiqarish)/iu
+/** Короткое уточнение «а в промышленности?» → «В промышленности кислород?» — тоже вопрос о получении. */
+const INDUSTRY_SHORT_RE = /^[\s,.]*(а\s+|и\s+|and\s+)?(в\s+промышленности|на\s+заводе|in\s+industry|industrially|sanoatda)(?=[\s,?.!]|$)[^?.!]{0,40}\??\s*$/iu
 const FORM_RE = /(как\s+образу|как\s+образовал|what\s+forms|how\s+(is|are)\b[^?]{0,30}\bformed|qanday\s+hosil\s+bo)/iu
 const NOT_SUBSTANCE_FORM = /(ион|связ|молекул[аы]?\s+(вод|кисл)|электрон|облак|орбитал|кристалл|решётк|решетк|\bion|\bbond|electron|orbital|\bbog['ʻ‘’]?)/iu
 
@@ -199,11 +201,11 @@ function nameOf(t: Target, lang: Lang): string {
 }
 
 export function isObtainQuestion(cmp: string): boolean {
-  return OBTAIN_RE.test(cmp) || (FORM_RE.test(cmp) && !NOT_SUBSTANCE_FORM.test(cmp))
+  return OBTAIN_RE.test(cmp) || INDUSTRY_SHORT_RE.test(cmp) || (FORM_RE.test(cmp) && !NOT_SUBSTANCE_FORM.test(cmp))
 }
 
 export function obtainTool(text: string, cmp: string, lang: Lang, kb: Knowledge): ToolResult | null {
-  const obtain = OBTAIN_RE.test(cmp)
+  const obtain = OBTAIN_RE.test(cmp) || INDUSTRY_SHORT_RE.test(cmp)
   const form = !obtain && FORM_RE.test(cmp) && !NOT_SUBSTANCE_FORM.test(cmp)
   if (!obtain && !form) return null
   const t = targetOf(text, kb, obtain)
@@ -225,10 +227,16 @@ export function obtainTool(text: string, cmp: string, lang: Lang, kb: Knowledge)
   )
   const lines = [head]
   let n = 0
+  const industryLine = () => {
+    const parts = [...industry.map((r) => fmtRow(r, n++)), ...(ind ? [ind[lang]] : [])]
+    if (parts.length) lines.push(`${L(lang, 'В промышленности', 'Sanoatda', 'In industry')}: ${parts.join('; ')}.`)
+  }
+  // «а в промышленности?» — промышленный способ сразу после заголовка
+  const indFirst = /(промышлен|завод|industr|sanoat)/iu.test(cmp)
+  if (indFirst) industryLine()
   if (lab.length) lines.push(`${L(lang, 'В лаборатории', 'Laboratoriyada', 'In the lab')}: ${lab.map((r) => fmtRow(r, n++)).join('; ')}.`)
   if (other.length) lines.push(`${lab.length || industry.length ? L(lang, 'Также', 'Shuningdek', 'Also') : L(lang, 'Уравнения', 'Tenglamalar', 'Equations')}: ${other.map((r) => fmtRow(r, n++)).join('; ')}.`)
-  const indParts = [...industry.map((r) => fmtRow(r, n++)), ...(ind ? [ind[lang]] : [])]
-  if (indParts.length) lines.push(`${L(lang, 'В промышленности', 'Sanoatda', 'In industry')}: ${indParts.join('; ')}.`)
+  if (!indFirst) industryLine()
   const all = rows.map((r) => r.eq)
   return {
     tool: 'obtain',

@@ -346,7 +346,8 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       if (style.suffix) body.push(style.suffix)
       return { text: trimToWords(body.filter(Boolean).join('\n'), inp.wordLimit), citations, confidence }
     }
-    if (inp.intent === 'calc' || inp.intent === 'homework') {
+    // мозг v2: план «расчёт» (kind calc) — тоже только расчёт, без определений и чужих предложений учебника
+    if (inp.intent === 'calc' || inp.intent === 'homework' || (inp.sq?.kind === 'calc' && tools.some((t) => t.numbers.length))) {
       const body = [style.prefix + parts.join('\n'), pick(MICRO.calc[lang], inp.seed)]
       if (style.suffix) body.push(style.suffix)
       return { text: body.filter(Boolean).join('\n'), citations, confidence }
@@ -553,7 +554,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     if (wordCount(text) < target) {
       const used = [...out, logic].filter(Boolean).map((l) => new Set(analyzeTerms(l)))
       const add: string[] = []
-      for (const m of lengthMaterial({ lang, kb, qtype, primary, concepts, substances, elements, sents, qTerms, school })) {
+      for (const m of lengthMaterial({ lang, kb, qtype, primary, concepts, substances, elements, sents, qTerms, school: school && !fixLine })) {
         if (wordCount(text) + wordCount(add.join(' ')) >= target) break
         const t = new Set(analyzeTerms(m))
         if (!t.size || used.some((u) => jaccard(u, t) > 0.45)) continue
@@ -633,7 +634,13 @@ function lengthMaterial(a: {
   }
   for (const c of a.concepts.slice(1, 3)) if (c !== classC) out.push(`${c.def[lang]} ${c.law[lang]}`)
   // предложения учебника — только для школьного вопроса (энциклопедия и чужие главы — не добор: там бывают даты и шум)
-  if (lang === 'ru' && a.school) for (const x of explanationsFrom(a.sents, null, a.qTerms, 8)) if (x.cand.type !== 'encyclopedia') out.push(x.s)
+  // выверенное объяснение (explain.ts) самодостаточно — к нему учебник не добираем (school=false); и только предложения,
+  // где не меньше двух слов вопроса («медно-калийное удобрение» к вопросу про медь и азотную кислоту — не ответ)
+  if (lang === 'ru' && a.school)
+    for (const x of explanationsFrom(a.sents, null, a.qTerms, 8)) {
+      const hits = [...a.qTerms].filter((t) => x.terms.has(t)).length
+      if (x.cand.type !== 'encyclopedia' && hits >= Math.min(2, a.qTerms.size)) out.push(x.s)
+    }
   return out
 }
 

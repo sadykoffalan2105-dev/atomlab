@@ -283,9 +283,12 @@ function reactionStoichTool(text: string, cmp: string, lang: Lang, kb: Knowledge
   const inText = extractEquation(text)
   if (inText) candidates.push(inText)
   const mentioned = new Set(sp.map((x) => x.ascii))
+  const needs = /(нужн|потребу|необходим|затрат|израсход|needed|required|need|kerak|sarflan)/iu.test(cmp)
   const fromKb = kb.qa.reactions
     .filter((r) => [...r.r, ...r.p].includes(given.ascii) && [...r.r, ...r.p].includes(asked.ascii))
-    .map((r) => ({ eq: r.eq, score: [...r.r, ...r.p].filter((x) => mentioned.has(x)).length * 10 - r.r.length - r.p.length }))
+    // «сколько воды получится из водорода»: данное — среди исходных, искомое — среди продуктов (не разложение воды);
+    // «сколько нужно / потребуется» — наоборот
+    .map((r) => ({ eq: r.eq, score: [...r.r, ...r.p].filter((x) => mentioned.has(x)).length * 10 + (needs ? (r.p.includes(given.ascii) || r.r.includes(asked.ascii) ? 5 : 0) : r.r.includes(given.ascii) && r.p.includes(asked.ascii) ? 5 : 0) - r.r.length - r.p.length }))
     .sort((a, b) => b.score - a.score)
   for (const r of fromKb.slice(0, 5)) candidates.push(r.eq)
   for (const eq of candidates) {
