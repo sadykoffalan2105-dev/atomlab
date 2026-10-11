@@ -3,8 +3,8 @@
   "version": 1,
   "profile": "gpu",
   "models": {
-    "chat": "qwen2.5:14b-instruct",
-    "fast": "qwen2.5:14b-instruct",
+    "chat": "gemma4:12b",
+    "fast": "gemma4:12b",
     "embed": "bge-m3:latest"
   },
   "ollama": {
