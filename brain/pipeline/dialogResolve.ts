@@ -53,12 +53,14 @@ const FILLER = new Set([
   'example', 'examples', 'simpler', 'simply', 'more', 'detail', 'details', 'repeat', 'again', 'explain', 'tell', 'me',
   'deeper', 'understand', 'dont', "don't", 'not', 'once', 'grade', 'th', 'can', 'you', 'give', 'say', 'so', 'come',
   'yes', 'ok', 'okay', 'sure', 'briefly', 'short', 'shorter', 'detailed', 'school', 'level', 'taught', 'explained',
-  'would', 'could', 'should', 'will', 'your', 'be', 'then', 'now',
+  'would', 'could', 'should', 'will', 'your', 'be', 'then', 'now', 'like', 'to', 'student', 'students', 'kid', 'kids',
+  'grader', 'graders', 'year', 'class',
   // uz
   'nega', 'nima', 'uchun', 'nimaga', 'qanday', 'qanaqa', 'qaysi', 'qachon', 'qayerda', 'kim', 'necha', 'qancha', 'bu', 'u',
   'ular', 'uni', 'buni', 'bunda', 'shu', 'misol', 'keltir', 'keltiring', 'batafsil', 'takrorla', 'qayta', 'soddaroq',
   'oddiyroq', 'tushuntir', 'tushuntiring', 'tushunmadim', 'chi', 'va', 'yoki', 'ham', 'esa', 'da', 'haqida', 'sinf', 'sinfda',
   'sinfi', 'ha', 'mayli', 'albatta', 'iltimos', 'yana', 'aytib', 'ber', 'bering', "ko'proq", 'qisqa', 'qisqacha',
+  'bilan',
   // uz: аффиксы, написанные отдельно от формулы («HNO3 niki-chi?», «H2SO4 ning»)
   'niki', 'ning', 'dagi', 'ni', 'ga', 'dan',
 ])
@@ -86,8 +88,17 @@ const FULL_Q = /(что так|что это|что значит|что назы
 const DEF_Q = /^(что так\p{L}*|что это|что значит|что называ\p{L}*|what is|what are|what's|define)(?!\p{L})|(?<!\p{L})nima(\s+degani)?\s*$/iu
 /** Обрывок-обстоятельство без предмета: «а в промышленности?», «а при нагревании?», «and in industry?». */
 const MODIFIER_FRAG = /^(в|во|на|при|без|из|для|in|at|under|without|on)\s+\p{L}/iu
+/** Узбекское обстоятельство места: «sanoatda-chi?», «laboratoriyada-chi?» (в прежнем вопросе — заменяется новым). */
+const UZ_PLACE = /(?<![\p{L}'ʻʼ’])(laboratoriya|sanoat|tabiat|kundalik hayot|hayot|organizm|maktab|zavod|amaliyot|uy)da(?![\p{L}'ʻʼ’])/iu
+const UZ_PLACE_FRAG = /^((?:kundalik\s+)?\p{L}+da)(?:-?chi)?$/iu
+/** Узбекское вопросительное слово — место для обстоятельства: «Kislorod qanday olinadi?» → «Kislorod sanoatda qanday olinadi?». */
+const UZ_QWORD = /(?<![\p{L}'ʻʼ’])(qanday|qanaqa|nima|nega|qayerda|qachon|necha|qancha)(?![\p{L}'ʻʼ’])/iu
+/** Предлог перед сущностью в обрывке: «а с медью?», «а к меди?», «and with copper?». */
+const PREP_FRAG = /^(с|со|на|в|во|из|к|ко|от|для|без|при|with|to|on|in|into|from|for|without)\s+(.+)$/iu
+/** Узбекский послелог после сущности: «mis bilan-chi?». */
+const UZ_POST_FRAG = /^(.+?)\s+(bilan|uchun)(?:-?chi)?$/iu
 /** Обстоятельство места в прежнем вопросе — заменяется новым («в лаборатории» → «в промышленности»). */
-const PLACE_IN_Q = /(?<!\p{L})(в|во|на|in|at)\s+(лаборатор\p{L}*|промышленн\p{L}*|природ\p{L}*|быту|жизни|организм\p{L}*|школ\p{L}*|the lab(oratory)?|industry|nature|everyday life)(?!\p{L})/iu
+const PLACE_IN_Q =/(?<!\p{L})(в|во|на|in|at)\s+(лаборатор\p{L}*|промышленн\p{L}*|природ\p{L}*|быту|жизни|организм\p{L}*|школ\p{L}*|the lab(oratory)?|industry|nature|everyday life)(?!\p{L})/iu
 /** Расчётная величина в реплике («а теперь массовую долю серы») — продолжение расчёта по прежней формуле. */
 const CALC_QTY = /(массов\p{L}* дол|молярн\p{L}* масс|количеств\p{L}* веществ|степен\p{L}* окислен|mass fraction|molar mass|oxidation (state|number)|amount of substance|massa ulush|molyar massa|oksidlanish daraja)/iu
 /** Глагол расчёта в начале прежнего вопроса («Вычисли …», «Calculate …»). */
@@ -280,6 +291,37 @@ export function replaceEntity(text: string, oldName: string, newName: string, la
   return null
 }
 
+/** Метка-заглушка для поиска места сущности (с заглавной и цифрой — replaceEntity не склоняет её). */
+const SLOT = 'QZ9'
+
+/**
+ * Замена «партнёра» по предлогу: «Серная кислота реагирует с цинком?» + «а с медью?» → «… с медью?» (а не «Медь реагирует
+ * с цинком?»); «and with copper?», «mis bilan-chi?». Форму слова ученика сохраняем как есть («медью»).
+ */
+function swapByPreposition(lastQ: string, frag: string, olds: string[], lang: Lang, kb: Knowledge): { text: string; old: string } | null {
+  const f = noQ(dropLead(frag)).trim()
+  if (lang === 'uz') {
+    const m = f.match(UZ_POST_FRAG)
+    if (!m) return null
+    for (const o of olds) {
+      const r = replaceEntity(lastQ, localName(o, lang, kb), SLOT, lang)
+      const re = new RegExp(`${SLOT}[\\p{L}'ʻʼ’]*\\s+${m[2]}(?![\\p{L}])`, 'iu')
+      if (r && re.test(r)) return { text: r.replace(re, `${lowerFirst(m[1]!)} ${m[2]}`), old: o }
+    }
+    return null
+  }
+  const m = f.match(PREP_FRAG)
+  if (!m) return null
+  const p = m[1]!.toLowerCase().replace(/^(со|во|ко)$/u, (x) => x[0]!)
+  const alt = /^[свк]$/u.test(p) ? `${p}|${p}о` : p
+  for (const o of olds) {
+    const r = replaceEntity(lastQ, localName(o, lang, kb), SLOT, lang)
+    const re = new RegExp(`(?<!\\p{L})(${alt})\\s+${SLOT}[\\p{L}'ʻʼ’]*`, 'iu')
+    if (r && re.test(r)) return { text: r.replace(re, `${m[1]!.toLowerCase()} ${m[2]}`), old: o }
+  }
+  return null
+}
+
 // ---------------------------------------------------------------- длина
 
 /** Класс длины по явным словам реплики и follow-up (null — решает план по типу вопроса). */
@@ -346,7 +388,8 @@ export type ReplyShape = {
 export function analyzeReply(text: string, state: DialogState, lang: Lang, kb: Knowledge): ReplyShape {
   const clean = stripLeadingDiscourse(text)
   const ents = entitiesOf(clean, kb, lang)
-  const concepts = findConcepts(clean)
+  // понятие внутри названия вещества («кислота» в «соляная кислота») — не второй предмет
+  const concepts = findConcepts(ents.length ? clean.replace(/[\s\S]/g, (ch, i: number) => (ents.some((e) => i >= e.at && i < e.end) ? ' ' : ch)) : clean)
   const own = contentWords(clean, ents, concepts)
   const grade = gradeHint(clean)
   const cues = (Object.keys(FU) as (keyof typeof FU)[]).filter((k) => FU[k].test(clean))
@@ -493,13 +536,18 @@ export function resolveStandalone(text: string, state: DialogState, env: { lang:
       if (x) {
         const old = state.entities[0] ? localName(state.entities[0], lang, kb) : null
         const xName = lang === 'ru' ? x.ru : x.local
-        const swapped = lastQ && old ? replaceEntity(lastQ, old, xName, lang) : null
+        // «а с медью?» после «Серная кислота реагирует с цинком?» — меняется партнёр по предлогу, а не первый предмет
+        const byPrep = lastQ && state.entities.length ? swapByPreposition(lastQ, shape.clean, state.entities.slice(0, 3), lang, kb) : null
+        const swapped = byPrep?.text ?? (lastQ && old ? replaceEntity(lastQ, old, xName, lang) : null)
         let t: string
         if (swapped) t = `${cap(swapped)}?`
         // «Что такое валентность?» → «а у натрия?»: «Какая валентность у натрия?», а не «Что такое валентность — у натрия?»
         else if (lastQ && tLocal && !state.entities.length && DEF_Q.test(lastQ.trim())) t = TPL.property[lang](tLocal, lowerFirst(xName))
         else t = lastQ ? TPL.forEntity[lang](lastQ, lowerFirst(xName)) : text
-        return rules(t, { followUp: 'switch_entity', entities: [x.ru], topic: state.topic })
+        // заменённый предмет — новым, партнёры остаются («Соляная кислота реагирует с цинком?» → соляная кислота + цинк)
+        const replacedOld = byPrep?.old ?? (swapped ? state.entities[0] : null)
+        const ents = replacedOld ? state.entities.slice(0, 3).map((e) => (e === replacedOld ? x.ru : e)).filter((e, i, xs) => xs.indexOf(e) === i) : [x.ru]
+        return rules(t, { followUp: 'switch_entity', entities: ents, topic: state.topic })
       }
       // новое понятие в той же постановке: «а степень окисления?» после «Какая валентность у натрия?»
       const c = shape.concepts[0]!
@@ -532,6 +580,14 @@ export function resolveStandalone(text: string, state: DialogState, env: { lang:
       if (!shape.deictic && lastQ && MODIFIER_FRAG.test(ask) && lang !== 'uz') {
         let q = PLACE_IN_Q.test(lastQ) ? lastQ.replace(PLACE_IN_Q, ask) : `${lastQ} ${ask}`
         if (lang === 'ru') q = q.replace(/^как получить(?!\p{L})/iu, 'Как получают')
+        return rules(`${cap(q)}?`, { followUp: 'deictic', entities: withNew(state.entities.slice(0, 3)) })
+      }
+      // uz: «sanoatda-chi?» после «Kislorod laboratoriyada qanday olinadi?» → «Kislorod sanoatda qanday olinadi?»
+      const uzPlace = lang === 'uz' && !shape.deictic && lastQ ? ask.match(UZ_PLACE_FRAG) : null
+      if (uzPlace && UZ_PLACE.test(uzPlace[1]!)) {
+        const p = uzPlace[1]!.toLowerCase()
+        const base = noQ(lastQ!)
+        const q = UZ_PLACE.test(base) ? base.replace(UZ_PLACE, p) : UZ_QWORD.test(base) ? base.replace(UZ_QWORD, (w) => `${p} ${w}`) : `${base} — ${p}`
         return rules(`${cap(q)}?`, { followUp: 'deictic', entities: withNew(state.entities.slice(0, 3)) })
       }
       const words = shape.clean.split(/\s+/)

@@ -69,8 +69,8 @@ const CASES: Case[] = [
   { name: 'ru: формула: а у H2SO4?', m: msgs('Какая молярная масса у HCl?', 'M(HCl) = 36,46 г/моль.', 'а у H2SO4?'), lang: 'ru', text: /H2SO4|H₂SO₄/, followUp: 'switch_entity' },
   { name: 'uz: natriy-chi? → valentlik natriy', m: msgs('Kislorodning valentligi qanday?', A_UZ, 'natriy-chi?'), lang: 'uz', text: /natriy/i, followUp: 'switch_entity', topic: 'валентность' },
   { name: 'uz: nega? → sabab', m: msgs('Valentlik nima?', A_UZ, 'nega?'), lang: 'uz', text: /^Nega: Valentlik/, followUp: 'why' },
-  { name: 'uz: soddaroq → valentlik', m: msgs('Valentlik nima?', A_UZ, 'soddaroq tushuntir'), lang: 'uz', text: /^Soddaroq tushuntir: valentlik$/, followUp: 'simpler', topic: 'валентность' },
-  { name: 'uz: misol → valentlik', m: msgs('Valentlik nima?', A_UZ, 'misol keltir'), lang: 'uz', text: /^Misol keltir: valentlik$/, followUp: 'example' },
+  { name: 'uz: soddaroq → valentlik', m: msgs('Valentlik nima?', A_UZ, 'soddaroq tushuntir'), lang: 'uz', text: /^Valentlikni soddaroq tushuntiring$/, followUp: 'simpler', topic: 'валентность' },
+  { name: 'uz: misol → valentlik', m: msgs('Valentlik nima?', A_UZ, 'misol keltir'), lang: 'uz', text: /^Valentlikka misol keltiring$/, followUp: 'example' },
   { name: 'uz: ha → confirm', m: msgs('Valentlik nima?', A_UZ, 'ha'), lang: 'uz', text: /^Ha: masala yechamizmi/, followUp: 'confirm' },
   { name: 'uz: 8-sinfda-chi? → switch_grade', m: msgs('Valentlik nima?', A_UZ, '8-sinfda qanday tushuntiriladi?'), lang: 'uz', followUp: 'switch_grade', grade: 'g8' },
   { name: 'en: and for sodium? → valence of sodium', m: msgs('What is the valence of oxygen?', A_EN, 'and for sodium?'), lang: 'en', text: /sodium/i, followUp: 'switch_entity', topic: 'валентность' },
@@ -79,6 +79,13 @@ const CASES: Case[] = [
   { name: 'en: give an example', m: msgs('What is valence?', A_EN, 'give an example'), lang: 'en', text: /^Give an example: valence$/, followUp: 'example' },
   { name: 'en: yes → confirm', m: msgs('What is valence?', A_EN, 'yes'), lang: 'en', text: /^Yes: shall we try a problem/, followUp: 'confirm' },
   { name: 'en: in grade 8? → switch_grade', m: msgs('What is valence?', A_EN, 'and in grade 8?'), lang: 'en', followUp: 'switch_grade', grade: 'g8' },
+  { name: 'en: explain it like for grade 7 → switch_grade', m: msgs('What is a mole?', 'A mole is the amount of substance.', 'explain it like for grade 7'), lang: 'en', followUp: 'switch_grade', grade: 'g7' },
+  // партнёр по предлогу и обстоятельство места
+  { name: 'ru: «а с медью?» → меняется партнёр', m: msgs('Серная кислота реагирует с цинком?', 'Да: Zn + H₂SO₄ → ZnSO₄ + H₂↑.', 'а с медью?'), lang: 'ru', text: /^Серная кислота реагирует с медью\?$/, followUp: 'switch_entity' },
+  { name: 'ru: «а соляная кислота?» → меняется предмет', m: msgs('Серная кислота реагирует с цинком?', 'Да: Zn + H₂SO₄ → ZnSO₄ + H₂↑.', 'а соляная кислота?'), lang: 'ru', text: /^Соляная кислота реагирует с цинком\?$/, followUp: 'switch_entity' },
+  { name: 'en: and with copper? → партнёр', m: msgs('Does sulfuric acid react with zinc?', 'Yes: Zn + H₂SO₄ → ZnSO₄ + H₂↑.', 'and with copper?'), lang: 'en', text: /^Does sulfuric acid react with copper\?$/, followUp: 'switch_entity' },
+  { name: 'ru: «а в промышленности?» → то же получение', m: msgs('Как получить кислород в лаборатории?', 'Разложением KMnO₄ при нагревании.', 'а в промышленности?'), lang: 'ru', text: /^Как получают кислород в промышленности\?$/, followUp: 'deictic' },
+  { name: 'uz: sanoatda-chi? → то же получение', m: msgs('Kislorod laboratoriyada qanday olinadi?', 'KMnO₄ parchalanishi bilan.', 'sanoatda-chi?'), lang: 'uz', text: /^Kislorod sanoatda qanday olinadi\?$/, followUp: 'deictic' },
 ]
 
 console.log('самодостаточный вопрос (resolveStandalone):')
