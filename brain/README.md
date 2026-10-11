@@ -125,6 +125,27 @@ Kimyo/ATOMLAB выше Википедии; ничего по теме — мод
   очередь 4, ожидание 30 с, «без прокси» не считается владельцем. Модели — по-прежнему `chatModels`/`fastModels`.
 - **`/health`** публичный и быстрый: без путей, ключей и адресов; есть `queue {parallel, running, waiting}`.
 - Проверка: `npm run brain:server-selftest` (порт 8790, подмена модели, временная папка).
+- **База дополняется сама** (шаг C автообновления, `deploy/brain-pc/rebuild-corpus.ps1`, одна строка в `update.ps1`):
+  изменились хеши папок `src/data/kb|teacher|textbook`, `brain/kb`, `brain/curriculum` → `build-corpus --only=textbooks,
+  book-index,common,kb-wiki,qabank(,curriculum)` (append-only, идемпотентно) и `embed --only=school` на GPU, по 15 мин
+  таймаут; «дописано строк N» — в `C:\ATOMLAB\logs\update.log`; ошибка → предупреждение, повтор в следующий запуск.
+  Пробный прогон: `powershell -File C:\ATOMLAB\bin\rebuild-corpus.ps1 -DryRun -Force`.
+
+## Покрытие программы Kimyo 7–11 (вопросы по каждому §)
+
+- `npm run brain:curriculum-eval` — генератор (детерминированный, сид 2026) → `brain/eval/curriculum/g7..g11.jsonl`
+  (≈ 4 000 случаев: определения, «почему» по шаблонам `why-templates.json`, расчёт своими формулами по школьным Ar,
+  реакции, тесты § ru/uz/en, получение, «о чём §»), `index.json` (счётчики, пробелы книги), `sample-live.jsonl` (100).
+  Вход — карта `src/data/kb/curriculum/kimyo-map.json`; пока её нет — заглушка из тех же данных (пересобрать после карты).
+- `npm run brain:eval:curriculum` — прогон (по умолчанию в процессе без LLM; `--mock-llm`; `--live`/`--url=` — живой
+  сервер с паузой 8 с, на самом ПК через `http://127.0.0.1:8787` без паузы); фильтры `--grade --unit --sub --lang
+  --sample`; отчёт `docs/plans/curriculum-coverage.md` + `brain/eval/curriculum/report.json`, `--baseline=` — дельты.
+- Пороги (константы в начале `scripts/brain/eval-curriculum.mts`): без LLM — definition/reaction/obtain ≥ 90 %, calc 100 %,
+  test/why ≥ 70 %, citationHit ≥ 85 %, wikiLeak/R3/CJK = 0, язык ≥ 98 %; живая модель — общий/test/why ≥ 85 %, calc и числа 100 %.
+- Пока строители A (карта, точный §) и B (калькулятор) не слиты — `brain/eval/curriculum/pending.json` `{A: true, B: true}`:
+  цитата § и подтип section, случаи калькулятора «ждут» (печатаются, в пороги не входят). После слияния: поставить false
+  (или `--merged=A,B`) и пересобрать вопросы. Живая выборка в общем eval: `npm run brain:eval -- --extra=brain/eval/curriculum/sample-live.jsonl`.
+- План дообучения Gemma 4 на этих данных — `docs/plans/atomlab-kimyo-dataset.md`.
 
 ## Мозг v2: поиск «сначала школа» (SOURCES)
 
