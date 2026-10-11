@@ -159,6 +159,13 @@ export function setBrainAddressConfig(cfg: BrainAddressConfig | null): void {
   activeUrl = null
   activeKind = null
   checkedAt = 0
+  // другой сервер — забываем, что прежний был занят
+  busy = false
+  busyUntil = 0
+  lastChatBusy = null
+  if (busyTimer) clearTimeout(busyTimer)
+  busyTimer = null
+  emit()
 }
 
 /** brain.json один раз за сеанс (no-store, ≤ 1,5 с); не загрузился — умолчания (мозг на этом ПК). */

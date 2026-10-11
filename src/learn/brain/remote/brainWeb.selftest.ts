@@ -23,7 +23,24 @@ import {
 } from '../policy'
 import { routeTeacherReply } from '../../learnTeacherRouter'
 import type { LearnLocalAssistantContext } from '../../learnLocalAssistant'
-import { BRAIN_URL, checkHealth, FIRST_DELTA_TIMEOUT_MS, getBrainStatus, getBrainStudent, markBrainOffline, parseSseBuffer, streamChat } from './brainClient'
+import {
+  BRAIN_BUSY_NOTE,
+  checkHealth,
+  FIRST_DELTA_TIMEOUT_MS,
+  getBrainInfo,
+  getBrainStatus,
+  getBrainStudent,
+  getBrainUrl,
+  LOCAL_BRAIN_URL,
+  markBrainOffline,
+  optInLocalBrain,
+  parseBrainConfig,
+  parseSseBuffer,
+  setBrainAddressConfig,
+  setLocalBrainOptIn,
+  streamChat,
+  takeBrainBusyNote,
+} from './brainClient'
 
 setMemoryProfileBackend()
 setDialogBackend('memory')
@@ -53,19 +70,54 @@ type FetchInit = RequestInit | undefined
 type Handler = (url: string, init: FetchInit) => Promise<Response>
 
 const realFetch = globalThis.fetch.bind(globalThis)
-const calls: { url: string; body: string }[] = []
+/** host: 'local' — мозг на этом ПК (127.0.0.1:8787), 'remote' — сервер мозга из brain.json. */
+const calls: { url: string; body: string; host: 'local' | 'remote' }[] = []
+/** Сервер мозга в интернете (подмена; в сеть ничего не уходит). */
+const REMOTE_URL = 'https://brain.atomlab.test'
 let brainHandler: Handler = async () => {
   throw new TypeError('connect ECONNREFUSED 127.0.0.1:8787')
 }
+let remoteHandler: Handler = async () => {
+  throw new TypeError('getaddrinfo ENOTFOUND brain.atomlab.test')
+}
+/** Ответ на ./brain.json (null — 404). */
+let brainJsonHandler: Handler | null = null
+let brainJsonCalls = 0
 
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-  if (url.startsWith(BRAIN_URL)) {
-    calls.push({ url: url.slice(BRAIN_URL.length), body: typeof init?.body === 'string' ? init.body : '' })
-    return brainHandler(url.slice(BRAIN_URL.length), init)
+  const body = typeof init?.body === 'string' ? init.body : ''
+  if (url.startsWith(LOCAL_BRAIN_URL)) {
+    calls.push({ url: url.slice(LOCAL_BRAIN_URL.length), body, host: 'local' })
+    return brainHandler(url.slice(LOCAL_BRAIN_URL.length), init)
+  }
+  if (url.startsWith(REMOTE_URL)) {
+    calls.push({ url: url.slice(REMOTE_URL.length), body, host: 'remote' })
+    return remoteHandler(url.slice(REMOTE_URL.length), init)
+  }
+  if (/(^|\/)brain\.json$/.test(url)) {
+    brainJsonCalls++
+    return brainJsonHandler ? brainJsonHandler(url, init) : new Response('not found', { status: 404 })
   }
   return realFetch(input, init)
 }) as typeof fetch
+
+/** Запрос висит до отмены (таймаут клиента). */
+const hang = (init: FetchInit) =>
+  new Promise<Response>((_res, rej) => init?.signal?.addEventListener('abort', () => rej(new DOMException('Aborted', 'AbortError'))))
+
+/** Разрешение браузера на доступ к этому ПК (Local Network Access): подмена navigator.permissions; null — браузер его не знает. */
+function withPermission(state: 'granted' | 'prompt' | 'denied' | null): void {
+  const nav = globalThis.navigator as unknown as Record<string, unknown>
+  if (state === null) {
+    Reflect.deleteProperty(nav, 'permissions')
+    return
+  }
+  Object.defineProperty(nav, 'permissions', {
+    configurable: true,
+    value: { query: async ({ name }: { name: string }) => (name === 'loopback-network' ? { state, onchange: null } : Promise.reject(new TypeError(name))) },
+  })
+}
 
 const HEALTH_OK = {
   ok: true,
@@ -77,7 +129,8 @@ const HEALTH_OK = {
   uptimeMs: 1000,
 }
 
-const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
+const json = (data: unknown, status = 200, headers: Record<string, string> = {}) =>
+  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } })
 
 const sse = (event: string, data: unknown) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
 
@@ -239,6 +292,164 @@ check('lang uz', detectQuestionLang('mol nima?') === 'uz')
 check('lang uz-cyr', detectQuestionLang('моль нима?') === 'uz')
 
 /* ================================================================== 5. клиент мозга */
+console.log('[address] brain.json: сервер первым, этот ПК — только с разрешения / по согласию')
+{
+  const chatCtx = { gradeId: 'g8', mode: 'chat' as const, detail: 'brief' as const }
+  // разбор brain.json
+  const p1 = parseBrainConfig({ urls: ['https://a.example/', 'https://a.example', 'ftp://x', 42, 'not a url'], localFallback: false })
+  check('config: http(s) only, dedup, no trailing slash', p1.urls.length === 1 && p1.urls[0] === 'https://a.example' && !p1.localFallback, JSON.stringify(p1))
+  check('config: garbage → defaults', JSON.stringify(parseBrainConfig('x')) === JSON.stringify({ urls: [], localFallback: true }))
+  check('config: shipped public/brain.json-like → no servers', parseBrainConfig({ _help: '…', urls: [], localFallback: true }).urls.length === 0)
+
+  // brain.json с сервером: читается один раз; сервер отвечает первым, к этому ПК не стучимся
+  setLocalBrainOptIn(false)
+  withPermission(null)
+  brainJsonCalls = 0
+  brainJsonHandler = async () => json({ urls: [REMOTE_URL], localFallback: true })
+  remoteHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : json({}, 404))
+  brainHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : json({}, 404))
+  setBrainAddressConfig(null)
+  calls.length = 0
+  const ok = await checkHealth(true)
+  check('remote first: online via server', ok && getBrainInfo().kind === 'remote' && getBrainUrl() === REMOTE_URL, JSON.stringify(getBrainInfo()))
+  check('remote first: no local probe', !calls.some((c) => c.host === 'local'), JSON.stringify(calls))
+  await checkHealth(true)
+  check('brain.json loaded once', brainJsonCalls === 1, String(brainJsonCalls))
+
+  // вопрос уходит на сервер
+  remoteHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : sseResponse(brainReply(['Моль — порция вещества.'], {})))
+  calls.length = 0
+  const viaRemote = await streamChat({ messages: ask('что такое моль'), context: chatCtx, lang: 'ru' })
+  check('remote: /chat goes to server', viaRemote?.text === 'Моль — порция вещества.' && calls.some((c) => c.host === 'remote' && c.url === '/chat') && !calls.some((c) => c.host === 'local'), viaRemote?.text ?? 'null')
+
+  // сервер недоступен; согласия нет; браузер разрешения не знает → к 127.0.0.1 НЕ стучимся (нет окна «Разрешить»)
+  remoteHandler = async () => {
+    throw new TypeError('getaddrinfo ENOTFOUND brain.atomlab.test')
+  }
+  calls.length = 0
+  const off = await checkHealth(true)
+  const i1 = getBrainInfo()
+  check('server down + no opt-in → offline, no local probe', !off && i1.status === 'offline' && !calls.some((c) => c.host === 'local'), JSON.stringify(calls))
+  check('server down → offer «use brain on this computer»', i1.canUseLocal && i1.remoteConfigured && !i1.localOptIn, JSON.stringify(i1))
+
+  // urls: [] (как сейчас в public/brain.json) — без согласия тоже не стучимся
+  setBrainAddressConfig({ urls: [], localFallback: true })
+  calls.length = 0
+  await checkHealth(true)
+  check('urls [] + no opt-in → no probe at all', getBrainStatus() === 'offline' && calls.length === 0 && getBrainInfo().canUseLocal, JSON.stringify(calls))
+  // разрешение «prompt» без согласия — тоже не стучимся (окно не выскакивает само)
+  withPermission('prompt')
+  calls.length = 0
+  await checkHealth(true)
+  check('permission prompt + no opt-in → no probe', getBrainStatus() === 'offline' && calls.length === 0)
+
+  // localFallback: false — мозг на ПК даже не предлагаем
+  setBrainAddressConfig({ urls: [], localFallback: false })
+  await checkHealth(true)
+  check('localFallback false → no offer', !getBrainInfo().canUseLocal)
+
+  // браузер уже разрешил доступ → мозг на этом ПК находится сам (после сервера)
+  setBrainAddressConfig({ urls: [REMOTE_URL], localFallback: true })
+  withPermission('granted')
+  calls.length = 0
+  await checkHealth(true)
+  check(
+    'permission granted → local brain after server',
+    getBrainStatus() === 'online' && getBrainInfo().kind === 'local' && calls[0]?.host === 'remote' && calls.some((c) => c.host === 'local'),
+    JSON.stringify(calls.map((c) => c.host)),
+  )
+  // запрещено → не стучимся даже с согласием
+  withPermission('denied')
+  setLocalBrainOptIn(true)
+  calls.length = 0
+  await checkHealth(true)
+  check('permission denied → no local probe', getBrainStatus() === 'offline' && !calls.some((c) => c.host === 'local') && getBrainInfo().access === 'denied')
+  withPermission(null)
+
+  // ученик нажал «Использовать мозг на этом компьютере» (согласие запоминается)
+  setLocalBrainOptIn(false)
+  calls.length = 0
+  const opted = await optInLocalBrain()
+  check('opt-in click → local brain online', opted && getBrainInfo().kind === 'local' && getBrainInfo().localOptIn && !getBrainInfo().canUseLocal, JSON.stringify(getBrainInfo()))
+
+  // сервер снова жив → он первый, хотя этот ПК тоже отвечает
+  remoteHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : json({}, 404))
+  calls.length = 0
+  await checkHealth(true)
+  check('server back → preferred over local', getBrainInfo().kind === 'remote' && !calls.some((c) => c.host === 'local'))
+
+  // сервер висит → offline через ≈ 2,5 с
+  setLocalBrainOptIn(false)
+  remoteHandler = (_url, init) => hang(init)
+  const th = Date.now()
+  await checkHealth(true)
+  const dth = Date.now() - th
+  check('server health timeout ≈ 2.5 s', getBrainStatus() === 'offline' && dth >= 2_300 && dth < 3_500, `${dth} ms`)
+
+  // brain.json висит → умолчания (urls: []) через ≈ 1,5 с
+  brainJsonHandler = (_url, init) => hang(init)
+  setBrainAddressConfig(null)
+  const tj = Date.now()
+  calls.length = 0
+  await checkHealth(true)
+  const dtj = Date.now() - tj
+  check('brain.json hang → defaults ≈ 1.5 s, no probes', dtj >= 1_300 && dtj < 2_500 && calls.length === 0 && !getBrainInfo().remoteConfigured, `${dtj} ms`)
+  brainJsonHandler = null
+
+  // 429 → null (база браузера) + пометка; мозг остаётся «подключён», но занят; следующий вопрос не стучится
+  setBrainAddressConfig({ urls: [REMOTE_URL], localFallback: false })
+  remoteHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : json({ ok: false, error: { code: 'rate_limited' } }, 429, { 'Retry-After': '3' }))
+  await checkHealth(true)
+  const rl = await streamChat({ messages: ask('что такое моль'), context: chatCtx, lang: 'ru' })
+  check('429 → null, still online + busy', rl === null && getBrainStatus() === 'online' && getBrainInfo().busy, JSON.stringify(getBrainInfo()))
+  check('429 → busy note once', takeBrainBusyNote('ru') === BRAIN_BUSY_NOTE.ru && takeBrainBusyNote('ru') === '')
+  calls.length = 0
+  const routed = await routeTeacherReply(ask('что такое моль'), ctxOf('ru'))
+  check(
+    'router busy → browser answer with note, no /chat',
+    routed.source !== 'brain' && routed.text.startsWith(`${BRAIN_BUSY_NOTE.ru}\n\n`) && /моль/i.test(routed.text.slice(BRAIN_BUSY_NOTE.ru.length)) && !calls.some((c) => c.url === '/chat'),
+    `${routed.source}: ${routed.text.slice(0, 160)}`,
+  )
+  check('busy note passes R3', !R3_CONTRACT.test(routed.text) && !R3_CONTRACT.test(BRAIN_BUSY_NOTE.en) && !R3_CONTRACT.test(BRAIN_BUSY_NOTE.uz))
+  // мат при занятом сервере: сначала R2, потом пометка и ответ
+  const rudeBusy = await routeTeacherReply(ask('б*я, что такое моль'), ctxOf('ru'))
+  check('router busy + R2: notice first', rudeBusy.text.startsWith(`${MODERATION_NOTICE.ru}\n\n${BRAIN_BUSY_NOTE.ru}`), rudeBusy.text.slice(0, 160))
+
+  // 503 «перегружен» → тоже «занят», а не «мозг пропал»
+  setBrainAddressConfig({ urls: [REMOTE_URL], localFallback: false })
+  remoteHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : json({ ok: false, error: { code: 'overloaded' } }, 503))
+  await checkHealth(true)
+  const ov = await streamChat({ messages: ask('x'), context: chatCtx, lang: 'en' })
+  check('503 overloaded → busy, not offline', ov === null && getBrainStatus() === 'online' && takeBrainBusyNote('en') === BRAIN_BUSY_NOTE.en)
+
+  // SSE error {code: busy} до первого куска → «занят»
+  setBrainAddressConfig({ urls: [REMOTE_URL], localFallback: false })
+  remoteHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : sseResponse([sse('error', { code: 'busy', message: 'очередь полна' })]))
+  await checkHealth(true)
+  const eb = await streamChat({ messages: ask('mol nima'), context: chatCtx, lang: 'uz' })
+  check('sse error busy → null + note, still online', eb === null && getBrainStatus() === 'online' && takeBrainBusyNote('uz') === BRAIN_BUSY_NOTE.uz)
+
+  // очередь: queue {position} → место в очереди (для «Думаю…»), потом ответ; место сбрасывается
+  setBrainAddressConfig({ urls: [REMOTE_URL], localFallback: false })
+  remoteHandler = async (url) =>
+    url === '/health'
+      ? json(HEALTH_OK)
+      : sseResponse([sse('queue', { position: 2 }), sse('queue', { position: 1 }), ...brainReply(['Кислота отдаёт протон.'], {})], { delayMs: 20 })
+  await checkHealth(true)
+  const seen: number[] = []
+  let infoQueue = 0
+  const qd = await streamChat({ messages: ask('что такое кислота'), context: chatCtx, lang: 'ru', onQueue: (n) => (seen.push(n), (infoQueue = getBrainInfo().queue ?? 0)) })
+  check('queue: positions 2 → 1 reported', seen.join(',') === '2,1' && infoQueue === 1, `${seen.join(',')} / ${infoQueue}`)
+  check('queue: answer after queue, position cleared', qd?.text === 'Кислота отдаёт протон.' && getBrainInfo().queue === null, qd?.text ?? 'null')
+
+  // дальше — прежние проверки мозга на этом ПК (согласие дано)
+  setBrainAddressConfig({ urls: [], localFallback: true })
+  setLocalBrainOptIn(true)
+  brainHandler = async () => {
+    throw new TypeError('connect ECONNREFUSED 127.0.0.1:8787')
+  }
+}
+
 console.log('[client] /health, SSE')
 {
   const parsed = parseSseBuffer('event: delta\ndata: {"text":"a"}\n\nevent: delta\r\ndata: {"text":"b"}\r\n\r\nevent: do')
