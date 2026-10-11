@@ -41,7 +41,7 @@ try {
   }
   $ts = Find-Tailscale
   if ($ts -and $state.funnel -eq 'on') {
-    $fs = (& $ts funnel status 2>&1 | Out-String)
+    $fs = (Invoke-Exe $ts funnel status | Out-String)
     if ($fs -notmatch ("127\.0\.0\.1:" + $port)) {
       Warn 'Funnel выключен — включаю снова'
       Act "tailscale funnel --bg $port" { Enable-Funnel $ts $port 60 | Out-Null }
@@ -51,7 +51,7 @@ try {
   # --- 2. обновление кода ---
   $branch = $cfg.update.branch
   if (-not $branch) { $branch = 'main' }
-  & $git @g fetch --depth 1 --quiet origin $branch 2>&1 | Out-Null
+  Invoke-Exe $git @g fetch --depth 1 --quiet origin $branch | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "git fetch не удался (код $LASTEXITCODE)" }
   $head = (& $git @g rev-parse HEAD).Trim()
   $remote = (& $git @g rev-parse FETCH_HEAD).Trim()
@@ -64,7 +64,7 @@ try {
     $newCfgPath = Join-Path $repo 'deploy\brain-pc\server-config.json'
     if (Test-Path -LiteralPath $newCfgPath) {
       $newCfg = Get-ServerConfig $newCfgPath
-      if ($newCfg.sparse) { Act 'git sparse-checkout set' { & $git @g sparse-checkout set @($newCfg.sparse) 2>&1 | Out-Null } }
+      if ($newCfg.sparse) { Act 'git sparse-checkout set' { Invoke-Exe $git @g sparse-checkout set @($newCfg.sparse) | Out-Null } }
     }
     # сами скрипты обслуживания тоже обновляются (вступят в силу со следующего запуска)
     Act 'обновить C:\ATOMLAB\bin из deploy\brain-pc' {
@@ -87,7 +87,7 @@ try {
     $ollama = Join-Path $paths.Ollama 'ollama.exe'
     if (-not (Test-Path -LiteralPath $ollama)) { $ollama = Find-Exe 'ollama.exe' }
     foreach ($m in @($cfg.models.chat, $cfg.models.fast, $cfg.models.embed) | Select-Object -Unique) {
-      Act "ollama pull $m" { & $ollama pull $m 2>&1 | Out-Null; if ($LASTEXITCODE -ne 0) { throw "ollama pull $m не удался" } }
+      Act "ollama pull $m" { Invoke-Exe $ollama pull $m | Out-Null; if ($LASTEXITCODE -ne 0) { throw "ollama pull $m не удался" } }
     }
     Act 'config.json: модели' { & (Join-Path $paths.Bin 'write-brain-config.ps1') -Root $Root }
     Set-StateValue $state 'modelsKey' $key

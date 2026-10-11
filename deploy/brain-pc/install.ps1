@@ -67,7 +67,7 @@ $gpu = $null
 if ($full) {
   $smi = Find-Exe 'nvidia-smi.exe' @("$env:SystemRoot\System32\nvidia-smi.exe", "$env:ProgramFiles\NVIDIA Corporation\NVSMI\nvidia-smi.exe")
   if ($smi) {
-    $line = (& $smi --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits 2>$null | Select-Object -First 1)
+    $line = (Invoke-Exe $smi --query-gpu=name,memory.total,driver_version --format=csv,noheader,nounits | Select-Object -First 1)
     if ($line) {
       $f = $line -split ',\s*'
       $gpu = [ordered]@{ name = $f[0]; vramMB = [int]$f[1]; driver = $f[2] }
@@ -137,7 +137,7 @@ function Install-Node {
 # Проверки: SHA-256 из sha256sum.txt того же выпуска + подпись ollama.exe «Ollama Inc.».
 function Install-Ollama {
   $exe = Join-Path $paths.Ollama 'ollama.exe'
-  if (Test-Path -LiteralPath $exe) { Ok ("Ollama: " + ((& $exe --version 2>&1 | Out-String).Trim() -replace '\s+', ' ')); return }
+  if (Test-Path -LiteralPath $exe) { Ok ("Ollama: " + ((Invoke-Exe $exe --version | Out-String).Trim() -replace '\s+', ' ')); return }
   if ($script:AtomDry) { Say "    [DRY] скачать github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip (~1,5 ГБ) → $($paths.Ollama), SHA-256 + подпись «Ollama Inc.»" 'DarkCyan'; return }
   $zip = Join-Path $paths.Cache 'ollama-windows-amd64.zip'
   try {
@@ -162,7 +162,7 @@ function Install-Ollama {
     Copy-Item -LiteralPath $src -Destination $paths.Ollama -Recurse -Force
     Assert-Signed $exe 'Ollama Inc.'
   }
-  Ok ("Ollama: " + ((& $exe --version 2>&1 | Out-String).Trim() -replace '\s+', ' '))
+  Ok ("Ollama: " + ((Invoke-Exe $exe --version | Out-String).Trim() -replace '\s+', ' '))
 }
 
 # Ollama из трея (если друг ставил её раньше) держит порт 11434 и мешает службе — выключаю её автозапуск.
@@ -180,7 +180,7 @@ function Stop-TrayOllama {
 
 function Install-Tailscale {
   $ts = Find-Tailscale
-  if ($ts) { Ok ("Tailscale: " + ((& $ts version 2>&1 | Select-Object -First 1))); return }
+  if ($ts) { Ok ("Tailscale: " + ((Invoke-Exe $ts version | Select-Object -First 1))); return }
   if ($script:AtomDry) { Say '    [DRY] winget install Tailscale.Tailscale (запасной путь: pkgs.tailscale.com MSI, подпись «Tailscale Inc.», TS_UNATTENDEDMODE=always)' 'DarkCyan'; return }
   if (-not (Invoke-Winget 'Tailscale.Tailscale')) {
     Warn 'winget не справился — качаю Tailscale с pkgs.tailscale.com'
@@ -216,14 +216,14 @@ if (Test-Path -LiteralPath (Join-Path $paths.Repo '.git')) {
   # локальный путь → file:// (иначе git игнорирует --depth/--filter)
   if ($src -notmatch '^[a-z]+://' -and (Test-Path -LiteralPath $src)) { $src = 'file:///' + ((Resolve-Path -LiteralPath $src).Path -replace '\\', '/') }
   Act "git clone --depth 1 --filter=blob:none --sparse --branch $Branch $src → $($paths.Repo)" {
-    & $git -c uploadpack.allowFilter=true clone --quiet --depth 1 --filter=blob:none --sparse --branch $Branch $src $paths.Repo 2>&1 | Out-Host
+    Invoke-Exe $git -c uploadpack.allowFilter=true clone --quiet --depth 1 --filter=blob:none --sparse --branch $Branch $src $paths.Repo | Out-Host
     if ($LASTEXITCODE -ne 0) {
       Warn 'частичный клон не вышел — обычный мелкий клон'
       if (Test-Path -LiteralPath $paths.Repo) { Remove-Item -LiteralPath $paths.Repo -Recurse -Force }
-      & $git clone --quiet --depth 1 --branch $Branch $src $paths.Repo 2>&1 | Out-Host
+      Invoke-Exe $git clone --quiet --depth 1 --branch $Branch $src $paths.Repo | Out-Host
       if ($LASTEXITCODE -ne 0) { throw 'git clone не удался' }
     } else {
-      & $git @gsafe -C $paths.Repo sparse-checkout set @($cfg.sparse) 2>&1 | Out-Host
+      Invoke-Exe $git @gsafe -C $paths.Repo sparse-checkout set @($cfg.sparse) | Out-Host
       if ($LASTEXITCODE -ne 0) { throw 'git sparse-checkout не удался' }
     }
     # origin — всегда GitHub: автообновление берёт код оттуда (даже если клонировали с локального пути)
@@ -302,7 +302,7 @@ if (-not $full) {
   }
   if (-not $h) { Fail 'мозг не ответил на /health'; Get-Content -LiteralPath $blog -Tail 30 | Out-Host; Stop-ProcessTree $p.Id; exit 1 }
   Ok ("/health: ok={0}, llm={1} ({2}), база {3} док., векторов {4}, загрузка {5:N0} с" -f $h.ok, $h.llm.available, $h.llm.chatModel, $h.kb.docs, $h.kb.embedded, ((Get-Date) - $t0).TotalSeconds)
-  $st = (& $node --import $loader (Join-Path $paths.Repo 'deploy\brain-pc\selftest.mts') ("--url=http://127.0.0.1:{0}" -f $BrainPort) 2>&1 | Out-String)
+  $st = (Invoke-Exe $node --import $loader (Join-Path $paths.Repo 'deploy\brain-pc\selftest.mts') ("--url=http://127.0.0.1:{0}" -f $BrainPort) | Out-String)
   $sj = $null
   try { $sj = ($st.Trim().Split("`n") | Select-Object -Last 1) | ConvertFrom-Json } catch { }
   if ($sj -and $sj.ok) {
@@ -394,14 +394,14 @@ else {
     }
   }
   $online = $false
-  if ($ts) { try { $online = ((& $ts status --json 2>$null | Out-String) | ConvertFrom-Json).BackendState -eq 'Running' } catch { } }
+  if ($ts) { try { $online = ((Invoke-Exe $ts status --json | Out-String) | ConvertFrom-Json).BackendState -eq 'Running' } catch { } }
   if ($online) { Ok 'Tailscale уже подключён' }
   else {
     if (-not $AuthKey -and -not $script:AtomDry -and -not $NoPause) { $AuthKey = (Read-Host 'Вставьте ключ Tailscale от владельца (начинается с tskey-) и нажмите Enter').Trim() }
     if (-not $AuthKey) { Warn 'ключа нет — публичный адрес не настроен. Положите ключ в ключ.txt и запустите УСТАНОВИТЬ.bat ещё раз.' }
     else {
       Act 'tailscale up --auth-key=*** --hostname=atomlab-brain --unattended' {
-        & $ts up ("--auth-key=" + $AuthKey) '--hostname=atomlab-brain' '--unattended' 2>&1 | Out-Host
+        Invoke-Exe $ts up ("--auth-key=" + $AuthKey) '--hostname=atomlab-brain' '--unattended' | Out-Host
         if ($LASTEXITCODE -ne 0) { throw 'tailscale up не удался (ключ неверный или просрочен?)' }
       }
       $online = $true
@@ -467,7 +467,7 @@ $evalJson = Join-Path $paths.Logs 'selftest-eval.json'
 Say "    20 живых вопросов (несколько минут)…"
 Push-Location $paths.Repo
 try {
-  $evalOut = (& $node --import $loader scripts/brain/eval.mts ("--url=http://127.0.0.1:{0}" -f $BrainPort) ("--sample={0}" -f [int]$cfg.selfTest.sample) ("--json=" + $evalJson) 2>&1 | Out-String)
+  $evalOut = (Invoke-Exe $node --import $loader scripts/brain/eval.mts ("--url=http://127.0.0.1:{0}" -f $BrainPort) ("--sample={0}" -f [int]$cfg.selfTest.sample) ("--json=" + $evalJson) | Out-String)
 } finally { Pop-Location }
 Add-Content -LiteralPath $script:LogFile -Value $evalOut -Encoding UTF8
 $rows = @()
@@ -492,7 +492,7 @@ if ($rows.Count) {
 
 if ($publicUrl) {
   $pj = Join-Path $paths.Logs 'selftest-funnel.json'
-  & $node --import $loader (Join-Path $paths.Repo 'deploy\brain-pc\selftest.mts') ("--url=" + $publicUrl) ("--json=" + $pj) 2>&1 | Out-Null
+  Invoke-Exe $node --import $loader (Join-Path $paths.Repo 'deploy\brain-pc\selftest.mts') ("--url=" + $publicUrl) ("--json=" + $pj) | Out-Null
   $fj = Read-Json $pj
   if ($fj -and $fj.ok) {
     Ok ("через интернет: {0}/health ok, первое слово {1} мс (кусков {2} — поток идёт)" -f $publicUrl, $fj.firstMs, $fj.chunks)

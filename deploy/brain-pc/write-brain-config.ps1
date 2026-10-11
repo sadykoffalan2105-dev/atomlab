@@ -46,7 +46,7 @@ Act "записать $file (профиль $($cfg.profile), модели $chat 
   if (-not (Test-Path -LiteralPath $tokFile)) {
     [IO.File]::WriteAllText($tokFile, $token, (New-Object System.Text.UTF8Encoding($false)))
     # только администраторы и SYSTEM (SID — не зависят от языка Windows)
-    & icacls.exe $paths.Secrets /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' 2>&1 | Out-Null
+    Invoke-Exe icacls.exe $paths.Secrets /inheritance:r /grant:r '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' | Out-Null
   }
   Write-JsonNoBom $file $conf
 }

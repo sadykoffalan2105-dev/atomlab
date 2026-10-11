@@ -31,7 +31,7 @@ function Test-BrainDeps {
   if (-not (Test-Path -LiteralPath $probe)) { $probe = Join-Path $paths.Bin 'probe-deps.mts' }
   Push-Location $paths.Repo
   try {
-    $out = (& $node --import $loader $probe 2>&1 | Out-String)
+    $out = (Invoke-Exe $node --import $loader $probe | Out-String)
   } finally { Pop-Location }
   if ($out -match 'deps-ok') { Ok 'мозг загружается (probe-deps)'; return $true }
   Warn ('probe-deps: ' + ($out.Trim() -replace '\s+', ' ').Substring(0, [Math]::Min(400, $out.Trim().Length)))
@@ -53,7 +53,7 @@ if ($mode -eq 'minimal') {
       New-Item -ItemType Directory -Force -Path $paths.Runtime | Out-Null
       Write-JsonNoBom (Join-Path $paths.Runtime 'package.json') ([ordered]@{ name = 'atomlab-brain-runtime'; private = $true; dependencies = [ordered]@{ tsx = $ver } })
       Push-Location $paths.Runtime
-      try { & $npm install --no-audit --no-fund --loglevel=error 2>&1 | Out-Host } finally { Pop-Location }
+      try { Invoke-Exe $npm install --no-audit --no-fund --loglevel=error | Out-Host } finally { Pop-Location }
       if ($LASTEXITCODE -ne 0) { throw "npm install tsx@$ver не удался" }
     }
   } else { Ok "runtime: tsx $ver уже стоит" }
@@ -65,7 +65,7 @@ if ($mode -eq 'minimal') {
 
 Act 'npm ci --ignore-scripts в репозитории (полный режим)' {
   Push-Location $paths.Repo
-  try { & $npm ci --ignore-scripts --no-audit --no-fund --loglevel=error 2>&1 | Out-Host } finally { Pop-Location }
+  try { Invoke-Exe $npm ci --ignore-scripts --no-audit --no-fund --loglevel=error | Out-Host } finally { Pop-Location }
   if ($LASTEXITCODE -ne 0) { throw 'npm ci не удался' }
 }
 if ($script:AtomDry) { return }

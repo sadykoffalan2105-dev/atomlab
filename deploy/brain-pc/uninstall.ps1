@@ -41,9 +41,9 @@ Get-Process -Name 'ollama' -ErrorAction SilentlyContinue | Where-Object { $_.Pat
 Step '3. Tailscale'
 $ts = Find-Tailscale
 if ($ts) {
-  Act 'tailscale funnel reset' { & $ts funnel reset 2>&1 | Out-Null }
+  Act 'tailscale funnel reset' { Invoke-Exe $ts funnel reset | Out-Null }
   if (Ask 'Отключить этот ПК от сети Tailscale владельца (tailscale logout)?') {
-    Act 'tailscale logout' { & $ts logout 2>&1 | Out-Null }
+    Act 'tailscale logout' { Invoke-Exe $ts logout | Out-Null }
   }
 } else { Say '    Tailscale не установлен' }
 

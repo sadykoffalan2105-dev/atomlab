@@ -181,6 +181,17 @@ function Assert-Signed([string]$file, [string]$signerLike) {
   Ok ("подпись {0}: {1}" -f (Split-Path -Leaf $file), $signerLike)
 }
 
+# Внешняя программа без «NativeCommandError»: в PowerShell 5.1 при ErrorActionPreference=Stop любая строка в stderr
+# (git пишет туда даже предупреждения и прогресс) стала бы исключением. Возвращает строки stdout+stderr; код — $LASTEXITCODE.
+function Invoke-Exe {
+  $exe = $args[0]
+  $rest = @()
+  if ($args.Count -gt 1) { $rest = $args[1..($args.Count - 1)] }
+  $old = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try { & $exe @rest 2>&1 | ForEach-Object { "$_" } } finally { $ErrorActionPreference = $old }
+}
+
 function Test-Winget { return [bool](Get-Command winget.exe -ErrorAction SilentlyContinue) }
 
 function Invoke-Winget([string]$id) {
@@ -204,7 +215,7 @@ function Get-ActiveConnections([int]$port) {
 # Публичный адрес узла: https://<имя>.<tailnet>.ts.net (из tailscale status --json → Self.DNSName).
 function Get-FunnelUrl([string]$ts) {
   try {
-    $j = (& $ts status --json 2>$null | Out-String) | ConvertFrom-Json
+    $j = (Invoke-Exe $ts status --json | Out-String) | ConvertFrom-Json
     $dns = [string]$j.Self.DNSName
     if ($dns) { return ('https://' + $dns.TrimEnd('.')) }
   } catch { }
@@ -242,5 +253,5 @@ function Enable-Funnel([string]$ts, [int]$port, [int]$waitSec = 900) {
 
 function Stop-ProcessTree([int]$procId) {
   if ($procId -le 0) { return }
-  & taskkill.exe /PID $procId /T /F 2>$null | Out-Null
+  Invoke-Exe taskkill.exe /PID $procId /T /F | Out-Null
 }
