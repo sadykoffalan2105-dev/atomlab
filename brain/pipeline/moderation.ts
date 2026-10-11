@@ -46,6 +46,8 @@ const EN: RegExp[] = [/fuck/, /^(?:bull|horse)?shit/, /bitch/, /asshole/, /^cunt
 const WHITELIST = [
   'употреб', 'хлеб', 'себя', 'себе', 'себаст', 'скипидар', 'застрах', 'страху', 'оскорбл', 'команд', 'подсчет', 'колеб', 'требу',
   'бляшк', 'shiitake', 'shitake', 'mandarin', 'мандарин', 'аминга', 'aminga', 'херес', 'хересск', 'ebon', 'ebol', 'ebul', 'ebay',
+  // «oxygen» гомоглифами даёт «охуgеn» → «оху…»: химические слова на oxy-/hydroxy- — не мат
+  'oxyg', 'oxyacid', 'oxyhydr', 'hydroxy', 'deoxy', 'peroxy', 'dioxy',
 ]
 /** Латинские слова, которые транслитом совпадают с корнями («her» → «хер», «hue» → «хуе»). */
 const EXACT_OK = new Set(['her', 'hers', 'hue', 'hues', 'huey', 'ebb'])

@@ -3,7 +3,8 @@
  *   BM25F по шардам учебников (limit 30, класс/глава/параграф из контекста, типы textbook/definition/summary/card/faq/misconception);
  *   энциклопедия и указатель — при вопросах «кто/история/промышленность» или когда школьные ответы слабые;
  *   ∪ BM25 журнала (brain/kb/journal.ts) ∪ векторы bge-m3 (если Ollama + эмбеддинги есть).
- * Затем hybrid.ts: нормировка, веса, бонусы, MMR → top-6 (≤ 5000 символов) и уверенность
+ * Затем hybrid.ts: нормировка, веса, бонусы; relevance.ts: проверка темы (порог, имена собственные, персоналии,
+ *   Kimyo/ATOMLAB выше Википедии); MMR → top-6 (≤ 5000 символов) и уверенность
  *   conf_r = 0.6·s_top + 0.4·coverage, где s_top — абсолютная (калиброванная) сила лучшего совпадения,
  *   coverage — доля понятий вопроса, встреченных в top-3.
  */
@@ -16,6 +17,7 @@ import type { Knowledge } from '../kb/shards.ts'
 import { normForHash } from '../kb/storage.ts'
 import type { LlmClient } from '../llm/ollama.ts'
 import { hybridScore, mmrSelect, type Candidate } from './hybrid.ts'
+import { applyRelevance } from './relevance.ts'
 import type { Lang } from './normalize.ts'
 import { normalizeVec } from '../kb/embedStore.ts'
 
@@ -30,6 +32,10 @@ export type RetrievalResult = {
   coverage: number
   queryTerms: Set<string>
   usedVectors: boolean
+  /** сколько кандидатов отброшено проверкой темы (relevance.ts) */
+  dropped: number
+  /** первые отброшенные (заголовок, причина) — для отладки и scripts/brain/probe-retrieve.mts */
+  droppedTop: { title: string; why: string }[]
   ms: number
 }
 
@@ -171,7 +177,10 @@ export async function retrieve(
   }
 
   hybridScore(cands, { wBm: config.hybrid.wBm, wVec: config.hybrid.wVec, grade, queryTerms })
-  const items = mmrSelect(cands, config.hybrid.mmrLambda, config.hybrid.topK, config.hybrid.maxChars)
+  // тематическая релевантность: «голубое небо» ≠ «Голубой сдвиг»; карточки учёных — только для «кто/история»;
+  // учебники Kimyo и данные ATOMLAB выше Википедии для школьных вопросов (brain/pipeline/relevance.ts)
+  const rel = applyRelevance(cands, analyzed, text, { allowPeople: wantEncyclopedia, schoolQuestion: !wantEncyclopedia })
+  const items = mmrSelect(rel.kept, config.hybrid.mmrLambda, config.hybrid.topK, config.hybrid.maxChars)
 
   // уверенность
   const best = items[0]
@@ -191,7 +200,7 @@ export async function retrieve(
   })
   const coverage = total ? covered / total : 0
   const confR = 0.6 * sTop + 0.4 * coverage
-  return { items, confR, sTop, coverage, queryTerms, usedVectors, ms: Math.round(performance.now() - t0) }
+  return { items, confR, sTop, coverage, queryTerms, usedVectors, dropped: rel.dropped.length, droppedTop: rel.dropped.slice(0, 6).map((d) => ({ title: d.c.title.slice(0, 80), why: d.why })), ms: Math.round(performance.now() - t0) }
 }
 
 function dotSafe(a: Float32Array, b: Float32Array): number {

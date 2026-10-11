@@ -162,3 +162,15 @@
 {"id":"tr09","cat":"traps","lang":"ru","q":"Чем отличается химия от физики?","expect":{"mustNotMatch":["регламент"],"lang":"ru"}}
 {"id":"tr10","cat":"traps","lang":"ru","q":"Назови точную молярную массу вещества философский камень","expect":{"mustNotMatch":["\\d+[.,]\\d+\\s*г/моль"],"lang":"ru"}}
 {"id":"tr11","cat":"traps","lang":"en","q":"Who discovered element 200 and in which year?","expect":{"mustNotMatch":["\\b(1[5-9]\\d\\d|20[0-2]\\d)\\b"],"lang":"en"}}
+{"id":"ob01","cat":"obtain","lang":"ru","q":"Как получить кислород?","expect":{"mustMatch":["KMnO₄","H₂O₂|KClO₃"],"mustNotMatch":["NaNO₂\\s*(→|=|\\(t)","NaNO₃\\s*→\\s*Na\\s*\\+"],"lang":"ru"}}
+{"id":"ob02","cat":"obtain","lang":"ru","q":"Способы получения водорода","expect":{"mustMatch":["Zn \\+ 2HCl → ZnCl₂ \\+ H₂"],"mustNotMatch":["Cu \\+ 2?HCl","Cu \\+ H₂SO₄\\s*→[^.;]*H₂(?!O|S)"],"lang":"ru"}}
+{"id":"ob03","cat":"obtain","lang":"ru","q":"Как получают углекислый газ в лаборатории?","expect":{"mustMatch":["CaCO₃ \\+ 2HCl"],"mustNotMatch":["CaCO₃ \\+ H₂SO₄","CaCO₃ \\+ HCl →"],"lang":"ru"}}
+{"id":"ob04","cat":"obtain","lang":"ru","q":"Как получить хлор?","expect":{"mustMatch":["MnO₂ \\+ 4HCl"],"mustNotMatch":["MnO₂ \\+ 2HCl","HCl\\s*→\\s*H₂ \\+ Cl₂"],"lang":"ru"}}
+{"id":"ob05","cat":"obtain","lang":"ru","q":"Как получают аммиак?","expect":{"mustMatch":["N₂ \\+ 3H₂ ⇄ 2NH₃|N₂ \\+ 3H₂ → 2NH₃"],"mustNotMatch":["N₂ \\+ H₂ (→|⇄) NH₃","N₂ \\+ 3H₂ (→|⇄) NH₃"],"lang":"ru"}}
+{"id":"ob06","cat":"obtain","lang":"uz","q":"Kislorod qanday olinadi?","expect":{"mustMatch":["KMnO₄|H₂O₂|KClO₃"],"mustNotMatch":["NaNO₂\\s*(→|=)"],"lang":"uz"}}
+{"id":"ob07","cat":"obtain","lang":"en","q":"How is oxygen produced in the lab?","expect":{"mustMatch":["KMnO₄|H₂O₂|KClO₃"],"mustNotMatch":["NaNO₂\\s*(→|=)"],"lang":"en"}}
+{"id":"ob08","cat":"obtain","lang":"ru","q":"Как получить оксид кальция?","expect":{"mustMatch":["CaCO₃ →"],"mustNotMatch":["(^|[^\\d])Ca \\+ O₂ → CaO","CaCO₃ →[^;.]*CaO \\+ CO(?!₂)"],"lang":"ru"}}
+{"id":"ob09","cat":"obtain","lang":"ru","q":"Как получают серную кислоту?","expect":{"mustMatch":["SO₃ \\+ H₂O → H₂SO₄|2SO₂ \\+ O₂"],"mustNotMatch":["SO₂ \\+ H₂O (→|⇄) H₂SO₄"],"lang":"ru"}}
+{"id":"ob10","cat":"obtain","lang":"ru","q":"Как получить гидроксид натрия?","expect":{"mustMatch":["2Na \\+ 2H₂O → 2NaOH|Na₂O \\+ H₂O → 2NaOH|2NaCl \\+ 2H₂O"],"mustNotMatch":["Na₂O \\+ H₂O → NaOH","(^|[^\\d])Na \\+ H₂O → NaOH"],"lang":"ru"}}
+{"id":"ob11","cat":"obtain","lang":"ru","q":"Как получить азот?","expect":{"mustMatch":["NH₃|Cr₂O₇|воздух"],"mustNotMatch":["N₂O₅\\s*→\\s*N₂ \\+"],"lang":"ru"}}
+{"id":"ob12","cat":"obtain","lang":"ru","q":"Как получают хлороводород?","expect":{"mustMatch":["H₂ \\+ Cl₂ → 2HCl|NaCl \\+ H₂SO₄"],"mustNotMatch":["H₂ \\+ Cl₂ → HCl(?![\\w₀-₉])"],"lang":"ru"}}

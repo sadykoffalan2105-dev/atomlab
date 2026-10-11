@@ -14,6 +14,7 @@ import { FIRST_PRINCIPLES, type Concept } from '../kb/concepts.ts'
 import type { Knowledge, QaElement, QaSubstance } from '../kb/shards.ts'
 import type { StudentSnapshot } from '../student/model.ts'
 import { fallbackStyle } from '../student/adapt.ts'
+import { genitive } from './declension.ts'
 import { findConcepts, findElements, findFormulas, findSubstances } from './entities.ts'
 import type { Candidate } from './hybrid.ts'
 import { jaccard } from './hybrid.ts'
@@ -124,6 +125,7 @@ function goodSentence(s: string): boolean {
   const letters = (s.match(/\p{L}/gu) ?? []).length
   if (letters / s.length < 0.6) return false
   if (/^[\p{Ll}(,;:)]/u.test(s)) return false
+  if (/\?\s*$/u.test(s)) return false // вопросы-задания учебника («Сколько г оксида образуется…?») — не тезис
   if (/(рис\.|таблиц[аеу]\s*\d|упражнени|задани[ея]\s*\d|ответьте на вопросы|^\d+\.)/iu.test(s)) return false
   return true
 }
@@ -299,8 +301,21 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   // 0) точные инструменты
   if (tools.length) {
     parts.push(tools.map((t) => t.text).join('\n'))
-    cite('[ATOMLAB: расчёт]')
+    for (const t of tools) cite(t.cite ?? '[ATOMLAB: расчёт]')
     confidence = Math.max(confidence, 0.95)
+    // «как получить X»: проверенные уравнения + одно пояснение учебника о получении + микровопрос (без карточки элемента)
+    const obtain = tools.find((t) => t.tool === 'obtain')
+    if (obtain && inp.intent !== 'calc' && inp.intent !== 'homework') {
+      const extra = (lang === 'ru' ? sentencesFrom(items) : []).find((x) => /получ|выдел|добыва/iu.test(x.s) && !obtain.text.includes(x.s.slice(0, 24)))
+      const body = [style.prefix + obtain.text]
+      if (extra && inp.mode !== 'live') {
+        body.push(extra.s)
+        cite(extra.cand.citation)
+      }
+      body.push(pick(MICRO.how[lang], inp.seed))
+      if (style.suffix) body.push(style.suffix)
+      return { text: trimToWords(body.filter(Boolean).join('\n'), inp.wordLimit), citations, confidence }
+    }
     if (inp.intent === 'calc' || inp.intent === 'homework') {
       const body = [style.prefix + parts.join('\n'), pick(MICRO.calc[lang], inp.seed)]
       if (style.suffix) body.push(style.suffix)
@@ -393,7 +408,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     // 4) логика по типу вопроса
     // «как получить кислород» — элемент назван, а получают простое вещество (O₂)
     const howSub = substances[0] ?? (elements[0] ? (kb.substanceByFormula.get(DIATOMIC.has(elements[0].s) ? `${elements[0].s}2` : elements[0].s) ?? null) : null)
-    if (qtype === 'how' && howSub) {
+    if (qtype === 'how' && howSub && !tools.some((t) => t.tool === 'obtain')) {
       const eqs = obtainEquations(howSub, kb)
       if (eqs.length) {
         logic = T(lang, `например, ${eqs.join('; ')}. Атомов каждого элемента слева и справа поровну — закон сохранения массы.`, `masalan, ${eqs.join('; ')}. Har bir element atomlari chapda va oʻngda teng — massaning saqlanish qonuni.`, `for example, ${eqs.join('; ')}. Each element has the same number of atoms on both sides — conservation of mass.`)
@@ -409,7 +424,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     }
     if (!logic && (substances.length || elements.length)) {
       const e = elements[0]
-      if (e) logic = T(lang, `свойства ${e.ru.toLowerCase()} задаёт строение атома: заряд ядра +${e.z} и конфигурация внешнего слоя определяют его место в ${e.grp}-й группе и типичные степени окисления.`, `${e.uz} xossalarini atom tuzilishi belgilaydi: yadro zaryadi +${e.z} va tashqi qavat konfiguratsiyasi uning ${e.grp}-guruhdagi oʻrnini va tipik oksidlanish darajalarini belgilaydi.`, `the properties of ${e.en.toLowerCase()} follow from its atomic structure: nuclear charge +${e.z} and the outer-shell configuration set its place in group ${e.grp} and its typical oxidation states.`)
+      if (e) logic = T(lang, `свойства ${genitive(e.ru)} задаёт строение атома: заряд ядра +${e.z} и конфигурация внешнего слоя определяют его место в ${e.grp}-й группе и типичные степени окисления.`, `${e.uz} xossalarini atom tuzilishi belgilaydi: yadro zaryadi +${e.z} va tashqi qavat konfiguratsiyasi uning ${e.grp}-guruhdagi oʻrnini va tipik oksidlanish darajalarini belgilaydi.`, `the properties of ${e.en.toLowerCase()} follow from its atomic structure: nuclear charge +${e.z} and the outer-shell configuration set its place in group ${e.grp} and its typical oxidation states.`)
       else if (substances[0]) logic = T(lang, 'свойства вещества определяются его составом и типом химической связи, а превращения подчиняются закону сохранения массы.', 'moddaning xossalari uning tarkibi va kimyoviy bogʻ turi bilan belgilanadi, oʻzgarishlar esa massaning saqlanish qonuniga boʻysunadi.', 'a substance’s properties come from its composition and bonding, and its reactions obey conservation of mass.')
     }
   }

@@ -6,6 +6,9 @@
  */
 import type { BrainConfig } from '../config.ts'
 import { PERSONA } from '../persona/systemPrompt.ts'
+import type { Lang } from '../pipeline/normalize.ts'
+
+const WARM_GREETING: Record<Lang, string> = { ru: 'Привет', uz: 'Salom', en: 'Hello' }
 
 export type LlmMessage = { role: 'system' | 'user' | 'assistant'; content: string }
 
@@ -120,8 +123,9 @@ export class OllamaClient implements LlmClient {
       const was = this.st.available
       this.st = { available: !!chatModel, chatModel, fastModel, embedModel, checkedAt: Date.now() }
       if (this.st.available && !was) console.log(`[brain] Ollama: модели ${chatModel}${fastModel !== chatModel ? ` / ${fastModel}` : ''}${embedModel ? `, эмбеддинги ${embedModel}` : ''}`)
-      if (chatModel) this.warm(chatModel)
-      if (fastModel && fastModel !== chatModel) this.warm(fastModel)
+      // чат-модель — персонами всех языков по очереди (последний остаётся в слоте кеша), быстрая — русской (живой голос)
+      if (chatModel) this.warm(chatModel, this.cfg.warmLangs)
+      if (fastModel && fastModel !== chatModel) this.warm(fastModel, ['ru'])
     } catch (err) {
       if (this.st.available) console.log('[brain] Ollama недоступна — запасной путь')
       this.st = { available: false, chatModel: null, fastModel: null, embedModel: null, checkedAt: Date.now(), error: (err as Error).message }
@@ -131,35 +135,46 @@ export class OllamaClient implements LlmClient {
     return this.st
   }
 
-  /** Подгрузить модель в память заранее, чтобы первый ответ ученику не ждал загрузки. */
   /**
-   * Прогрев: та же num_ctx, что у ответов (иначе Ollama перезагрузит модель), и русская персона — её KV-кеш
-   * остаётся в слоте, и первый вопрос ученика не перечитывает системную часть. Пока сервер работает,
-   * keep_alive продлевается раз в keepAliveRefreshMs (пустой запрос: модель не считает, только остаётся в памяти).
+   * Прогрев (в фоне: сервер уже слушает порт и отвечает на /health): модель загружается в память, а персоны языков
+   * читаются по очереди — та же num_ctx, что у ответов (иначе Ollama перезагрузит модель). Первый вопрос на uz/en
+   * не ждёт загрузки модели и не упирается в тайм-аут первого токена; последний язык списка остаётся в слоте кеша
+   * префикса. Запросы идут цепочкой (warmChain) — процессор не делится между двумя прогревами сразу.
+   * Пока сервер работает, keep_alive продлевается раз в keepAliveRefreshMs (пустой запрос: модель только остаётся в памяти).
    */
-  private warm(model: string): void {
+  private warmChain: Promise<void> = Promise.resolve()
+
+  private warm(model: string, langs: readonly string[]): void {
     if (this.warmed.has(model)) return
     this.warmed.add(model)
-    const t0 = performance.now()
-    fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: PERSONA.ru },
-          { role: 'user', content: 'Привет' },
-        ],
-        stream: false,
-        keep_alive: this.cfg.keepAlive,
-        options: { num_predict: 1, num_ctx: this.cfg.numCtx },
-      }),
+    const list = langs.filter((l): l is Lang => l === 'ru' || l === 'uz' || l === 'en')
+    this.warmChain = this.warmChain.then(async () => {
+      for (const lang of list.length ? list : (['ru'] as Lang[])) {
+        const t0 = performance.now()
+        try {
+          const r = await fetch(`${this.baseUrl}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: PERSONA[lang] },
+                { role: 'user', content: WARM_GREETING[lang] },
+              ],
+              stream: false,
+              keep_alive: this.cfg.keepAlive,
+              options: { num_predict: 1, num_ctx: this.cfg.numCtx },
+            }),
+          })
+          if (!r.ok) throw new Error(`HTTP ${r.status}`)
+          await r.json().catch(() => null)
+          console.log(`[brain] прогрев ${model} [${lang}]: ${Math.round(performance.now() - t0)} мс (персона прочитана, keep_alive ${this.cfg.keepAlive})`)
+        } catch {
+          this.warmed.delete(model) // следующий опрос /api/tags попробует снова
+          return
+        }
+      }
     })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        console.log(`[brain] прогрев ${model}: ${Math.round(performance.now() - t0)} мс (персона в кеше, keep_alive ${this.cfg.keepAlive})`)
-      })
-      .catch(() => this.warmed.delete(model))
     if (!this.keepTimer && this.cfg.keepAliveRefreshMs > 0) {
       this.keepTimer = setInterval(() => {
         for (const m of this.warmed) {
