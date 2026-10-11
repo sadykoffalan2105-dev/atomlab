@@ -152,3 +152,65 @@ logic ≥ 85 %, wikiLeak = 0; общий без LLM — 80 % после сбор
 `npm run brain:eval -- --sample=12 --cat=dialog-ru,dialog-uz,dialog-en,length` — ≥ 80 %. Пока chat.ts не шлёт
 `meta.standalone`, поля «ждут DIALOG» и v2-категории не входят в общий порог; при слиянии — `DIALOG_MERGED = true`
 в `scripts/brain/eval.mts` (или `--strict-dialog`). `--profile=laptop|gpu` подменяет `config.dialog.profile` в процессе.
+
+## Картинки (`/image`, brain/image/**)
+
+Кнопка «Нарисовать» сайта рисует учебную картинку на сервере с видеокартой (ComfyUI `127.0.0.1:8188`, движок
+Z-Image-Turbo int8 по умолчанию, запасной — FLUX.2 klein 4B fp8). **По умолчанию выключено** (`config.image.enabled=false`);
+на сервере включает установщик (deploy/brain-pc) через `config.json → image`.
+
+**API.**
+- `POST /image` (JSON ≤ 16 КБ): `{sessionId, studentId?, lang, presetId?, prompt? (≤ 500), size: square|wide|tall,
+  style?: illustration|diagram|photo|poster, seed?, overlay?: {formula ≤ 80, caption ≤ 120} (только эхо), context?: {gradeId,
+  sectionTitle, place}, teacherKey?}`. Ответ SSE: `accepted → queue* → progress* → done | error` («: hb» каждые 5 с);
+  `?wait=1` или `Accept: application/json` — один JSON `{ok:true, …done}` / `{ok:false, error:{code, message}}` (статус 200,
+  пока ждём — пробелы, JSON их допускает). Ошибки до потока (disabled/forbidden/not_ready/bad_request/busy) — JSON со
+  статусом, если клиент не просил `text/event-stream`; лимиты — 429 `{rule: image_minute|image_day|image_streams|image_global}`.
+- `done`: `{jobId, dataUrl (data:image/webp;base64), mime, width, height, seed, engine, variant, ms, timings{queueMs, drainMs,
+  unloadMs, loadMs, genMs, safetyMs, reloadMs}, prompt{final, translated, presetId?}, safety{nsfw, normal}, overlay?, url}`.
+  `reloadMs` — последний замер: Gemma возвращается ПОСЛЕ выдачи картинки. Формулы и подписи модель не рисует — их
+  накладывает сайт (SVG-слой).
+- `GET /image/presets?grade=g8&lang=ru` — 48 тем (`brain/image/presets.ts`), публично, кэш 5 мин; `GET /image/<jobId>` —
+  WebP из памяти (`result.cacheTtlMs`), потом 404; `/health → image {enabled, ready, engine, students, queue, lastMs}`.
+- Админ (`X-Brain-Admin`): `GET /admin/image/status` (арбитр, счётчики, видеопамять, `/api/ps`, строк журнала, последние
+  задания без текстов), `GET /admin/image/verify` (граф ↔ `/object_info` живого ComfyUI), `POST /admin/image/test
+  {presetId?, size?}` (синхронно, работает и при `enabled=false` — проверка до включения).
+
+**Роли.** Владелец — `X-Brain-Admin`; учитель — `teacherKey` в теле (ключи `image.teacherTokens`, ≥ 16 символов); остальные —
+ученики: выключены (`image.students.enabled=false`), при включении — только темы своего класса ±`gradeWindow`, без текста.
+
+**Безопасность (ЗРУ-444, ст. 16).** Свободный текст (владелец/учитель): мат → R2; опасные инструкции → DANGER_REPLY;
+фильтр категорий `brain/image/filter.ts` (sexual, gore, selfharm, drugs, extremism, persons, weapons, horror; корни с начала
+слова, «спирт», «кислота», «qonun» не задеваются); проверка и перевод Gemma строгим JSON (`IMAGE_CHECK`, до окна GPU);
+готовая картинка — узел ComfyUI `ATOMLABSafetyCheck` (Falconsai NSFW ViT): нет ответа узла — картинка не отдаётся никому;
+порог 0.5 (владелец/учитель), 0.3 (ученики). Журнал `journal/images.jsonl` — только дописывание, без адресов и без текстов
+учеников; подчиняется `server.dialogLog`. Файлы картинок на диск не сохраняются (PNG ComfyUI удаляется после выдачи).
+
+**Протокол окна GPU** (`brain/llm/gpuArbiter.ts`; Gemma и модель картинок вместе в 16 ГБ не помещаются):
+1. ComfyUI не готов (нет `/system_stats` или узла безопасности) → `not_ready`;
+2. `queue.pause('image')` → дренаж: идущие ответы дописываются (текст не прерывается никогда), новые ждут в очереди —
+   их сроки продлеваются на время паузы, «занят» из-за картинки не получает никто;
+3. Ollama `keep_alive: 0` для чат- и быстрой модели → `/api/ps` пусто → проверка `vram_free ≥ vramNeedGB` (bge-m3 остаётся);
+4. задания по одному: `/prompt` → опрос `/history` 250 мс → `atomlab_safety` → `/view?preview=webp;85` → удалить PNG;
+   в окно добираются следующие, пока их < `window.maxJobs` и прошло < `window.maxMs`;
+5. `/free` в ComfyUI → `/api/generate {model, keep_alive, options:{num_ctx}}` (тот же `num_ctx`, что у ответов) → `resume()`;
+   при любой ошибке — то же в `finally`.
+
+Следующее окно — не раньше `window.cooldownMs`, если во время окна приходил текст; задание, ждущее дольше
+`maxStarvationMs`, открывает окно сразу. Если живые замеры хуже порогов — уменьшить `window.maxJobs` до 1 и `maxMs` до 20 с.
+
+**Конфиг** (`config.json → image`, умолчания в `brain/config.ts`): `enabled, engine, variant, comfyUrl` (env `BRAIN_COMFY_URL`
+важнее), `comfyPollMs, comfyOutputDir, steps (0 — по движку), sizes, students{enabled, presetsOnly, nsfwThreshold,
+gradeWindow}, teacherTokens, freeText, llmCheck, rate{perMin, perDay, globalPerMin, queueCap, perClientQueued}, jobTimeoutMs,
+window{…}, safety{required, nsfwThreshold}, result{quality, cacheTtlMs, cacheMaxBytes}, vramNeedGB`.
+Лимиты `rate.globalPerMin` и `perClientQueued` не действуют на владельца с ключом (как лимиты `/chat`).
+
+**Как добавить тему.** Строка в `ROWS` файла `brain/image/presets.ts`: id `gN-тема` (уникальный), классы, заголовки
+ru/uz/en (термины uz — по `brain/persona/uzGlossary.ts`), тема, стиль, размер, `prompt_en` (ASCII, без людей и надписей,
+без слов фильтра) → `npm run brain:image-selftest`.
+
+**Проверки.** `npm run brain:image-selftest` — без сети и моделей (поддельные ComfyUI и Ollama на 8798, мозг на 8797):
+роли, фильтр, перевод, классификатор, порядок окна, текст в окне без busy, лимиты, пресеты, TTL, журнал.
+Живая приёмка на сервере: `npm run brain:image-live -- --url=https://<сервер>.ts.net --admin=<ключ> --verify-graph`
+(12 тем парами + 6 текстовых вопросов; пороги: e2e p50 ≤ 15 с, p95 ≤ 30 с, вторая в окне ≤ 8 с, nsfw < 0.1, первое слово
+текста p95 ≤ 25 с без busy, Gemma в видеопамяти ≤ 20 с после окна); итог и картинки — в `.tmp/image-live`.
