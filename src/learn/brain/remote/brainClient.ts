@@ -147,7 +147,74 @@ export function markBrainOffline(): void {
   setStatus('offline')
 }
 
-/** GET /health (≤ 800 мс). Кеш 20 с; `force` — проверить сейчас. */
+/* ------------------------------------------- разрешение браузера на доступ к ПК */
+
+/**
+ * Chrome/Edge (Local Network Access) спрашивают пользователя, можно ли сайту из интернета обратиться
+ * к программе на этом компьютере (127.0.0.1). Пока окно «Разрешить» открыто, запрос /health висит —
+ * обрыв через 800 мс закрывал окно раньше, чем его успевали увидеть, и мозг навсегда был «не найден».
+ * 'prompt' — ждём ответа пользователя без короткого тайм-аута; 'denied' — не стучимся, чип объясняет,
+ * где включить доступ; 'unknown' — браузер такого разрешения не знает (Firefox, Safari, старый Chrome).
+ */
+export type BrainAccess = 'unknown' | 'granted' | 'prompt' | 'denied'
+
+/** Ждём ответа пользователя в окне разрешения браузера. */
+const PERMISSION_WAIT_MS = 120_000
+
+let access: BrainAccess = 'unknown'
+let accessWatched = false
+let waitingPermission = false
+
+function brainAddressSpace(): 'loopback' | 'local' | null {
+  try {
+    const target = new URL(BRAIN_URL)
+    const page = typeof location !== 'undefined' ? location.hostname : ''
+    const loop = (h: string) => /^(localhost|127(\.\d+){3}|\[::1\])$/i.test(h)
+    const priv = (h: string) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h) || /\.local$/i.test(h)
+    if (loop(page)) return null
+    if (loop(target.hostname)) return 'loopback'
+    if (priv(target.hostname) && !priv(page)) return 'local'
+    return null
+  } catch {
+    return null
+  }
+}
+
+function setAccess(next: BrainAccess): void {
+  if (access === next) return
+  access = next
+  listeners.forEach((l) => l())
+}
+
+export function getBrainAccess(): BrainAccess {
+  return access
+}
+
+async function queryAccess(): Promise<BrainAccess> {
+  const space = brainAddressSpace()
+  const perms = typeof navigator !== 'undefined' ? navigator.permissions : undefined
+  if (!space || !perms?.query) return 'unknown'
+  // Chrome ≥ 145 делит разрешение на «loopback-network» и «local-network», раньше было одно «local-network-access»
+  const names = space === 'loopback' ? ['loopback-network', 'local-network-access'] : ['local-network', 'local-network-access']
+  for (const name of names) {
+    try {
+      const st = await perms.query({ name } as unknown as PermissionDescriptor)
+      if (!accessWatched) {
+        accessWatched = true
+        st.onchange = () => {
+          setAccess(st.state as BrainAccess)
+          if (st.state === 'granted') void checkHealth(true)
+        }
+      }
+      return st.state as BrainAccess
+    } catch {
+      // такого имени разрешения этот браузер не знает — пробуем следующее
+    }
+  }
+  return 'unknown'
+}
+
+/** GET /health (≤ 800 мс; пока браузер спрашивает разрешение — ждём ответа пользователя). Кеш 20 с; `force` — проверить сейчас. */
 export function checkHealth(force = false): Promise<boolean> {
   if (BRAIN_DISABLED || typeof fetch === 'undefined') {
     setStatus('offline')
@@ -159,8 +226,18 @@ export function checkHealth(force = false): Promise<boolean> {
   }
   if (inflight) return inflight
   inflight = (async () => {
+    const acc = await queryAccess()
+    setAccess(acc)
+    if (acc === 'denied') {
+      lastHealth = null
+      checkedAt = Date.now()
+      setStatus('offline')
+      inflight = null
+      return false
+    }
+    waitingPermission = acc === 'prompt'
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), HEALTH_TIMEOUT_MS)
+    const timer = setTimeout(() => ctrl.abort(), waitingPermission ? PERMISSION_WAIT_MS : HEALTH_TIMEOUT_MS)
     try {
       const res = await fetch(`${BRAIN_URL}/health`, { method: 'GET', signal: ctrl.signal, cache: 'no-store' })
       if (!res.ok) throw new Error(`health ${res.status}`)
@@ -174,17 +251,20 @@ export function checkHealth(force = false): Promise<boolean> {
       lastHealth = null
       checkedAt = Date.now()
       setStatus('offline')
+      if (waitingPermission) void queryAccess().then(setAccess)
       return false
     } finally {
       clearTimeout(timer)
+      waitingPermission = false
       inflight = null
     }
   })()
   return inflight
 }
 
-/** Перед каждым вопросом: мозг сейчас отвечает? (кеш 20 с, быстро при «offline»). */
+/** Перед каждым вопросом: мозг сейчас отвечает? (кеш 20 с, быстро при «offline»; вопрос не ждёт окна разрешения). */
 export function ensureBrainOnline(): Promise<boolean> {
+  if (inflight && waitingPermission) return Promise.resolve(false)
   return checkHealth(false)
 }
 
@@ -208,6 +288,13 @@ const serverStatus = (): BrainStatus => 'offline'
 /** Состояние мозга для UI (подписка запускает проверку и опрос раз в 30 с). */
 export function useBrainStatus(): BrainStatus {
   return useSyncExternalStore(subscribeBrainStatus, getBrainStatus, serverStatus)
+}
+
+const serverAccess = (): BrainAccess => 'unknown'
+
+/** Разрешение браузера на доступ сайта к мозгу на этом ПК (для подсказки в чипе). */
+export function useBrainAccess(): BrainAccess {
+  return useSyncExternalStore(subscribeBrainStatus, getBrainAccess, serverAccess)
 }
 
 /* ------------------------------------------------------------ модель ученика */

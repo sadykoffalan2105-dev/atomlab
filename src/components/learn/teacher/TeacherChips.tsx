@@ -3,7 +3,7 @@
  * локального мозга. Используются и в чате урока, и в онлайн-уроке.
  */
 import { useT } from '../../../i18n/useT'
-import { useBrainStatus } from '../../../learn/brain/remote/brainClient'
+import { checkHealth, useBrainAccess, useBrainStatus } from '../../../learn/brain/remote/brainClient'
 import { IconBook, IconBrainSpark, IconDatabase } from './TeacherIcons'
 import styles from './TeacherChips.module.css'
 
@@ -69,24 +69,42 @@ export function BrainChip({
 export function BrainStatusChip({ compact = false, className }: { compact?: boolean; className?: string }) {
   const { t } = useT()
   const status = useBrainStatus()
+  const access = useBrainAccess()
   const online = status === 'online'
-  const label =
-    status === 'online'
-      ? t('learn.teacherUi.brainOnline')
-      : status === 'checking'
-        ? t('learn.teacherUi.brainChecking')
-        : t('learn.teacherUi.brainOfflineShort')
-  const title = online ? label : `${t('learn.teacherUi.brainOffline')}. ${t('learn.teacherUi.brainHint')}`
+  // браузер спрашивает или запретил доступ сайта к программе на этом ПК — подсказываем, что нажать
+  const askAccess = !online && access === 'prompt'
+  const denied = !online && access === 'denied'
+  const label = online
+    ? t('learn.teacherUi.brainOnline')
+    : denied
+      ? t('learn.teacherUi.brainDenied')
+      : askAccess
+        ? t('learn.teacherUi.brainAllow')
+        : status === 'checking'
+          ? t('learn.teacherUi.brainChecking')
+          : t('learn.teacherUi.brainOfflineShort')
+  const title = online
+    ? label
+    : denied
+      ? `${label}. ${t('learn.teacherUi.brainDeniedHint')}`
+      : askAccess
+        ? `${label}. ${t('learn.teacherUi.brainAllowHint')}`
+        : `${t('learn.teacherUi.brainOffline')}. ${t('learn.teacherUi.brainHint')}`
   const Icon = online ? IconBrainSpark : IconDatabase
   return (
     <span
       className={`${styles.brain} ${className ?? ''}`}
       data-brain={online ? 'brain' : 'local'}
       data-status={status}
+      data-access={denied ? 'denied' : askAccess ? 'prompt' : undefined}
       data-compact={compact ? '1' : undefined}
       title={title}
       role="status"
       aria-live="polite"
+      // не найден / окно разрешения закрыли — щелчок проверяет снова (и снова показывает окно браузера);
+      // доступ запрещён — щелчок объясняет, где его включить (сам сайт снять запрет не может)
+      onClick={online ? undefined : denied ? () => window.alert(t('learn.teacherUi.brainDeniedHint')) : () => void checkHealth(true)}
+      style={online ? undefined : { cursor: 'pointer' }}
     >
       <Icon className={styles.brainIcon} />
       <span className={styles.brainLabel}>{label}</span>
