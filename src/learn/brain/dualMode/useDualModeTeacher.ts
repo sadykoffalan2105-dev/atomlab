@@ -18,8 +18,20 @@
  *   checkHomework, subscribeMicLevel.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LearnSpeechController } from '../../learnSpeech'
-import { checkHealth, getBrainStatus, subscribeBrainStatus, type BrainStatus } from '../remote/brainClient'
+import { LearnSpeechController, isSpeechRecognitionSupported } from '../../learnSpeech'
+import {
+  brainSessionId,
+  checkHealth,
+  getBrainStatus,
+  getBrainUrl,
+  subscribeBrainStatus,
+  type BrainStatus,
+} from '../remote/brainClient'
+import { currentBrowserVoiceProfile } from '../speech/browserProfile'
+import { resetVoiceDiag } from '../speech/voiceStatus'
+import { CaptureVad, MicCapture, micErrorCode, type MicHandle } from '../voice/micCapture'
+import { SttEngine, sharedSttHealth } from '../voice/sttEngine'
+import type { RecognitionLike } from '../voice/duplexVoiceSession'
 import { preloadTeacherKnowledge } from '../../teacherKnowledge'
 import type { FusedContext, ReasoningStepSnapshot } from '../brainTypes'
 import type { DialogTurn } from '../voice/interruptionController'
@@ -53,6 +65,46 @@ export interface UseDualModeTeacherOptions {
   videoEl?: HTMLVideoElement | null
   /** Захватывать микрофон (для голосового диалога). */
   voice?: boolean
+  /**
+   * Микрофон, открытый в обработчике клика «Начать урок» (openMicOnGesture): AudioContext и
+   * getUserMedia в цепочке жеста. Без него хук откроет микрофон сам (как раньше, вне жеста).
+   */
+  mic?: MicHandle | null
+}
+
+/** Режим микрофона: свободный разговор или «нажми и говори». */
+export type VoiceMode = 'hands_free' | 'push_to_talk'
+export const VOICE_MODE_KEY = 'atomlab.voice.mode'
+
+/** Сохранённый режим; по умолчанию на телефонах и в Safari — «нажми и говори». */
+export function loadVoiceMode(): VoiceMode {
+  try {
+    const v = localStorage.getItem(VOICE_MODE_KEY)
+    if (v === 'hands_free' || v === 'push_to_talk') return v
+  } catch {
+    /* приватный режим */
+  }
+  const p = currentBrowserVoiceProfile()
+  return p.isAndroid || p.isIos || p.recommendedMode === 'push_to_talk' ? 'push_to_talk' : 'hands_free'
+}
+
+export function saveVoiceMode(mode: VoiceMode): void {
+  try {
+    localStorage.setItem(VOICE_MODE_KEY, mode)
+  } catch {
+    /* приватный режим */
+  }
+}
+
+/** Браузерное распознавание контроллера в интерфейсе RecognitionLike. */
+function webRecognition(controller: LearnSpeechController): RecognitionLike | null {
+  if (!isSpeechRecognitionSupported()) return null
+  return {
+    start: (locale, session, onUpdate, onError) => controller.startOralListening(locale, session, onUpdate, onError),
+    stop: () => controller.stopOralListening(),
+    pause: () => controller.pauseOralListening(),
+    resume: (delayMs) => controller.resumeOralListening(delayMs),
+  }
 }
 
 export interface LiveMessage {
@@ -103,6 +155,8 @@ export interface DualModeTeacherState {
    * 'language-not-supported'): UI предлагает писать текстом. null — всё в порядке.
    */
   sttError: string | null
+  /** Режим микрофона (переключатель «Свободно / Нажми и говори»). */
+  voiceMode: VoiceMode
 }
 
 const INITIAL: DualModeTeacherState = {
@@ -132,6 +186,7 @@ const INITIAL: DualModeTeacherState = {
   ttsPath: null,
   brain: 'checking',
   sttError: null,
+  voiceMode: 'hands_free',
 }
 
 const FUSED_THROTTLE_MS = 280
@@ -164,23 +219,12 @@ export function resolveStableStudentId(studentId?: string | null): string {
 export function prewarmLiveTeacher(opts: { gradeId: string; chapterId?: string; lang: AssistantLang }): void {
   preloadTeacherKnowledge({ gradeId: opts.gradeId })
   void warmLiveSpeech(opts.lang).catch(() => undefined)
+  // Сервер распознавания: к «Начать урок» уже известно, слать ли речь на /stt.
+  void checkHealth()
+    .then((ok) => (ok ? sharedSttHealth(getBrainUrl).check() : false))
+    .catch(() => undefined)
   if (opts.chapterId) {
     void loadOralPool(opts.gradeId, opts.chapterId).catch(() => undefined)
-  }
-}
-
-async function acquireMic(): Promise<MediaStream | null> {
-  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return null
-  try {
-    return await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-    })
-  } catch {
-    try {
-      return await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true } })
-    } catch {
-      return null
-    }
   }
 }
 
@@ -189,11 +233,14 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     ...INITIAL,
     mode: options.initialMode ?? 'training',
     brain: getBrainStatus(),
+    voiceMode: loadVoiceMode(),
   })
 
   const teacherRef = useRef<TeacherIntelligence | null>(null)
   const controllerRef = useRef<LearnSpeechController | null>(null)
   const micStreamRef = useRef<MediaStream | null>(null)
+  const captureRef = useRef<MicCapture | null>(null)
+  const voiceModeRef = useRef<VoiceMode>(state.voiceMode)
   const lastFusedRef = useRef(0)
   const msgIdRef = useRef(0)
   /** turnId реплики учителя → id сообщения в ленте. */
@@ -240,6 +287,8 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
   const stop = useCallback(() => {
     teacherRef.current?.stop()
     teacherRef.current = null
+    captureRef.current?.stop()
+    captureRef.current = null
     micStreamRef.current?.getTracks().forEach((t) => t.stop())
     micStreamRef.current = null
     patch({ running: false, micActive: false, turn: 'idle', aiSpeaking: false, thinking: false, queued: [], partial: '' })
@@ -254,6 +303,26 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     prewarmLiveTeacher({ gradeId: opts.gradeId, chapterId: opts.chapterId, lang: opts.lang })
     void checkHealth(true)
 
+    // Голос: один захват (AudioWorklet) → VAD сессии + сегменты для /stt; Web Speech — запасной путь.
+    let capture: MicCapture | null = null
+    let engine: SttEngine | null = null
+    if (opts.voice) {
+      resetVoiceDiag()
+      capture = new MicCapture(opts.mic ?? null)
+      captureRef.current = capture
+      engine = new SttEngine({
+        lang: opts.lang,
+        capture,
+        web: webRecognition(controller),
+        brainOnline: () => getBrainStatus() === 'online',
+        getBaseUrl: getBrainUrl,
+        sessionId: brainSessionId,
+        health: sharedSttHealth(getBrainUrl),
+        releaseMicForWebSpeech: currentBrowserVoiceProfile().isAndroid,
+      })
+    }
+    const voiceCapture = capture
+
     const teacher = new TeacherIntelligence({
       lang: opts.lang,
       gradeId: opts.gradeId,
@@ -266,6 +335,10 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
       initialMode: opts.initialMode ?? 'training',
       useAiGrading: opts.useAiGrading,
       controller,
+      voice:
+        voiceCapture && engine
+          ? { recognition: engine, createVad: (handlers) => new CaptureVad(voiceCapture, handlers) }
+          : undefined,
       callbacks: {
         onTeacherDraft: (d) => upsertTeacher(d.turnId, d.text, { streaming: true, source: d.source }),
         onResponse: (r: TeacherResponse) => {
@@ -344,16 +417,26 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     })
 
     let mic: MediaStream | null = null
-    if (opts.voice) {
-      mic = await acquireMic()
+    if (capture) {
+      const ok = await capture.start()
       if (teacherRef.current !== teacher) {
-        mic?.getTracks().forEach((t) => t.stop())
+        capture.stop()
         return
       }
-      micStreamRef.current = mic
-      patch({ micActive: Boolean(mic) })
+      mic = ok ? capture.getStream() : null
+      micStreamRef.current = null // дорожки принадлежат захвату — останавливает capture.stop()
+      patch(
+        ok
+          ? { micActive: true }
+          : { micActive: false, ...(micErrorCode(capture.getError()) === 'not_allowed' ? { sttError: 'not-allowed' } : {}) },
+      )
     }
     await teacher.start(opts.videoEl ?? null, mic)
+    // «Нажми и говори»: микрофон молчит, пока кнопка не зажата (holdToTalk включает его на время удержания).
+    if (mic && voiceModeRef.current === 'push_to_talk' && teacherRef.current === teacher) {
+      teacher.setMicMuted(true)
+      patch({ micMuted: true })
+    }
   }, [patch, pushMessage, upsertTeacher])
 
   // Камера может подняться позже микрофона — Vision подключаем без рестарта диалога.
@@ -446,6 +529,26 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     [patch],
   )
 
+  /** Переключить режим «Свободный разговор / Нажми и говори» (запоминается в браузере). */
+  const setVoiceMode = useCallback(
+    (mode: VoiceMode) => {
+      voiceModeRef.current = mode
+      saveVoiceMode(mode)
+      teacherRef.current?.setMicMuted(mode === 'push_to_talk')
+      patch({ voiceMode: mode, micMuted: mode === 'push_to_talk', partial: '' })
+    },
+    [patch],
+  )
+
+  /** Микрофон пропал (гарнитуру выдернули) — «Повторить» без перезапуска урока. */
+  const retryMic = useCallback(async () => {
+    const cap = captureRef.current
+    if (!cap) return false
+    const ok = await cap.reopen()
+    patch({ micActive: ok })
+    return ok
+  }, [patch])
+
   /** Подписка на уровень микрофона (RMS 0..1). Возвращает отписку. */
   const subscribeMicLevel = useCallback((listener: (rms: number) => void) => {
     const set = micLevelListenersRef.current
@@ -470,5 +573,7 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     interrupt,
     holdToTalk,
     subscribeMicLevel,
+    setVoiceMode,
+    retryMic,
   }
 }
