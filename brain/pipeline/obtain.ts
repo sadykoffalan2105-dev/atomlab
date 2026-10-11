@@ -31,8 +31,33 @@ type Row = { eq: string; note?: string; kind: Kind }
 /** Пометка учебника → лаборатория / промышленность / без пометки. */
 const kindOf = (note = ''): Kind => (/промышл/iu.test(note) ? 'industry' : /(лаборатор|разложени|катализатор|аппарат|электролиз воды)/iu.test(note) ? 'lab' : 'any')
 
-/** Дополнения учебника (Kimyo 7: электролиз воды, с. 136; промышленность — из жидкого воздуха). */
-const EXTRA: Record<string, { lab?: Row[]; industry?: Record<Lang, string> }> = {
+/** Уравнение без условий над стрелкой, пробелов и ↑↓ — для сравнения («N₂ + 3H₂ ⇄(Fe) 2NH₃» = «N₂ + 3H₂ ⇄ 2NH₃»). */
+export const eqKey = (e: string) =>
+  e
+    .replace(/(→|⇄|⇌|=)\s*\([^)]*\)/g, '$1')
+    .replace(/[\s↑↓]/g, '')
+    .replace(/=|⇌/g, (m) => (m === '=' ? '→' : '⇄'))
+
+/**
+ * Дополнения учебника: лабораторные шаги, которых нет в каталоге (Kimyo 7: электролиз воды, с. 136; аммиак из NH₄Cl
+ * и гашёной извести; HCl из поваренной соли), промышленный способ словами и какие уравнения — промышленные
+ * (industryEqs: модель иначе путает, что делают в лаборатории, а что на заводе).
+ */
+const EXTRA: Record<string, { lab?: Row[]; industry?: Record<Lang, string>; industryEqs?: string[] }> = {
+  nh3: {
+    lab: [{ eq: '2NH₄Cl + Ca(OH)₂ →(t°) CaCl₂ + 2NH₃↑ + 2H₂O', note: 'лабораторный способ: нагрев хлорида аммония с гашёной известью', kind: 'lab' }],
+    industryEqs: ['N₂ + 3H₂ ⇄ 2NH₃'],
+    industry: { ru: 'синтез из азота и водорода (Fe, ~450 °C, 20–30 МПа — процесс Габера)', uz: 'azot va vodoroddan sintez (Fe, ~450 °C, 20–30 MPa — Gaber jarayoni)', en: 'synthesis from nitrogen and hydrogen (Fe catalyst, ~450 °C, 20–30 MPa — the Haber process)' },
+  },
+  h2so4: {
+    industryEqs: ['S + O₂ → SO₂', '2SO₂ + O₂ ⇄ 2SO₃', 'SO₃ + H₂O → H₂SO₄'],
+    industry: { ru: 'контактный способ: сжигание серы (или обжиг пирита), окисление SO₂ на V₂O₅, поглощение SO₃', uz: 'kontakt usuli: oltingugurtni yoqish (yoki piritni kuydirish), SO₂ ni V₂O₅ ustida oksidlash, SO₃ ni yuttirish', en: 'contact process: burning sulfur (or roasting pyrite), oxidising SO₂ over V₂O₅, absorbing SO₃' },
+  },
+  cao: { industryEqs: ['CaCO₃ → CaO + CO₂'] },
+  hcl: {
+    lab: [{ eq: 'NaCl + H₂SO₄ →(t°) NaHSO₄ + HCl↑', note: 'лабораторный способ: поваренная соль + конц. серная кислота', kind: 'lab' }],
+    industryEqs: ['H₂ + Cl₂ → 2HCl'],
+  },
   tb_o2: {
     lab: [{ eq: '2H₂O →(электролиз) 2H₂↑ + O₂↑', note: 'электролиз воды (7 класс, с. 136)', kind: 'lab' }],
     industry: {
@@ -119,9 +144,8 @@ function producesFormula(eq: string, prettyF: string): boolean {
 function rowsFor(t: Target, kb: Knowledge): Row[] {
   const rows: Row[] = []
   const seen = new Set<string>()
-  const norm = (e: string) => e.replace(/\s+/g, '').replace(/[↑↓]/g, '').replace(/=/g, '→')
   const add = (r: Row) => {
-    const k = norm(r.eq)
+    const k = eqKey(r.eq)
     if (seen.has(k) || rows.length >= 6) return
     seen.add(k)
     rows.push(r)
@@ -147,6 +171,8 @@ function rowsFor(t: Target, kb: Knowledge): Row[] {
       if (producesFormula(r.eq, t.prettyF)) add({ eq: r.eq, note: r.kp ? `Kimyo ${r.bg ?? r.g[0]}, §${r.kp}` : undefined, kind: 'any' })
     }
   }
+  const ind = new Set((id ? EXTRA[id]?.industryEqs : undefined)?.map(eqKey))
+  for (const r of rows) if (ind.has(eqKey(r.eq))) r.kind = 'industry'
   return rows
 }
 
