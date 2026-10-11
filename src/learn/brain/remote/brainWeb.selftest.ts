@@ -25,6 +25,7 @@ import { routeTeacherReply } from '../../learnTeacherRouter'
 import type { LearnLocalAssistantContext } from '../../learnLocalAssistant'
 import {
   BRAIN_BUSY_NOTE,
+  BRAIN_PHOTO_NOTE,
   checkHealth,
   FIRST_DELTA_TIMEOUT_MS,
   getBrainInfo,
@@ -40,6 +41,7 @@ import {
   setLocalBrainOptIn,
   streamChat,
   takeBrainBusyNote,
+  takePhotoRejectNote,
 } from './brainClient'
 
 setMemoryProfileBackend()
@@ -586,6 +588,71 @@ console.log('[router] routeTeacherReply')
   }
   const next = await routeTeacherReply(ask('что такое катализатор'), ctxOf('ru'))
   check('router cut: next question → fallback, no /chat', next.source !== 'brain' && next.text.length > 20 && !calls.some((c) => c.url === '/chat'), `${next.source}: ${next.text.slice(0, 60)}`)
+}
+
+/* ================================================================== 6a. «сфотографируй задачу» */
+console.log('[photo] фото к вопросу')
+{
+  const photoCtx = { gradeId: 'g8', mode: 'chat' as const, detail: 'brief' as const }
+  brainHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : sseResponse(brainReply(['На фото задача: ', 'найти массу 2 моль NaCl. ', 'Ответ: 117 г.'], {})))
+  await checkHealth(true)
+  calls.length = 0
+  const ph = await streamChat({
+    messages: [
+      { role: 'user', content: 'что такое моль' },
+      { role: 'assistant', content: 'Моль — количество вещества.' },
+      { role: 'user', content: 'Объясни задачу' },
+    ],
+    context: photoCtx,
+    lang: 'ru',
+    images: ['data:image/jpeg;base64,/9j/4AAQ', '/9j/4BBB', '/9j/4CCC'],
+  })
+  const sentPhoto = JSON.parse(calls.find((c) => c.url === '/chat')?.body ?? '{}') as { messages?: { role: string; content: string; images?: string[] }[] }
+  const msgs = sentPhoto.messages ?? []
+  const lastImgs = msgs[msgs.length - 1]?.images ?? []
+  check('photo: answer streamed', ph?.text === 'На фото задача: найти массу 2 моль NaCl. Ответ: 117 г.', ph?.text ?? 'null')
+  check('photo: images on the last user message, ≤ 2, base64 without data:', lastImgs.length === 2 && lastImgs[0] === '/9j/4AAQ' && lastImgs[1] === '/9j/4BBB', JSON.stringify(lastImgs))
+  check('photo: earlier messages carry no images', msgs.slice(0, -1).every((m) => !m.images))
+  calls.length = 0
+  await streamChat({ messages: ask('что такое моль'), context: photoCtx, lang: 'ru' })
+  check('photo: plain question has no images field (old servers unaffected)', !/"images"/.test(calls.find((c) => c.url === '/chat')?.body ?? ''))
+
+  // лимит фото (429 rule photo_minute) — мозг не «занят»: пометка о фото, текстовый вопрос идёт к мозгу
+  brainHandler = async (url) =>
+    url === '/health' ? json(HEALTH_OK) : json({ ok: false, error: 'rate', code: 'rate', rule: 'photo_minute', retryAfterSec: 40 }, 429, { 'Retry-After': '40' })
+  const p429 = await streamChat({ messages: ask('Объясни задачу'), context: photoCtx, lang: 'ru', images: ['/9j/4AAQ'] })
+  check('photo 429: null + photo note, not busy', p429 === null && takePhotoRejectNote('ru') === BRAIN_PHOTO_NOTE.rate.ru && takeBrainBusyNote('ru') === '')
+  brainHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : sseResponse(brainReply(['Моль — количество вещества.'], {})))
+  const afterPhoto = await streamChat({ messages: ask('что такое моль'), context: photoCtx, lang: 'ru' })
+  check('photo 429: next text question still goes to the brain', afterPhoto?.text === 'Моль — количество вещества.', afterPhoto?.text ?? 'null')
+  // 413 / 415 — фото не принято
+  brainHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : json({ ok: false, error: { code: 'image_too_large', message: 'big' } }, 413))
+  const p413 = await streamChat({ messages: ask('Объясни задачу'), context: photoCtx, lang: 'en', images: ['/9j/4AAQ'] })
+  check('photo 413: null + "not accepted" note, brain stays online', p413 === null && takePhotoRejectNote('en') === BRAIN_PHOTO_NOTE.bad.en && getBrainStatus() === 'online')
+
+  // маршрутизатор: «привет» с фото — не светская беседа, а фото к мозгу; R1 — дословно и с фото
+  brainHandler = async (url) => (url === '/health' ? json(HEALTH_OK) : sseResponse(brainReply(['На фото: найти массу.'], {})))
+  await checkHealth(true)
+  calls.length = 0
+  const rHi = await routeTeacherReply(ask('привет'), ctxOf('ru'), { images: ['/9j/4AAQ'] })
+  const hiBody = calls.find((c) => c.url === '/chat')?.body ?? ''
+  check('router photo: «привет» + photo → brain with images', rHi.source === 'brain' && /"images":\["\/9j\/4AAQ"\]/.test(hiBody) && /Объясни задачу/.test(hiBody), `${rHi.source}: ${hiBody.slice(0, 80)}`)
+  calls.length = 0
+  const rOwner = await routeTeacherReply(ask('Чем органическая химия отличается от неорганической?'), ctxOf('ru'), { images: ['/9j/4AAQ'] })
+  check('router photo: R1 verbatim, no /chat', rOwner.text === OWNER_RULE_TEXT && !calls.some((c) => c.url === '/chat'))
+  calls.length = 0
+  const rRude = await routeTeacherReply(ask('бля'), ctxOf('ru'), { images: ['/9j/4AAQ'] })
+  check('router photo: profanity + photo → R2 first, then photo answer', rRude.text.startsWith(`${MODERATION_NOTICE.ru}\n\n`) && /На фото/.test(rRude.text) && !PROFANITY.test(calls.find((c) => c.url === '/chat')?.body ?? ''), rRude.text.slice(0, 90))
+  // мозга нет: только фото — короткая пометка «фото читает ИИ-сервер»; с вопросом — пометка + ответ из базы браузера
+  markBrainOffline()
+  brainHandler = async () => {
+    throw new TypeError('connect ECONNREFUSED')
+  }
+  await checkHealth(true)
+  const rOff = await routeTeacherReply(ask('Объясни задачу'), ctxOf('ru'), { images: ['/9j/4AAQ'] })
+  check('router photo offline: note that photos need the AI server', rOff.text === BRAIN_PHOTO_NOTE.server.ru && rOff.source === 'local', rOff.text.slice(0, 80))
+  const rOffQ = await routeTeacherReply(ask('что такое моль'), ctxOf('ru'), { images: ['/9j/4AAQ'] })
+  check('router photo offline + question: note first, then local answer', rOffQ.text.startsWith(`${BRAIN_PHOTO_NOTE.server.ru}\n\n`) && rOffQ.text.length > BRAIN_PHOTO_NOTE.server.ru.length + 30 && !R3_CONTRACT.test(rOffQ.text), rOffQ.text.slice(0, 120))
 }
 
 /* ================================================================== 7. запасной путь без мозга */

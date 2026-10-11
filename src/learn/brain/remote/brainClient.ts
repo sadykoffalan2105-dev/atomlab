@@ -26,7 +26,8 @@ export interface BrainHealth {
   service: string
   version: string
   contract: number
-  llm: { available: boolean; chatModel: string | null; fastModel: string | null; embedModel: string | null }
+  /** vision (сверх контракта v1): чат-модель сервера понимает фото задачи */
+  llm: { available: boolean; chatModel: string | null; fastModel: string | null; embedModel: string | null; vision?: boolean }
   kb: { docs: number; journalLines: number; embedded: number }
   uptimeMs: number
 }
@@ -88,6 +89,11 @@ export interface StreamChatOptions {
   onDelta?: (delta: string, fullText: string) => void
   /** Сервер поставил вопрос в очередь: место в очереди (1 — следующий). */
   onQueue?: (position: number) => void
+  /**
+   * «Сфотографируй задачу»: фото к последней реплике ученика — base64 без «data:» (уже сжатые на устройстве,
+   * ≤ 2 шт., см. chatPhoto.ts). Уходят полем messages[-1].images; старые серверы его просто не читают.
+   */
+  images?: string[]
 }
 
 /* ------------------------------------------------------------------ адреса */
@@ -267,6 +273,9 @@ const IDLE_TIMEOUT_MS = 45_000
 const TOTAL_TIMEOUT_MS = 180_000
 const MAX_MESSAGES = 12
 const MAX_CONTENT = 4_000
+/** Фото: не больше двух в сообщении; на загрузку тела с фото по мобильной сети — запас к сроку первого байта. */
+const MAX_IMAGES = 2
+const PHOTO_UPLOAD_EXTRA_MS = 25_000
 /** Сервер ответил 429 / «занят»: столько не шлём ему вопросы (если он не прислал Retry-After). */
 const BUSY_DEFAULT_MS = 20_000
 const BUSY_MAX_MS = 60_000
@@ -402,6 +411,49 @@ export function takeBrainBusyNote(lang: string | null | undefined): string {
   if (!lastChatBusy) return ''
   lastChatBusy = null
   return BRAIN_BUSY_NOTE[lang === 'en' || lang === 'uz' ? lang : 'ru']
+}
+
+/* ------------------------------------------------- фото задачи: сервер отклонил */
+
+/** Последний streamChat с фото: сервер отклонил фото (лимит фото 429 / размер 413 / формат 415 / 400) — пометка. */
+let lastPhotoReject: 'rate' | 'bad' | null = null
+
+/** Короткая пометка, почему фото не разобрано (на языке ученика). */
+export const BRAIN_PHOTO_NOTE: Record<'rate' | 'bad' | 'server', Record<'ru' | 'en' | 'uz', string>> = {
+  rate: {
+    ru: 'Фото сейчас слишком много подряд — подождите минуту или напишите условие задачи текстом.',
+    en: 'Too many photos in a row — wait a minute or type the task text.',
+    uz: 'Ketma-ket juda koʻp rasm yuborildi — bir daqiqa kuting yoki masala shartini matn bilan yozing.',
+  },
+  bad: {
+    ru: 'Это фото сервер не принял (слишком большое или не JPEG/PNG/WebP). Сфотографируйте ещё раз или напишите условие текстом.',
+    en: "The server didn't accept this photo (too large or not JPEG/PNG/WebP). Take it again or type the task text.",
+    uz: 'Server bu rasmni qabul qilmadi (juda katta yoki JPEG/PNG/WebP emas). Qayta suratga oling yoki shartni matn bilan yozing.',
+  },
+  server: {
+    ru: 'Фото разбирает ИИ-сервер, а он сейчас недоступен. Напишите условие задачи текстом — отвечу из базы знаний.',
+    en: 'Photos are read by the AI server, which is unavailable right now. Type the task text and I will answer from the knowledge base.',
+    uz: 'Rasmlarni AI-server oʻqiydi, u hozir ishlamayapti. Masala shartini matn bilan yozing — bilimlar bazasidan javob beraman.',
+  },
+}
+
+/** После streamChat с фото → null: почему фото не разобрано ('' — сервер фото не отклонял) и сброс. */
+export function takePhotoRejectNote(lang: string | null | undefined): string {
+  const kind = lastPhotoReject
+  lastPhotoReject = null
+  return kind ? BRAIN_PHOTO_NOTE[kind][lang === 'en' || lang === 'uz' ? lang : 'ru'] : ''
+}
+
+/** Фото к последней реплике: только строки base64 без «data:», не больше MAX_IMAGES. */
+function attachImages(
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  images: readonly string[] | undefined,
+): { role: 'user' | 'assistant'; content: string; images?: string[] }[] {
+  const list = (images ?? []).map((x) => (typeof x === 'string' ? x.replace(/^data:[^,]*,/, '') : '')).filter(Boolean).slice(0, MAX_IMAGES)
+  if (!list.length || !messages.length) return messages
+  const out: { role: 'user' | 'assistant'; content: string; images?: string[] }[] = messages.slice()
+  out[out.length - 1] = { ...out[out.length - 1]!, images: list }
+  return out
 }
 
 /** Сервер прислал «занят»: код rate/too_many → 'rate'; busy/overloaded/queue_full/capacity → 'busy'. */
@@ -779,6 +831,8 @@ function normalizeDone(raw: Partial<BrainDone> | null, fallbackText: string, met
  */
 export async function streamChat(opts: StreamChatOptions): Promise<BrainDone | null> {
   lastChatBusy = null
+  lastPhotoReject = null
+  const withPhoto = !!opts.images?.length
   if (BRAIN_DISABLED || typeof fetch === 'undefined') return null
   const outer = opts.signal
   if (outer?.aborted) return null
@@ -811,7 +865,7 @@ export async function streamChat(opts: StreamChatOptions): Promise<BrainDone | n
     gotDelta && full.trim() ? { ...normalizeDone(null, full, meta), partial: true, ms: Date.now() - t0 } : null
 
   try {
-    arm(FIRST_BYTE_TIMEOUT_MS)
+    arm(FIRST_BYTE_TIMEOUT_MS + (withPhoto ? PHOTO_UPLOAD_EXTRA_MS : 0))
     const res = await fetch(`${base}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
@@ -820,7 +874,7 @@ export async function streamChat(opts: StreamChatOptions): Promise<BrainDone | n
         ...(opts.studentId ? { studentId: opts.studentId } : {}),
         lang: opts.lang,
         stream: true,
-        messages,
+        messages: withPhoto ? attachImages(messages, opts.images) : messages,
         context: { ...opts.context, gradeId: brainGradeId(opts.context.gradeId) },
         ...(opts.student ? { student: opts.student } : {}),
       }),
@@ -828,7 +882,14 @@ export async function streamChat(opts: StreamChatOptions): Promise<BrainDone | n
       cache: 'no-store',
     })
     if (res.status === 429) {
-      noteBusy('rate', retryAfterOf(res))
+      // лимит фото (rule photo_*) — мозг не «занят»: текстовые вопросы ему по-прежнему можно задавать
+      const rule = withPhoto ? (await res.json().catch(() => null) as { rule?: unknown } | null)?.rule : null
+      if (typeof rule === 'string' && rule.startsWith('photo')) lastPhotoReject = 'rate'
+      else noteBusy('rate', retryAfterOf(res))
+      return null
+    }
+    if (withPhoto && (res.status === 400 || res.status === 413 || res.status === 415)) {
+      lastPhotoReject = 'bad'
       return null
     }
     if (!res.ok || !res.body) {
