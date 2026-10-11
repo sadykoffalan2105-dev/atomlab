@@ -391,6 +391,19 @@ for (const g of GRADES) {
       if (definitions.some((x) => dkey(x.term.ru) === k)) continue
       definitions.push({ term: { ru: cap(d.term) }, text: { ru: clip(squash(`${cap(d.term)} — ${d.def}`), 420) }, ...(d.pg ? { page: d.pg } : {}), source: 'qaBank' })
     }
+    // нет блоков определений — определения 7 кл. из g7TextbookKnowledge и предложения «X — это …» из текста единицы
+    if (!definitions.length) {
+      const g7d = g === 7 ? (g7Know.sections.find((s) => s.id === `g7-${e.appSections?.[0] ?? ''}`)?.definitionsRu ?? []) : []
+      const sents = [...g7d, ...text.split(/(?<=[.!?])\s+|\n/u)]
+      for (const s0 of sents) {
+        const s = squash(s0)
+        const m = s.match(/^([А-ЯЁ][\p{L}\- ]{2,50}?)\s+[—–]\s+(?:это\s+)?\p{Ll}/u)
+        if (!m || s.length < 25 || s.length > 420 || letterShare(s) < 0.6 || MOJIBAKE.test(s) || m[1]!.split(/\s+/).length > 5) continue
+        if (definitions.some((d) => dkey(d.term.ru) === dkey(m[1]!))) continue
+        definitions.push({ term: { ru: cap(m[1]!.trim()) }, text: { ru: s }, source: 'textbook' })
+        if (definitions.length >= 3) break
+      }
+    }
     for (const d of definitions) {
       const uz = translate(d.term.ru, 'uz')
       const en = translate(d.term.ru, 'en')
@@ -442,7 +455,7 @@ for (const g of GRADES) {
       const t = guessType(`${x.statement} ${x.answer ?? ''}`)
       if (t) x.typeGuess = t
     }
-    const exercises = minedExercises(text).map((x) => {
+    const exercises: Unit['tasks']['exercises'] = minedExercises(text).map((x) => {
       const t = guessType(x.text)
       return t ? { ...x, typeGuess: t } : x
     })

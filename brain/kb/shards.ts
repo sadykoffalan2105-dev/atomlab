@@ -3,13 +3,15 @@
  *   src/data/kb/index/*.json        — шарды BM25F учебников Kimyo 7–11, карточек ATOMLAB и энциклопедии (KbEngine);
  *   src/data/teacher/qaBank.json    — точные факты: 494 вещества, 118 элементов, 813 реакций, определения;
  *   src/data/teacher/scientistsIndex.json — 865 учёных;
- *   src/data/kb/corpus/kb-glossary.json  — словарь терминов ru ↔ uz/en (для подписей тем на языке вопроса).
+ *   src/data/kb/corpus/kb-glossary.json  — словарь терминов ru ↔ uz/en (для подписей тем на языке вопроса);
+ *   src/data/kb/curriculum/kimyo-map.json — карта программы Kimyo 7–11 (§-карточки, ссылки «§12 Kimyo 8», подписи цитат).
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import { KbEngine } from '../../src/learn/kb/engine.ts'
 import { SHARD_NAMES, type KbLexiconFile, type KbShardFile } from '../../src/learn/kb/shardFormat.ts'
 import { semanticHooks, setSemanticVectors, type KbVectorsFile } from '../../src/learn/kb/semantic.ts'
+import { loadCurriculumMap, setSharedCurriculum, type CurriculumMap } from '../curriculum/map.ts'
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '..', '..')
 const INDEX_DIR = path.join(REPO_ROOT, 'src', 'data', 'kb', 'index')
@@ -50,6 +52,8 @@ export class Knowledge {
   qa: QaBank = { substances: [], elements: [], reactions: [], definitions: [], sections: [] }
   scientists: Scientist[] = []
   glossary: GlossaryEntry[] = []
+  /** карта программы Kimyo 7–11; null — файла нет (все потребители работают и без неё) */
+  curriculum: CurriculumMap | null = null
   readonly elementBySymbol = new Map<string, QaElement>()
   readonly elementByZ = new Map<number, QaElement>()
   /** ASCII-формула («H2SO4») → вещество */
@@ -98,6 +102,13 @@ export class Knowledge {
     }
     for (const s of this.qa.substances) if (!this.substanceByFormula.has(s.fa)) this.substanceByFormula.set(s.fa, s)
     for (const g of this.glossary) this.glossaryRu.set(g.ru.toLowerCase(), g)
+    try {
+      this.curriculum = loadCurriculumMap()
+    } catch (err) {
+      console.warn('[brain] карта программы не загружена:', (err as Error).message)
+      this.curriculum = null
+    }
+    setSharedCurriculum(this.curriculum)
     this.loadMs = Math.round(performance.now() - t0)
   }
 
