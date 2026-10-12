@@ -78,6 +78,8 @@
     "test:image-client": "tsx src/learn/brain/remote/imageClient.selftest.ts",
     "brain:admin-token": "tsx scripts/brain/admin-token.mts",
     "brain:probe": "tsx scripts/brain/probe-retrieve.mts",
+    "brain:curriculum-eval": "tsx scripts/brain/build-curriculum-eval.mts",
+    "brain:eval:curriculum": "tsx scripts/brain/eval-curriculum.mts",
     "brain:package": "tsx scripts/brain/package.mts",
     "teacher:qa-bank": "tsx scripts/teacher-ml/build-qa-bank.mts",
     "test:teacher-qa": "tsx scripts/test-teacher-qa.mts",

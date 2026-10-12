@@ -1,0 +1,633 @@
+{
+  "version": 1,
+  "mode": "inproc",
+  "runner": "в процессе, без LLM (запасной путь)",
+  "pending": {
+    "A": true,
+    "B": true
+  },
+  "mapSource": "заглушка (kb-sections + корпус + equations + qaBank + тесты) — пересобрать после слияния A",
+  "filters": null,
+  "metrics": {
+    "cases": 4030,
+    "gated": 3459,
+    "waiting": 571,
+    "pass": 2062,
+    "passAll": 2229,
+    "citationHit": 381,
+    "citationHitLoose": 847,
+    "schoolCases": 3528,
+    "schoolTop1": 3661,
+    "wikiLeak": 93,
+    "r3": 0,
+    "cjk": 0,
+    "langOk": 3718,
+    "calc": 120,
+    "numberOk": 79,
+    "msP50": 30,
+    "msP95": 80
+  },
+  "thresholds": {
+    "offline": {
+      "definition": 0.9,
+      "reaction": 0.9,
+      "calc": 1,
+      "obtain": 0.9,
+      "test": 0.7,
+      "why": 0.7,
+      "section": 0.85
+    },
+    "live": {
+      "all": 0.85,
+      "calc": 1,
+      "test": 0.85,
+      "why": 0.85
+    },
+    "citationHit": 0.85,
+    "langOk": 0.98
+  },
+  "bySub": {
+    "calc": {
+      "n": 120,
+      "ok": 79,
+      "gated": 91,
+      "gatedOk": 79,
+      "cite": 6
+    },
+    "definition": {
+      "n": 1094,
+      "ok": 619,
+      "gated": 1094,
+      "gatedOk": 619,
+      "cite": 311
+    },
+    "obtain": {
+      "n": 103,
+      "ok": 99,
+      "gated": 103,
+      "gatedOk": 99,
+      "cite": 0
+    },
+    "reaction": {
+      "n": 721,
+      "ok": 686,
+      "gated": 721,
+      "gatedOk": 686,
+      "cite": 0
+    },
+    "section": {
+      "n": 542,
+      "ok": 167,
+      "gated": 0,
+      "gatedOk": 0,
+      "cite": 3
+    },
+    "test": {
+      "n": 1002,
+      "ok": 232,
+      "gated": 1002,
+      "gatedOk": 232,
+      "cite": 30
+    },
+    "why": {
+      "n": 448,
+      "ok": 347,
+      "gated": 448,
+      "gatedOk": 347,
+      "cite": 38
+    }
+  },
+  "byGrade": {
+    "g7": {
+      "n": 1024,
+      "ok": 467,
+      "gated": 886,
+      "gatedOk": 397,
+      "cite": 0
+    },
+    "g8": {
+      "n": 853,
+      "ok": 432,
+      "gated": 752,
+      "gatedOk": 425,
+      "cite": 174
+    },
+    "g9": {
+      "n": 842,
+      "ok": 504,
+      "gated": 743,
+      "gatedOk": 498,
+      "cite": 164
+    },
+    "g10": {
+      "n": 813,
+      "ok": 521,
+      "gated": 664,
+      "gatedOk": 444,
+      "cite": 0
+    },
+    "g11": {
+      "n": 498,
+      "ok": 305,
+      "gated": 414,
+      "gatedOk": 298,
+      "cite": 50
+    }
+  },
+  "byGradeSub": {
+    "g7/calc": {
+      "n": 12,
+      "ok": 6,
+      "gated": 10,
+      "gatedOk": 6,
+      "cite": 0
+    },
+    "g7/definition": {
+      "n": 283,
+      "ok": 141,
+      "gated": 283,
+      "gatedOk": 141,
+      "cite": 0
+    },
+    "g7/obtain": {
+      "n": 20,
+      "ok": 20,
+      "gated": 20,
+      "gatedOk": 20,
+      "cite": 0
+    },
+    "g7/reaction": {
+      "n": 75,
+      "ok": 72,
+      "gated": 75,
+      "gatedOk": 72,
+      "cite": 0
+    },
+    "g7/section": {
+      "n": 136,
+      "ok": 70,
+      "gated": 0,
+      "gatedOk": 0,
+      "cite": 0
+    },
+    "g7/test": {
+      "n": 453,
+      "ok": 123,
+      "gated": 453,
+      "gatedOk": 123,
+      "cite": 0
+    },
+    "g7/why": {
+      "n": 45,
+      "ok": 35,
+      "gated": 45,
+      "gatedOk": 35,
+      "cite": 0
+    },
+    "g8/calc": {
+      "n": 20,
+      "ok": 13,
+      "gated": 13,
+      "gatedOk": 13,
+      "cite": 2
+    },
+    "g8/definition": {
+      "n": 173,
+      "ok": 133,
+      "gated": 173,
+      "gatedOk": 133,
+      "cite": 145
+    },
+    "g8/obtain": {
+      "n": 35,
+      "ok": 32,
+      "gated": 35,
+      "gatedOk": 32,
+      "cite": 0
+    },
+    "g8/reaction": {
+      "n": 158,
+      "ok": 155,
+      "gated": 158,
+      "gatedOk": 155,
+      "cite": 0
+    },
+    "g8/section": {
+      "n": 94,
+      "ok": 7,
+      "gated": 0,
+      "gatedOk": 0,
+      "cite": 1
+    },
+    "g8/test": {
+      "n": 300,
+      "ok": 30,
+      "gated": 300,
+      "gatedOk": 30,
+      "cite": 11
+    },
+    "g8/why": {
+      "n": 73,
+      "ok": 62,
+      "gated": 73,
+      "gatedOk": 62,
+      "cite": 15
+    },
+    "g9/calc": {
+      "n": 16,
+      "ok": 8,
+      "gated": 11,
+      "gatedOk": 8,
+      "cite": 0
+    },
+    "g9/definition": {
+      "n": 162,
+      "ok": 120,
+      "gated": 162,
+      "gatedOk": 120,
+      "cite": 126
+    },
+    "g9/obtain": {
+      "n": 37,
+      "ok": 36,
+      "gated": 37,
+      "gatedOk": 36,
+      "cite": 0
+    },
+    "g9/reaction": {
+      "n": 186,
+      "ok": 179,
+      "gated": 186,
+      "gatedOk": 179,
+      "cite": 0
+    },
+    "g9/section": {
+      "n": 94,
+      "ok": 6,
+      "gated": 0,
+      "gatedOk": 0,
+      "cite": 2
+    },
+    "g9/test": {
+      "n": 249,
+      "ok": 79,
+      "gated": 249,
+      "gatedOk": 79,
+      "cite": 19
+    },
+    "g9/why": {
+      "n": 98,
+      "ok": 76,
+      "gated": 98,
+      "gatedOk": 76,
+      "cite": 17
+    },
+    "g10/calc": {
+      "n": 12,
+      "ok": 2,
+      "gated": 5,
+      "gatedOk": 2,
+      "cite": 0
+    },
+    "g10/definition": {
+      "n": 307,
+      "ok": 148,
+      "gated": 307,
+      "gatedOk": 148,
+      "cite": 0
+    },
+    "g10/obtain": {
+      "n": 2,
+      "ok": 2,
+      "gated": 2,
+      "gatedOk": 2,
+      "cite": 0
+    },
+    "g10/reaction": {
+      "n": 193,
+      "ok": 176,
+      "gated": 193,
+      "gatedOk": 176,
+      "cite": 0
+    },
+    "g10/section": {
+      "n": 142,
+      "ok": 77,
+      "gated": 0,
+      "gatedOk": 0,
+      "cite": 0
+    },
+    "g10/why": {
+      "n": 157,
+      "ok": 116,
+      "gated": 157,
+      "gatedOk": 116,
+      "cite": 0
+    },
+    "g11/calc": {
+      "n": 60,
+      "ok": 50,
+      "gated": 52,
+      "gatedOk": 50,
+      "cite": 4
+    },
+    "g11/definition": {
+      "n": 169,
+      "ok": 77,
+      "gated": 169,
+      "gatedOk": 77,
+      "cite": 40
+    },
+    "g11/obtain": {
+      "n": 9,
+      "ok": 9,
+      "gated": 9,
+      "gatedOk": 9,
+      "cite": 0
+    },
+    "g11/reaction": {
+      "n": 109,
+      "ok": 104,
+      "gated": 109,
+      "gatedOk": 104,
+      "cite": 0
+    },
+    "g11/section": {
+      "n": 76,
+      "ok": 7,
+      "gated": 0,
+      "gatedOk": 0,
+      "cite": 0
+    },
+    "g11/why": {
+      "n": 75,
+      "ok": 58,
+      "gated": 75,
+      "gatedOk": 58,
+      "cite": 6
+    }
+  },
+  "byLang": {
+    "en": {
+      "n": 364,
+      "ok": 165,
+      "gated": 292,
+      "gatedOk": 165,
+      "cite": 17
+    },
+    "ru": {
+      "n": 1987,
+      "ok": 1253,
+      "gated": 1738,
+      "gatedOk": 1207,
+      "cite": 242
+    },
+    "uz": {
+      "n": 1679,
+      "ok": 811,
+      "gated": 1429,
+      "gatedOk": 690,
+      "cite": 129
+    }
+  },
+  "worstUnits": [
+    {
+      "unit": "g8:13",
+      "share": 0,
+      "n": 10,
+      "ok": 0,
+      "reasons": [
+        "нет ожидаемого факта ×9",
+        "[поле] scope ×2",
+        "[поле] notSource ×1"
+      ],
+      "examples": [
+        {
+          "q": "Расскажи кратко, что в Kimyo 8, §13.",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "В учебнике «Химия 7» (Kimyo 7) вещество «натрун» встречается в § 1.1 «Химия и ее задачи» (стр. 9). Frances Hamilton Arnold (1956-yil 25-iyul"
+        },
+        {
+          "q": "Kimyo 8, 13-§ nima haqida?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        }
+      ]
+    },
+    {
+      "unit": "g7:6.9",
+      "share": 0,
+      "n": 6,
+      "ok": 0,
+      "reasons": [
+        "нет ожидаемого факта ×6",
+        "[поле] scope ×1",
+        "[поле] notSource ×1"
+      ],
+      "examples": [
+        {
+          "q": "Выбери правильный ответ: Какое определение точнее всего описывает «химическая формула воды",
+          "why": "нет /^\\W{0,3}а\\)|^\\W{0,3}А\\)|кислоро/",
+          "answer": "Вода (H₂O) — оксид (водородные соединения неметаллов); M = 18,02 г/моль. Полярная молекула, растворитель. Применение: питьевая вода, сельско"
+        },
+        {
+          "q": "Toʻgʻri javobni tanlang: Qaysi ta'rif \"suvning kimyoviy formulasi\" ni eng yaxshi ta'riflay",
+          "why": "нет /^\\W{0,3}a\\)|^\\W{0,3}A\\)|kislor/",
+          "answer": "Suv (H₂O) — oksid (metallmaslarning vodorodli birikmalari); M = 18,02 g/mol. Atom — elementning kimyoviy jihatdan boʻlinmaydigan eng kichik "
+        }
+      ]
+    },
+    {
+      "unit": "g9:38",
+      "share": 0,
+      "n": 6,
+      "ok": 0,
+      "reasons": [
+        "[поле] scope ×4",
+        "[поле] kind ×2",
+        "нет ожидаемого факта ×2"
+      ],
+      "examples": [
+        {
+          "q": "Расскажи кратко, что в Kimyo 9, §38.",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "В учебнике «Химия 7» (Kimyo 7) вещество «натрун» встречается в § 1.1 «Химия и ее задачи» (стр. 9). Как следует из изложенного, в развитии со"
+        },
+        {
+          "q": "Kimyo 9, 38-§ nima haqida?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        }
+      ]
+    },
+    {
+      "unit": "g9:40",
+      "share": 0,
+      "n": 6,
+      "ok": 0,
+      "reasons": [
+        "нет ожидаемого факта ×4",
+        "[поле] scope ×3",
+        "[поле] notSource ×1"
+      ],
+      "examples": [
+        {
+          "q": "Расскажи кратко, что в Kimyo 9, §40.",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "В учебнике «Химия 7» (Kimyo 7) вещество «натрун» встречается в § 1.1 «Химия и ее задачи» (стр. 9). Frances Hamilton Arnold (1956-yil 25-iyul"
+        },
+        {
+          "q": "Kimyo 9, 40-§ nima haqida?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        }
+      ]
+    },
+    {
+      "unit": "g9:1",
+      "share": 0,
+      "n": 4,
+      "ok": 0,
+      "reasons": [
+        "нет ожидаемого факта ×3",
+        "язык ответа ×1",
+        "[поле] scope ×1"
+      ],
+      "examples": [
+        {
+          "q": "О чём Kimyo 9, §1?",
+          "why": "нет /п[её]риодич[её]|п[её]риодич[её]|эл[её]м[её]/",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        },
+        {
+          "q": "Kimyo 9, 1-§ nima haqida?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        }
+      ]
+    },
+    {
+      "unit": "g7:6.8",
+      "share": 0.07142857142857142,
+      "n": 14,
+      "ok": 1,
+      "reasons": [
+        "нет ожидаемого факта ×9",
+        "[поле] scope ×5",
+        "неверное число ×2"
+      ],
+      "examples": [
+        {
+          "q": "О чём Kimyo 7, гл. 6, тема 8?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "10-тема Изучаемые понятия • История химии Урок закрепления • Вещество, свойства веществ • Физические и химические явления • Правила безопасн"
+        },
+        {
+          "q": "What is Kimyo 7, ch. 6, topic 8 about?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Let us reason from the basics: Every substance is made of particles — atoms, ions or molecules; its properties come from atomic structure an"
+        }
+      ]
+    },
+    {
+      "unit": "g7:2.14",
+      "share": 0.1111111111111111,
+      "n": 9,
+      "ok": 1,
+      "reasons": [
+        "нет ожидаемого факта ×7",
+        "[поле] scope ×2",
+        "[поле] notSource ×2"
+      ],
+      "examples": [
+        {
+          "q": "Выбери правильный ответ: Выберите утверждение, согласованное с курсом химии 7 класса?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Смесь — несколько веществ, сохраняющих свои свойства; её разделяют отстаиванием, фильтрованием, выпариванием, перегонкой или магнитом — по р"
+        },
+        {
+          "q": "Toʻgʻri javobni tanlang: 7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Aralashma — oʻz xossalarini saqlagan bir necha modda; u tindirish, filtrlash, bugʻlatish, haydash yoki magnit yordamida — fizik xossalar far"
+        }
+      ]
+    },
+    {
+      "unit": "g11:2",
+      "share": 0.11764705882352941,
+      "n": 17,
+      "ok": 2,
+      "reasons": [
+        "нет ожидаемого факта ×6",
+        "[поле] scope ×5",
+        "язык ответа ×4"
+      ],
+      "examples": [
+        {
+          "q": "Расскажи кратко, что в Kimyo 11, §2.",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "В учебнике «Химия 7» (Kimyo 7) вещество «натрун» встречается в § 1.1 «Химия и ее задачи» (стр. 9). Frances Hamilton Arnold (1956-yil 25-iyul"
+        },
+        {
+          "q": "Kimyo 11, 2-§ nima haqida?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        }
+      ]
+    },
+    {
+      "unit": "g7:8.3",
+      "share": 0.125,
+      "n": 16,
+      "ok": 2,
+      "reasons": [
+        "[поле] scope ×11",
+        "нет ожидаемого факта ×10",
+        "[поле] notSource ×2"
+      ],
+      "examples": [
+        {
+          "q": "Что изучают в Kimyo 7, гл. 8, тема 3?",
+          "why": "нет /экологич[её]|асп[её]кт|ископа/",
+          "answer": "Пример по теме «Химия и её задачи». Опора на текст: Химия изучает состав, строение, свойства и изменения вещества, а также процессы Разобрат"
+        },
+        {
+          "q": "What is Kimyo 7, ch. 8, topic 3 about?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Let us reason from the basics: Every substance is made of particles — atoms, ions or molecules; its properties come from atomic structure an"
+        }
+      ]
+    },
+    {
+      "unit": "g8:44",
+      "share": 0.125,
+      "n": 8,
+      "ok": 1,
+      "reasons": [
+        "нет ожидаемого факта ×6",
+        "[поле] scope ×2",
+        "язык ответа ×1"
+      ],
+      "examples": [
+        {
+          "q": "О чём Kimyo 8, §44?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        },
+        {
+          "q": "Kimyo 8, 44-§ nima haqida?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
+        }
+      ]
+    }
+  ],
+  "passed": false,
+  "fails": [
+    "definition 56.6 % < 90 %",
+    "calc 86.8 % < 100 %",
+    "test 23.2 % < 70 %",
+    "язык 92.3 % < 98 %",
+    "wikiLeak 93"
+  ]
+}

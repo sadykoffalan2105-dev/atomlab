@@ -11,6 +11,8 @@
  *
  *   --profile=laptop|gpu — профиль мозга v2 в режимах --inproc/--mock-llm (config.dialog.profile)
  *   --strict-dialog  — считать контракт DIALOG собранным (нет meta.standalone → провал), см. DIALOG_MERGED
+ *   --extra=файл.jsonl — дописать случаи к пулу (можно несколько раз), напр. brain/eval/curriculum/sample-live.jsonl;
+ *                      их категория curriculum: с живой LLM порог ≥ 85 %, без LLM/mock — печатается отдельно, в общий порог не входит
  *
  * Критерии (код выхода 1 при провале): rule, profanity, calc, smalltalk — 100 %; общий pass ≥ 85 % с настоящей
  * LLM (Ollama) и ≥ 75 % без неё (запасной путь и mock; ≥ 80 % после сборки DIALOG). R3-фразы запрещены во всех ответах.
@@ -25,44 +27,9 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import type { ChatRequest, DoneEvent, MetaEvent } from '../../brain/pipeline/chat.ts'
-import { CJK_RE, hasR3, wordCount } from '../../brain/pipeline/postcheck.ts'
-import { matchesLang } from '../../brain/pipeline/normalize.ts'
-
-type OneNumber = { value: number; tol: number }
-type Expect = {
-  exact?: string
-  startsWith?: string
-  mustMatch?: string[]
-  mustNotMatch?: string[]
-  lang?: 'ru' | 'uz' | 'en'
-  maxWords?: number
-  /** одно число или любое из списка (4 моль или 72 г) */
-  number?: OneNumber | OneNumber[]
-  /** «homework|calc» — любое из */
-  intent?: string
-  // — мозг v2 (многоходовые кейсы): поля meta/done от DIALOG; «a|b» — любое из
-  /** регекс(ы) по meta.standalone — все должны совпасть */
-  standalone?: string | string[]
-  followUp?: string
-  scope?: string
-  kind?: string
-  lengthClass?: string
-  minWords?: number
-  /** done.sources[0] */
-  topSource?: string
-  /** ни в done.sources, ни в цитатах (encyclopedia → нет «Википедия/Wikipedia» в citations) */
-  notSource?: string[]
-  /** регекс по citations.join(' ') */
-  citationMatch?: string
-  noCitationMatch?: string
-}
-type ChatTurn = { role: 'user' | 'assistant'; content: string }
-type Question = { id: string; cat: string; lang: string; q: string; messages?: ChatTurn[]; context?: { gradeId?: string; detail?: 'brief' | 'more'; mode?: 'chat' | 'live' }; expect: Expect }
-/** meta/done мозга v2 (поля DIALOG; до слияния их нет — проверки «ожидают DIALOG») */
-type MetaV2 = MetaEvent & { standalone?: string; followUp?: string; scope?: string; kind?: string; lengthClass?: string }
-type DoneV2 = DoneEvent & { sources?: string[]; plan?: { kind: string; lengthClass: string; scope: string } }
-type Answer = { text: string; meta: MetaV2 | null; done: DoneV2 | null; ms: number; firstMs?: number; error?: string }
+import { CJK_RE, hasR3 } from '../../brain/pipeline/postcheck.ts'
+// проверки, типы и исполнители — общие с npm run brain:eval:curriculum (вынесены без изменения логики)
+import { check, httpRunner, inprocRunner, type Answer, type Question } from './evalCheck.mts'
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3)
@@ -87,6 +54,12 @@ const questions: Question[] = fs
   .map((s) => s.trim())
   .filter(Boolean)
   .map((s) => JSON.parse(s) as Question)
+// --extra=путь.jsonl (можно несколько): случаи других наборов (покрытие программы Kimyo — cat curriculum)
+for (const file of process.argv.filter((a) => a.startsWith('--extra=')).map((a) => a.slice(8)))
+  for (const line of fs.readFileSync(path.resolve(file), 'utf8').split('\n')) if (line.trim()) questions.push(JSON.parse(line) as Question)
+/** Категории наборов --extra: в живом прогоне — свой порог, без LLM — вне общего порога (печатаются отдельно). */
+const EXTRA_CATS = ['curriculum']
+const EXTRA_LIVE_MIN = 0.85
 const cats = arg('cat')?.split(',')
 const ids = arg('ids')?.split(',')
 const pool = ids ? questions.filter((q) => ids.includes(q.id)) : cats ? questions.filter((q) => cats.includes(q.cat)) : questions
@@ -104,170 +77,7 @@ function sample(list: Question[], n: number): Question[] {
 }
 const set = sample(pool, Number(arg('sample') ?? 0))
 
-function request(q: Question): ChatRequest {
-  return {
-    sessionId: `eval-${q.id}`,
-    studentId: 'eval',
-    lang: 'auto',
-    stream: true,
-    messages: [...(q.messages ?? []), { role: 'user', content: q.q }],
-    context: { gradeId: q.context?.gradeId ?? 'g9', mode: q.context?.mode ?? 'chat', detail: q.context?.detail ?? 'brief' },
-  }
-}
-
-/** Числа из текста: «98,08», «98.08», «−2», «6,02·10²³» (берём мантиссу). */
-function numbersIn(text: string): number[] {
-  return [...text.replace(/[−–]/g, '-').matchAll(/-?\d+(?:[.,]\d+)?/g)].map((m) => Number(m[0].replace(',', '.'))).filter((n) => Number.isFinite(n))
-}
-
-/** «a|b» — любое из */
-const anyOf = (want: string, got: string | undefined | null) => got != null && want.split('|').includes(got)
-
-/**
- * Проверки полей мозга v2. Провалы помечаются «[поле] …» (для порога 100 % по полям); поле, которого нет в meta/done
- * при несобранном контракте DIALOG, уходит в pending (не провал).
- */
-function checkFields(q: Question, a: Answer, dialogReady: boolean, why: string[], pending: string[]): void {
-  const e = q.expect
-  const meta = a.meta
-  const done = a.done
-  const field = (name: string, got: unknown, okFn: () => boolean, show: string) => {
-    if (got === undefined || got === null) {
-      if (dialogReady) why.push(`[поле] нет meta.${name}`)
-      else pending.push(name)
-      return
-    }
-    if (!okFn()) why.push(`[поле] ${name} ${show}`)
-  }
-  if (e.standalone !== undefined) {
-    const res = Array.isArray(e.standalone) ? e.standalone : [e.standalone]
-    field('standalone', meta?.standalone, () => res.every((re) => new RegExp(re, 'iu').test(meta!.standalone!)), `«${meta?.standalone}» ≠ /${res.join('/ & /')}/`)
-  }
-  if (e.followUp) field('followUp', meta?.followUp, () => anyOf(e.followUp!, meta!.followUp), `${meta?.followUp} ≠ ${e.followUp}`)
-  if (e.scope) field('scope', meta?.scope, () => anyOf(e.scope!, meta!.scope), `${meta?.scope} ≠ ${e.scope}`)
-  if (e.kind) field('kind', meta?.kind, () => anyOf(e.kind!, meta!.kind), `${meta?.kind} ≠ ${e.kind}`)
-  if (e.lengthClass) field('lengthClass', meta?.lengthClass, () => anyOf(e.lengthClass!, meta!.lengthClass), `${meta?.lengthClass} ≠ ${e.lengthClass}`)
-  if (e.topSource) field('topSource', done?.sources, () => anyOf(e.topSource!, done!.sources![0]), `${done?.sources?.[0]} ≠ ${e.topSource}`)
-  if (e.notSource?.length) field('notSource', done?.sources, () => !done!.sources!.some((s) => e.notSource!.includes(s)), `[${done?.sources?.join(',')}] ∋ ${e.notSource.join('|')}`)
-}
-
-function check(q: Question, a: Answer, dialogReady: boolean, pending: string[] = []): string[] {
-  const e = q.expect
-  const t = a.text.trim()
-  const why: string[] = []
-  checkFields(q, a, dialogReady, why, pending)
-  const cites = (a.done?.citations ?? []).join(' ')
-  if (e.minWords && wordCount(t) < e.minWords) why.push(`слов ${wordCount(t)} < ${e.minWords}`)
-  if (e.citationMatch && !new RegExp(e.citationMatch, 'iu').test(cites)) why.push(`цитаты без /${e.citationMatch}/: ${cites || '—'}`)
-  if (e.noCitationMatch && new RegExp(e.noCitationMatch, 'iu').test(cites)) why.push(`цитаты с запрещённым /${e.noCitationMatch}/: ${cites}`)
-  if (e.notSource?.includes('encyclopedia') && /википед|wikipedia/iu.test(cites)) why.push(`цитата из энциклопедии: ${cites}`)
-  if (a.error) why.push(`ошибка: ${a.error}`)
-  if (!t) why.push('пустой ответ')
-  if (e.exact !== undefined && t !== e.exact) why.push('не дословно R1')
-  if (e.startsWith !== undefined && !t.startsWith(e.startsWith)) why.push('нет R2 в начале')
-  for (const re of e.mustMatch ?? []) if (!new RegExp(re, 'iu').test(t)) why.push(`нет /${re}/`)
-  for (const re of e.mustNotMatch ?? []) if (new RegExp(re, 'iu').test(t)) why.push(`есть запрещённое /${re}/`)
-  if (hasR3(t)) why.push('R3-фраза')
-  if (CJK_RE.test(t)) why.push('CJK-символы')
-  const route = a.meta?.route ?? ''
-  const doneRoute = (a.done as (DoneEvent & { route?: string }) | null)?.route
-  if (/(^|\+)llm$/.test(route) && a.done && a.done.source !== 'llm') why.push(`нечестный route: meta=llm, source=${a.done.source}`)
-  if (doneRoute && route && doneRoute !== route) why.push(`route meta=${route} ≠ done=${doneRoute}`)
-  if (e.lang && !matchesLang(t, e.lang)) why.push(`язык ≠ ${e.lang}`)
-  if (e.maxWords && wordCount(t) > e.maxWords) why.push(`слов ${wordCount(t)} > ${e.maxWords}`)
-  if (e.number) {
-    const want = Array.isArray(e.number) ? e.number : [e.number]
-    if (!numbersIn(t).some((n) => want.some((w) => Math.abs(n - w.value) <= w.tol))) why.push(`нет числа ${want.map((w) => `${w.value}±${w.tol}`).join(' или ')}`)
-  }
-  if (e.intent && !anyOf(e.intent, a.meta?.intent)) why.push(`intent ${a.meta?.intent} ≠ ${e.intent}`)
-  // ответ «по сути» после R2: что-то кроме самого замечания
-  if (q.cat === 'profanity' && e.startsWith && t.slice(e.startsWith.length).trim().length < 15) why.push('после R2 нет ответа')
-  return why
-}
-
-// ——— исполнители
-type Runner = { name: string; llm: 'ollama' | 'mock' | 'none'; ask(q: Question): Promise<Answer>; close?(): void }
-
-async function inprocRunner(mock: boolean): Promise<Runner> {
-  const { createBrain } = await import('../../brain/server.ts')
-  const { runChat } = await import('../../brain/pipeline/chat.ts')
-  const { MockLlm } = await import('../../brain/llm/mock.ts')
-  const llm = mock ? new MockLlm({ misbehave: 0.35 }) : null
-  const brain = createBrain({ llm })
-  await brain.deps.journal.buildIndex()
-  // --profile=laptop|gpu: профиль мозга v2 (config.dialog.profile — блок DIALOG; до слияния поле просто лишнее)
-  const profile = arg('profile')
-  if (profile === 'laptop' || profile === 'gpu') {
-    const cfg = brain.deps.config as unknown as { dialog?: Record<string, unknown> }
-    cfg.dialog = { ...(cfg.dialog ?? {}), profile }
-  }
-  return {
-    name: mock ? 'в процессе, mock-LLM' : 'в процессе, без LLM (запасной путь)',
-    llm: mock ? 'mock' : 'none',
-    async ask(q) {
-      let meta: MetaEvent | null = null
-      let done: DoneEvent | null = null
-      let error: string | undefined
-      const t0 = performance.now()
-      await runChat(request(q), { ...brain.deps, noJournal: true }, { meta: (m) => (meta = m), delta: () => {}, done: (d) => (done = d), error: (e) => (error = e.message) })
-      const d = done as DoneEvent | null
-      return { text: d?.text ?? '', meta, done: d, ms: d?.ms ?? Math.round(performance.now() - t0), error }
-    },
-  }
-}
-
-async function httpRunner(base: string): Promise<Runner> {
-  let health: { llm?: { available?: boolean; chatModel?: string | null } }
-  try {
-    health = (await (await fetch(`${base}/health`, { signal: AbortSignal.timeout(3000) })).json()) as typeof health
-  } catch {
-    console.error(`[brain:eval] сервер ${base} не отвечает. Запустите npm run brain:start или используйте --inproc.`)
-    process.exit(2)
-  }
-  return {
-    name: `HTTP ${base} (llm: ${health.llm?.available ? health.llm.chatModel : 'нет — запасной путь'})`,
-    llm: health.llm?.available ? 'ollama' : 'none',
-    async ask(q) {
-      const t0 = performance.now()
-      let meta: MetaEvent | null = null
-      let done: DoneEvent | null = null
-      let error: string | undefined
-      let text = ''
-      let firstMs: number | undefined
-      try {
-        const res = await fetch(`${base}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request(q)), signal: AbortSignal.timeout(180_000) })
-        if (!res.ok || !res.body) return { text: '', meta, done, ms: 0, error: `HTTP ${res.status}` }
-        // читаем поток по мере прихода: время первого куска ответа (delta) — то, что видит ученик
-        const reader = res.body.getReader()
-        const dec = new TextDecoder()
-        let raw = ''
-        for (;;) {
-          const { value, done: end } = await reader.read()
-          if (end) break
-          raw += dec.decode(value, { stream: true })
-          if (firstMs === undefined && /(^|\n)event: ?delta\n/.test(raw)) firstMs = Math.round(performance.now() - t0)
-        }
-        for (const block of raw.split(/\n\n/)) {
-          const ev = block.match(/^event: ?(.+)$/m)?.[1]?.trim()
-          const data = block.match(/^data: ?(.*)$/m)?.[1]
-          if (!ev || data === undefined) continue
-          const j = JSON.parse(data)
-          if (ev === 'meta') meta = j
-          else if (ev === 'delta') text += j.text
-          else if (ev === 'done') done = j
-          else if (ev === 'error') error = j.message
-        }
-      } catch (err) {
-        error = (err as Error).message
-      }
-      const d = done as DoneEvent | null
-      if (d && text.trim() !== d.text.trim()) error = (error ? error + '; ' : '') + 'delta ≠ done.text'
-      return { text: d?.text ?? text, meta, done: d, ms: d?.ms ?? Math.round(performance.now() - t0), firstMs, error }
-    },
-  }
-}
-
-const runner = flag('mock-llm') ? await inprocRunner(true) : flag('inproc') ? await inprocRunner(false) : await httpRunner(arg('url') ?? `http://127.0.0.1:${process.env.BRAIN_PORT || 8787}`)
+const runner = flag('mock-llm') ? await inprocRunner(true, arg('profile')) : flag('inproc') ? await inprocRunner(false, arg('profile')) : await httpRunner(arg('url') ?? `http://127.0.0.1:${process.env.BRAIN_PORT || 8787}`)
 console.log(`[brain:eval] ${set.length} вопросов · ${runner.name}`)
 
 type Row = { q: Question; a: Answer; why: string[]; pending: string[] }
@@ -304,7 +114,7 @@ for (const [cat, rs] of byCat) {
   )
 }
 // до слияния с DIALOG v2-категории (многоходовые кейсы) в общий порог не входят — их текст зависит от разрешения реплики
-const gated = dialogReady ? rows : rows.filter((r) => !V2_CATS.includes(r.q.cat))
+const gated = (dialogReady ? rows : rows.filter((r) => !V2_CATS.includes(r.q.cat))).filter((r) => !EXTRA_CATS.includes(r.q.cat))
 const pass = gated.filter((r) => !r.why.length).length
 const total = gated.length
 const r3 = rows.filter((r) => hasR3(r.a.text)).length
@@ -368,6 +178,14 @@ if (dialogReady) {
     if (ok / rs.length < min) v2Fails.push(`${cat}: ${ok}/${rs.length} (нужно ≥ ${min * 100} %)`)
   }
   if (wikiLeak) v2Fails.push(`wikiLeak ${wikiLeak} (нужно 0)`)
+}
+// категории --extra (curriculum): с живой LLM — свой порог; без LLM/mock — только печать (пороги — npm run brain:eval:curriculum)
+for (const cat of EXTRA_CATS) {
+  const rs = byCat.get(cat)
+  if (!rs?.length) continue
+  const ok = rs.filter((r) => !r.why.length).length
+  if (runner.llm === 'ollama' && ok / rs.length < EXTRA_LIVE_MIN) v2Fails.push(`${cat}: ${ok}/${rs.length} (нужно ≥ ${EXTRA_LIVE_MIN * 100} %)`)
+  else if (runner.llm !== 'ollama') console.log(`${cat}: ${ok}/${rs.length} — вне общего порога (без живой LLM)`)
 }
 
 const failsDet = DETERMINISTIC.filter((c) => byCat.get(c)?.some((r) => r.why.length))
