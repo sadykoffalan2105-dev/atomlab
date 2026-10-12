@@ -1,4 +1,6 @@
 import { learnAssistantEn, learnAssistantRu, learnAssistantUz } from './learn/assistantI18n'
+// режим «🎨 Картинка» в чате учителя (DrawMode.tsx)
+import { learnDrawModeEn, learnDrawModeRu, learnDrawModeUz } from './learn/drawModeI18n'
 import { learnGradesOutlineEn } from './learn/gradesOutlineEn'
 import { learnGradesOutlineRu } from './learn/gradesOutlineRu'
 import { learnGradesOutlineUz } from './learn/gradesOutlineUz'
@@ -39,6 +41,7 @@ import {
 export const learnGradePackRu = {
   ...learnGradesOutlineRu,
   ...learnAssistantRu,
+  ...learnDrawModeRu,
   ...learnG7PilotRu,
   ...learnOutlineContentRu,
   ...learnVisualI18nRu,
@@ -55,6 +58,7 @@ export const learnGradePackRu = {
 export const learnGradePackEn = {
   ...learnGradesOutlineEn,
   ...learnAssistantEn,
+  ...learnDrawModeEn,
   ...learnG7PilotEn,
   ...learnOutlineContentEn,
   ...learnVisualI18nEn,
@@ -71,6 +75,7 @@ export const learnGradePackEn = {
 export const learnGradePackUz = {
   ...learnGradesOutlineUz,
   ...learnAssistantUz,
+  ...learnDrawModeUz,
   ...learnG7PilotUz,
   ...learnOutlineContentUz,
   ...learnVisualI18nUz,

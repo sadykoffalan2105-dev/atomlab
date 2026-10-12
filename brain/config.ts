@@ -216,8 +216,12 @@ export type ImageConfig = {
   /** 0 — по движку (z-image 8, klein 4) */
   steps: number
   sizes: { square: [number, number]; wide: [number, number]; tall: [number, number] }
-  /** ученики: выключены по умолчанию; только пресеты своего класса ±gradeWindow; свой порог классификатора */
-  students: { enabled: boolean; presetsOnly: boolean; nsfwThreshold: number; gradeWindow: number }
+  /**
+   * ученики: выключены по умолчанию; только пресеты своего класса ±gradeWindow (решение владельца: свой текст ученикам
+   * нельзя никогда — presetsOnly оставлен для совместимости, roles.ts его не ослабляет); свой порог классификатора;
+   * perHour/perDay — свои лимиты картинок на ученика (адрес + сессия), строже общих rate.perMin/perDay; 0 — без своего лимита
+   */
+  students: { enabled: boolean; presetsOnly: boolean; nsfwThreshold: number; gradeWindow: number; perHour?: number; perDay?: number }
   /** ключи учителя (поле teacherKey в теле запроса), каждый ≥ 16 символов */
   teacherTokens: string[]
   freeText: { owner: boolean; teacher: boolean }
@@ -341,7 +345,7 @@ export const DEFAULT_CONFIG: BrainConfig = {
     comfyOutputDir: '',
     steps: 0,
     sizes: { square: [1024, 1024], wide: [1216, 832], tall: [832, 1216] },
-    students: { enabled: false, presetsOnly: true, nsfwThreshold: 0.3, gradeWindow: 1 },
+    students: { enabled: false, presetsOnly: true, nsfwThreshold: 0.3, gradeWindow: 1, perHour: 5, perDay: 12 },
     teacherTokens: [],
     freeText: { owner: true, teacher: true },
     llmCheck: true,

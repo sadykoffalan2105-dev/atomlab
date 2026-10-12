@@ -77,11 +77,13 @@ import {
 } from './teacher/TeacherIcons'
 import { StreamingReply } from './teacher/StreamingReply'
 import { AiAdvisoryNote, AnswerReport } from './teacher/AnswerReport' // «Сообщить об ошибке» + «ответ ИИ — рекомендация» (docs/COMPLIANCE.md)
-// «Нарисовать»: кнопка в поле ввода, «нарисуй …» открывает диалог, картинка в пузыре (формулы накладывает сайт)
-import { DrawButton, DrawChatImage, type DrawInsert } from './teacher/DrawButton'
+// картинка в пузыре (формулы накладывает сайт); рисование — режим «🎨 Картинка» над полем ввода (DrawMode.tsx)
+import { DrawChatImage, type DrawInsert } from './teacher/DrawButton'
+import { ChatModeSwitch, DrawComposer } from './teacher/DrawMode'
+import { drawAvailability, type ChatComposeMode } from '../../learn/brain/image/drawMode'
 import { onRadioGroupKeyDown } from './teacher/radioGroupKeys'
 import { parseDrawRequest } from '../../learn/brain/image/drawIntent'
-import { canUseDrawing } from '../../learn/brain/remote/imageClient'
+import { getImageInfo, role as imageRole } from '../../learn/brain/remote/imageClient'
 import kit from './studio/StudioKit.module.css'
 import styles from './LearnAssistantPanel.module.css'
 
@@ -684,8 +686,9 @@ export function LearnAssistantPanel({
     [loading, messages, requestReply, setMessages],
   )
 
-  /** «Нарисовать»: диалог открывает кнопка в поле ввода; «нарисуй …» в чате — тоже он (через ref кнопки). */
-  const drawOpenRef = useRef<((subject?: string) => void) | null>(null)
+  /** Режим ввода «💬 Вопрос | 🎨 Картинка»; «нарисуй …» в режиме «Вопрос» переключает на «Картинку» с темой. */
+  const [composeMode, setComposeMode] = useState<ChatComposeMode>('ask')
+  const [drawRequest, setDrawRequest] = useState<{ subject: string; nonce: number } | null>(null)
   const insertImageMessage = useCallback(
     (image: DrawInsert) => {
       setStreamingAt(null)
@@ -698,11 +701,13 @@ export function LearnAssistantPanel({
     const typed = input.trim()
     // Поле ввода не блокируется во время ответа — текст не теряется, пока ИИ думает.
     if ((!typed && !photos.length) || loading || photoBusy) return
-    // «нарисуй аппарат Киппа» — диалог «Нарисовать» с темой (если рисование включено и роль позволяет)
+    // «нарисуй аппарат Киппа» — режим «Картинка» с темой (учителю — свой запрос, ученику — ближайшая тема класса),
+    // если сервер рисует; иначе вопрос уходит учителю как обычно
     const draw = !photos.length ? parseDrawRequest(typed, locale) : null
-    if (draw && canUseDrawing() && drawOpenRef.current) {
+    if (draw && drawAvailability(getImageInfo(), imageRole()).selectable) {
       setInput('')
-      drawOpenRef.current(draw.subject)
+      setDrawRequest({ subject: draw.subject, nonce: Date.now() })
+      setComposeMode('image')
       return
     }
     // только фото — подпись по умолчанию («Объясни задачу»)
@@ -1482,6 +1487,19 @@ export function LearnAssistantPanel({
               e.target.value = ''
             }}
           />
+          <ChatModeSwitch mode={composeMode} onChange={setComposeMode} />
+          {composeMode === 'image' ? (
+            <DrawComposer
+              gradeId={localCtx.gradeId}
+              sectionTitle={localCtx.sectionTitle}
+              request={drawRequest}
+              onInsert={insertImageMessage}
+              onAsk={(text) => {
+                setComposeMode('ask')
+                sendText(text)
+              }}
+            />
+          ) : (
           <div className={styles.field} data-listening={listening ? '1' : undefined} data-state={sendState}>
             <textarea
               ref={inputRef}
@@ -1545,14 +1563,6 @@ export function LearnAssistantPanel({
                 <IconCheckCircle className={styles.btnIcon} />
                 <span className={styles.hwLabel}>{t('learn.assistant.homework')}</span>
               </button>
-              <DrawButton
-                place="chat"
-                className={`${kit.iconBtn} ${styles.fieldBtn}`}
-                context={{ gradeId: localCtx.gradeId, sectionTitle: localCtx.sectionTitle }}
-                onInsert={insertImageMessage}
-                onDescribeInstead={(text) => sendText(text)}
-                openRef={drawOpenRef}
-              />
               <span id={inputHintId} className={kit.srOnly}>
                 {t('learn.teacherUi.inputHint')}
               </span>
@@ -1588,6 +1598,7 @@ export function LearnAssistantPanel({
               )}
             </div>
           </div>
+          )}
         </div>
 
         <p className={styles.disclaimer}>

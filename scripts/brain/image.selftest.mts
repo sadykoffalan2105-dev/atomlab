@@ -36,6 +36,7 @@ const { parseSse } = await import('../../brain/sse.ts')
 const { R2 } = await import('../../brain/pipeline/moderation.ts')
 const { NODE_INPUTS, SAFETY_CLASS, buildGraph } = await import('../../brain/image/workflows.ts')
 const { PRESETS } = await import('../../brain/image/presets.ts')
+const { StudentQuota } = await import('../../brain/image/roles.ts')
 const { imageFilter } = await import('../../brain/image/filter.ts')
 const { checkFreeText } = await import('../../brain/image/prompt.ts')
 const { isDrawRequest, drawSubject } = await import('../../brain/image/intent.ts')
@@ -317,6 +318,37 @@ ok(['queueMs', 'drainMs', 'unloadMs', 'loadMs', 'genMs', 'safetyMs', 'reloadMs']
 ok((st3.done?.prompt as { translated?: boolean; presetId?: string })?.presetId === 'g7-spirit-lamp' && /spirit lamp/.test(String((st3.done?.prompt as { final?: string })?.final)), 'prompt.final — из пресета (английский)')
 const st4 = await img({ presetId: 'g11-protein-helix', context: { gradeId: 'g7' } }, fwd('198.51.100.4'), false)
 ok(st4.status === 400 && (st4.json?.error as { code?: string })?.code === 'bad_request', 'ученик 7 класса с темой 11 класса → 400 bad_request')
+// решение владельца: ученикам — только готовые темы, даже если в config.json presetsOnly=false
+ic.students.presetsOnly = false
+const st5 = await img({ prompt: 'колба с водой', presetId: 'g7-spirit-lamp', context: { gradeId: 'g7' } }, fwd('198.51.100.21'), false)
+ok(st5.status === 400 && (st5.json?.error as { code?: string })?.code === 'bad_request', 'ученик с текстом при presetsOnly=false → всё равно 400 (только темы)')
+const st5b = await img({ prompt: 'колба с водой', context: { gradeId: 'g7' } }, fwd('198.51.100.22'), false)
+ok(st5b.status === 400, 'ученик только с текстом без темы → 400')
+ic.students.presetsOnly = true
+// свои лимиты ученика в сутки: вторая картинка за сутки при perDay=1 → 429 image_student_day (учитель не ограничен этим лимитом)
+const quotaWas = { perHour: ic.students.perHour, perDay: ic.students.perDay }
+ic.students.perDay = 1
+ic.students.perHour = 0
+const q1 = await img({ presetId: 'g7-spirit-lamp', context: { gradeId: 'g7' } }, fwd('198.51.100.23'))
+ok(!!q1.done, 'лимит ученика 1/сутки: первая картинка → done', q1.error ? JSON.stringify(q1.error) : '')
+const q2 = await img({ presetId: 'g7-spirit-lamp', context: { gradeId: 'g7' } }, fwd('198.51.100.23'), false)
+ok(q2.status === 429 && q2.json?.rule === 'image_student_day' && Number(q2.json?.retryAfterSec) > 3600, 'вторая за сутки → 429 image_student_day, Retry-After в часах', `${q2.status} ${JSON.stringify(q2.json)}`)
+ic.students.perDay = quotaWas.perDay
+ic.students.perHour = quotaWas.perHour
+{
+  const sq = new StudentQuota()
+  const t0 = 1_000_000_000
+  const lim = { perHour: 2, perDay: 3 }
+  const a = [sq.take('s', lim, t0), sq.take('s', lim, t0 + 1000), sq.take('s', lim, t0 + 2000)]
+  ok(a[0]!.ok && a[1]!.ok && !a[2]!.ok && (a[2] as { rule?: string }).rule === 'image_student_hour', 'StudentQuota: 2 в час — третья в тот же час отклонена (image_student_hour)')
+  const b = sq.take('s', lim, t0 + 61 * 60_000)
+  const c = sq.take('s', lim, t0 + 62 * 60_000)
+  ok(b.ok && !c.ok && (c as { rule?: string }).rule === 'image_student_day', 'StudentQuota: через час — снова можно; 3 в сутки — четвёртая отклонена (image_student_day)')
+  ok(sq.take('other', lim, t0).ok && sq.take('s', { perHour: 0, perDay: 0 }, t0).ok, 'StudentQuota: другой ученик независим; лимиты 0 — без ограничений')
+  const small = new StudentQuota(3)
+  for (let i = 0; i < 10; i++) small.take(`k${i}`, lim, t0)
+  ok(small.size === 3, 'StudentQuota: ключей не больше maxKeys', String(small.size))
+}
 const tch = await img({ prompt: 'кристаллы медного купороса в стакане', teacherKey: TEACHER }, fwd('198.51.100.5'))
 ok(!!tch.done && (tch.events[0]?.data as { role?: string })?.role === 'teacher', 'учитель (teacherKey в теле) — свободный текст → done, role teacher', tch.error ? JSON.stringify(tch.error) : '')
 const tchBad = await img({ prompt: 'кристаллы', teacherKey: 'short' }, fwd('198.51.100.6'), false)
