@@ -24,11 +24,11 @@
     }
   },
   "image": {
-    "_comment": "Картинки (ComfyUI на 127.0.0.1:comfyPort). Сменить движок/вариант — одна строка и push: Update за 1–2 запуска сам скачает недостающее (с проверкой SHA-256 из comfy/manifest.json), перезапустит ComfyUI, когда он свободен, и обновит config.json мозга. engine: z-image-turbo (variant int8 | bf16 | nvfp4) или flux2-klein-4b (variant fp8). enabled: false — ComfyUI остановится и освободит видеопамять. students: true — только по решению владельца (ЗРУ-444; по умолчанию ученикам рисовать нельзя). teacherKeys — сколько ключей учителя держать в C:\\ATOMLAB\\secrets\\teacher-tokens.txt.",
+    "_comment": "Картинки (ComfyUI на 127.0.0.1:comfyPort). Сменить движок/вариант — одна строка и push: Update за 1–2 запуска сам скачает недостающее (с проверкой SHA-256 из comfy/manifest.json), перезапустит ComfyUI, когда он свободен, и обновит config.json мозга. engine: z-image-turbo (variant int8 | bf16 | nvfp4) или flux2-klein-4b (variant fp8). enabled: false — ComfyUI остановится и освободит видеопамять. students: true — решение владельца (12.10): ученики рисуют ТОЛЬКО готовые темы учебника своего класса ±1 (presetsOnly всегда; свой текст — только учитель/владелец по ключу; лимиты ученика students.perHour/perDay в config.json мозга; ЗРУ-444). false — ученикам рисовать нельзя. teacherKeys — сколько ключей учителя держать в C:\\ATOMLAB\\secrets\\teacher-tokens.txt.",
     "enabled": true,
     "engine": "z-image-turbo",
     "variant": "int8",
-    "students": false,
+    "students": true,
     "teacherKeys": 1,
     "comfyPort": 8188,
     "reserveVramGB": 1.5,

@@ -39,7 +39,8 @@ export function permit(role: ImageRole, req: ImageRequest, ic: ImageConfig): Per
   if (req.presetId && !preset) return { ok: false, code: 'bad_request', detail: 'unknown_preset' }
   if (role === 'student') {
     if (!ic.students.enabled) return { ok: false, code: 'forbidden', detail: 'students_disabled' }
-    if (ic.students.presetsOnly && req.prompt) return { ok: false, code: 'bad_request', detail: 'presets_only' }
+    // решение владельца: ученик рисует ТОЛЬКО готовые темы — свой текст отклоняется всегда (даже при presetsOnly=false)
+    if (req.prompt) return { ok: false, code: 'bad_request', detail: 'presets_only' }
     if (!preset) return { ok: false, code: 'bad_request', detail: 'preset_required' }
     if (!presetFitsGrade(preset, req.context?.gradeId, ic.students.gradeWindow)) return { ok: false, code: 'bad_request', detail: 'preset_grade' }
     return { ok: true, preset, nsfwThreshold: ic.students.nsfwThreshold, freeText: false }
@@ -51,4 +52,49 @@ export function permit(role: ImageRole, req: ImageRequest, ic: ImageConfig): Per
   }
   if (!preset) return { ok: false, code: 'bad_request', detail: 'preset_or_prompt' }
   return { ok: true, preset, nsfwThreshold: ic.safety.nsfwThreshold, freeText: false }
+}
+
+const HOUR = 60 * 60_000
+const DAY = 24 * HOUR
+
+/**
+ * Свои лимиты картинок ученика (config.image.students.perHour / perDay) — сверх общих rate.perMin/perDay сервера:
+ * считаются начатые задания (принятые после permit), ключ — ученик (адрес + сессия X-Brain-Session).
+ * Память ограничена: старые отметки чистятся, ключей не больше maxKeys (самые давние выбрасываются).
+ */
+export class StudentQuota {
+  private hits = new Map<string, number[]>()
+  constructor(private readonly maxKeys = 5000) {}
+
+  /** Проверить и сразу засчитать попытку; отказ — правило и через сколько секунд можно снова. */
+  take(
+    key: string,
+    limits: { perHour?: number; perDay?: number },
+    now = Date.now(),
+  ): { ok: true } | { ok: false; rule: 'image_student_hour' | 'image_student_day'; retryAfterSec: number } {
+    const perHour = Math.max(0, Math.floor(limits.perHour ?? 0))
+    const perDay = Math.max(0, Math.floor(limits.perDay ?? 0))
+    if (!perHour && !perDay) return { ok: true }
+    const list = (this.hits.get(key) ?? []).filter((t) => now - t < DAY)
+    const inHour = list.filter((t) => now - t < HOUR)
+    const wait = (from: number, span: number) => Math.max(1, Math.ceil((from + span - now) / 1000))
+    if (perDay && list.length >= perDay) {
+      this.hits.set(key, list)
+      return { ok: false, rule: 'image_student_day', retryAfterSec: wait(list[list.length - perDay]!, DAY) }
+    }
+    if (perHour && inHour.length >= perHour) {
+      this.hits.set(key, list)
+      return { ok: false, rule: 'image_student_hour', retryAfterSec: wait(inHour[inHour.length - perHour]!, HOUR) }
+    }
+    list.push(now)
+    this.hits.delete(key) // в конец Map — «самые давние» ключи впереди
+    this.hits.set(key, list)
+    while (this.hits.size > this.maxKeys) this.hits.delete(this.hits.keys().next().value as string)
+    return { ok: true }
+  }
+
+  /** Сколько учеников сейчас в счётчике (самопроверка / статус). */
+  get size(): number {
+    return this.hits.size
+  }
 }

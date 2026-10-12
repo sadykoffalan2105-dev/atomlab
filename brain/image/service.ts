@@ -19,7 +19,7 @@ import { ImageCache } from './cache.ts'
 import { ComfyClient } from './comfyClient.ts'
 import { imagesJournalPath, journalImage, type ImageJournalRow } from './journal.ts'
 import { checkFreeText, presetPrompt } from './prompt.ts'
-import type { Permit } from './roles.ts'
+import { StudentQuota, type Permit } from './roles.ts'
 import { emptyTimings, IMAGE_MESSAGES, type ImageDone, type ImageErrorCode, type ImageJob, type ImageLang, type ImageRequest, type ImageRole, type JobOutcome } from './types.ts'
 import { normalizeVariant, SAFETY_CLASS } from './workflows.ts'
 
@@ -53,6 +53,8 @@ const MIN = 60_000
 export class ImageService {
   readonly arbiter: GpuArbiter
   readonly cache: ImageCache
+  /** Лимиты картинок ученика в час / сутки (roles.ts StudentQuota; проверяет http.ts). */
+  readonly studentQuota = new StudentQuota()
   ready = false
   readyError = ''
   checkedAt = 0

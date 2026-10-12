@@ -213,6 +213,11 @@ export async function handleImageRequest(c: ImageHttpContext): Promise<void> {
   const p = permit(role, imgReq, isTest ? { ...ic, enabled: true } : ic)
   if (!p.ok) return early(p.code, p.code === 'bad_request' ? { message: badRequestText(p.detail, lang) } : {})
   if (!(await image.ensureReady())) return early('not_ready')
+  // ученик: свои лимиты картинок в час / сутки (config.image.students.perHour / perDay) — до очереди, засчитывается попытка
+  if (role === 'student' && limited && !isTest) {
+    const q = image.studentQuota.take(client.student, ic.students)
+    if (!q.ok) return early('rate', { retryAfterSec: q.retryAfterSec, rule: q.rule })
+  }
   // очередь заданий — на ученика (адрес + сессия X-Brain-Session), а не на весь адрес школы
   const r = image.reserve(client.student, limited && !isTest)
   if (!r.ok) return early(r.code, { retryAfterSec: r.retryAfterSec, rule: r.rule })

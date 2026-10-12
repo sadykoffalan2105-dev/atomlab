@@ -59,6 +59,7 @@ if ($cfg.image) {
   $st = $img.students
   if (-not (Test-JsonObject $st)) { $st = New-Object PSObject }
   Set-StateValue $st 'enabled' ([bool]($ic.students -eq $true))   # ученики — только по решению владельца (ЗРУ-444)
+  Set-StateValue $st 'presetsOnly' $true   # ученикам — только готовые темы (мозг проверяет и сам, roles.ts)
   Set-StateValue $img 'students' $st
   $tokens = @()
   if (Test-Path -LiteralPath $teachFile) {
