@@ -310,7 +310,12 @@ export async function startMockServer(opts: MockOptions = {}): Promise<MockServe
         }
         source = 'clip'
       }
-      const detected = text ? detectLang(text) : null
+      // язык: письмо (кириллица/латиница) решает «ru против uz/en», внутри латиницы побеждает подсказка
+      // (detectLang путает короткие узбекские формулы словами «ka el kaliy xlorid» с английским)
+      const byText = text ? detectLang(text) : null
+      const cyr = /[а-яё]/i.test(text)
+      const hintFits = byText !== null && !cyr && (lang === 'uz' || lang === 'en')
+      const detected = hintFits ? null : byText
       const outLang = detected ?? (lang === 'auto' ? 'unknown' : lang)
       const total = Date.now() - tq
       rec(200, { text, lang: outLang, durationMs: check.info.durationMs, bytes: body.length, source })
