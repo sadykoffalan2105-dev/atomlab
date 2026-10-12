@@ -336,6 +336,10 @@ if (-not $script:AtomDry) {
   Write-JsonNoBom $paths.State $state
 }
 
+# ---------------------------------------------------------------- 10b. распознавание речи (stt.ps1; сбой — строка в отчёт, установка идёт дальше)
+Step '10b. Распознавание речи (STT)'
+try { & (Join-Path $Pkg 'stt.ps1') -Root $Root -DryRun:$script:AtomDry | Out-Host; $report['STT'] = [string](Read-Json (Join-Path $Root 'stt\state.json')).report } catch { Warn ("STT пропущен: " + $_.Exception.Message); $report['STT'] = 'пропущен (ошибка — см. logs\stt-install-*.log)' }
+
 # ---------------------------------------------------------------- 11. векторы
 Step '11. Векторы поиска (bge-m3 на видеокарте)'
 Set-BrainEnv $paths $BrainPort

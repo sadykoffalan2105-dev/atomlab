@@ -1,0 +1,9 @@
+# Сайдкар распознавания речи ATOMLAB (brain/stt/sidecar) — ставит deploy/brain-pc/stt.ps1 в C:\ATOMLAB\stt\venv.
+# torch/torchaudio ставятся отдельно (индекс cu128, версии — stt-config.json). Изменение файла → update.ps1 запускает stt.ps1.
+gigaam @ git+https://github.com/salute-developers/GigaAM
+faster-whisper>=1.1.1,<2
+ctranslate2>=4.6.3,<5
+soundfile>=0.12,<1
+numpy>=1.26,<3
+huggingface_hub>=0.30
+transformers>=4.46,<6

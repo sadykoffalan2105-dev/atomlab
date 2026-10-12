@@ -6,6 +6,7 @@
  *   GET  /kb/stats      — статистика журнала (с путём папки данных) — ТОЛЬКО админ;
  *   GET  /admin/status  — очередь, лимиты, профиль — ТОЛЬКО админ;
  *   /image, /image/*, /admin/image/* — картинки (brain/image/http.ts; по умолчанию выключены, config.image).
+ *   POST /stt, GET /stt/health — распознавание речи (brain/stt/route.ts → сайдкар 127.0.0.1:8788, config.stt).
  * Запуск: npx tsx brain/server.ts (или npm run brain:start). Без Ollama работает запасным путём.
  *
  * Публичный режим (туннель Tailscale Funnel → http://127.0.0.1:8787): адрес ученика — из заголовков прокси
@@ -30,6 +31,8 @@ import { runChat, validateChatRequest, type BrainDeps } from './pipeline/chat.ts
 import { setElementWords } from './pipeline/normalize.ts'
 import { sseComment, sseHeaders, sseSend } from './sse.ts'
 import { StudentStore } from './student/events.ts'
+import { handleSttRequest, sttConfig, sttHealth } from './stt/route.ts' // распознавание речи (/stt, /stt/health)
+import { sttIpRule } from './stt/limits.ts'
 
 /** null — запроса без Origin (curl, скрипты): CORS не нужен; false — чужой сайт (403). Списки — config.server. */
 export function checkOrigin(origin: string | undefined, cfg: Pick<BrainConfig['server'], 'corsOrigins' | 'corsLocalhost'> = DEFAULT_CONFIG.server): string | null | false {
@@ -108,6 +111,8 @@ export function healthBody(brain: Brain) {
     ...(q ? { queue: { parallel: q.parallel, running: q.running, waiting: q.waiting } } : {}),
     // картинки (сверх контракта v1): сайт показывает кнопку «Нарисовать», только если enabled и ready
     image: brain.image?.health() ?? { enabled: !!brain.deps.config.image?.enabled, ready: false, engine: brain.deps.config.image?.engine ?? null, students: false, queue: { running: 0, waiting: 0, paused: false }, lastMs: null },
+    // распознавание речи (сверх контракта v1): сайт шлёт голос на /stt, только если available
+    stt: sttHealth(brain),
     uptimeMs: Date.now() - brain.startedAt,
     ...(brain.loading ? { loading: true } : {}),
   }
@@ -117,7 +122,7 @@ const MIN = 60_000
 const DAY = 24 * 60 * MIN
 
 /** Группа лимитов по пути запроса. */
-function rateRules(method: string, path: string, r: BrainConfig['server']['rate'], img?: BrainConfig['image']['rate']): { group: string; rules: RateRule[] } {
+function rateRules(method: string, path: string, r: BrainConfig['server']['rate'], img?: BrainConfig['image']['rate'], stt?: BrainConfig['stt']['rate']): { group: string; rules: RateRule[] } {
   if (method === 'POST' && path === '/chat')
     return {
       group: 'chat',
@@ -136,6 +141,8 @@ function rateRules(method: string, path: string, r: BrainConfig['server']['rate'
         { name: 'image_day', windowMs: DAY, max: img.perDay },
       ],
     }
+  // голос — своя группа: щедрый потолок на адрес (школьный NAT), лимиты по сессии — в brain/stt/limits.ts
+  if (method === 'POST' && path === '/stt' && stt) return sttIpRule(stt)
   return { group: 'other', rules: [{ name: 'other_minute', windowMs: MIN, max: r.otherPerMin }] }
 }
 
@@ -172,7 +179,7 @@ export function createServer(brain: Brain): http.Server {
     try {
       // лимит частоты — до чтения тела
       if (limited) {
-        const rr = rateRules(method, path, sc.rate, cfg.image?.rate)
+        const rr = rateRules(method, path, sc.rate, cfg.image?.rate, sttConfig(cfg).rate)
         const v = limiter.hit(rr.group, client.key, rr.rules)
         if (!v.ok) {
           req.resume()
@@ -224,6 +231,8 @@ export function createServer(brain: Brain): http.Server {
         const { record, line } = deps.journal.append(v)
         return json(res, 200, { ok: true, id: record.id, line, ...(record.kind === 'dup' ? { dup: true, ref: record.meta.ref } : {}) }, cors)
       }
+      // распознавание речи (brain/stt/route.ts): POST /stt, GET /stt/health
+      if (path === '/stt' || path.startsWith('/stt/')) return await handleSttRequest({ req, res, url, method, cors, client, limited, brain })
       // картинки (brain/image/http.ts) — до ветки /chat, саму её не меняют
       if (path === '/image' || path.startsWith('/image/') || path.startsWith('/admin/image')) {
         return await handleImageRequest({ req, res, url, method, cors, client, admin, brain })
