@@ -74,7 +74,17 @@ export interface RecognitionLike {
   /** «Нажми и говори»: true — нажали; false — отпустили, Promise — финал распознан (или таймаут). */
   hold?(on: boolean): Promise<void> | void
   /** Движок меняет путь (браузерное STT на Android без VAD) — сообщает сессии. */
-  bindSession?(hooks: { setVadAvailable(on: boolean): void }): void
+  bindSession?(hooks: SessionHooks): void
+}
+
+/** Что движок распознавания сообщает сессии при смене пути. */
+export interface SessionHooks {
+  setVadAvailable(on: boolean): void
+  /**
+   * Как слушать во время речи учителя на этом пути: серверный путь (захват getUserMedia с AEC +
+   * текстовый эхо-фильтр + ранний partial) слушает и даёт барджин даже в Chrome; null — профиль браузера.
+   */
+  setPathListenMode?(mode: ListenWhileSpeaking | null): void
 }
 
 export interface VadLike {
@@ -186,6 +196,8 @@ export class DuplexVoiceSession {
   /** Что реально ушло в озвучку (prepared-текст) — эхо-страж. */
   private readonly spokenLog = new SpokenPhraseLog()
   private listenMode: ListenWhileSpeaking = 'soft_echo_filter'
+  /** Предпочтение пути распознавания (sttEngine): server → soft_echo_filter. */
+  private pathListenMode: ListenWhileSpeaking | null = null
   private noResultTimer: unknown = null
   private noResultFired = false
   /** «Нажми и говори»: кнопка зажата — конец реплики не наступает, пока её не отпустят. */
@@ -264,7 +276,13 @@ export class DuplexVoiceSession {
           ...handlers,
         })
     this.vad = vad
-    this.recognition.bindSession?.({ setVadAvailable: (on) => this.setVadAvailable(on) })
+    this.recognition.bindSession?.({
+      setVadAvailable: (on) => this.setVadAvailable(on),
+      setPathListenMode: (mode) => {
+        this.pathListenMode = mode
+        this.applyListenMode()
+      },
+    })
     // RC6: не ждём attach() дольше VAD_ATTACH_WAIT_MS — распознавание стартует в любом случае.
     const attached = vad.attach(micStream).catch(() => false)
     let timer: unknown = null
@@ -296,8 +314,21 @@ export class DuplexVoiceSession {
     this.vadOk = on
     this.bargeIn.setVadAvailable(on)
     this.turnEnd.setVadAvailable(on)
-    this.listenMode = !on ? 'hard_pause' : (this.cfg.listenWhileSpeaking ?? currentBrowserVoiceProfile().listenWhileSpeaking)
+    this.applyListenMode()
+  }
+
+  /** Режим прослушивания во время речи учителя: без VAD — жёсткая пауза; иначе конфиг → путь STT → профиль. */
+  private applyListenMode(): void {
+    const prev = this.listenMode
+    this.listenMode = !this.vadOk
+      ? 'hard_pause'
+      : (this.cfg.listenWhileSpeaking ?? this.pathListenMode ?? currentBrowserVoiceProfile().listenWhileSpeaking)
     this.bargeIn.setEnabled(this.bargeInEnabled && this.listenMode !== 'hard_pause')
+    // Режим сменился посреди речи учителя — распознавание приводим к нему сразу.
+    if (prev !== this.listenMode && this.aiSpeaking && this.listening && !this.muted) {
+      if (this.listenMode === 'hard_pause') this.recognition.pause?.()
+      else this.recognition.resume?.(0)
+    }
   }
 
   /** Режим прослушивания во время речи учителя (после begin). */

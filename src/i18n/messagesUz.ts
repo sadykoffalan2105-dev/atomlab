@@ -594,6 +594,8 @@ export const messagesUz: Record<MessageKey, string> = {
     'Internet aloqasi yo‘q: nutqni tanish ishlamasligi mumkin, javoblar mahalliy bilimlar bazasidan.',
   'learn.teacherUi.micDenied':
     'Mikrofonga ruxsat yo‘q. Sayt sozlamalarida ruxsat bering (manzil chap tomonidagi belgi) va «Qayta urinish»ni bosing — yoki yozing.',
+  'learn.teacherUi.micMissing':
+    'Mikrofon topilmadi — uni ulang (yoki tizimda tanlang) va «Qayta urinish»ni bosing. Hozircha yozishingiz mumkin.',
   'learn.teacherUi.retry': 'Qayta urinish',
   'learn.teacherUi.micOn': 'Tinglayapman',
   'learn.teacherUi.micOff': 'Mikrofon o‘chiq',

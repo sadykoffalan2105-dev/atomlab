@@ -241,8 +241,13 @@ function LiveTutorSession({
   // и микрофона нет — браузер ещё показывает окно разрешения.
   const teacherStarted = messages.some((m) => m.role === 'teacher') || state.aiSpeaking
   const micWaiting = withVoice && state.running && !state.micActive && !teacherStarted && !state.sttError
+  // Нет устройства — отдельный понятный баннер «Микрофон не найден», а не «нет доступа».
+  const micMissing = withVoice && state.running && !state.micActive && state.sttError === 'audio-capture'
   const micDenied =
-    withVoice && state.running && (state.sttError === 'not-allowed' || (!state.micActive && teacherStarted))
+    withVoice &&
+    state.running &&
+    !micMissing &&
+    (state.sttError === 'not-allowed' || (!state.micActive && teacherStarted))
   const sttBlocked = state.sttError === 'service-not-allowed' || state.sttError === 'language-not-supported'
   const statusKey: MessageKey =
     avatarState === 'paused' && micWaiting
@@ -391,7 +396,7 @@ function LiveTutorSession({
                 </button>
               </div>
             ) : null}
-            {voiceHintKey && !micDenied && !sttBlocked && !(micLost && voiceStatus.code === 'mic_lost') ? (
+            {voiceHintKey && !micDenied && !micMissing && !sttBlocked && !(micLost && voiceStatus.code === 'mic_lost') ? (
               <p className={styles.banner} data-tone="warn" role="status">
                 <IconMic className={styles.bannerIcon} />
                 <span>{t(voiceHintKey as MessageKey)}</span>
@@ -406,6 +411,15 @@ function LiveTutorSession({
                     : t('learn.teacherUi.sttServiceBlocked')}
                 </span>
               </p>
+            ) : null}
+            {micMissing ? (
+              <div className={styles.banner} data-tone="danger" role="alert" data-testid="voice-mic-missing">
+                <IconMicOff className={styles.bannerIcon} />
+                <span>{t('learn.teacherUi.micMissing')}</span>
+                <button type="button" className={styles.bannerBtn} onClick={onRetryMic}>
+                  {t('learn.teacherUi.retry')}
+                </button>
+              </div>
             ) : null}
             {micDenied ? (
               <div className={styles.banner} data-tone="danger" role="alert">

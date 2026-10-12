@@ -57,6 +57,7 @@ const HEADED = args.headed === '1'
 const ONLY = args.only ? new Set(args.only.split(',')) : null
 const LESSON = '#/learn/g/g7/c/c1/s/s01'
 const RATE48 = 48_000
+const NL = '\n'
 
 const YOU_SEL = '[data-testid="live-transcript-you"]'
 // до слияния site-voice реплики ученика без data-testid — запасной селектор по CSS-модулю ленты
@@ -165,8 +166,12 @@ const PROBE = ({ gum, YOU_SEL, YOU_FALLBACK, TEACHER_SEL }) => {
     c.querySelectorAll('[class*="srOnly"]').forEach((x) => x.remove())
     return (c.textContent || '').replace(/\s+/g, ' ').trim()
   }
+  let wasSpeaking = false
   setInterval(() => {
     const now = Date.now()
+    const sp = Boolean(document.querySelector(`${TEACHER_SEL}[data-speaking="1"]`))
+    if (sp !== wasSpeaking) console.info(`[voice-probe] teacher speaking ${sp ? 'on' : 'off'}`)
+    wasSpeaking = sp
     for (const k of ['mic', 'stt']) {
       const el = document.querySelector(`[data-testid="voice-lamp-${k}"]`)
       if (!el) continue
@@ -195,14 +200,25 @@ const PROBE = ({ gum, YOU_SEL, YOU_FALLBACK, TEACHER_SEL }) => {
       if (el.getAttribute('data-speaking') === '1') ve.speaking.push(now)
     })
   }, 100)
+  // раз в секунду — снимок диагностики голоса (?debugVoice=1) в журнал сценария
+  setInterval(() => {
+    const d = typeof window.__atomlabVoiceDiag === 'function' ? window.__atomlabVoiceDiag() : null
+    if (!d || d.mic === 'off') return
+    const r = (x) => Math.round((x || 0) * 10000) / 10000
+    console.info(`[voice-diag] mic=${d.mic} path=${d.path} frames=${d.frames} peak=${r(d.peakRms)} floor=${r(d.vadFloor)} start=${r(d.vadStart)} busy=${d.sttBusy} err=${(d.errors || []).slice(-2).join('|')}`)
+  }, 1000)
 }
 
 /* ------------------------------------------------------------ браузер и страница */
 
 const results = []
 let mock = null
+/** Журнал консоли страниц текущего сценария (пишется в .tmp/e2e-voice/<id>.log). */
+let trace = []
 
 const SCENARIO_LIMIT_S = Number(args['scenario-limit'] ?? 150)
+// после прогрева (warmSite) страница открывается за секунды; 60 с — запас на медленный ПК
+const GOTO_TIMEOUT_MS = Number(args['goto-timeout'] ?? 60) * 1000
 const openBrowsers = new Set()
 
 async function launch(micFile, channel) {
@@ -219,6 +235,12 @@ async function openPage(browser, { gum = 'pass', clipId = null, brain = true, pe
   const page = await ctx.newPage()
   const errors = []
   page.on('pageerror', (e) => errors.push(String(e.message || e)))
+  // журнал [voice] страницы — в .tmp/e2e-voice/<сценарий>.log (разбор провалов без повторного прогона)
+  const t0 = Date.now()
+  page.on('console', (m) => {
+    const tx = m.text()
+    if (/\[voice|error|warn/i.test(tx) || m.type() === 'error') trace.push(`+${((Date.now() - t0) / 1000).toFixed(1)}s ${m.type()} ${tx.slice(0, 400)}`)
+  })
   await page.addInitScript(PROBE, { gum, YOU_SEL, YOU_FALLBACK, TEACHER_SEL })
   await page.addInitScript(() => {
     try {
@@ -238,7 +260,7 @@ async function openPage(browser, { gum = 'pass', clipId = null, brain = true, pe
     }
   }
   const sep = hash.includes('?') ? '&' : '?'
-  await page.goto(`${BASE}/?${query}${hash}${sep}${query}`, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  await page.goto(`${BASE}/?${query}${hash}${sep}${query}`, { waitUntil: 'domcontentloaded', timeout: GOTO_TIMEOUT_MS })
   return { ctx, page, errors }
 }
 
@@ -610,6 +632,35 @@ async function scenarioLive(channel) {
   }
 }
 
+/**
+ * Прогрев: холодный vite dev собирает урок (и оптимизирует зависимости — с перезагрузкой страницы) 1–3 мин.
+ * Это время сборки, а не сайта: один раз открываем урок и онлайн-диалог с большим запасом (--warm-timeout, 300 с),
+ * чтобы сценарии мерили интерфейс, а не компиляцию.
+ */
+async function warmSite() {
+  if (args['no-warm'] === '1') return
+  const t0 = Date.now()
+  const budget = Number(args['warm-timeout'] ?? 300) * 1000
+  const browser = await launch(null)
+  try {
+    const ctx = await browser.newContext({ locale: 'ru-RU' })
+    const page = await ctx.newPage()
+    await page.route('**/brain.json*', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ urls: [mock.url], localFallback: false }) }))
+    for (const hash of [LESSON, '#/voice-check']) {
+      await page.goto(`${BASE}/?stt=server${hash}`, { waitUntil: 'domcontentloaded', timeout: budget })
+      if (hash === LESSON) await startLive(page).catch(() => false)
+      else await page.locator('[data-testid="voice-check-record"]').first().waitFor({ state: 'visible', timeout: 60_000 }).catch(() => {})
+      // vite мог дооптимизировать зависимости и перезагрузить страницу — дать ему закончить
+      await page.waitForTimeout(2000)
+    }
+    console.log(`прогрев сайта: ${Math.round((Date.now() - t0) / 1000)} с`)
+  } catch (e) {
+    console.log(`прогрев сайта не удался (${String(e.message || e).split(NL)[0]}) — сценарии всё равно запускаются`)
+  } finally {
+    await browser.close().catch(() => {})
+  }
+}
+
 /* ------------------------------------------------------------ прогон */
 
 const SCENARIOS = {
@@ -634,9 +685,11 @@ async function main() {
   console.log(`заглушка мозга: ${mock.url}`)
   await ensureSite()
   console.log(`сайт: ${BASE}${vite ? ' (vite dev поднят скриптом)' : ''}; lead ${LEAD_S} с; WAV микрофона: ${MIC_DIR}`)
+  await warmSite()
   for (const [k, fn] of Object.entries(SCENARIOS)) {
     if (ONLY && !ONLY.has(k)) continue
     // сторож: зависший сценарий (браузер не закрывается, страница не отвечает) не держит весь прогон
+    trace = []
     let timer
     const watchdog = new Promise((_, j) => {
       timer = setTimeout(() => j(new Error(`сценарий завис дольше ${SCENARIO_LIMIT_S} с`)), SCENARIO_LIMIT_S * 1000)
@@ -649,6 +702,11 @@ async function main() {
       openBrowsers.clear()
     } finally {
       clearTimeout(timer)
+      try {
+        writeFileSync(join(OUT, `${k}.log`), trace.join(NL) + NL)
+      } catch {
+        /* без журнала */
+      }
     }
   }
   if (args.live) {

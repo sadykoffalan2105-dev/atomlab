@@ -593,6 +593,8 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.teacherUi.offline': 'No internet connection: speech recognition may not work; answers come from the local knowledge base.',
   'learn.teacherUi.micDenied':
     'No microphone access. Allow it in the site settings (icon left of the address) and press “Retry” — or type instead.',
+  'learn.teacherUi.micMissing':
+    'No microphone found — connect one (or select it in the system) and press “Retry”. Meanwhile you can type.',
   'learn.teacherUi.retry': 'Retry',
   'learn.teacherUi.micOn': 'Listening',
   'learn.teacherUi.micOff': 'Mic off',
