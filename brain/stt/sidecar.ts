@@ -28,7 +28,20 @@ export class SttSidecar {
     this.url = url.replace(/\/+$/, '')
   }
 
+  /**
+   * Сайдкар только что не ответил — несколько секунд отвечаем 503 сразу, не дожидаясь соединения
+   * (на Windows отказ соединения с закрытым портом длится до 2 с из-за повторов SYN).
+   */
+  private downUntil = 0
+
   async transcribe(wav: Buffer, o: { lang: string; partial: boolean; engine?: 'auto' | 'gigaam' | 'whisper'; timeoutMs: number; signal?: AbortSignal }): Promise<SidecarResult> {
+    if (Date.now() < this.downUntil) return { ok: false, code: 'unavailable' }
+    const r = await this.post(wav, o)
+    if (!r.ok && r.code === 'unavailable') this.downUntil = Date.now() + DOWN_HOLD_MS
+    return r
+  }
+
+  private async post(wav: Buffer, o: { lang: string; partial: boolean; engine?: 'auto' | 'gigaam' | 'whisper'; timeoutMs: number; signal?: AbortSignal }): Promise<SidecarResult> {
     const ac = new AbortController()
     const timer = setTimeout(() => ac.abort(), o.timeoutMs)
     const onAbort = () => ac.abort()
