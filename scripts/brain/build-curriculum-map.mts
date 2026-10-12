@@ -100,7 +100,8 @@ function addDict(ru: string, uz?: string, en?: string): void {
   const prev = dict.get(k) ?? {}
   dict.set(k, { uz: prev.uz ?? (uz && !CYR.test(uz) ? uz : undefined), en: prev.en ?? (en && !CYR.test(en) ? en : undefined) })
 }
-for (const p of UZ_GLOSSARY) addDict(p.ru, p.uz, p.en)
+// forms — словоформы термина из определений учебника («винильным радикалом»), чьи стемы ≠ стемам именительного (12.10)
+for (const p of UZ_GLOSSARY) for (const ru of [p.ru, ...(p.forms ?? [])]) addDict(ru, p.uz, p.en)
 for (const c of CONCEPTS) for (const ru of c.names.ru) addDict(ru, c.names.uz[0], c.names.en[0])
 for (const e of glossary) addDict(e.ru, e.uz[0], e.en[0])
 
