@@ -14,6 +14,7 @@ import { IconMic } from '../LearnAiIcons'
 import { BrainStatusChip } from './TeacherChips'
 import { TeacherAvatar } from './TeacherAvatar'
 import { IconKeyboardSmall, IconShield, IconVideo, IconWifiOff } from './TeacherIcons'
+import { onRadioGroupKeyDown } from './radioGroupKeys'
 import styles from './LiveTutor.module.css'
 
 export function LiveTutorLobby({
@@ -65,13 +66,19 @@ export function LiveTutorLobby({
           </div>
         </div>
 
-        <div className={styles.lobbyModes} role="radiogroup" aria-label={t('learn.teacherUi.modeAria')}>
+        <div
+          className={styles.lobbyModes}
+          role="radiogroup"
+          aria-label={t('learn.teacherUi.modeAria')}
+          onKeyDown={onRadioGroupKeyDown}
+        >
           {(['training', 'exam'] as const).map((m) => (
             <button
               key={m}
               type="button"
               role="radio"
               aria-checked={mode === m}
+              tabIndex={mode === m ? 0 : -1}
               className={styles.modeCard}
               data-on={mode === m ? '1' : undefined}
               data-mode={m}
