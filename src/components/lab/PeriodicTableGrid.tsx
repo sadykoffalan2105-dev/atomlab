@@ -35,7 +35,7 @@ function cellInner(el: (typeof ELEMENTS)[number], locale: AppLocale) {
   return (
     <>
       <div className={styles.cellMassLine}>
-        <span className={styles.m}>{massDisplay(el.atomicMass)}</span>
+        <span className={styles.m}>{massDisplay(el.atomicMass, el.symbol)}</span>
       </div>
       <div className={styles.cellSymbolRow}>
         <span className={styles.z}>{el.z}</span>
@@ -133,7 +133,7 @@ export const PeriodicTableGrid = memo(function PeriodicTableGrid({
           const block = mendeleevBlock(el)
           const bc = blockClass(block)
           const dn = elementDisplayName(el, locale)
-          const fullTip = `${dn} · Z=${el.z} · A≈${massDisplay(el.atomicMass)} u`
+          const fullTip = `${dn} · Z=${el.z} · A≈${massDisplay(el.atomicMass, el.symbol)} u`
           const title = fullTip.length > 200 ? `${fullTip.slice(0, 197)}…` : fullTip
           const gridRow = visualGridRowFromDataY(el.gridY) + PERIODIC_GRID_HEADER_ROWS
 

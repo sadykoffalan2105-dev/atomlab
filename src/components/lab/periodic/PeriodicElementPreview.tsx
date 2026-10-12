@@ -67,7 +67,7 @@ export function PeriodicElementPreview({ z, featured = false, onOpen, variant = 
         <dl className={styles.stripStats}>
           <div className={styles.stripStat}>
             <dt>{t('periodic.previewMass')}</dt>
-            <dd>{massDisplay(el.atomicMass)}</dd>
+            <dd>{massDisplay(el.atomicMass, el.symbol)}</dd>
           </div>
           {en != null ? (
             <div className={styles.stripStat}>
@@ -109,7 +109,7 @@ export function PeriodicElementPreview({ z, featured = false, onOpen, variant = 
         <div className={styles.previewTile} aria-hidden>
           <span className={styles.previewTileZ}>{el.z}</span>
           <span className={styles.previewTileSym}>{el.symbol}</span>
-          <span className={styles.previewTileMass}>{massDisplay(el.atomicMass)}</span>
+          <span className={styles.previewTileMass}>{massDisplay(el.atomicMass, el.symbol)}</span>
         </div>
         <div className={styles.previewHead}>
           {featured ? <span className={styles.previewEyebrow}>{t('periodic.previewFeatured')}</span> : null}
@@ -137,7 +137,7 @@ export function PeriodicElementPreview({ z, featured = false, onOpen, variant = 
       <dl className={styles.previewStats}>
         <div className={styles.previewStat}>
           <dt>{t('periodic.previewMass')}</dt>
-          <dd>{massDisplay(el.atomicMass)}</dd>
+          <dd>{massDisplay(el.atomicMass, el.symbol)}</dd>
         </div>
         {en != null ? (
           <div className={styles.previewStat}>
