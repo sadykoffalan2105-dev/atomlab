@@ -64,7 +64,10 @@ const DAY = 24 * HOUR
  */
 export class StudentQuota {
   private hits = new Map<string, number[]>()
-  constructor(private readonly maxKeys = 5000) {}
+  private readonly maxKeys: number
+  constructor(maxKeys = 5000) {
+    this.maxKeys = maxKeys
+  }
 
   /** Проверить и сразу засчитать попытку; отказ — правило и через сколько секунд можно снова. */
   take(

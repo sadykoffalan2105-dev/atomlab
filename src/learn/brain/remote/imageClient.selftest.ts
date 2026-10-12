@@ -486,6 +486,7 @@ console.log('[formula] parseFormula / renderOverlaySvg')
   // темы класса ±1 и ближайшая тема к «нарисуй …»
   const P = (id: string, grades: string[], title: string): ImagePreset => ({ id, grades, title, topic: '', style: 'illustration', size: 'square' })
   const list: ImagePreset[] = [
+    P('g7-oxygen-apparatus', ['g7', 'g8'], 'Получение кислорода из KMnO₄'),
     P('g7-hydrogen-kipp', ['g7', 'g8'], 'Аппарат Киппа'),
     P('g7-water-molecule', ['g7', 'g8'], 'Модель молекулы воды'),
     P('g8-zinc-acid', ['g8'], 'Цинк в соляной кислоте'),
@@ -494,9 +495,10 @@ console.log('[formula] parseFormula / renderOverlaySvg')
     P('g11-protein-helix', ['g11'], 'Спираль белка'),
   ]
   const g7 = presetsForGrade(list, 'g7')
-  check('presets: grade 7 ±1 → 7–8 only', g7.map((p) => p.id).join(',') === 'g7-hydrogen-kipp,g7-water-molecule,g8-zinc-acid', g7.map((p) => p.id).join(','))
+  check('presets: grade 7 ±1 → 7–8 only', g7.map((p) => p.id).join(',') === 'g7-oxygen-apparatus,g7-hydrogen-kipp,g7-water-molecule,g8-zinc-acid', g7.map((p) => p.id).join(','))
   check('presets: grade 10 ±1 → 9–11', presetsForGrade(list, '10').length === 3, String(presetsForGrade(list, '10').length))
   check('presets: grade unknown → all', presetsForGrade(list, '').length === list.length)
+  check('nearest: «получение кислорода» → oxygen', nearestPreset('получение кислорода', g7)?.id === 'g7-oxygen-apparatus')
   check('nearest: «аппарат Киппа» → kipp', nearestPreset('аппарат Киппа с цинком', g7)?.id === 'g7-hydrogen-kipp')
   check('nearest: «водород» (ru, not in title) → kipp by id', nearestPreset('получение водорода', g7)?.id === 'g7-hydrogen-kipp')
   check('nearest: «молекулу воды» → water model', nearestPreset('молекулу воды', g7)?.id === 'g7-water-molecule')

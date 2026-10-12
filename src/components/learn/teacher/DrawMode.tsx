@@ -679,6 +679,13 @@ function TopicPicker({ title, hintText, loading, empty, items, total, selectedId
   const labelId = useId()
   const [open, setOpen] = useState(!collapsible)
   const selectedVisible = items.some((p) => p.id === selectedId)
+  const chipsRef = useRef<HTMLDivElement>(null)
+  // тема выбрана по фразе «нарисуй …» — прокрутить список к ней (список тем прокручивается сам по себе)
+  useEffect(() => {
+    if (!selectedId) return
+    const el = chipsRef.current?.querySelector<HTMLElement>(`[data-preset="${CSS.escape(selectedId)}"]`)
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [selectedId])
   const body = (
     <>
       {hintText ? <p className={s.small}>{hintText}</p> : null}
@@ -703,7 +710,7 @@ function TopicPicker({ title, hintText, loading, empty, items, total, selectedId
       ) : !items.length ? (
         <p className={s.note}>{t('learn.drawMode.noMatch')}</p>
       ) : (
-        <div className={s.chips} role="radiogroup" aria-labelledby={labelId} onKeyDown={onRadioGroupKeyDown} data-draw-topics="">
+        <div ref={chipsRef} className={s.chips} role="radiogroup" aria-labelledby={labelId} onKeyDown={onRadioGroupKeyDown} data-draw-topics="">
           {items.map((p, i) => {
             const on = p.id === selectedId
             const near = gradeN > 0 && p.grades.some((g) => Math.abs(gradeNum(g) - gradeN) <= 1)

@@ -154,23 +154,27 @@ const TERMS: ReadonlyArray<[RegExp, string]> = [
   [/модел|model/u, 'model'],
 ]
 
-function subjectWords(subject: string): string[] {
+/** Общие слова просьбы — не тема («получение водорода» ищет водород, а не «Получение кислорода»). */
+const GENERIC = new Set(['получ', 'опыт', 'карти', 'рисун', 'схем', 'проце', 'как', 'olish', 'tajri', 'rasm', 'jaray', 'the', 'and', 'with', 'про'])
+
+function subjectWords(subject: string): { words: string[]; terms: string[] } {
   const low = subject.toLowerCase()
-  const words = stems(low)
-  for (const [re, en] of TERMS) if (re.test(low)) words.push(en)
-  return [...new Set(words)]
+  const words = stems(low).filter((w) => !GENERIC.has(w))
+  const terms: string[] = []
+  for (const [re, en] of TERMS) if (re.test(low)) terms.push(en)
+  return { words: [...new Set(words)], terms: [...new Set(terms)] }
 }
 
 function presetHaystack(p: ImagePreset): string {
   return [p.title, p.titles?.ru, p.titles?.uz, p.titles?.en, p.topic, p.id.replace(/-/g, ' ')].filter(Boolean).join(' ').toLowerCase()
 }
 
-/** Сколько слов темы нашлось в заголовке / id пресета. */
+/** Насколько тема похожа: слово просьбы в заголовке — 1, химический термин (id темы) — 2. */
 export function presetScore(p: ImagePreset, subject: string): number {
-  const words = subjectWords(subject)
-  if (!words.length) return 0
+  const { words, terms } = subjectWords(subject)
+  if (!words.length && !terms.length) return 0
   const hay = presetHaystack(p)
-  return words.reduce((n, w) => (hay.includes(w) ? n + 1 : n), 0)
+  return words.reduce((n, w) => (hay.includes(w) ? n + 1 : n), 0) + terms.reduce((n, w) => (hay.includes(w) ? n + 2 : n), 0)
 }
 
 /** Ближайшая тема к описанию (ни одного совпадения — null). При равенстве — первая по списку. */
@@ -189,7 +193,8 @@ export function nearestPreset(subject: string, presets: readonly ImagePreset[]):
 
 /** Фильтр списка тем по строке поиска (все основы должны найтись). */
 export function filterPresets(presets: readonly ImagePreset[], query: string): ImagePreset[] {
-  const q = subjectWords(query)
+  const { words, terms } = subjectWords(query)
+  const q = [...words, ...terms]
   if (!q.length) return [...presets]
   return presets.filter((p) => {
     const hay = presetHaystack(p)
