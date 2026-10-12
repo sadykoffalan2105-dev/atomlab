@@ -22,7 +22,16 @@ export const IMAGE_CHECK_SYSTEM =
   '(politicians, celebrities, religious figures); horror meant to frighten; insults, obscene gestures; instructions for explosives, poisons or drugs. ' +
   'Historical scientists are allowed only as a stylised, non-photorealistic illustration (historical_figure=true). ' +
   'Otherwise ok=true and write subject_en: a concise English description (≤ 40 words) of the picture for an educational illustration, ' +
-  'no text or labels inside the picture. Answer ONLY JSON {"ok":bool,"reason":"short, in Russian","subject_en":"…","historical_figure":bool}'
+  'no text or labels inside the picture. school=true if the subject fits a school science lesson (chemistry, physics, biology, nature, ' +
+  'laboratory equipment, experiments, materials, safety, scientists, everyday science), school=false for unrelated subjects (games, memes, ' +
+  'cars, fashion, anime, celebrities, random scenes). Answer ONLY JSON {"ok":bool,"reason":"short, in Russian","subject_en":"…","historical_figure":bool,"school":bool}'
+
+/** Ученик без ключа попросил не учебную картинку. */
+const OFF_TOPIC: Record<ImageLang, string> = {
+  ru: 'Это не учебная тема. Нарисую что-нибудь по химии или другой науке: прибор, опыт, вещество, схему — опишите, что нужно.',
+  uz: 'Bu oʻquv mavzusi emas. Kimyo yoki boshqa fan boʻyicha chizaman: asbob, tajriba, modda, sxema — nima kerakligini yozing.',
+  en: 'That is not a school topic. I can draw something from chemistry or another science: apparatus, an experiment, a substance, a diagram — describe it.',
+}
 
 /** Шаблоны стилей ({subject} — тема); финальная подсказка ≤ 600 символов. */
 export const STYLE_TEMPLATES: Record<ImageStyle, string> = {
@@ -59,14 +68,15 @@ export function isLatinOnly(text: string): boolean {
 }
 
 /** Первый {...} JSON в ответе модели. */
-export function parseCheck(raw: string | null): { ok: boolean; reason: string; subject_en: string; historical_figure: boolean } | null {
+export function parseCheck(raw: string | null): { ok: boolean; reason: string; subject_en: string; historical_figure: boolean; school: boolean } | null {
   if (!raw) return null
   const m = raw.match(/\{[\s\S]*\}/)
   if (!m) return null
   try {
     const j = JSON.parse(m[0]) as Record<string, unknown>
     if (typeof j.ok !== 'boolean') return null
-    return { ok: j.ok, reason: typeof j.reason === 'string' ? j.reason : '', subject_en: typeof j.subject_en === 'string' ? j.subject_en.trim() : '', historical_figure: j.historical_figure === true }
+    // school отсутствует (старая подсказка/модель) — считаем учебной: отказ только при явном false
+    return { ok: j.ok, reason: typeof j.reason === 'string' ? j.reason : '', subject_en: typeof j.subject_en === 'string' ? j.subject_en.trim() : '', historical_figure: j.historical_figure === true, school: j.school !== false }
   } catch {
     return null
   }
@@ -83,6 +93,8 @@ export async function checkFreeText(o: {
   llm: LlmClient | null
   queue: LlmQueue
   llmCheck: boolean
+  /** ученик без ключа: без проверки Gemma не рисуем (нет модели → честный not_ready), школьная тема обязательна */
+  strict?: boolean
   signal?: AbortSignal
 }): Promise<FreeTextResult> {
   const lang = o.lang
@@ -94,7 +106,7 @@ export async function checkFreeText(o: {
   const fallback = (): FreeTextResult =>
     isLatinOnly(text) ? { ok: true, final: stylePrompt(text, o.style), translated: false, subject: text } : { ok: false, code: 'not_ready', message: ASK_ENGLISH[lang] }
   const st = o.llm?.status()
-  if (!o.llmCheck || !o.llm || !st?.available) return fallback()
+  if (!o.llmCheck || !o.llm || !st?.available) return o.strict ? { ok: false, code: 'not_ready', message: IMAGE_MESSAGES.not_ready[lang] } : fallback()
   const ticket = new QueueTicket(o.llm, o.queue, { signal: o.signal })
   let raw: string | null
   try {
@@ -116,7 +128,9 @@ export async function checkFreeText(o: {
   }
   const j = parseCheck(raw)
   if (j && !j.ok) return { ok: false, code: 'unsafe_prompt', message: lang === 'ru' && j.reason ? `${IMAGE_MESSAGES.unsafe_prompt.ru} (${j.reason.slice(0, 160)})` : IMAGE_MESSAGES.unsafe_prompt[lang], category: 'llm' }
-  if (!j || !j.subject_en || j.subject_en.length > 400) return fallback()
+  if (!j || !j.subject_en || j.subject_en.length > 400) return o.strict ? { ok: false, code: 'not_ready', message: IMAGE_MESSAGES.not_ready[lang] } : fallback()
+  // ученик: только учебная тема (химия, физика, природа, приборы, схемы) — иначе отказ с причиной
+  if (o.strict && !j.school) return { ok: false, code: 'unsafe_prompt', message: OFF_TOPIC[lang], category: 'llm' }
   // перевод Gemma тоже проходит фильтр (вдруг модель дописала запрещённое)
   const f2 = imageFilter(j.subject_en)
   if (!f2.ok) return { ok: false, code: 'unsafe_prompt', message: IMAGE_MESSAGES.unsafe_prompt[lang], category: f2.category }

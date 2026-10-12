@@ -57,6 +57,14 @@ $teachFile = Join-Path $paths.Secrets 'teacher-tokens.txt'
 $teachNew = $false
 $imgDesc = 'картинки: нет блока image'
 function Test-JsonObject($o) { return ($null -ne $o -and $o.GetType().FullName -eq 'System.Management.Automation.PSCustomObject') }
+# Инструменты учителя без ключа (server-config.json → teacher.public)
+if ($cfg.teacher) {
+  $tc = $conf.teacher
+  if (-not (Test-JsonObject $tc)) { $tc = New-Object PSObject }
+  Set-StateValue $tc 'public' ([bool]($cfg.teacher.public -eq $true))
+  Set-StateValue $conf 'teacher' $tc
+}
+
 if ($cfg.image) {
   $ic = $cfg.image
   $img = $conf.image
@@ -70,6 +78,7 @@ if ($cfg.image) {
   if (-not (Test-JsonObject $st)) { $st = New-Object PSObject }
   Set-StateValue $st 'enabled' ([bool]($ic.students -eq $true))   # ученики — только по решению владельца (ЗРУ-444)
   Set-StateValue $st 'presetsOnly' $true   # ученикам — только готовые темы (мозг проверяет и сам, roles.ts)
+  Set-StateValue $st 'freeText' ([bool]($ic.studentsFreeText -eq $true))   # свой текст всем без ключа: проверка Gemma + фильтры + строгий порог (решение владельца 12.10)
   Set-StateValue $img 'students' $st
   $tokens = @()
   if (Test-Path -LiteralPath $teachFile) {

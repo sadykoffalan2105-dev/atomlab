@@ -13,7 +13,10 @@
 from __future__ import annotations
 
 import os
+import re
 import threading
+
+import numpy as np
 import time
 from typing import Any, Optional
 
@@ -107,6 +110,22 @@ class StubEngine(Engine):
         return device
 
 
+def _rms(audio: Any) -> float:
+    try:
+        a = np.asarray(audio, dtype=np.float32)
+        return float(np.sqrt(np.mean(a * a))) if a.size else 0.0
+    except Exception:
+        return 0.0
+
+
+_FOREIGN = re.compile("[\u0600-\u06FF\u0590-\u05FF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF\u0E00-\u0E7F]")
+
+
+def _foreign_script(text: str) -> bool:
+    """Арабская/персидская, иврит, CJK, тайская письменность — не ru/uz/en."""
+    return bool(_FOREIGN.search(text))
+
+
 class GigaAMEngine(Engine):
     """GigaAM-Multilingual CTC: пакет gigaam (load_model) или transformers (trust_remote_code)."""
 
@@ -189,7 +208,42 @@ class GigaAMEngine(Engine):
             text = text[0] if text else ""
         if not isinstance(text, str):
             text = getattr(text, "text", str(text))
+        # низкоуровневый путь дал пусто, а речь есть → официальный model.transcribe(путь) через временный WAV
+        # (файл только на время вызова, удаляется в finally; журнал — без текста). На ПК друга GigaAM
+        # возвращал «» на всех ru/uz репликах, и мозг уходил на whisper.
+        if not text.strip() and hasattr(m, "transcribe") and _rms(audio) > 0.005:
+            text = self._transcribe_via_file(audio, lang) or text
         return text, None
+
+    def _transcribe_via_file(self, audio: Any, lang: str) -> str:
+        # WAV только в памяти (BytesIO): torchaudio.load внутри gigaam читает файлоподобный объект, на диск ничего не пишется
+        import io as _io
+        import wave as _wave
+
+        try:
+            buf = _io.BytesIO()
+            pcm = (np.clip(np.asarray(audio, dtype=np.float32), -1.0, 1.0) * 32767.0).astype("<i2")
+            with _wave.open(buf, "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(16000)
+                w.writeframes(pcm.tobytes())
+            buf.seek(0)
+            torch = _torch()
+            with torch.inference_mode():
+                try:
+                    out = self.model.transcribe(buf, lang=lang) if lang in ("ru", "uz", "en") else self.model.transcribe(buf)
+                except TypeError:
+                    buf.seek(0)
+                    out = self.model.transcribe(buf)
+            if isinstance(out, (list, tuple)):
+                out = out[0] if out else ""
+            if not isinstance(out, str):
+                out = getattr(out, "text", str(out))
+            return out.strip()
+        except Exception as ex:  # официальный путь тоже не смог — пусть ответит whisper
+            log(f"gigaam transcribe(mem): {type(ex).__name__}: {str(ex)[:160]}")
+            return ""
 
     def to_device(self, device: str) -> str:
         with self.lock:
@@ -234,13 +288,28 @@ class WhisperEngine(Engine):
                 condition_on_previous_text=False,
                 initial_prompt=CHEM_PROMPT,
             )
-            try:
-                segments, info = self.model.transcribe(audio, hotwords=CHEM_HOTWORDS, **kw)
-            except TypeError:  # старый faster-whisper без hotwords
-                segments, info = self.model.transcribe(audio, **kw)
+            segments, info = self._run(audio, kw)
             text = " ".join(s.text.strip() for s in segments).strip()
+            # язык не задан, а whisper угадал не ru/uz/en (узбекскую речь он часто принимает за арабскую/персидскую):
+            # повтор с принудительным uz и ru, берём первый вариант без чужой письменности
+            det = getattr(info, "language", None)
+            if kw["language"] is None and det not in ("ru", "uz", "en"):
+                best = (text, info)
+                for forced in ("uz", "ru"):
+                    seg2, info2 = self._run(audio, {**kw, "language": forced})
+                    t2 = " ".join(s.text.strip() for s in seg2).strip()
+                    if t2 and not _foreign_script(t2):
+                        best = (t2, info2)
+                        break
+                text, info = best
         conf = getattr(info, "language_probability", None)
         return text, (float(conf) if conf is not None else None)
+
+    def _run(self, audio: Any, kw: dict):
+        try:
+            return self.model.transcribe(audio, hotwords=CHEM_HOTWORDS, **kw)
+        except TypeError:  # старый faster-whisper без hotwords
+            return self.model.transcribe(audio, **kw)
 
     def detect_language(self, audio: Any) -> Optional[str]:
         with self.lock:

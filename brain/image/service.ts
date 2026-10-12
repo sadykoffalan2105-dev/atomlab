@@ -173,6 +173,8 @@ export class ImageService {
       ready: !!ic.enabled && this.ready,
       engine: ic.engine,
       students: !!ic.enabled && !!ic.students.enabled,
+      // свой текст без ключа (students.freeText) — сайт показывает поле «Опишите, что нарисовать» всем
+      studentFreeText: !!ic.enabled && !!ic.students.enabled && !!ic.students.freeText,
       queue: { running: this.windowRunning ? Math.max(1, this.windowJobs) : 0, waiting: this.pending.length, paused: this.deps.queue.paused },
       lastMs: this.lastMs,
     }
@@ -372,7 +374,7 @@ export class ImageService {
       if (preset && !ctx.permit.freeText) {
         final = presetPrompt(preset, req.style)
       } else {
-        const r = await checkFreeText({ text: req.prompt ?? '', lang, style, llm: this.deps.llm, queue: this.deps.queue, llmCheck: ic.llmCheck, signal: ctx.signal })
+        const r = await checkFreeText({ text: req.prompt ?? '', lang, style, llm: this.deps.llm, queue: this.deps.queue, llmCheck: ic.llmCheck || role === 'student', strict: role === 'student', signal: ctx.signal })
         if (!r.ok) {
           if (r.code === 'unsafe_prompt') this.arbiter.counters.unsafePrompt++
           return fail(r.code, { message: r.message, reason: r.category ? `filter:${r.category}` : r.code })

@@ -221,7 +221,8 @@ export type ImageConfig = {
    * нельзя никогда — presetsOnly оставлен для совместимости, roles.ts его не ослабляет); свой порог классификатора;
    * perHour/perDay — свои лимиты картинок на ученика (адрес + сессия), строже общих rate.perMin/perDay; 0 — без своего лимита
    */
-  students: { enabled: boolean; presetsOnly: boolean; nsfwThreshold: number; gradeWindow: number; perHour?: number; perDay?: number }
+  /** freeText — ученикам (и всем без ключа) можно свой текст: обязательна проверка Gemma (llmCheck) и строгий порог классификатора */
+  students: { enabled: boolean; presetsOnly: boolean; freeText?: boolean; nsfwThreshold: number; gradeWindow: number; perHour?: number; perDay?: number }
   /** ключи учителя (поле teacherKey в теле запроса), каждый ≥ 16 символов */
   teacherTokens: string[]
   freeText: { owner: boolean; teacher: boolean }
@@ -345,7 +346,7 @@ export const DEFAULT_CONFIG: BrainConfig = {
     comfyOutputDir: '',
     steps: 0,
     sizes: { square: [1024, 1024], wide: [1216, 832], tall: [832, 1216] },
-    students: { enabled: false, presetsOnly: true, nsfwThreshold: 0.3, gradeWindow: 1, perHour: 5, perDay: 12 },
+    students: { enabled: false, presetsOnly: true, freeText: false, nsfwThreshold: 0.3, gradeWindow: 1, perHour: 5, perDay: 12 },
     teacherTokens: [],
     freeText: { owner: true, teacher: true },
     llmCheck: true,

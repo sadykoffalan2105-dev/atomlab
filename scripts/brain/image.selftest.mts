@@ -322,8 +322,13 @@ ok(st4.status === 400 && (st4.json?.error as { code?: string })?.code === 'bad_r
 ic.students.presetsOnly = false
 const st5 = await img({ prompt: 'колба с водой', presetId: 'g7-spirit-lamp', context: { gradeId: 'g7' } }, fwd('198.51.100.21'), false)
 ok(st5.status === 400 && (st5.json?.error as { code?: string })?.code === 'bad_request', 'ученик с текстом при presetsOnly=false → всё равно 400 (только темы)')
+// решение владельца 12.10 (вечер): students.freeText — свой текст можно без ключа (проверка Gemma, строгий порог)
+ic.students.freeText = true
 const st5b = await img({ prompt: 'колба с водой', context: { gradeId: 'g7' } }, fwd('198.51.100.22'), false)
-ok(st5b.status === 400, 'ученик только с текстом без темы → 400')
+ok(st5b.status !== 400 && st5b.status !== 403, `ученик со своим текстом при students.freeText → не 400/403 (${st5b.status})`)
+ic.students.freeText = false
+const st5c = await img({ prompt: 'колба с водой', context: { gradeId: 'g7' } }, fwd('198.51.100.22'), false)
+ok(st5c.status === 400, 'ученик только с текстом без темы → 400')
 ic.students.presetsOnly = true
 // свои лимиты ученика в сутки: вторая картинка за сутки при perDay=1 → 429 image_student_day (учитель не ограничен этим лимитом)
 const quotaWas = { perHour: ic.students.perHour, perDay: ic.students.perDay }

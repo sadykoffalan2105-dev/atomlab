@@ -10,6 +10,8 @@
  */
 export type TeacherConfig = {
   enabled: boolean
+  /** без ключа: план/тест/проверка доступны всем (лимиты — на сессию ученика X-Brain-Session и адрес); решение владельца 12.10 */
+  public: boolean
   tokens: string[]
   useImageTokens: boolean
   rate: { perMin: number; perDay: number; gradePerMin: number; gradePerDay: number }
@@ -20,6 +22,7 @@ export type TeacherConfig = {
 
 export const DEFAULT_TEACHER_CONFIG: TeacherConfig = {
   enabled: true,
+  public: false,
   tokens: [],
   useImageTokens: true,
   rate: { perMin: 20, perDay: 400, gradePerMin: 4, gradePerDay: 120 },

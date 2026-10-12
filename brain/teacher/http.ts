@@ -45,11 +45,13 @@ const UNIT_RE = /^g(7|8|9|10|11):[0-9a-z.]{1,8}$/
 const isLang = (v: unknown): v is Lang => v === 'ru' || v === 'uz' || v === 'en'
 
 /** Ключ учителя: config.teacher.tokens (+ image.teacherTokens, если useImageTokens). */
-export function teacherRole(admin: boolean, key: unknown, cfg: BrainConfig): 'owner' | 'teacher' | null {
+export function teacherRole(admin: boolean, key: unknown, cfg: BrainConfig): 'owner' | 'teacher' | 'public' | null {
   if (admin) return 'owner'
   const tc = teacherConfig(cfg)
   const tokens = [...tc.tokens, ...(tc.useImageTokens ? (cfg.image?.teacherTokens ?? []) : [])]
-  return isTeacherKey(key, tokens) ? 'teacher' : null
+  if (isTeacherKey(key, tokens)) return 'teacher'
+  // без ключа (teacher.public): те же инструменты, лимиты как у учителя, но на сессию ученика + адрес
+  return tc.public ? 'public' : null
 }
 
 function rules(tc: TeacherConfig, grade: boolean): RateRule[] {
@@ -91,9 +93,10 @@ export async function handleTeacherRequest(ctx: TeacherHttpContext): Promise<voi
   if (!body || typeof body !== 'object' || Array.isArray(body)) return jsonError(res, 400, 'bad_request', 'нужен JSON-объект', cors)
   const role = teacherRole(ctx.admin, body.teacherKey, cfg)
   if (!role) return jsonError(res, 403, 'forbidden', 'нужен ключ учителя (teacherKey)', cors)
-  // лимит — на ключ (хеш), не на адрес: учителя одной школы за одним NAT не мешают друг другу; владелец без лимита
-  if (role === 'teacher') {
-    const key = crypto.createHash('sha256').update(String(body.teacherKey).trim()).digest('hex').slice(0, 16)
+  // лимит — на ключ (хеш), не на адрес: учителя одной школы за одним NAT не мешают друг другу; владелец без лимита;
+  // без ключа — на сессию ученика (ctx.client.key уже учитывает X-Brain-Session + адрес)
+  if (role === 'teacher' || role === 'public') {
+    const key = role === 'teacher' ? crypto.createHash('sha256').update(String(body.teacherKey).trim()).digest('hex').slice(0, 16) : `pub:${ctx.client.key}`
     const v = limiter.hitAll([{ group: kind === 'grade' ? 'teacher_grade' : 'teacher', key, rules: rules(tc, kind === 'grade') }])
     if (!v.ok) return json(res, 429, { ok: false, error: 'rate', code: 'rate', rule: v.rule, retryAfterSec: v.retryAfterSec, message: 'Слишком много запросов подряд — подождите немного.' }, { ...cors, 'Retry-After': String(v.retryAfterSec) })
   }

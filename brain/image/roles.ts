@@ -39,8 +39,10 @@ export function permit(role: ImageRole, req: ImageRequest, ic: ImageConfig): Per
   if (req.presetId && !preset) return { ok: false, code: 'bad_request', detail: 'unknown_preset' }
   if (role === 'student') {
     if (!ic.students.enabled) return { ok: false, code: 'forbidden', detail: 'students_disabled' }
-    // решение владельца: ученик рисует ТОЛЬКО готовые темы — свой текст отклоняется всегда (даже при presetsOnly=false)
-    if (req.prompt) return { ok: false, code: 'bad_request', detail: 'presets_only' }
+    // решение владельца (12.10 вечер): свой текст можно всем, если students.freeText — с обязательной проверкой
+    // Gemma (service.ts: strictCheck), фильтром ЗРУ-444 и строгим порогом классификатора; иначе — только готовые темы
+    if (req.prompt && !ic.students.freeText) return { ok: false, code: 'bad_request', detail: 'presets_only' }
+    if (req.prompt && !preset) return { ok: true, nsfwThreshold: ic.students.nsfwThreshold, freeText: true }
     if (!preset) return { ok: false, code: 'bad_request', detail: 'preset_required' }
     if (!presetFitsGrade(preset, req.context?.gradeId, ic.students.gradeWindow)) return { ok: false, code: 'bad_request', detail: 'preset_grade' }
     return { ok: true, preset, nsfwThreshold: ic.students.nsfwThreshold, freeText: false }
