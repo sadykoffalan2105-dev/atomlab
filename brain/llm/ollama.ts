@@ -62,6 +62,8 @@ export interface LlmClient {
   chatStream(opts: ChatStreamOptions): Promise<ChatStreamResult>
   complete(opts: { model: string; messages: LlmMessage[]; temperature?: number; numPredict?: number; timeoutMs: number; signal?: AbortSignal }): Promise<string | null>
   embed(texts: string[], timeoutMs: number, signal?: AbortSignal): Promise<number[][] | null>
+  /** для /health → perf; у подменных клиентов может не быть */
+  thinkingFor?(model: string): boolean | null
 }
 
 /** Подобрать модель из списка установленных: точное имя, «имя:latest» или семейство без тега. */
@@ -180,6 +182,11 @@ export class OllamaClient implements LlmClient {
     } finally {
       clearTimeout(t)
     }
+  }
+
+  /** Для /health → perf: шлём ли модели think:false (null — ещё не известно). */
+  thinkingFor(model: string): boolean | null {
+    return this.thinking.has(model) ? this.thinking.get(model)! : null
   }
 
   /** Фото задачи: перед ответом убедиться, что известно, умеет ли чат-модель картинки (≤ timeoutMs). */

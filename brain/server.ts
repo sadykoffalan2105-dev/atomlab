@@ -20,6 +20,7 @@
 import http from 'node:http'
 import nodePath from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { perfSummary } from './perf.ts'
 import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, DIRS, loadConfig, PORT, SERVICE, VERSION, type BrainConfig, type RatePerIp } from './config.ts'
 import { clientInfo, type ClientInfo } from './http/clientIp.ts'
 import { handleLiveReport, LIVE_REPORT_PATH } from './http/liveReport.ts'
@@ -131,6 +132,8 @@ export function healthBody(brain: Brain) {
     image: brain.image?.health() ?? { enabled: !!brain.deps.config.image?.enabled, ready: false, engine: brain.deps.config.image?.engine ?? null, students: false, queue: { running: 0, waiting: 0, paused: false }, lastMs: null },
     // распознавание речи (сверх контракта v1): сайт шлёт голос на /stt, только если available
     stt: sttHealth(brain),
+    // скорость (сверх контракта): первый токен/подсказка/поиск последних ответов + /api/ps — диагностика без журнала
+    perf: perfSummary(brain.deps.llm?.thinkingFor?.(st?.chatModel ?? '') ?? null),
     uptimeMs: Date.now() - brain.startedAt,
     ...(brain.loading ? { loading: true } : {}),
   }

@@ -39,5 +39,7 @@ export async function sttHealthBody(cfg: SttConfig | undefined, sidecar: SttSide
     langs: [...STT_LANGS],
     maxSeconds,
     queue: { running: Math.max(running, h?.queue.running ?? 0), waiting: h?.queue.waiting ?? 0 },
+    // счётчики сайдкара для удалённой диагностики (без текста и аудио)
+    ...((h as { diag?: unknown } | null)?.diag ? { diag: (h as { diag?: unknown }).diag } : {}),
   }
 }

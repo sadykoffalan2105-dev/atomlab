@@ -15,6 +15,7 @@ import type { Knowledge } from '../kb/shards.ts'
 import { appendLine, ulid } from '../kb/storage.ts'
 import type { LlmClient, LlmMessage } from '../llm/ollama.ts'
 import { buildSystemPrompt, buildUserTurn } from '../persona/systemPrompt.ts'
+import { recordLlm } from '../perf.ts'
 import { adaptationForPrompt } from '../student/adapt.ts'
 import type { StudentStore } from '../student/events.ts'
 import { detectErrorTags, snapshot, type StudentSnapshot } from '../student/model.ts'
@@ -528,6 +529,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
     })
     const varChars = userTurn.length + history.slice(0, -1).reduce((n, m) => n + m.content.length, 0)
     llmStats = { model: ans.model, stopped: ans.stopped, firstMs: ans.firstMs, promptTokens: ans.promptTokens, promptMs: ans.promptMs, attempts: ans.attempts, cjk: ans.cjk || undefined, varChars, retrievalMs: retrieval.ms, profile }
+    recordLlm({ firstMs: ans.firstMs, promptTokens: ans.promptTokens, promptMs: ans.promptMs, retrievalMs: retrieval.ms }, config.ollamaUrl) // /health → perf
     if (!deps.noJournal || process.env.BRAIN_LOG_LLM === '1')
       console.log(`[brain] llm ${ans.model} ${mode}/${profile}: ${ans.stopped}, первый токен ${ans.firstMs ?? '—'} мс, подсказка ${ans.promptTokens ?? '—'} ток/${ans.promptMs ?? '—'} мс, переменная часть ${varChars} симв., поиск ${Math.round(retrieval.ms)} мс${ans.cjk ? ', CJK' : ''}${sq.resolvedBy !== 'none' ? `, вопрос «${sq.text.slice(0, 80)}»` : ''}`)
     if (signal?.aborted) {

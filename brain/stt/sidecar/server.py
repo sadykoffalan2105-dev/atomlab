@@ -107,6 +107,21 @@ class Job:
         self.t_end = 0.0
 
 
+# счётчики для /health (без текста и аудио): пустые ответы GigaAM, сбои движков, повторы через whisper
+DIAG: dict = {"gigaamEmpty": 0, "errors": 0, "whisperFallback": 0, "lastError": None}
+
+
+def _has_speech(audio: Any) -> bool:
+    try:
+        n = len(audio)
+        if n < int(RATE * 0.6):
+            return False
+        a = np.asarray(audio, dtype=np.float32)
+        return float(np.sqrt(np.mean(a * a))) > 0.005
+    except Exception:
+        return False
+
+
 class Worker:
     """Один поток инференса: запросы по очереди, ≤ MAX_QUEUE всего (в работе + ждут)."""
 
@@ -177,12 +192,23 @@ class Worker:
                 except Exception as ex1:
                     # движок упал: тип и начало сообщения в журнал (без текста реплики), затем запасной движок — whisper
                     log(f"ошибка распознавания {e.name}: {type(ex1).__name__}: {str(ex1)[:200]}")
+                    DIAG["errors"] += 1
+                    DIAG["lastError"] = f"{e.name}: {type(ex1).__name__}"
                     w = self.engines.whisper
                     if w is None or not w.loaded or w is e:
                         raise
                     e = w
                     with self.gpu_lock:
                         text, conf = e.transcribe(job.audio, job.lang)
+                # GigaAM вернул пусто, хотя в записи есть речь (≥ 0,6 с и не тишина) — повтор через whisper
+                if not (text or "").strip() and e is self.engines.gigaam and _has_speech(job.audio):
+                    DIAG["gigaamEmpty"] += 1
+                    w = self.engines.whisper
+                    if w is not None and w.loaded:
+                        DIAG["whisperFallback"] += 1
+                        e = w
+                        with self.gpu_lock:
+                            text, conf = e.transcribe(job.audio, job.lang)
                 job.result = {"text": text or "", "engine": e.name, "device": e.device, "confidence": conf}
                 # whisper по английской подсказке — язык уже известен (мозг: langSource 'whisper')
                 if e.name.startswith("whisper") and job.lang == "en":
@@ -213,6 +239,7 @@ class App:
             "queue": self.worker.stats(),
             "maxSeconds": MAX_SECONDS,
             "state": self.engines.state,
+            "diag": dict(DIAG),
         }
 
     def transcribe(self, body: bytes, lang: str, partial: bool, engine: str) -> tuple:
