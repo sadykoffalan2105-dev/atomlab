@@ -30,14 +30,15 @@ export function cmpForm(text: string): string {
 const UZ_WORDS =
   /\b(salom|assalomu|alaykum|rahmat|qalay|qalaysiz|xayr|yaxshi|yaxshimisiz|kimyo|kimyoviy|nima|nimaga|nega|qanday|qaysi|qachon|kim|haqida|uchun|bilan|emas|bo'ladi|bo'lsa|deb|ataladi|ayting|aytib|tushuntir|tushuntiring|modda|moddalar|kislota|asos|tuz|eritma|massa|necha|qancha|hisobla|toping|savol|javob|men|sen|siz|biz|ular|bu|shu|ham|lekin|ammo|yoki|va|ko'rishguncha|kechirasiz|ismingiz|ishlar|zo'r|ajoyib|charchadim|zerikdim|tushunmadim|ning|dagi|lar|molyar|massasi|ulushi|darajasi|hisoblang|aniqlang|tenglashtiring|eritmasi|nechta|formulasi|tuzilishi|xossalari|olinishi|oksidlanish|ustoz|domla)\b/
 
-const FORMULA_LIKE = /(?<![\p{L}])(?:[A-Z][a-z]?\d*|\((?:[A-Z][a-z]?\d*)+\)\d*)+(?![\p{L}])/gu
+// индексы-подстрочники (H₂O, Fe₃O₄) — тоже цифры формулы: «Уравняй: Fe + H₂O → Fe₃O₄ + H₂» — русский вопрос (12.10)
+const FORMULA_LIKE = /(?<![\p{L}])(?:[A-Z][a-z]?[\d₀-₉]*|\((?:[A-Z][a-z]?[\d₀-₉]*)+\)[\d₀-₉]*)+(?![\p{L}])/gu
 
 const UZ_CYR = ub(/\b(нима|қандай|учун|билан|нега|ҳақида|кимё|модда)\b/)
 
 /** Термин в кавычках — упомянутое слово, а не язык фразы. */
 const QUOTED = /«[^«»]{1,80}»|“[^“”]{1,80}”|"[^"]{1,80}"/gu
 /** Русское начало вопроса («Что такое Hydrogenium?», «Дай определение: Oxygenium») — фраза русская, латиница — термин. */
-const RU_HEAD = /^[^\p{L}]*(?:что|чем|как|какой|какая|какое|какие|почему|зачем|где|когда|кто|сколько|дай|дайте|объясни|расскажи|назови|напиши|определи|опиши)(?![\p{L}])/u
+const RU_HEAD = /^[^\p{L}]*(?:что|чем|как|какой|какая|какое|какие|почему|зачем|где|когда|кто|сколько|дай|дайте|объясни|расскажи|назови|напиши|определи|опиши|уравняй|уравняйте|закончи|допиши|составь|реши|вычисли|рассчитай|найди)(?![\p{L}])/u
 
 /** Язык вопроса: кириллица → ru (узбекская кириллица ў/қ/ғ/ҳ → uz); латиница + узбекские маркеры → uz; иначе en. */
 export function detectLang(text: string): Lang {
@@ -52,7 +53,7 @@ export function detectLang(text: string): Lang {
     if ((oc === 0) !== (ol === 0)) return detectLang(outside)
   }
   // формулы («HCl», «Ca(OH)2», «KMnO4») и «pH» — не язык: убираем до подсчёта букв
-  const stripFormula = (m: string) => (m !== 'OK' && (/\d/.test(m) || (m.match(/[A-Z]/g) ?? []).length >= 2) ? ' ' : m)
+  const stripFormula = (m: string) => (m !== 'OK' && (/[\d₀-₉]/.test(m) || (m.match(/[A-Z]/g) ?? []).length >= 2) ? ' ' : m)
   // название учебника «Kimyo 8» — не язык вопроса («О чём Kimyo 8, §44?» — русский вопрос)
   const t = cmpForm(text.replace(/\bKimyo\s*\d{1,2}\b/gu, ' ').replace(FORMULA_LIKE, stripFormula).replace(/\bp[Hh]\b/g, ' '))
   // буквы вариантов теста («a) Filtrlash») — не английский артикль «a»
@@ -68,7 +69,7 @@ export function detectLang(text: string): Lang {
   if (!lat) return 'ru'
   if (/[og]'/.test(noFormula)) return 'uz'
   const uzHits = (noFormula.match(new RegExp(UZ_WORDS.source, 'g')) ?? []).length
-  const enHits = (noFormula.match(/\b(the|what|is|are|how|why|of|which|does|do|you|hello|hi|thanks|thank|please|explain|can|i|my|and|with|in|a|an)\b/g) ?? []).length
+  const enHits = (noFormula.match(/\b(the|what|is|are|how|why|of|which|does|do|you|hello|hi|thanks|thank|please|explain|can|i|my|and|with|in|a|an|define|balance|complete|meaning)\b/g) ?? []).length
   if (uzHits > enHits) return 'uz'
   if (enHits > uzHits) return 'en'
   if (/[a-z]{3,}(ning|dagi|lari|lar|si|ni|ga|da|dan)\b/.test(noFormula)) return 'uz'

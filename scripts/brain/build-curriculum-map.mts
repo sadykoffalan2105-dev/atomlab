@@ -105,15 +105,33 @@ for (const p of UZ_GLOSSARY) for (const ru of [p.ru, ...(p.forms ?? [])]) addDic
 for (const c of CONCEPTS) for (const ru of c.names.ru) addDict(ru, c.names.uz[0], c.names.en[0])
 for (const e of glossary) addDict(e.ru, e.uz[0], e.en[0])
 
+/**
+ * Буква подуровня: «s-электроны», «P электронами», «S-орбиталью» — стемы её не видят («s-электроны» ≡ «электрон»), и
+ * перевод терял её («elektron nima?» вместо «s-elektronlar nima?», 12.10): s-elektronlar, s-orbital; мн. число — по окончанию.
+ */
+const SUBLEVEL = /^([spdfрSPDFР])(?:\s*[-‐–]\s*|\s+)(?=\p{L}{3})/u
+function translateOne(ru: string, lang: 'uz' | 'en'): string | undefined {
+  const m = SUBLEVEL.exec(ru.trim())
+  if (!m) return dict.get(dkey(ru))?.[lang]
+  const rest = ru.trim().slice(m[0].length)
+  if (/[,;]|\sи\s/u.test(rest)) return undefined
+  // «d-элементы» → «d-elementlar», не «d-kimyoviy elementlar» (словарь отдаёт «элемент» как «химический элемент»)
+  const t = dict.get(dkey(rest))?.[lang]?.replace(/^(?:kimyoviy|chemical)\s+/u, '')
+  if (!t) return undefined
+  const many = /(?:ы|ами|ах|ов)$/u.test(rest)
+  const pl = !many ? t : lang === 'uz' ? (/l[ae]r$/.test(t) ? t : `${t}lar`) : /s$/.test(t) ? t : `${t}s`
+  return `${m[1]!.toLowerCase().replace('р', 'p')}-${pl}`
+}
+
 /** Перевод фразы по словарю: целиком или по частям («X и Y», «X, Y»); null — если хоть одна часть не переведена. */
 function translate(ru: string, lang: 'uz' | 'en'): string | null {
-  const whole = dict.get(dkey(ru))?.[lang]
+  const whole = translateOne(ru, lang)
   if (whole) return whole
   const parts = ru.split(/\s*[.;:,]\s+|\s+и\s+|\s*[«»()]\s*/u).map((s) => s.trim()).filter((s) => analyzeTerms(s).length)
   if (parts.length < 2) return null
   const out: string[] = []
   for (const p of parts) {
-    const t = dict.get(dkey(p))?.[lang]
+    const t = translateOne(p, lang)
     if (!t) return null
     out.push(t)
   }
@@ -411,8 +429,10 @@ for (const g of GRADES) {
     for (const d of definitions) {
       const uz = translate(d.term.ru, 'uz')
       const en = translate(d.term.ru, 'en')
-      if (uz) d.term.uz = cap(uz)
-      if (en) d.term.en = cap(en)
+      // буква подуровня — строчная, как в учебнике: «p-elektronlar», не «P-elektronlar» (12.10)
+      const capT = (t: string) => (/^[spdf]-/.test(t) ? t : cap(t))
+      if (uz) d.term.uz = capT(uz)
+      if (en) d.term.en = capT(en)
     }
     if (conceptRu.length < 3) conceptRu.push(...definitions.map((d) => d.term.ru))
     if (!conceptRu.length) conceptRu.push(...e.title.split(/\s*[.;:]\s+|\s*,\s+/u).filter((s) => analyzeTerms(s).length))

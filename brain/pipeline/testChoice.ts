@@ -120,7 +120,7 @@ export function findBankTest(map: CurriculumMap, q: ChoiceQuestion, grade: numbe
 function reasonOf(e: Entry, choice: string, lang: Lang): string {
   const label = e.unit.label[lang] ?? e.unit.label.ru
   const cand = [lang === 'ru' ? e.test.explanation?.ru : undefined, e.test.a[lang]].find((x) => !!x && norm(x) !== norm(choice) && x.length <= 240)
-  const tail = L(lang, `так написано в учебнике (${label}).`, `darslikda shunday yozilgan (${label}).`, `this is what the textbook says (${label}).`)
+  const tail = L(lang, `так написано в учебнике (${label}).`, `toʻgʻri, chunki darslikda shunday yozilgan (${label}).`, `this is what the textbook says (${label}).`)
   if (!cand) return tail
   const s = cand.trim().replace(/\s+/g, ' ')
   return `${s}${/[.!?]$/.test(s) ? '' : '.'} ${L(lang, 'Источник', 'Manba', 'Source')}: ${label}.`

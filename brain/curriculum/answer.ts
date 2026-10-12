@@ -228,6 +228,35 @@ function foldTermName(s: string, lang: Lang): string {
     .map((p) => p.replace(plural, '$1'))
     .join(', ')
 }
+/** Буква подуровня в начале термина: «s-электроны», «P электронами», «S-орбиталью» (кириллическая «р» = p). */
+const SUBLEVEL_RE = /^([spdfр])(?:\s*[-‐–]\s*|\s+)(?=\p{L}{3})/iu
+const sublevelOf = (s: string): { letter: string; stems: string } | null => {
+  const t = s.trim()
+  const m = SUBLEVEL_RE.exec(t)
+  if (!m) return null
+  const rest = t.slice(m[0].length).split(/\s*[,;]\s*|\s+и\s+/u)[0]!
+  const stems = [...new Set(analyzeTerms(rest))].sort().join(' ')
+  return stems ? { letter: m[1]!.toLowerCase().replace('р', 'p'), stems } : null
+}
+/**
+ * ru: «Что такое s-электроны?» — стемы букву подуровня не видят («s-электроны» ≡ «электрон»), и вопрос уходил к
+ * определению электрона (§7) вместо «Электроны на этом уровне называются s электронами» (§10, 12.10). Термин с буквой
+ * подуровня — определение класса с той же буквой и теми же стемами; иначе null (работает поиск по стемам).
+ */
+function definitionBySublevel(map: CurriculumMap, text: string, grade: number): DefHit | null {
+  const term = questionTerm(text, 'ru')
+  const q = term ? sublevelOf(term) : null
+  if (!q) return null
+  for (const u of map.byGrade.get(grade) ?? []) {
+    if (u.kind === 'review') continue
+    const index = u.definitions.findIndex((d) => {
+      const s = sublevelOf(d.term.ru)
+      return !!s && s.letter === q.letter && s.stems === q.stems
+    })
+    if (index >= 0) return { unit: u, def: u.definitions[index]!, index, termCov: 1, qCov: 1, inGrade: true }
+  }
+  return null
+}
 const termNames = new WeakMap<UnitDefinition, { uz: string[]; en: string[] }>()
 function namesOf(d: UnitDefinition): { uz: string[]; en: string[] } {
   let n = termNames.get(d)
@@ -251,7 +280,8 @@ function namesOf(d: UnitDefinition): { uz: string[]; en: string[] } {
  * Только класс ученика (раньше в книге — первым); иначе null — работает поиск по русским стемам (definitionFor).
  */
 export function definitionByTerm(map: CurriculumMap, text: string, lang: Lang, grade: number | null): DefHit | null {
-  if (lang === 'ru' || grade == null) return null
+  if (grade == null) return null
+  if (lang === 'ru') return definitionBySublevel(map, text, grade)
   const term = termOfQuestion(text, lang)
   if (!term) return null
   const k = foldTermName(term, lang)

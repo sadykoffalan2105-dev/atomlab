@@ -550,7 +550,8 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     const defTerms = wantsDef && lang !== 'ru' ? termStemsRu(sq.text, lang) : null
     // uz/en: термин вопроса = узбекский/английский термин определения карты класса — это определение (12.10, nextBuild #3;
     // brain/curriculum/answer.ts → definitionByTerm); иначе — по русским стемам перевода, как раньше
-    const defByName = wantsDef && sq.kind === 'definition' && lang !== 'ru' ? definitionByTerm(cur, sq.text, lang, g) : null
+    // ru — только термин с буквой подуровня («s-электроны» → § с «s электронами», не определение электрона)
+    const defByName = wantsDef && sq.kind === 'definition' ? definitionByTerm(cur, sq.text, lang, g) : null
     const defAny = defByName ?? (wantsDef && sq.kind === 'definition' ? ((defTerms && definitionFor(cur, defTerms, g)) || definitionFor(cur, queryTerms, g)) : null)
     const exactDef = !!defAny && defAny.inGrade && defAny.termCov === 1 && defAny.qCov === 1
     // понятие § (без определения в карте) точнее частичного совпадения определения: «общая формула» ≠ «развёрнутые формулы»

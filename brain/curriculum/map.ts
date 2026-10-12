@@ -60,7 +60,8 @@ export class CurriculumMap {
         }
         for (const r of u.reactions) {
           if (r.isGeneral) continue
-          const [l, rr] = r.ascii.split(/\s*(?:->|=|⇄|<->)\s*/)
+          // «<=>» — обратимые реакции («CO2 + H2 <=> CO + H2O»): раньше делились по «=» (12.10)
+          const [l, rr] = r.ascii.split(/\s*(?:<=>|->|=|⇄|<->)\s*/)
           if (!l || !rr) continue
           this.reactionIndex.push({ reaction: r, unit: u, left: new Set(speciesOf(l)), right: new Set(speciesOf(rr)) })
         }
