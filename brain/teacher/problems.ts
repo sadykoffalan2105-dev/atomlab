@@ -269,8 +269,10 @@ export function problemsForUnit(unit: Unit, lang: Lang, kb: Knowledge, count: nu
   if (lang === 'ru') {
     for (const ex of unit.tasks.examples) {
       if (out.length >= Math.min(1, count)) break
-      if (ex.statement.length > 600 || !ex.typeGuess) continue
-      const p = solveProblem(ex.statement, lang, kb, 'textbook', ex.page)
+      // пример учебника часто несёт и разбор: условие — только до «Решение:/Ответ:» (иначе ответ в самом задании)
+      const statement = ex.statement.split(/\s*(?:Решение|Ответ|Решение задачи)\s*[:.]/u)[0]!.trim()
+      if (statement.length < 20 || statement.length > 600 || !ex.typeGuess) continue
+      const p = solveProblem(statement, lang, kb, 'textbook', ex.page)
       // учебная задача годится, только если калькулятор понял именно её тип
       if (p && p.type === ex.typeGuess) out.push(p)
     }
