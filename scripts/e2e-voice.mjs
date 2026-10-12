@@ -202,10 +202,16 @@ const PROBE = ({ gum, YOU_SEL, YOU_FALLBACK, TEACHER_SEL }) => {
 const results = []
 let mock = null
 
+const SCENARIO_LIMIT_S = Number(args['scenario-limit'] ?? 150)
+const openBrowsers = new Set()
+
 async function launch(micFile, channel) {
   const a = ['--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required']
   if (micFile) a.push('--use-fake-device-for-media-stream', `--use-file-for-fake-audio-capture=${micFile}%noloop`)
-  return chromium.launch({ headless: !HEADED, channel: channel ?? 'chromium', args: a })
+  const b = await chromium.launch({ headless: !HEADED, channel: channel ?? 'chromium', args: a })
+  openBrowsers.add(b)
+  b.on('disconnected', () => openBrowsers.delete(b))
+  return b
 }
 
 async function openPage(browser, { gum = 'pass', clipId = null, brain = true, permissions = ['microphone'], hash = LESSON, query = 'stt=server&debugVoice=1' } = {}) {
@@ -630,10 +636,19 @@ async function main() {
   console.log(`сайт: ${BASE}${vite ? ' (vite dev поднят скриптом)' : ''}; lead ${LEAD_S} с; WAV микрофона: ${MIC_DIR}`)
   for (const [k, fn] of Object.entries(SCENARIOS)) {
     if (ONLY && !ONLY.has(k)) continue
+    // сторож: зависший сценарий (браузер не закрывается, страница не отвечает) не держит весь прогон
+    let timer
+    const watchdog = new Promise((_, j) => {
+      timer = setTimeout(() => j(new Error(`сценарий завис дольше ${SCENARIO_LIMIT_S} с`)), SCENARIO_LIMIT_S * 1000)
+    })
     try {
-      await fn()
+      await Promise.race([fn(), watchdog])
     } catch (e) {
       record(k, 'сценарий', 'fail', `исключение: ${String(e.stack || e).split('\n').slice(0, 2).join(' ')}`)
+      for (const b of [...openBrowsers]) await Promise.race([b.close().catch(() => {}), new Promise((r) => setTimeout(r, 3000))])
+      openBrowsers.clear()
+    } finally {
+      clearTimeout(timer)
     }
   }
   if (args.live) {
