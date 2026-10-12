@@ -7,7 +7,7 @@
  * Ошибки {ok:false, error:{code,message}}: 400 bad_audio (detail) | too_short | bad_request; 413 too_long;
  * 415 unsupported_media_type; 429 rate | busy (+Retry-After); 503 stt_unavailable (+Retry-After: 10); 500 internal.
  * Сессия: query session=… (сайт; новых CORS-заголовков не нужно) или заголовок X-Brain-Session (скрипты, curl);
- * без неё — по адресу ученика. Потолок по адресу — общий ограничитель server.ts (группа 'stt', sttIpRule).
+ * без неё — по адресу ученика. Потолок по адресу (щедрый: школьный NAT) — тоже здесь, brain/stt/limits.ts.
  *
  * Приватность: аудио только в памяти запроса (Buffer → сайдкар), в журналы — ни аудио, ни текста; язык текста
  * определяет detectLang (brain/pipeline/normalize.ts), нормализацию формул делает сайт (fixTranscript).
@@ -167,7 +167,7 @@ export async function handleSttRequest(c: SttHttpContext): Promise<void> {
     return jsonError(res, 415, 'unsupported_media_type', 'нужен Content-Type: audio/wav', cors)
   }
 
-  const verdict = st.limits.acquire(session, partial, cfg.rate, limited)
+  const verdict = st.limits.acquire(session, client.key, partial, cfg.rate, limited)
   if (!verdict.ok) {
     req.resume()
     const msg = verdict.code === 'busy' ? 'дождитесь распознавания предыдущей реплики' : 'слишком много реплик подряд — подождите немного'
