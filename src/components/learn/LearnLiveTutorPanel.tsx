@@ -790,22 +790,20 @@ function LiveTutorOverlay({
   const brainStatus = useBrainStatus()
   const [mic, setMic] = useState<MicHandle | null>(null)
   // Сервер распознавания ATOMLAB доступен — лобби говорит честно, кто распознаёт речь.
-  const [serverStt, setServerStt] = useState(false)
+  const [serverSttOk, setServerSttOk] = useState(false)
   useEffect(() => {
-    if (brainStatus !== 'online') {
-      setServerStt(false)
-      return
-    }
+    if (brainStatus !== 'online') return
     let alive = true
     void sharedSttHealth(getBrainUrl)
       .check()
       .then((ok) => {
-        if (alive) setServerStt(ok)
+        if (alive) setServerSttOk(ok)
       })
     return () => {
       alive = false
     }
   }, [brainStatus])
+  const serverStt = brainStatus === 'online' && serverSttOk
   const sectionTitle = t(section.titleKey)
 
   useEffect(() => {

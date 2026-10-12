@@ -97,12 +97,7 @@ export async function postStt(opts: PostSttOptions): Promise<SttResult> {
     clearTimeout(timer)
     opts.signal?.removeEventListener('abort', onAbort)
   }
-  let data: unknown = null
-  try {
-    data = await res.json()
-  } catch {
-    data = null
-  }
+  const data: unknown = await res.json().catch(() => null)
   const body = (data ?? {}) as { ok?: boolean; error?: { code?: string; message?: string } } & Partial<SttResult>
   if (!res.ok || body.ok !== true) {
     const code = body.error?.code ?? (res.status === 429 ? 'rate' : res.status === 503 ? 'stt_unavailable' : 'http')
