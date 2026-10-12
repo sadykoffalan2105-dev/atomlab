@@ -25,6 +25,8 @@ const args = Object.fromEntries(
 const PORT = Number(args.port ?? 8797)
 const STUDENTS = args.students !== '0'
 const STEP_MS = args.fast ? 60 : 550
+/** --image=off | notready — проверить выключенный «🎨 Картинка»; на лету: GET /__mock/image?state=on|off|notready */
+let imageState: 'on' | 'off' | 'notready' = args.image === 'off' || args.image === 'notready' ? args.image : 'on'
 
 /* ------------------------------------------------------------------ PNG без зависимостей */
 
@@ -137,8 +139,13 @@ const server = http.createServer(async (req, res) => {
       llm: { available: true, chatModel: 'mock', fastModel: null, embedModel: null, vision: false },
       kb: { docs: 0, journalLines: 0, embedded: 0 },
       uptimeMs: Math.round(process.uptime() * 1000),
-      image: { enabled: true, ready: true, engine: 'z-image-turbo', students: STUDENTS, queue: { running: 0, waiting: 0, paused: false }, lastMs: 7000 },
+      image: { enabled: imageState !== 'off', ready: imageState === 'on', engine: 'z-image-turbo', students: STUDENTS, queue: { running: 0, waiting: 0, paused: false }, lastMs: 7000 },
     })
+  }
+  if (req.method === 'GET' && url.pathname === '/__mock/image') {
+    const st = url.searchParams.get('state')
+    if (st === 'on' || st === 'off' || st === 'notready') imageState = st
+    return json(res, 200, { ok: true, image: imageState })
   }
   if (req.method === 'GET' && url.pathname === '/image/presets') {
     const grade = url.searchParams.get('grade') ?? ''
@@ -162,6 +169,10 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', ...CORS })
     const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
     const preset = PRESETS.find((p) => p.id === b.presetId)
+    if (imageState !== 'on') {
+      send('error', { code: imageState === 'off' ? 'disabled' : 'not_ready', message: 'Рисование сейчас недоступно.' })
+      return res.end()
+    }
     if (role === 'student' && (b.prompt || !preset || !STUDENTS)) {
       send('error', { code: STUDENTS ? 'bad_request' : 'forbidden', message: 'Выберите тему из списка — ученикам доступны готовые темы своего класса.' })
       return res.end()

@@ -94,7 +94,8 @@
   flex-direction: column;
   gap: 10px;
   min-width: 0;
-  max-height: min(64dvh, 620px);
+  /* чат над полем остаётся видимым: панель режима — не больше половины экрана, дальше прокрутка внутри */
+  max-height: min(50dvh, 540px);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 10px 12px;
@@ -311,7 +312,7 @@
 }
 
 .figure {
-  --frame-h: 34dvh;
+  --frame-h: 26dvh;
 }
 
 /* ширина по высоте (--frame-h × пропорция, см. DrawMode.tsx) — SVG-слой формулы совпадает с картинкой */
@@ -478,7 +479,7 @@
 @media (max-width: 420px) {
   .wrap {
     padding: 8px 10px;
-    max-height: 60dvh;
+    max-height: 54dvh;
   }
   .switchBtn {
     padding: 0 12px;

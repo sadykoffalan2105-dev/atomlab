@@ -459,7 +459,8 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
         </section>
       ) : null}
 
-      {gallery.length > 1 ? (
+      {/* галерея вкладки: от двух картинок — или одна, если карточка закрыта (возврат из режима «Вопрос») */}
+      {gallery.length > 1 || (gallery.length === 1 && !current) ? (
         <div className={s.gallery} role="group" aria-label={t('learn.drawMode.gallery')} data-draw-gallery="">
           <span className={s.small}>{t('learn.drawMode.gallery')}</span>
           <div className={s.thumbs}>
