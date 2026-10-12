@@ -138,7 +138,8 @@ export function classifyIntent(text: string, cmp: string): IntentGuess {
   return { intent: 'chemistry', markers: 0, ambiguous: text.length > 60 }
 }
 
-const WHY_RE = ub(/(почему|зачем|отчего|из-за чего|в чем причина|\bwhy\b|how come|\bnega\b|nima uchun|nimaga)/u)
+// «X deb nimaga aytiladi?» — «что называют X» (определение), а не «почему»
+const WHY_RE = ub(/(почему|зачем|отчего|из-за чего|в чем причина|\bwhy\b|how come|\bnega\b|nima uchun|nimaga(?! aytiladi))/u)
 
 /** Тип вопроса — от него зависит «логика от законов» в запасном ответе. */
 export function questionType(cmp: string): QType {
@@ -149,7 +150,7 @@ export function questionType(cmp: string): QType {
   if (/(кто (открыл|изобрел|придумал|создал)|когда (открыл|был открыт|открыт)|who (discovered|invented)|kim kashf)/u.test(cmp)) return 'who'
   if (/(свойств|характеристик|properties|xossa|xususiyat)/u.test(cmp)) return 'properties'
   if (/(примен|использ|где (встреча|нужен)|для чего|uses? of|used for|qo'llan|ishlatil)/u.test(cmp)) return 'uses'
-  if (/(что так|что это|что значит|что означает|что называ|определени|дай определ|^что за|what is|what are|what does|define|meaning of|nima\b|nima degani|deb ataladi|ta'rif)/u.test(cmp)) return 'definition'
+  if (/(что так|что это|что значит|что означает|что называ|определени|дай определ|^что за|what is|what are|what does|define|meaning of|nima\b|nima degani|deb ataladi|deb nimaga aytiladi|ta'rif)/u.test(cmp)) return 'definition'
   return 'general'
 }
 

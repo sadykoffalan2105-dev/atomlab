@@ -18,6 +18,7 @@ import type { AnswerPlan, StandaloneQuery } from './dialogTypes.ts'
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
 import { FIRST_PRINCIPLES, type Concept } from '../kb/concepts.ts'
 import type { Knowledge, QaElement, QaSubstance } from '../kb/shards.ts'
+import type { Unit } from '../curriculum/types.ts'
 import type { StudentSnapshot } from '../student/model.ts'
 import { fallbackStyle } from '../student/adapt.ts'
 import { genitive } from './declension.ts'
@@ -120,6 +121,36 @@ const MICRO: Record<QType | 'calc', Record<Lang, string[]>> = {
 }
 
 // ---------------------------------------------------------------- тексты учебника
+
+/**
+ * Лучшее предложение текста единицы (§) о термине вопроса: больше стемов вопроса, «… называется / — это …» выше,
+ * короткое и раннее выше. Нет предложения хотя бы с половиной стемов вопроса — null.
+ */
+function unitSentence(kb: Knowledge, unit: Unit, qTerms: Set<string>): string | null {
+  if (!qTerms.size) return null
+  const need = Math.max(1, Math.ceil(qTerms.size / 2))
+  let best: string | null = null
+  let bestScore = -Infinity
+  const chunks = kb.engine.paragraphChunks(unit.grade, unit.kp, ['definition', 'summary', 'textbook'])
+  chunks.slice(0, 40).forEach((h, ci) => {
+    splitSentences(cleanChunk(h.text, h.title))
+      .filter(goodSentence)
+      .slice(0, 30)
+      .forEach((x, pos) => {
+        const terms = new Set(analyzeTerms(x))
+        const hits = [...qTerms].filter((t) => terms.has(t)).length
+        if (hits < need) return
+        let score = hits * 2 - x.length / 400 - ci * 0.02 - pos * 0.01
+        if (/\s[—–-]\s(это\s)?|называ|является|представляет собой/iu.test(x)) score += 2
+        if (h.type === 'definition') score += 1
+        if (score > bestScore) {
+          bestScore = score
+          best = x
+        }
+      })
+  })
+  return best
+}
 
 /** Определение учебника для ответа: без OCR-переносов, не длиннее ~2 предложений. */
 function clipDef(t: string): string {
@@ -398,14 +429,19 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       return { text: trimToWords(body, Math.max(inp.wordLimit, 90)), citations, confidence: Math.max(confidence, 0.8) }
     }
     const d = curInfo.defIndex != null ? curUnit.definitions[curInfo.defIndex] : undefined
-    if (d) {
-      if (lang === 'ru') lines.push(clipDef(d.text.ru))
+    // понятие § без определения в карте: ru — предложение этого § с термином вопроса; uz/en — как определение ниже
+    const conceptLine = !d && curInfo.concept && lang === 'ru' ? unitSentence(kb, curUnit, qTerms) : null
+    if (conceptLine) {
+      lines.push(conceptLine)
+      confidence = Math.max(confidence, 0.75)
+    } else if (d || curInfo.concept) {
+      if (d && lang === 'ru') lines.push(clipDef(d.text.ru))
       else {
         const term = termOfQuestion(inp.text, lang)
         const stem = term ? term.toLowerCase().slice(0, 5) : ''
         const def = primary?.def[lang]
         if (def && (!stem || def.toLowerCase().includes(stem))) lines.push(def)
-        else if (term) lines.push(termFrameUzEn(term, curUnit, lang))
+        else if (term && lang !== 'ru') lines.push(termFrameUzEn(term, curUnit, lang))
         else if (def) lines.push(def)
       }
       if (lines.length) {
@@ -567,6 +603,21 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   }
 
   // 5) мало знаний — от основ, без выдумок
+  // 5') школьный вопрос с известным § (карта), а знаний на языке вопроса мало: ru — предложение § с термином вопроса,
+  //     uz/en — «термин — где его изучают» или содержание § (не «разберём от основ» при найденном параграфе)
+  if (!lines.length && curUnit && !curInfo?.viaRef) {
+    const s = lang === 'ru' ? unitSentence(kb, curUnit, qTerms) : null
+    const term = lang !== 'ru' ? termOfQuestion(inp.text, lang) : null
+    const line = s ?? (lang === 'uz' || lang === 'en' ? (term ? termFrameUzEn(term, curUnit, lang) : sectionAnswer(curUnit, lang)) : null)
+    if (line) {
+      lines.push(line)
+      if (primary && !logic) {
+        logic = primary.law[lang]
+        conceptId = primary.id
+      }
+      confidence = Math.max(confidence, inp.thresholds.medium)
+    }
+  }
   const lowConfidence = !lines.length
   if (lowConfidence) {
     const near = items

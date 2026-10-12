@@ -14,7 +14,7 @@
  *   лучшего совпадения, coverage — доля понятий вопроса в top-3); школьный вопрос без учебника — не выше «medium».
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
-import { definitionFor, unitForTopic } from '../curriculum/answer.ts'
+import { conceptUnitFor, definitionFor, unitForTopic } from '../curriculum/answer.ts'
 import { unitCard } from '../curriculum/card.ts'
 import { sharedCurriculum } from '../curriculum/map.ts'
 import { parseSectionRef } from '../curriculum/sectionRef.ts'
@@ -142,6 +142,8 @@ export type CurriculumInfo = {
   viaRef: boolean
   /** вопрос-определение: номер определения единицы (unit.definitions[defIndex]), чей термин — термин вопроса */
   defIndex?: number
+  /** вопрос-определение: термин — в «Изучаемых понятиях» единицы (определения в карте нет — ответ из текста §) */
+  concept?: boolean
   /** подпись со страницей — первая цитата школьного ответа */
   citeFull?: string
 }
@@ -539,8 +541,13 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     }
     // (в) вопрос-определение: термин определён в учебнике класса ученика (термин целиком в вопросе) — вопрос школьный,
     //     даже если по словам он «широкий» («Что означает термин «вещество»?»): энциклопедия уходит, §-карточка — первой
-    const defHit = !curriculum && !sectionRef && g != null && sq.kind === 'definition' && sq.scope !== 'offtopic' ? definitionFor(cur, queryTerms, g) : null
-    const strongDef = !!defHit && defHit.inGrade && defHit.termCov === 1
+    const wantsDef = !curriculum && !sectionRef && g != null && (sq.kind === 'definition' || sq.kind === 'properties') && sq.scope !== 'offtopic'
+    const defAny = wantsDef && sq.kind === 'definition' ? definitionFor(cur, queryTerms, g) : null
+    const exactDef = !!defAny && defAny.inGrade && defAny.termCov === 1 && defAny.qCov === 1
+    // понятие § (без определения в карте) точнее частичного совпадения определения: «общая формула» ≠ «развёрнутые формулы»
+    const byConcept = wantsDef && !exactDef ? conceptUnitFor(cur, queryTerms, g) : null
+    const defHit = byConcept ? null : defAny
+    const strongDef = (!!defHit && defHit.inGrade && defHit.termCov === 1) || !!byConcept
     if (strongDef && scopeUsed !== 'school') {
       scopeUsed = 'school'
       for (const f of items) if (!isSchoolSource(f)) dropped.push({ c: f, why: 'school_first' })
@@ -554,13 +561,13 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
       // определение — единица, где термин определён; «почему» — § класса по теме вопроса;
       // иначе: тема целиком в названии единицы → она; иначе единица лучшего фрагмента учебника класса; иначе по понятиям
       const byDef = defHit?.inGrade ? defHit.unit : null
-      const byTopic = !byDef && sq.kind === 'why' ? unitForTopic(cur, sq.text, queryTerms, g) : null
-      const unit = byDef ?? byTopic ?? (byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null)))
+      const byTopic = !byDef && !byConcept && sq.kind === 'why' ? unitForTopic(cur, sq.text, queryTerms, g) : null
+      const unit = byDef ?? byConcept ?? byTopic ?? (byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null)))
       if (unit) {
         const page = byDef ? defHit!.def.page : undefined
         const card = cardFragment(unit, lang, g, cardChars, Math.max(0, ...items.map((f) => f.bm)) + 1, (items[0]?.score ?? 0) + 1, queryTerms, page)
         items = [card, ...items.filter((f) => f.id !== card.id)].slice(0, maxItems)
-        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: false, citeFull: card.citation, ...(byDef ? { defIndex: defHit!.index } : {}) }
+        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: false, citeFull: card.citation, ...(byDef ? { defIndex: defHit!.index } : {}), ...(unit === byConcept ? { concept: true } : {}) }
       }
     }
   }

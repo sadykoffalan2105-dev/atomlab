@@ -65,6 +65,38 @@ export function definitionFor(map: CurriculumMap, terms: Set<string>, grade: num
   return best
 }
 
+const conceptStems = new WeakMap<object, string[]>()
+const cStemsOf = (c: Unit['concepts'][number]) => {
+  let s = conceptStems.get(c)
+  if (!s) conceptStems.set(c, (s = [...new Set(analyzeTerms(c.ru))]))
+  return s
+}
+
+/**
+ * Единица класса ученика, где понятие вопроса стоит в «Изучаемых понятиях» (все стемы понятия — в вопросе и понятие
+ * покрывает не меньше половины вопроса); точное совпадение — первым, затем раньше в книге. Нет класса — null.
+ */
+export function conceptUnitFor(map: CurriculumMap, terms: Set<string>, grade: number | null): Unit | null {
+  if (grade == null || !terms.size) return null
+  let best: Unit | null = null
+  let bestKey = -Infinity
+  for (const u of map.byGrade.get(grade) ?? []) {
+    if (u.kind === 'review') continue
+    for (const c of u.concepts) {
+      const cs = cStemsOf(c)
+      if (!cs.length || !cs.every((t) => terms.has(t))) continue
+      const qCov = cs.length / terms.size
+      if (qCov < 0.5) continue
+      const key = qCov + (u.kind === 'paragraph' ? 0.1 : 0) - orderOf(map, u) * 1e-5
+      if (key > bestKey) {
+        bestKey = key
+        best = u
+      }
+    }
+  }
+  return best
+}
+
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е')
 /** Темы вопроса по правилам topicMap (все сработавшие, а не только первое). */
 export function topicsOf(text: string): string[] {
