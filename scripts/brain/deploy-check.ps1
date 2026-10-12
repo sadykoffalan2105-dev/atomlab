@@ -6,7 +6,9 @@
 #   3) update.ps1 -DryRun на временном корне (поддельный origin с новым коммитом, порт мозга 18787 — 8787 не трогаем):
 #      проходит до перезапуска мозга; затем с поломками в шаге картинок (битый manifest.json, исключение
 #      и код 1 в image-install) — всё равно код 0 и перезапуск мозга (необязательный шаг лишь предупреждает);
-#   4) install.ps1 -DryRun и uninstall.ps1 -DryRun на временном корне.
+#   4) install.ps1 -DryRun и uninstall.ps1 -DryRun на временном корне;
+#   5) nightly-eval.ps1 (ночной живой прогон, задача «ATOMLAB Nightly» 03:00): -DryRun печатает команду;
+#      без server-config.json и без tsx — только предупреждение и код 0 (ночной прогон не ломает обновление).
 # Запуск: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\brain\deploy-check.ps1   (код 0 — всё зелёное)
 param([switch]$Keep)
 $ErrorActionPreference = 'Continue'   # git пишет в stderr — в 5.1 с 'Stop' это было бы исключением
@@ -79,6 +81,7 @@ try {
 
   $r = Run-Ps $upd @('-Root', $TmpRoot, '-DryRun')
   Check ($r.code -eq 0 -and $r.out -match $restart -and $r.out -match 'пробный прогон' -and $r.out -match 'ATOMLAB Comfy') 'update.ps1 -DryRun: код, картинки, ComfyUI, перезапуск мозга' (Tail $r.out)
+  Check ($r.out -match 'ATOMLAB Nightly.*ежедневно в 03:00') 'update.ps1 -DryRun: задача ATOMLAB Nightly (03:00) добавляется' (Tail $r.out)
 
   $m = Join-Path $TmpRoot 'bin\comfy\manifest.json'
   $mText = [IO.File]::ReadAllText($m)
@@ -100,9 +103,20 @@ try {
   Write-Host '4) install.ps1 / uninstall.ps1 -DryRun' -ForegroundColor Cyan
   $r = Run-Ps (Join-Path $dep 'install.ps1') @('-DryRun', '-Root', (Join-Path $TmpRoot 'fresh'), '-BrainPort', '18787', '-NoPause')
   Check ($r.code -eq 0 -and $r.out -match '11b\.' -and $r.out -match '/admin/image/test' -and $r.out -match '/admin/image/verify') 'install.ps1 -DryRun: шаг 11b, самопроверка картинки' (Tail $r.out)
+  Check ($r.out -match 'ATOMLAB Nightly.*ежедневно в 03:00') 'install.ps1 -DryRun: задача ATOMLAB Nightly (03:00)' (Tail $r.out)
   New-Item -ItemType Directory -Force -Path (Join-Path $TmpRoot 'comfy\ComfyUI_windows_portable'), (Join-Path $TmpRoot 'comfy-out') | Out-Null
   $r = Run-Ps (Join-Path $dep 'uninstall.ps1') @('-Root', $TmpRoot, '-DryRun')
   Check ($r.code -eq 0 -and $r.out -match 'ATOMLAB Comfy' -and $r.out -match 'Удалить картинки') 'uninstall.ps1 -DryRun: задача и папки ComfyUI' (Tail $r.out)
+  Check ($r.out -match 'ATOMLAB Nightly') 'uninstall.ps1 -DryRun: задача ATOMLAB Nightly в списке' (Tail $r.out)
+
+  Write-Host '5) nightly-eval.ps1 (ночной живой прогон)' -ForegroundColor Cyan
+  $ne = Join-Path $TmpRoot 'bin\nightly-eval.ps1'
+  $r = Run-Ps $ne @('-Root', $TmpRoot, '-DryRun')
+  Check ($r.code -eq 0 -and $r.out -match 'nightly-live\.mts' -and $r.out -match '127\.0\.0\.1:18787' -and $r.out -match 'reports\\live-\d{8}\.json') 'nightly-eval.ps1 -DryRun: команда, порт из server-config, reports\live-ГГГГММДД.json' (Tail $r.out)
+  $r = Run-Ps $ne @('-Root', (Join-Path $TmpRoot 'nocfg'))
+  Check ($r.code -eq 0 -and $r.out -match 'ночной прогон:') 'нет server-config.json → предупреждение, код 0' (Tail $r.out)
+  $r = Run-Ps $ne @('-Root', $TmpRoot)
+  Check ($r.code -eq 0 -and $r.out -match 'ночной прогон:' -and -not (Test-Path -LiteralPath (Join-Path $TmpRoot 'run\nightly.lock'))) 'без tsx и без мозга → предупреждение, код 0, замок снят' (Tail $r.out)
 } catch {
   Check $false ('сбой проверки: ' + $_.Exception.Message)
 } finally {
