@@ -131,6 +131,8 @@
     "test:voice-echo": "tsx scripts/test-voice-echo.mts",
     "test:voice-recognition": "tsx scripts/test-voice-recognition.mts",
     "test:voice-transcript": "tsx scripts/test-voice-transcript.mts",
+    "test:voice-capture": "tsx scripts/test-voice-capture.mts",
+    "test:voice-stt-engine": "tsx scripts/test-voice-stt-engine.mts",
     "build:chem-terms": "tsx scripts/build-chem-terms.mts",
     "test:teacher-encyclopedia": "tsx scripts/test-teacher-encyclopedia.mts",
     "teacher:encyclopedia": "tsx scripts/teacher-ml/build-encyclopedia.mts",

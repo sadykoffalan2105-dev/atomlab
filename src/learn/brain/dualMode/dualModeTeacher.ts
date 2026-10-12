@@ -21,7 +21,13 @@ import type { FusedContext, ReasoningStepSnapshot, VisionSignal, EmotionState } 
 import { UnifiedBrain } from '../unifiedBrain'
 import { getBrainStatus } from '../remote/brainClient'
 import { EngagementTracker } from '../vision/engagementTracker'
-import { DuplexVoiceSession, type BargeInEvent, type TeacherTurnHandle, type UserUtteranceMeta } from '../voice/duplexVoiceSession'
+import {
+  DuplexVoiceSession,
+  type BargeInEvent,
+  type DuplexSessionConfig,
+  type TeacherTurnHandle,
+  type UserUtteranceMeta,
+} from '../voice/duplexVoiceSession'
 import type { DialogTurn } from '../voice/interruptionController'
 import type { LiveTtsPath } from '../voice/liveSpeechOutput'
 import { splitIntoSentences } from '../voice/sentenceStream'
@@ -97,6 +103,8 @@ export interface DualModeTeacherConfig {
   callbacks?: DualModeTeacherCallbacks
   /** Для тестов: готовая сессия голоса. */
   duplex?: DuplexVoiceSession
+  /** Проброс в DuplexVoiceSession: движок распознавания (sttEngine) и VAD захвата (micCapture). */
+  voice?: Pick<DuplexSessionConfig, 'recognition' | 'createVad'>
 }
 
 /** Команды кнопок (не распознаются по тексту — приходят явно). */
@@ -213,6 +221,7 @@ export class TeacherIntelligence {
       new DuplexVoiceSession({
         lang: this.lang,
         controller: config.controller,
+        ...config.voice,
         bargeInEnabled: true,
         onPartial: (t) => cb()?.onPartialTranscript?.(t),
         onUserUtterance: (text, meta) => {

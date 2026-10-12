@@ -35,6 +35,7 @@ const SchoolLoginPage = lazy(() =>
 const LearnRefCapturePage = lazy(() =>
   import('./pages/LearnRefCapturePage').then((m) => ({ default: m.LearnRefCapturePage })),
 )
+const VoiceCheckPage = lazy(() => import('./components/learn/teacher/VoiceCheck'))
 
 function PageFallback() {
   return (
@@ -82,6 +83,7 @@ export default function App() {
               <Route path="learn/research" element={<LearnResearchLab />} />
               <Route path="learn/research/:mode" element={<LearnResearchLab />} />
               <Route path="learn/ref/:sceneId" element={<LearnRefCapturePage />} />
+              <Route path="voice-check" element={<VoiceCheckPage />} />
               <Route path="learn/tasks" element={<LearnPage />} />
               <Route path="learn/tasks/:lessonId" element={<LearnPage />} />
               <Route path="learn/g/:gradeId/book" element={<LearnPage />} />

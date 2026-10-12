@@ -2,6 +2,10 @@
  * «Перед звонком»: объясняем, зачем микрофон и камера, до запроса разрешений.
  * Показывает предупреждения (нет распознавания речи, нет сети), выбор режима,
  * согласие на камеру (по умолчанию выключена) и состояние локального мозга.
+ *
+ * Голос предлагается, если есть getUserMedia (распознавать может сервер ATOMLAB, не только
+ * Web Speech). onStart вызывается СИНХРОННО из клика — родитель открывает микрофон и AudioContext
+ * в цепочке жеста (iOS/autoplay).
  */
 import { useEffect, useRef } from 'react'
 import { useT } from '../../../i18n/useT'
@@ -19,17 +23,27 @@ export function LiveTutorLobby({
   cameraOn,
   onCameraChange,
   speechSupported,
+  noRecognition = false,
+  serverStt = false,
   online,
   onStart,
+  onVoiceCheck,
 }: {
   topic: string
   mode: TutorMode
   onModeChange: (mode: TutorMode) => void
   cameraOn: boolean
   onCameraChange: (on: boolean) => void
+  /** Есть микрофон (getUserMedia). */
   speechSupported: boolean
+  /** Нет ни Web Speech, ни сервера распознавания — честно предупреждаем. */
+  noRecognition?: boolean
+  /** Речь распознаёт сервер ATOMLAB (/stt/health → available). */
+  serverStt?: boolean
   online: boolean
   onStart: (withVoice: boolean) => void
+  /** Открыть экран «Проверить микрофон». */
+  onVoiceCheck?: () => void
 }) {
   const { t } = useT()
   const primaryRef = useRef<HTMLButtonElement>(null)
@@ -80,7 +94,7 @@ export function LiveTutorLobby({
             </span>
             <div className={styles.permText}>
               <strong>{t('learn.teacherUi.permMicTitle')}</strong>
-              <span>{t('learn.teacherUi.permMicText')}</span>
+              <span>{serverStt ? t('learn.voice.permMicServer') : t('learn.teacherUi.permMicText')}</span>
             </div>
           </li>
           <li className={styles.permRow}>
@@ -119,6 +133,12 @@ export function LiveTutorLobby({
             <span>{t('learn.teacherUi.noSpeech')}</span>
           </p>
         ) : null}
+        {speechSupported && noRecognition ? (
+          <p className={styles.warn} role="note">
+            <IconKeyboardSmall className={styles.warnIcon} />
+            <span>{t('learn.voice.noRecognition')}</span>
+          </p>
+        ) : null}
         {!online ? (
           <p className={styles.warn} role="note">
             <IconWifiOff className={styles.warnIcon} />
@@ -145,6 +165,11 @@ export function LiveTutorLobby({
             </button>
           ) : null}
         </div>
+        {speechSupported && onVoiceCheck ? (
+          <button type="button" className={styles.voiceCheckLink} onClick={onVoiceCheck}>
+            {t('learn.voice.actionCheck')}
+          </button>
+        ) : null}
       </div>
     </div>
   )

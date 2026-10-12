@@ -10,10 +10,18 @@ import {
 import { createPortal } from 'react-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { getActiveStudent } from '../../learn/learnClassRosterStorage'
-import { checkHealth } from '../../learn/brain/remote/brainClient'
+import { checkHealth, getBrainUrl, useBrainStatus } from '../../learn/brain/remote/brainClient'
 import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import { isSpeechRecognitionSupported } from '../../learn/learnSpeech'
-import { getVoiceStatus, subscribeVoiceStatus, voiceStatusMessageKey } from '../../learn/brain/speech/voiceStatus'
+import {
+  getVoiceDiag,
+  getVoiceStatus,
+  subscribeVoiceDiag,
+  subscribeVoiceStatus,
+  voiceStatusMessageKey,
+} from '../../learn/brain/speech/voiceStatus'
+import { hasGetUserMedia, openMicOnGesture, type MicHandle } from '../../learn/brain/voice/micCapture'
+import { sharedSttHealth } from '../../learn/brain/voice/sttEngine'
 import { resetRecognitionContext, setRecognitionTopic } from '../../learn/brain/speech/chemTranscript'
 import { utteranceHold } from '../../learn/brain/speech/endOfUtterance'
 import { useDualModeTeacher } from '../../learn/brain'
@@ -21,7 +29,8 @@ import { prewarmLiveTeacher } from '../../learn/brain/dualMode'
 import type { TutorMode } from '../../learn/brain'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { IconClose, IconMic } from './LearnAiIcons'
-import { BrainStatusChip } from './teacher/TeacherChips'
+import { BrainStatusChip, SttPathChip } from './teacher/TeacherChips'
+import { VoiceLamps } from './teacher/VoiceLamps'
 import { TeacherAvatar, type AvatarState } from './teacher/TeacherAvatar'
 import { LiveCaptions } from './teacher/LiveCaptions'
 import { LiveTranscript, type QueuedTurn } from './teacher/LiveTranscript'
@@ -48,6 +57,12 @@ type Props = {
 }
 
 const INTERRUPTED_FLASH_MS = 1_400
+
+/** Экран «Проверить микрофон» — в новой вкладке, чтобы не прерывать урок. */
+function openVoiceCheck(): void {
+  const { pathname, search } = window.location
+  window.open(`${pathname}${search}#/voice-check`, '_blank', 'noopener')
+}
 
 function subscribeOnline(cb: () => void): () => void {
   window.addEventListener('online', cb)
@@ -89,6 +104,8 @@ const STATUS_KEY: Record<AvatarState | 'text', MessageKey> = {
 type SessionProps = Props & {
   mode: TutorMode
   withVoice: boolean
+  /** Микрофон, открытый в клике «Начать урок» (openMicOnGesture). */
+  mic: MicHandle | null
   cameraOn: boolean
   onCameraChange: (on: boolean) => void
   onRetryMic: () => void
@@ -103,6 +120,7 @@ function LiveTutorSession({
   rosterSectionId,
   mode: initialMode,
   withVoice,
+  mic,
   cameraOn,
   onCameraChange,
   onRetryMic,
@@ -144,10 +162,25 @@ function LiveTutorSession({
     topics: [sectionTitle],
     initialMode,
     voice: withVoice,
+    mic,
     videoEl,
   })
-  const { state, start, stop, setMode, sendText, askAnother, nextTopic, checkHomework, setMicMuted, interrupt } =
-    teacher
+  const {
+    state,
+    start,
+    stop,
+    setMode,
+    sendText,
+    askAnother,
+    nextTopic,
+    checkHomework,
+    setMicMuted,
+    interrupt,
+    setVoiceMode,
+    retryMic,
+  } = teacher
+  const voiceDiag = useSyncExternalStore(subscribeVoiceDiag, getVoiceDiag, getVoiceDiag)
+  const micLost = withVoice && state.running && voiceDiag.mic === 'lost'
 
   // Тема урока — контекст распознавания: из 5 альтернатив STT выигрывает та, что ближе к теме.
   useEffect(() => {
@@ -308,6 +341,7 @@ function LiveTutorSession({
 
         <div className={styles.topMeta}>
           <BrainStatusChip />
+          {withVoice ? <SttPathChip /> : null}
           <div className={styles.segmented} role="radiogroup" aria-label={t('learn.teacherUi.modeAria')}>
             {(['training', 'exam'] as const).map((m) => (
               <button
@@ -348,7 +382,16 @@ function LiveTutorSession({
                 <span>{t('learn.teacherUi.micWaiting')}</span>
               </p>
             ) : null}
-            {voiceHintKey && !micDenied && !sttBlocked ? (
+            {micLost ? (
+              <div className={styles.banner} data-tone="danger" role="alert">
+                <IconMicOff className={styles.bannerIcon} />
+                <span>{t('learn.voice.status.micLost')}</span>
+                <button type="button" className={styles.bannerBtn} onClick={() => void retryMic()}>
+                  {t('learn.teacherUi.retry')}
+                </button>
+              </div>
+            ) : null}
+            {voiceHintKey && !micDenied && !sttBlocked && !(micLost && voiceStatus.code === 'mic_lost') ? (
               <p className={styles.banner} data-tone="warn" role="status">
                 <IconMic className={styles.bannerIcon} />
                 <span>{t(voiceHintKey as MessageKey)}</span>
@@ -384,6 +427,37 @@ function LiveTutorSession({
             <p className={styles.status} data-state={avatarState} role="status" aria-live="polite">
               {t(statusKey)}
             </p>
+            {withVoice && state.running && (state.micActive || micLost) ? (
+              <>
+                <VoiceLamps
+                  muted={state.micMuted && !holding}
+                  aiSpeaking={state.aiSpeaking}
+                  onCheck={openVoiceCheck}
+                  onPushToTalk={() => setVoiceMode('push_to_talk')}
+                  onType={() => inputRef.current?.focus()}
+                />
+                <div
+                  className={`${styles.segmented} ${styles.voiceModes}`}
+                  role="radiogroup"
+                  aria-label={t('learn.voice.modeAria')}
+                >
+                  {(['hands_free', 'push_to_talk'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      role="radio"
+                      aria-checked={state.voiceMode === m}
+                      className={styles.segBtn}
+                      data-on={state.voiceMode === m ? '1' : undefined}
+                      data-testid={`voice-mode-${m}`}
+                      onClick={() => setVoiceMode(m)}
+                    >
+                      {m === 'hands_free' ? t('learn.voice.modeHandsFree') : t('learn.voice.modePtt')}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
           </div>
 
           <LiveCaptions
@@ -575,7 +649,7 @@ function LiveTutorSession({
         </div>
         <span className={styles.dockSpacer} aria-hidden />
       </footer>
-      <VoiceDebugOverlay metrics={state.metrics} partial={state.partial} />
+      <VoiceDebugOverlay metrics={state.metrics} partial={state.partial} diag={voiceDiag} />
     </>
   )
 }
@@ -590,9 +664,11 @@ function isVoiceDebug(): boolean {
 function VoiceDebugOverlay({
   metrics,
   partial,
+  diag,
 }: {
   metrics: ReturnType<typeof useDualModeTeacher>['state']['metrics']
   partial: string
+  diag: ReturnType<typeof getVoiceDiag>
 }) {
   const [on] = useState(isVoiceDebug)
   if (!on) return null
@@ -629,6 +705,15 @@ function VoiceDebugOverlay({
       {row('конец речи → 1-й звук', metrics?.speechEndToFirstAudioMs)}
       {row('1-й токен ответа', metrics?.firstTokenMs)}
       {row('весь ответ', metrics?.totalMs)}
+      <div>
+        sttPath: <b>{diag.path}</b> · lang: <b>{diag.lang ?? '—'}</b> · mic: <b>{diag.mic}</b>
+      </div>
+      {row('sttServerMs', diag.sttServerMs)}
+      {row('sttRoundTrip', diag.sttRoundTripMs)}
+      <div>
+        uploadBytes: <b>{diag.uploadBytes}</b> · vadFloor: <b>{getVoiceDiag().vadFloor.toFixed(4)}</b> · порог:{' '}
+        <b>{getVoiceDiag().vadStart.toFixed(4)}</b>
+      </div>
       <div>
         слышу: «{partial || '…'}»{hold ? ` · хвост: ${hold.ending} (+${hold.holdMs} мс)` : ''}
       </div>
@@ -699,7 +784,26 @@ function LiveTutorOverlay({
   const [withVoice, setWithVoice] = useState(true)
   const [sessionKey, setSessionKey] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
-  const speechSupported = useMemo(() => isSpeechRecognitionSupported(), [])
+  // Голос — если есть микрофон: распознаёт сервер ATOMLAB или браузер (Web Speech).
+  const speechSupported = useMemo(() => hasGetUserMedia(), [])
+  const webSpeech = useMemo(() => isSpeechRecognitionSupported(), [])
+  const brainStatus = useBrainStatus()
+  const [mic, setMic] = useState<MicHandle | null>(null)
+  // Сервер распознавания ATOMLAB доступен — лобби говорит честно, кто распознаёт речь.
+  const [serverSttOk, setServerSttOk] = useState(false)
+  useEffect(() => {
+    if (brainStatus !== 'online') return
+    let alive = true
+    void sharedSttHealth(getBrainUrl)
+      .check()
+      .then((ok) => {
+        if (alive) setServerSttOk(ok)
+      })
+    return () => {
+      alive = false
+    }
+  }, [brainStatus])
+  const serverStt = brainStatus === 'online' && serverSttOk
   const sectionTitle = t(section.titleKey)
 
   useEffect(() => {
@@ -772,8 +876,13 @@ function LiveTutorOverlay({
             cameraOn={cameraOn}
             onCameraChange={setCameraOn}
             speechSupported={speechSupported}
+            noRecognition={!webSpeech && brainStatus === 'offline'}
+            serverStt={serverStt}
             online={online}
+            onVoiceCheck={openVoiceCheck}
             onStart={(voice) => {
+              // В обработчике клика: AudioContext + getUserMedia в цепочке жеста (iOS/autoplay).
+              setMic(voice ? openMicOnGesture() : null)
               void checkHealth(true)
               setWithVoice(voice)
               setPhase('session')
@@ -789,9 +898,13 @@ function LiveTutorOverlay({
           rosterSectionId={rosterSectionId}
           mode={mode}
           withVoice={withVoice}
+          mic={mic}
           cameraOn={cameraOn}
           onCameraChange={setCameraOn}
-          onRetryMic={() => setSessionKey((k) => k + 1)}
+          onRetryMic={() => {
+            setMic(withVoice ? openMicOnGesture() : null)
+            setSessionKey((k) => k + 1)
+          }}
           onClose={onClose}
         />
       )}

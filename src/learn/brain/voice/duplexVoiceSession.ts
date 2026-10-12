@@ -45,6 +45,15 @@ export interface UserUtteranceMeta {
   speechEndAt: number | null
   commitAt: number
   afterBargeIn: boolean
+  /** Язык речи по распознаванию (сервер /stt), если известен — для метрик/лога. */
+  lang?: string | null
+}
+
+/** Подробности обновления распознавания (серверный путь). */
+export interface SttUpdateInfo {
+  lang?: string | null
+  path?: 'server' | 'web_speech'
+  serverMs?: number | null
 }
 
 /** Минимальный интерфейс распознавания (внедряется в тестах). */
@@ -52,13 +61,20 @@ export interface RecognitionLike {
   start(
     locale: LearnSpeechLocale,
     session: { committed: string },
-    onUpdate: (fullText: string, interimText: string) => void,
+    onUpdate: (fullText: string, interimText: string, info?: SttUpdateInfo) => void,
     onError?: (code: string, fatal: boolean) => void,
   ): boolean
   stop(): void
   /** Жёсткая пауза на время речи учителя (Chrome / без VAD). */
   pause?(): void
   resume?(delayMs: number): void
+  /* ---- серверный путь (sttEngine / serverRecognition); Web Speech их не реализует ---- */
+  /** Учитель говорит/замолчал (ранний partial для барджина). */
+  setAiSpeaking?(on: boolean): void
+  /** «Нажми и говори»: true — нажали; false — отпустили, Promise — финал распознан (или таймаут). */
+  hold?(on: boolean): Promise<void> | void
+  /** Движок меняет путь (браузерное STT на Android без VAD) — сообщает сессии. */
+  bindSession?(hooks: { setVadAvailable(on: boolean): void }): void
 }
 
 export interface VadLike {
@@ -135,6 +151,11 @@ const VAD_MIN_SPEECH_MS = 90
 const RESUME_AFTER_SPEECH_MS = 500
 /** «Нажми и говори»: кнопку отпустили — ждём финал последних слов от STT столько мс и коммитим без паузы. */
 export const HOLD_RELEASE_FLUSH_MS = 280
+/**
+ * begin() не ждёт подключения VAD дольше этого (RC6: на iOS/в приостановленном AudioContext
+ * resume() может не завершиться никогда — распознавание всё равно стартует, VAD подключится позже).
+ */
+export const VAD_ATTACH_WAIT_MS = 700
 
 export class DuplexVoiceSession {
   private readonly cfg: DuplexSessionConfig
@@ -172,6 +193,10 @@ export class DuplexVoiceSession {
   private holdFlushTimer: unknown = null
   /** Микрофон был выключен и включён только на время удержания — после коммита выключить снова. */
   private holdUnmuted = false
+  /** Номер отпускания кнопки: поздний финал старого удержания не завершает новое. */
+  private holdSeq = 0
+  /** Язык последнего распознанного куска (сервер /stt). */
+  private sttLang: string | null = null
 
   constructor(config: DuplexSessionConfig) {
     this.cfg = config
@@ -229,7 +254,7 @@ export class DuplexVoiceSession {
         if (this.aiSpeaking && !this.muted) this.bargeIn.level(rms)
       },
     }
-    this.vad = this.cfg.createVad
+    const vad = this.cfg.createVad
       ? this.cfg.createVad(handlers)
       : new AudioActivityDetector({
           startThreshold: 0.03,
@@ -238,16 +263,41 @@ export class DuplexVoiceSession {
           minSpeechMs: VAD_MIN_SPEECH_MS,
           ...handlers,
         })
-    this.vadOk = await this.vad.attach(micStream)
-    this.bargeIn.setVadAvailable(this.vadOk)
-    this.turnEnd.setVadAvailable(this.vadOk)
-    // Без VAD барджин невозможен (нечем подтвердить голос) → жёсткая пауза STT на время речи учителя.
-    this.listenMode = !this.vadOk
-      ? 'hard_pause'
-      : (this.cfg.listenWhileSpeaking ?? currentBrowserVoiceProfile().listenWhileSpeaking)
-    if (this.listenMode === 'hard_pause') this.bargeIn.setEnabled(false)
+    this.vad = vad
+    this.recognition.bindSession?.({ setVadAvailable: (on) => this.setVadAvailable(on) })
+    // RC6: не ждём attach() дольше VAD_ATTACH_WAIT_MS — распознавание стартует в любом случае.
+    const attached = vad.attach(micStream).catch(() => false)
+    let timer: unknown = null
+    const settled = await Promise.race([
+      attached.then((ok) => ({ ok, late: false })),
+      new Promise<{ ok: boolean; late: boolean }>((resolve) => {
+        timer = this.s.setTimeout(() => resolve({ ok: false, late: true }), VAD_ATTACH_WAIT_MS)
+      }),
+    ])
+    if (timer) this.s.clearTimeout(timer)
+    if (!this.active) return false
+    this.setVadAvailable(settled.ok)
     this.startStt()
+    if (settled.late) {
+      // VAD подключился позже (AudioContext запустился по касанию) — включаем барджин/конец по тишине.
+      void attached.then((ok) => {
+        if (ok && this.active && this.vad === vad) this.setVadAvailable(true)
+      })
+    }
     return this.vadOk
+  }
+
+  /**
+   * Есть ли VAD (громкость микрофона): без него барджин невозможен (нечем подтвердить голос) →
+   * жёсткая пауза STT на время речи учителя. Движок распознавания зовёт это при смене пути
+   * (браузерное STT на Android освобождает микрофон — VAD пропадает).
+   */
+  setVadAvailable(on: boolean): void {
+    this.vadOk = on
+    this.bargeIn.setVadAvailable(on)
+    this.turnEnd.setVadAvailable(on)
+    this.listenMode = !on ? 'hard_pause' : (this.cfg.listenWhileSpeaking ?? currentBrowserVoiceProfile().listenWhileSpeaking)
+    this.bargeIn.setEnabled(this.bargeInEnabled && this.listenMode !== 'hard_pause')
   }
 
   /** Режим прослушивания во время речи учителя (после begin). */
@@ -316,6 +366,7 @@ export class DuplexVoiceSession {
     if (this.aiSpeaking === v) return
     this.aiSpeaking = v
     this.bargeIn.setAiSpeaking(v)
+    this.recognition.setAiSpeaking?.(v)
     if (!v) {
       this.aiEndedAt = this.s.now()
       this.spokenLog.closeAll(this.aiEndedAt)
@@ -363,7 +414,8 @@ export class DuplexVoiceSession {
    * Работает и при выключенном микрофоне: включаем его только на время удержания.
    */
   holdToTalk(on: boolean): boolean {
-    if (!this.active || !this.vad) return false
+    // VAD не обязателен: на iOS/Android без него «нажми и говори» — основной режим.
+    if (!this.active) return false
     if (on) {
       if (this.holdActive) return true
       this.holdActive = true
@@ -383,6 +435,7 @@ export class DuplexVoiceSession {
         this.recognition.resume?.(0)
       }
       this.aiEndedAt = -Infinity
+      this.recognition.hold?.(true)
       this.turnEnd.speechStart()
       this.turnEnd.setPaused(true)
       this.setTurn('user_speaking')
@@ -390,7 +443,9 @@ export class DuplexVoiceSession {
     }
     if (!this.holdActive) return false
     this.holdActive = false
-    this.holdFlushTimer = this.s.setTimeout(() => {
+    const seq = ++this.holdSeq
+    const finish = () => {
+      if (seq !== this.holdSeq || this.holdActive) return
       this.holdFlushTimer = null
       this.turnEnd.setPaused(false)
       if (this.active && !this.muted) {
@@ -406,7 +461,11 @@ export class DuplexVoiceSession {
         this.holdUnmuted = false
         this.setMuted(true)
       }
-    }, HOLD_RELEASE_FLUSH_MS)
+    }
+    // Серверный путь: ждём финал сегмента «нажал–отпустил» (Promise), браузерный — 280 мс.
+    const waitFinal = this.recognition.hold?.(false)
+    if (waitFinal) void waitFinal.then(finish, finish)
+    else this.holdFlushTimer = this.s.setTimeout(finish, HOLD_RELEASE_FLUSH_MS)
     return true
   }
 
@@ -436,11 +495,15 @@ export class DuplexVoiceSession {
   }
 
   private startStt(): void {
-    if (!this.active || this.listening || this.muted || !this.vad) return
+    // VAD не требуется (RC6): распознавание работает и без громкости микрофона.
+    if (!this.active || this.listening || this.muted) return
     const ok = this.recognition.start(
       toSpeechLocale(this.cfg.lang),
       this.sttSession,
-      (full, interim) => this.onSttUpdate(full, interim),
+      (full, interim, info) => {
+        if (info?.lang) this.sttLang = info.lang
+        this.onSttUpdate(full, interim)
+      },
       (code, fatal) => {
         // Фатально (нет разрешения / сервиса распознавания) — голосом не слушаем, остаётся ввод текстом.
         if (fatal) this.listening = false
@@ -580,6 +643,7 @@ export class DuplexVoiceSession {
       speechEndAt: this.lastSpeechEndAt,
       commitAt: commit.at,
       afterBargeIn: this.afterBargeIn,
+      lang: this.sttLang,
     }
     this.afterBargeIn = false
     this.lastSpeechEndAt = null
