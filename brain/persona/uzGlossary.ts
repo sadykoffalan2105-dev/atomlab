@@ -263,7 +263,10 @@ export function termToRu(term: string, lang: 'uz' | 'en'): string[] | null {
   // слово термина = словарная форма + окончание до 5 букв (valentlik → valentligi: k/q чередуются с g/gʻ)
   const covered = (w: string) =>
     fw.some((f) => f.length >= 2 && (f.startsWith(w) || ((w.startsWith(f) || (/[kq]$/.test(f) && w.startsWith(f.slice(0, -1)))) && w.length - f.length <= 5)))
-  return tw.length && tw.every(covered) ? ru : null
+  if (!tw.length || !tw.every(covered)) return null
+  // «valence of sodium», «natriyning valentligi» — свойство вещества/элемента, а не термин: определение не ищем
+  if (ru.length > 1 && ru.some((r) => ENTITY_RU.has(r))) return null
+  return ru
 }
 
 /** Вещества и элементы словаря — это сущности, а не тема («kislorodning valentligi» → тема «валентность»). */
