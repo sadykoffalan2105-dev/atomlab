@@ -1,0 +1,139 @@
+/* «Сообщить об ошибке» под ответом ИИ-учителя (AnswerReport.tsx) — цвета из токенов темы обучения (--lt-*). */
+.wrap {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--lt-text-3, currentColor);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle:hover,
+.toggle[aria-expanded='true'] {
+  color: var(--lt-text, currentColor);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.toggle:focus-visible,
+.send:focus-visible,
+.cancel:focus-visible,
+.comment:focus-visible {
+  outline: 2px solid var(--lt-accent-cyan, #38bdf8);
+  outline-offset: 2px;
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 10px;
+}
+
+.reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  width: 100%;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.reason {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  cursor: pointer;
+}
+
+.commentLabel {
+  display: grid;
+  gap: 4px;
+}
+
+.comment {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.hint {
+  margin: 0;
+  color: var(--lt-text-3, currentColor);
+  opacity: 0.9;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.send,
+.cancel {
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.send {
+  border: 0;
+  background: var(--lt-accent-cyan, #0ea5e9);
+  color: #04121c;
+  font-weight: 600;
+}
+
+.send:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.cancel {
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: transparent;
+  color: inherit;
+}
+
+.err {
+  color: var(--lt-danger, #dc2626);
+}
+
+.done {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--lt-success, #16a34a);
+}
+
+.aboutLink {
+  color: var(--lt-accent-cyan, inherit);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

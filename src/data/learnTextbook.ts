@@ -8,6 +8,7 @@ import {
   g7BookChapterStart,
   g7BookSectionPage,
 } from './g7BookCurriculum'
+import { textbookOfficialUrl, textbookPdfAllowed } from './textbookAccess'
 
 type TocEntry = { ch: number; sec: number; page: number }
 
@@ -134,6 +135,8 @@ export function textbookSectionPage(gradeId: string, chapterId: string, sectionI
 export function textbookPdfUrl(gradeId: string, page: number): string {
   const cfg = getTextbookConfig(gradeId)
   if (!cfg) return ''
+  // флаг владельца (src/data/textbookAccess.ts): PDF с сайта выключены → официальная электронная копия (или пусто)
+  if (!textbookPdfAllowed()) return textbookOfficialUrl(gradeId) ?? ''
   return pdfUrl(cfg.pdfFile, page, cfg.totalPages)
 }
 

@@ -21,6 +21,7 @@ import { LearnAssistantPanel } from './LearnAssistantPanel'
 import { BookEquationsPanel } from './book/BookEquationsPanel'
 import { appSectionFromKey, useMediaQuery } from './book/bookUi'
 import styles from './LearnTextbookReader.module.css'
+import { textbookAccessLabel, textbookOfficialUrl, textbookPdfAllowed } from '../../data/textbookAccess'
 
 type Props = {
   gradeId: string
@@ -32,6 +33,20 @@ type PanelTab = 'equations' | 'teacher'
 const PHONE_QUERY = '(max-width: 899px)'
 
 function TextbookPdfFrame({ page, title, src }: { page: number; title: string; src: string }) {
+  const { locale } = useT()
+  // флаг владельца (src/data/textbookAccess.ts): PDF с сайта выключены — вместо просмотра ссылка на официальную копию
+  if (!textbookPdfAllowed()) {
+    return (
+      <div className={styles.frame} data-book-official-only="" role="note">
+        <p>{textbookAccessLabel(locale, src ? 'unavailable' : 'none')}</p>
+        {src ? (
+          <a className={styles.pdfLink} href={src} target="_blank" rel="noreferrer">
+            {textbookAccessLabel(locale, 'official')}
+          </a>
+        ) : null}
+      </div>
+    )
+  }
   return <iframe key={page} className={styles.frame} title={title} src={src} />
 }
 
@@ -337,9 +352,17 @@ export function LearnTextbookReader({ gradeId }: Props) {
                 ))}
               </select>
             </label>
-            <a className={styles.pdfLink} href={pdfSrc} target="_blank" rel="noreferrer" data-book-open-pdf>
-              {t('learn.bookPanel.openPdf')} · {t('learn.textbook.page')} {page}
-            </a>
+            {textbookPdfAllowed() ? (
+              <a className={styles.pdfLink} href={pdfSrc} target="_blank" rel="noreferrer" data-book-open-pdf>
+                {t('learn.bookPanel.openPdf')} · {t('learn.textbook.page')} {page}
+              </a>
+            ) : null}
+            {/* «официальная копия» — если владелец вписал адрес (src/data/textbookAccess.ts) */}
+            {textbookOfficialUrl(gradeId) ? (
+              <a className={styles.pdfLink} href={textbookOfficialUrl(gradeId)!} target="_blank" rel="noreferrer" data-book-official>
+                {textbookAccessLabel(locale, 'official')}
+              </a>
+            ) : null}
           </div>
           {sidePanel}
         </div>
