@@ -175,7 +175,7 @@ await stt.close()
 // ——— 5) монитор
 console.log('5) монитор доступности')
 let mode: 'up' | 'degraded' | 'down' | 'html' = 'up'
-const health = http.createServer((req, res) => {
+const health = http.createServer((_req, res) => {
   if (mode === 'down') {
     res.writeHead(502)
     return res.end('bad gateway')
