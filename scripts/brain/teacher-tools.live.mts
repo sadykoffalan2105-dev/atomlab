@@ -10,7 +10,7 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import { buildBody, normGrade, normPlan, normTest, type TeacherToolKind } from '../../src/learn/brain/remote/teacherTools'
+import { buildBody, normGrade, normPlan, normTest, type TeacherToolKind } from '../../src/learn/brain/remote/teacherToolsContract'
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
