@@ -73,6 +73,12 @@ export const ABORTED_SILENT_RESTARTS = 3
 export const EMPTY_SESSIONS_LIMIT = 5
 /** Столько эпизодов «не отвечает» → переход в push-to-talk. */
 export const UNRESPONSIVE_EPISODES_TO_PTT = 2
+/**
+ * iOS/Safari (profile.recommendedMode = 'push_to_talk'): непрерывные сессии там часто не стартуют вовсе —
+ * 2 пустые сессии подряд → сразу «нажми и говори» (а не 5 × 2, как в Chrome/Edge, где пустая сессия —
+ * обычная тишина ученика).
+ */
+export const PTT_PROFILE_EMPTY_SESSIONS = 2
 
 /** Лучшая альтернатива результата (maxAlternatives = 5). */
 function bestOf(result: SpeechRecognitionResult | undefined): string {
@@ -89,7 +95,7 @@ export interface LearnSpeechRecognitionOptions {
   ctor?: SpeechRecognitionCtor | null
   scheduler?: TimingScheduler
   /** Профиль браузера (Chrome без uz-UZ → сразу ru-RU). По умолчанию — без предположений. */
-  profile?: Pick<BrowserVoiceProfile, 'vendor' | 'supportedLocales'> | null
+  profile?: (Pick<BrowserVoiceProfile, 'vendor' | 'supportedLocales'> & Partial<Pick<BrowserVoiceProfile, 'recommendedMode'>>) | null
 }
 
 export class LearnSpeechRecognition {
@@ -213,11 +219,14 @@ export class LearnSpeechRecognition {
     }
     const backoff = () => RESTART_BACKOFF_MS[Math.min(Math.max(0, emptySessions - 1), RESTART_BACKOFF_MS.length - 1)]!
 
+    // iOS/Safari: порог ниже и без промежуточного «не отвечает».
+    const pttProfile = this.profile?.recommendedMode === 'push_to_talk'
+    const emptyLimit = pttProfile ? PTT_PROFILE_EMPTY_SESSIONS : EMPTY_SESSIONS_LIMIT
     const registerEmpty = () => {
       emptySessions++
-      if (emptySessions === EMPTY_SESSIONS_LIMIT) {
+      if (emptySessions === emptyLimit) {
         this.unresponsiveEpisodes++
-        if (this.unresponsiveEpisodes >= UNRESPONSIVE_EPISODES_TO_PTT) {
+        if (pttProfile || this.unresponsiveEpisodes >= UNRESPONSIVE_EPISODES_TO_PTT) {
           // Непрерывный режим в этом браузере не живёт — переходим на удержание кнопки.
           setVoiceStatus('push_to_talk', 'push_to_talk')
           onError?.('push-to-talk', false)

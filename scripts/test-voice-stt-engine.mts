@@ -21,6 +21,8 @@ import { getVoiceStatus, setVoiceStatus } from '../src/learn/brain/speech/voiceS
 import type { TimingScheduler } from '../src/learn/brain/voice/conversationTiming.ts'
 import { DuplexVoiceSession, VAD_ATTACH_WAIT_MS, type RecognitionLike } from '../src/learn/brain/voice/duplexVoiceSession.ts'
 import { LiveSpeechOutput, type LiveSpeechBackend } from '../src/learn/brain/voice/liveSpeechOutput.ts'
+import { LearnSpeechRecognition } from '../src/learn/learnSpeechRecognition.ts'
+import { browserVoiceProfile } from '../src/learn/brain/speech/browserProfile.ts'
 
 let passed = 0
 let failed = 0
@@ -501,6 +503,58 @@ await test('мозг offline и Web Speech нет → none (только тек�
   assert.equal(engine.getPath(), 'none')
   assert.deepEqual(errors, ['stt_none'])
   engine.stop()
+})
+
+console.log('\n# Web Speech как запасной путь')
+
+await test('iOS/Safari (recommendedMode push_to_talk): 2 пустые сессии → сразу «нажми и говори»', () => {
+  const s = new FakeScheduler()
+  const instances: { started: boolean; stopped: boolean; onend: (() => void) | null }[] = []
+  class MockRec {
+    lang = ''
+    interimResults = false
+    maxAlternatives = 1
+    continuous = false
+    onresult = null
+    onerror = null
+    onend: (() => void) | null = null
+    started = false
+    stopped = false
+    constructor() {
+      instances.push(this)
+    }
+    start() {
+      this.started = true
+    }
+    stop() {
+      this.stopped = true
+      this.onend?.()
+    }
+    abort() {
+      this.stop()
+    }
+  }
+  const run = (profile: Parameters<typeof browserVoiceProfile>[0]) => {
+    instances.length = 0
+    const rec = new LearnSpeechRecognition({ ctor: MockRec as never, scheduler: s, profile: browserVoiceProfile(profile) })
+    const errors: string[] = []
+    rec.startOralListening('ru', { committed: '' }, () => undefined, (c) => errors.push(c))
+    for (let i = 0; i < 3; i++) {
+      const r = instances.at(-1)!
+      if (!r.started || r.stopped) break
+      r.onend?.()
+      s.advance(1100)
+    }
+    return { errors, listening: rec.isListening() }
+  }
+  const ios = run('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1')
+  assert.ok(ios.errors.includes('push-to-talk'), JSON.stringify(ios.errors))
+  assert.equal(ios.listening, false)
+  // Chrome: 3 пустые сессии — обычная тишина ученика, режим не меняется.
+  const chrome = run('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36')
+  assert.equal(chrome.errors.includes('push-to-talk'), false)
+  assert.equal(chrome.listening, true)
+  setVoiceStatus('idle')
 })
 
 console.log('\n# DuplexVoiceSession.begin (RC6)')
