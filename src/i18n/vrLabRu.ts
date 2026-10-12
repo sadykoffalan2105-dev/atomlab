@@ -44,6 +44,8 @@ export const vrLabRu = {
   'vrLab.action.empty': 'Сбросить всё',
 
   'vrLab.result.title': 'Результат',
+  'vrLab.canvas.loading': 'Загрузка лаборатории…',
+  'vrLab.canvas.error': '3D-сцена недоступна. Обновите страницу или откройте в другом браузере с поддержкой WebGL.',
   'vrLab.result.equation': 'Уравнение',
   'vrLab.result.none': 'Налейте два разных реагента в чан — выберите колбу и нажмите «Влить в чан».',
 
@@ -96,7 +98,7 @@ export const vrLabRu = {
   'vrLab.curated.color_fe2o3_hcl': 'Fe₂O₃ + HCl → желтый раствор',
   'vrLab.curated.color_fe2o3_hcl.theory': 'Оксид железа(III) растворяется в кислоте.',
 
-  'vrLab.lesson.kicker': 'Обучение · Theory → Quiz → Practice',
+  'vrLab.lesson.kicker': 'Обучение · Теория → Тест → Практика',
   'vrLab.lesson.phase.theory': 'Теория',
   'vrLab.lesson.phase.quiz': 'Тест',
   'vrLab.lesson.phase.practice': 'Практика',

@@ -45,6 +45,8 @@ export const vrLabUz: Record<keyof typeof vrLabRu, string> = {
   'vrLab.action.empty': 'Hammasini tozalash',
 
   'vrLab.result.title': 'Natija',
+  'vrLab.canvas.loading': 'Laboratoriya yuklanmoqda…',
+  'vrLab.canvas.error': '3D sahna mavjud emas. Sahifani yangilang yoki WebGL qoʻllab-quvvatlanadigan brauzerda oching.',
   'vrLab.result.equation': 'Tenglama',
   'vrLab.result.none': 'Changa ikki xil reagent quying — kolba tanlang va «Changa quyish».',
 

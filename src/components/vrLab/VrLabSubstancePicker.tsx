@@ -3,6 +3,7 @@ import { compoundById } from '../../data/compounds'
 import { filterCatalogIndex, loadVrLabCatalogIndex, type VrLabCatalogEntry } from '../../vrLab/chemistry/vrLabCatalogIndex'
 import { listVrLabStarterSubstanceIds } from '../../vrLab/mixEngine'
 import { useT } from '../../i18n/useT'
+import { resolveCompoundName } from '../../i18n/compoundNameResolver'
 import styles from './VrLabSubstancePicker.module.css'
 
 const ROW_HEIGHT = 52
@@ -21,6 +22,8 @@ function VirtualList({
   selectedCompoundId: string | null
   onSelect: (id: string) => void
 }) {
+  // EN/UZ: имя из словаря, без перевода — только формула (раньше в списке висели русские названия)
+  const { locale } = useT()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
   const [viewportH, setViewportH] = useState(320)
@@ -66,7 +69,10 @@ function VirtualList({
             >
               <span className={styles.swatch} aria-hidden />
               <span className={styles.formula}>{c.formulaUnicode}</span>
-              <span className={styles.name}>{c.nameRu}</span>
+              {(() => {
+                const name = locale === 'ru' ? c.nameRu : resolveCompoundName(c.id, locale)
+                return name ? <span className={styles.name}>{name}</span> : null
+              })()}
             </button>
           )
         })}

@@ -55,8 +55,8 @@ function mockSticky<T>(initial: T | null = null) {
 }
 
 {
-  // Clear color must stay cosmic — no red/near-black jump.
-  assert.equal(LAB_COSMIC_BG, '#0a0c18')
+  // Clear color must stay cosmic — no red/near-black jump (фиолетовая туманность bfa74c3f: тот же тон, что сцена реактора).
+  assert.equal(LAB_COSMIC_BG, '#0a0818')
 }
 
 console.log('test-synthesis-handoff: all passed')

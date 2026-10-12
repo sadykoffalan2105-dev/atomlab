@@ -205,7 +205,7 @@ function drawElementCell(ctx: CanvasRenderingContext2D, el: ElementViewModel, co
   ctx.fillText(String(el.z), x + 3, y + 2)
 
   ctx.textAlign = 'right'
-  ctx.fillText(massDisplay(el.atomicMass), x + w - 3, y + 2)
+  ctx.fillText(massDisplay(el.atomicMass, el.symbol), x + w - 3, y + 2)
 
   ctx.fillStyle = style.neon
   ctx.font = `800 ${h > 28 ? 13 : 11}px ${FONT}`

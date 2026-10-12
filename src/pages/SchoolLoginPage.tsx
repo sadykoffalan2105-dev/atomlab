@@ -79,7 +79,12 @@ export function SchoolLoginPage() {
         background: 'var(--app-shell-bg, var(--lt-bg))',
       }}
     >
-      <section className={styles.panel} aria-labelledby={`${loginId}-title`} style={{ animation: 'none' }}>
+      {/* QA 375 px: .panel — content-box, width 100% + padding 40 + border 2 уводили страницу вбок; border-box только здесь */}
+      <section
+        className={styles.panel}
+        aria-labelledby={`${loginId}-title`}
+        style={{ animation: 'none', boxSizing: 'border-box' }}
+      >
         <div className={styles.panelHead}>
           <h1 id={`${loginId}-title`} className={styles.title}>
             {t('school.login.title')}

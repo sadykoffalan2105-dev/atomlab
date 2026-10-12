@@ -9,7 +9,6 @@ const checks = [
   'src/lab/reactorPreviewZeroGap.ts',
   'src/lab/reactorPreviewContinuityGuard.ts',
   'src/lab/reactorPreviewLayoutCache.ts',
-  'src/lab/deferredGpuPrewarm.ts',
   'src/lab/visualCoverageController.ts',
   'src/lab/gpuCompileChunked.ts',
   'src/components/lab/ReactorTermsPreview.tsx',

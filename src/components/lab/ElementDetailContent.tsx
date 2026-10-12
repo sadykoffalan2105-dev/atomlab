@@ -265,7 +265,7 @@ function RichElementDetail({
             <span className={styles.tileCpk} style={{ backgroundColor: `#${cpk}` }} aria-hidden />
           ) : null}
           <span className={styles.tileSymbol}>{el.symbol}</span>
-          <span className={styles.tileMass}>{massDisplay(el.atomicMass)}</span>
+          <span className={styles.tileMass}>{massDisplay(el.atomicMass, el.symbol)}</span>
         </div>
 
         <div className={styles.richTitle}>
@@ -289,7 +289,7 @@ function RichElementDetail({
         <div className={styles.statsGrid}>
           <div className={`${styles.statCard} ${styles.statCardAccent}`}>
             <span className={styles.statValue}>
-              {massDisplay(el.atomicMass)}
+              {massDisplay(el.atomicMass, el.symbol)}
               <span className={styles.statUnit}> u</span>
             </span>
             <span className={styles.statLabel}>{t('elementDetail.atomicMass')}</span>
@@ -495,7 +495,7 @@ function LabElementDetail({
   const stats: { key: string; value: ReactNode; sign: ReactNode; label: string }[] = [
     {
       key: 'mass',
-      value: massDisplay(el.atomicMass),
+      value: massDisplay(el.atomicMass, el.symbol),
       sign: (
         <>
           A<sub>r</sub>
@@ -725,7 +725,7 @@ export function ElementDetailContent({
 
       <dl className={styles.dl}>
         <dt className={styles.dt}>{t('elementDetail.atomicMass')}</dt>
-        <dd className={styles.dd}>{massDisplay(el.atomicMass)} u</dd>
+        <dd className={styles.dd}>{massDisplay(el.atomicMass, el.symbol)} u</dd>
 
         <dt className={styles.dt}>{t('elementDetail.protons')}</dt>
         <dd className={styles.dd}>{el.z}</dd>

@@ -8,6 +8,8 @@
   justify-content: center;
   padding: 0 12px;
   pointer-events: none;
+  /* шрифт в px (корень сайта мелкий) — и высота строки своя, иначе две строки подсказки слипаются */
+  line-height: 1.35;
 }
 
 .bar,
@@ -29,7 +31,7 @@
 
 .tip {
   padding: 10px 16px;
-  font-size: 0.95rem;
+  font-size: 15px;
   font-weight: 600;
   color: #23303e;
 }
@@ -48,12 +50,12 @@
 }
 
 .icon {
-  font-size: 1.15rem;
+  font-size: 18.5px;
 }
 
 .label {
   font-weight: 700;
-  font-size: 0.98rem;
+  font-size: 15.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -71,7 +73,7 @@
   border-radius: 12px;
   border: 1px solid rgba(24, 32, 42, 0.12);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 14.5px;
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
@@ -130,11 +132,11 @@
   .btnPrimary {
     flex: 1;
     padding: 0 8px;
-    font-size: 0.86rem;
+    font-size: 14px;
   }
 
   .tip {
-    font-size: 0.9rem;
+    font-size: 14.5px;
   }
 }
 

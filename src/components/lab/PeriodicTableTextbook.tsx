@@ -80,7 +80,7 @@ function TextbookCellInner({
   return (
     <div className={`${tbStyles.tbCellInner} ${compact ? tbStyles.tbCellInnerCompact : ''}`}>
       <span className={tbStyles.tbZ}>{el.z}</span>
-      {!compact ? <span className={tbStyles.tbMass}>{massDisplay(el.atomicMass)}</span> : null}
+      {!compact ? <span className={tbStyles.tbMass}>{massDisplay(el.atomicMass, el.symbol)}</span> : null}
       <span className={tbStyles.tbSym} title={config || ruName}>
         {el.symbol}
       </span>

@@ -17,6 +17,8 @@ import { ORGANIC_MOLECULES } from '../src/data/organicLab/organicMoleculeRegistr
 import { isCatalogVisibleId } from '../src/data/textbook/catalogWhitelist.ts'
 import { CATALOG_TOP200 } from '../src/data/catalog/catalogTop200.ts'
 import { getElementBySymbol } from '../src/data/elements.ts'
+import { readFileSync } from 'node:fs'
+import { READER_GRADE_REACTION_TOTALS } from '../src/data/textbook/bookReader.ts'
 import { ATOMIC_NOTATION_ALIAS, collectBookSpecies, compositionKey, formulaCounts } from './plan/bookSpecies.mts'
 
 const LIST = process.argv.includes('--list')
@@ -82,6 +84,17 @@ for (const sp of collectBookSpecies().values()) {
     rows.push(`simple ${sp.formula.padEnd(22)} → таблица Менделеева  g${grades.join(',')}`)
   } else {
     problems.push(`${sp.formula} (g${grades.join(',')}): нет в каталоге`)
+  }
+}
+
+// Счётчики каталога «школьных реакций» до загрузки JSON — та же таблица, что в книгах.
+for (const g of ['g7', 'g8', 'g9', 'g10', 'g11'] as const) {
+  const raw = JSON.parse(readFileSync(new URL(`../src/data/textbook/equations-${g}.json`, import.meta.url), 'utf8')) as {
+    units: { reactions: unknown[] }[]
+  }
+  const n = raw.units.reduce((a, u) => a + u.reactions.length, 0)
+  if (READER_GRADE_REACTION_TOTALS[g] !== n) {
+    problems.push(`READER_GRADE_REACTION_TOTALS.${g} = ${READER_GRADE_REACTION_TOTALS[g]}, а в equations-${g}.json ${n} реакций`)
   }
 }
 
