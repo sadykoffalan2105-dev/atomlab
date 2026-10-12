@@ -83,14 +83,25 @@ function loadFixture(phrase) {
  * Собрать «звук в микрофоне»: тишина lead → фразы с паузами → хвост 3 с. Возвращает 16 кГц (для заглушки),
  * путь к 48 кГц WAV (для Chrome) и сегменты речи (мс от начала файла).
  */
-function buildMic(name, phrases, { gapS = 1.2, leadS = LEAD_S, tailS = 3, noiseOnly = 0 } = {}) {
+function buildMic(name, phrases, { gapS = 1.2, leadS = LEAD_S, tailS = 3, noiseOnly = 0, trimMs = null } = {}) {
   const parts = [silence(leadS, 16_000)]
   const segments = []
   let at = leadS * 1000
   for (const p of phrases) {
-    const { e, samples } = loadFixture(p)
+    const { e, samples: whole } = loadFixture(p)
+    // trimMs: клип обрезается до речи ± trimMs — у клипов своя тишина (~0,25 с до и ~0,75 с после речи),
+    // и «паузы 0,3 с» без обрезки на деле были ~1,3 с: каждая фраза становилась отдельной репликой.
+    let samples = whole
+    let speech = e.speech
+    if (trimMs !== null && e.speech) {
+      const from = Math.max(0, Math.round(((e.speech.startMs - trimMs) / 1000) * 16_000))
+      const to = Math.min(whole.length, Math.round(((e.speech.endMs + trimMs) / 1000) * 16_000))
+      samples = whole.slice(from, to)
+      const fromMs = (from / 16_000) * 1000
+      speech = { startMs: e.speech.startMs - fromMs, endMs: e.speech.endMs - fromMs }
+    }
     parts.push(samples)
-    if (e.speech) segments.push({ startMs: at + e.speech.startMs, endMs: at + e.speech.endMs, text: e.text })
+    if (speech) segments.push({ startMs: at + speech.startMs, endMs: at + speech.endMs, text: e.text })
     at += (samples.length / 16_000) * 1000
     parts.push(silence(gapS, 16_000))
     at += gapS * 1000
@@ -421,7 +432,7 @@ async function scenarioLong() {
   const title = 'длинная речь ~45 с → ≥ 2 сегмента, объединённый WER ≤ 20 %'
   // 12 фраз подряд с короткими паузами (0,3 с < конца реплики 450 мс) — непрерывная речь ~45 с
   const seq = ['ru-03', 'ru-01', 'ru-26', 'echo-02', 'ru-03', 'ru-01', 'ru-26', 'echo-02', 'ru-03', 'ru-01', 'ru-26', 'echo-02', 'ru-03', 'ru-26']
-  const mic = buildMic('d-long', seq, { gapS: 0.3, tailS: 4 })
+  const mic = buildMic('d-long', seq, { gapS: 0.3, tailS: 4, trimMs: 60 })
   mock.reset()
   mock.registerClip({ id: mic.id, samples: mic.samples16, segments: mic.segments })
   const browser = await launch(mic.file)

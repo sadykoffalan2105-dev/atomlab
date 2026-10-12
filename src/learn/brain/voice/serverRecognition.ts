@@ -303,7 +303,7 @@ export class ServerRecognition implements RecognitionLike {
       this.onUpdate?.(this.session.committed.trim(), '', { lang: res.lang, path: 'server', serverMs: res.ms?.total ?? null })
     } catch (e) {
       const err = e instanceof SttHttpError ? e : new SttHttpError(0, 'network', String(e), null)
-      voiceLog('stt_error', { partial: 0, status: err.status, code: err.code })
+      voiceLog('stt_error', { partial: 0, status: err.status, code: err.code, ...(err.status === 0 ? { detail: err.message.slice(0, 80) } : {}) })
       const maxRetries = err.code === 'busy' ? 3 : 1
       if (err.status === 429 && retries < maxRetries) {
         // Лимит/занято: ждём Retry-After и повторяем тот же сегмент — слова не теряются.
@@ -342,7 +342,7 @@ export class ServerRecognition implements RecognitionLike {
         if (this.partialCtrl === ctrl) this.partialCtrl = null
         if (ctrl.signal.aborted) return
         const err = e instanceof SttHttpError ? e : new SttHttpError(0, 'network', String(e), null)
-        voiceLog('stt_error', { partial: 1, status: err.status, code: err.code })
+        voiceLog('stt_error', { partial: 1, status: err.status, code: err.code, ...(err.status === 0 ? { detail: err.message.slice(0, 80) } : {}) })
         if (err.status === 429) this.partialBlockedUntil = this.s.now() + (err.retryAfterMs ?? 5_000)
         else if (err.unavailable) this.noteFailure(err)
       })
