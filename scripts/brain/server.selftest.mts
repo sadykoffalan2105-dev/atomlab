@@ -6,7 +6,10 @@
  *      /health без путей и ключей; CORS (разрешён / чужой / localhost / Private Network); 415, 413, 400 на лимиты;
  *      админ 403/200 (пустой ключ — только этот ПК; ключ — заголовок X-Brain-Admin); лимит 429 (минута, сутки)
  *      по адресу из прокси; потоков на ученика; очередь: события queue {position}, переполнение и долгое ожидание →
- *      запасной путь с reason 'busy'; журнал диалогов без адресов, режим 'local'.
+ *      запасной путь с reason 'busy'; журнал диалогов без адресов, режим 'local';
+ *   4) школьный NAT: лимиты на ученика по паре «адрес + X-Brain-Session» (30 сессий за одним адресом проходят, одна
+ *      сессия сверх 8/мин → 429), потолок адреса (config.server.rate.perIp), кривой заголовок игнорируется (лимит по адресу),
+ *      потоки /chat и фото — на ученика, preflight OPTIONS класса не упирается в лимит «прочего».
  * Код выхода 1, если хоть одна проверка не прошла.
  */
 import fs from 'node:fs'
@@ -26,7 +29,8 @@ const ORIGIN = 'https://sadykoffalan2105-dev.github.io'
 const { applyProfile, DEFAULT_CONFIG, FILES, loadConfig } = await import('../../brain/config.ts')
 const { createBrainLazy, createServer } = await import('../../brain/server.ts')
 const { MockLlm } = await import('../../brain/llm/mock.ts')
-const { clientInfo, hashAddress } = await import('../../brain/http/clientIp.ts')
+const { clientInfo, hashAddress, studentKey } = await import('../../brain/http/clientIp.ts')
+const { RateLimiter } = await import('../../brain/http/rateLimit.ts')
 const { parseSse } = await import('../../brain/sse.ts')
 
 let failed = 0
@@ -54,6 +58,40 @@ ok(clientInfo(fake('127.0.0.1', { forwarded: 'for="[2001:db8::1]:4711"' })).key 
 ok(hashAddress('2001:db8:1:2::5') === hashAddress('2001:db8:1:2:aaaa::9') && hashAddress('2001:db8:1:2::5') !== hashAddress('2001:db8:1:3::5'), 'IPv6: один ключ на сеть /64')
 const k = hashAddress('203.0.113.7')
 ok(/^[0-9a-f]{16}$/.test(k) && !k.includes('203') && k !== hashAddress('203.0.113.8'), 'ключ — солёный хеш (16 hex), не адрес')
+
+// ——— 1б) ученик за школьным NAT: адрес + сессия сайта
+console.log('1б) ученик = адрес + X-Brain-Session')
+{
+  const SID = 's-0f6c2a9e-3b1d-4c8e-9a7f-2d5e6b8c1a40'
+  const withS = clientInfo(fake('127.0.0.1', { 'x-forwarded-for': '203.0.113.7', 'x-brain-session': SID }))
+  ok(withS.session && withS.key === hashAddress('203.0.113.7') && withS.student !== withS.key && withS.student === studentKey(withS.key, SID), 'верная сессия: ключ ученика ≠ ключ адреса, ключ адреса прежний')
+  ok(!withS.student.includes(SID) && /^s[0-9a-f]{16}$/.test(withS.student), 'ключ ученика — солёный хеш, сессии в нём нет')
+  const otherIp = clientInfo(fake('127.0.0.1', { 'x-forwarded-for': '203.0.113.8', 'x-brain-session': SID }))
+  ok(otherIp.student !== withS.student, 'та же сессия с другого адреса — другой ученик (чужую сессию извне не «занять»)')
+  const bad = ['short', 'плохая-сессия-123', 'bad id with spaces', 'a'.repeat(65), 'abc.def.ghi', '']
+  ok(
+    bad.every((v) => {
+      const c = clientInfo(fake('127.0.0.1', { 'x-forwarded-for': '203.0.113.7', 'x-brain-session': v }))
+      return !c.session && c.student === c.key
+    }),
+    'кривой заголовок (короткий, кириллица, пробелы, > 64, точки, пустой) игнорируется: ученик = адрес',
+  )
+  const dup = clientInfo({ socket: { remoteAddress: '127.0.0.1' }, headers: { host: '127.0.0.1:8787', 'x-forwarded-for': '203.0.113.7', 'x-brain-session': ['sessionA-123', 'sessionB-456'] } } as unknown as FakeReq)
+  ok(!dup.session && dup.student === dup.key, 'заголовок повторён — игнорируется')
+  // ограничитель: отказ по потолку не съедает лимит ученика (и наоборот)
+  let t = 0
+  const rl = new RateLimiter(() => t)
+  const stu = [{ name: 's_min', windowMs: 60_000, max: 2 }]
+  const ceil = [{ name: 'ip_min', windowMs: 60_000, max: 3 }]
+  const both = (st: string) => rl.hitAll([{ group: 'g', key: st, rules: stu }, { group: 'g_ip', key: 'ip', rules: ceil }])
+  const v = ['st1', 'st2', 'st3'].map((k) => both(k).ok)
+  const v4 = both('st1')
+  t += 61_000
+  const v5 = both('st1')
+  const v6 = both('st1')
+  const v7 = both('st1')
+  ok(v.every(Boolean) && !v4.ok && v4.rule === 'ip_min' && v5.ok && v6.ok && !v7.ok && v7.rule === 's_min', 'hitAll: потолок адреса и лимит ученика, отказ не засчитывается ни в один счётчик')
+}
 
 // ——— 2) профиль
 console.log('2) профиль железа')
@@ -198,6 +236,56 @@ const day = await call('POST', '/chat', { headers: { ...D, ...JSONH }, body: '{}
 ok(day.status === 429 && day.json?.rule === 'chat_day' && Number(day.json?.retryAfterSec) > 3600, 'суточный лимит → 429 rule chat_day, ждать часы', `retryAfterSec=${day.json?.retryAfterSec}`)
 cfg.server.rate.chatPerDay = DEFAULT_CONFIG.server.rate.chatPerDay
 
+console.log('  школьный NAT: лимиты на ученика (адрес + X-Brain-Session), потолок адреса')
+{
+  const SCHOOL = '203.0.113.77'
+  const sess = (i: number) => `s-school-${String(i).padStart(3, '0')}-7f3a`
+  const S = (i: number) => ({ ...fwd(SCHOOL), ...JSONH, 'X-Brain-Session': sess(i) })
+  // 30 учеников класса за одним адресом, по 2 вопроса каждый (60 > 8/мин адреса по-старому) — никто не упёрся в лимит
+  const codes: number[] = []
+  for (let round = 0; round < 2; round++) for (let i = 0; i < 30; i++) codes.push((await call('POST', '/chat', { headers: S(i), body: '{}' })).status)
+  ok(codes.length === 60 && codes.every((c) => c === 400), '30 сессий за одним адресом, по 2 вопроса — все прошли лимит (нет 429)', `${codes.filter((c) => c === 429).length}×429`)
+  // один ученик (сессия) сверх 8/мин — 429; соседи по классу не задеты
+  const over: number[] = []
+  for (let i = 0; i < cfg.server.rate.chatPerMin - 2; i++) over.push((await call('POST', '/chat', { headers: S(0), body: '{}' })).status)
+  const r429 = await call('POST', '/chat', { headers: S(0), body: '{}' })
+  ok(over.every((c) => c === 400) && r429.status === 429 && r429.json?.rule === 'chat_minute' && Number(r429.headers['retry-after']) > 0, `одна сессия: ${cfg.server.rate.chatPerMin}/мин, дальше 429 rule chat_minute`, `${r429.status} ${String(r429.json?.rule)}`)
+  ok((await call('POST', '/chat', { headers: S(1), body: '{}' })).status === 400, 'сосед по классу (другая сессия, тот же адрес) не ограничен')
+  ok((await call('POST', '/chat', { headers: { ...fwd('203.0.113.78'), ...JSONH, 'X-Brain-Session': sess(0) }, body: '{}' })).status === 400, 'та же сессия с другого адреса — другой ученик')
+  // кривой заголовок игнорируется: лимит по адресу, как без заголовка
+  const B = fwd('203.0.113.79')
+  const badCodes: number[] = []
+  for (let i = 0; i < cfg.server.rate.chatPerMin; i++) badCodes.push((await call('POST', '/chat', { headers: { ...B, ...JSONH, 'X-Brain-Session': `bad id ${i}` }, body: '{}' })).status)
+  const badOver = await call('POST', '/chat', { headers: { ...B, ...JSONH, 'X-Brain-Session': 'x' }, body: '{}' })
+  ok(badCodes.every((c) => c === 400) && badOver.status === 429 && badOver.json?.rule === 'chat_minute', 'кривой X-Brain-Session игнорируется: смена кривых значений лимит адреса не обходит')
+  ok((await call('POST', '/chat', { headers: { ...B, ...JSONH }, body: '{}' })).status === 429, 'без заголовка — лимит по адресу (как раньше)')
+  // потолок адреса: смена сессий не обходит защиту
+  const ip = cfg.server.rate.perIp
+  const keep = ip.chatPerMin
+  ip.chatPerMin = 20
+  const C = fwd('203.0.113.80')
+  const rot: number[] = []
+  for (let i = 0; i < 20; i++) rot.push((await call('POST', '/chat', { headers: { ...C, ...JSONH, 'X-Brain-Session': `s-rotate-${i}-abcdef` }, body: '{}' })).status)
+  const ceil = await call('POST', '/chat', { headers: { ...C, ...JSONH, 'X-Brain-Session': 's-rotate-new-abcdef' }, body: '{}' })
+  ok(rot.every((c) => c === 400) && ceil.status === 429 && ceil.json?.rule === 'chat_ip_minute' && Number(ceil.headers['retry-after']) > 0, 'потолок адреса (perIp.chatPerMin): новые сессии сверх него → 429 rule chat_ip_minute', `${ceil.status} ${String(ceil.json?.rule)}`)
+  ip.chatPerMin = keep
+  ip.chatPerDay = 25
+  const E = fwd('203.0.113.81')
+  for (let i = 0; i < 25; i++) await call('POST', '/chat', { headers: { ...E, ...JSONH, 'X-Brain-Session': `s-day-${i}-abcdef` }, body: '{}' })
+  const dayCeil = await call('POST', '/chat', { headers: { ...E, ...JSONH, 'X-Brain-Session': 's-day-new-abcdef' }, body: '{}' })
+  ok(dayCeil.status === 429 && dayCeil.json?.rule === 'chat_ip_day' && Number(dayCeil.json?.retryAfterSec) > 3600, 'суточный потолок адреса (perIp.chatPerDay) → 429 rule chat_ip_day', `${dayCeil.status} ${String(dayCeil.json?.rule)}`)
+  ip.chatPerDay = DEFAULT_CONFIG.server.rate.perIp.chatPerDay
+  // preflight класса: OPTIONS — свой щедрый потолок адреса, а не «прочее» 60/мин
+  const PRE = { ...fwd('203.0.113.82'), Origin: ORIGIN, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type,x-brain-session' }
+  const pre: number[] = []
+  for (let i = 0; i < cfg.server.rate.otherPerMin + 15; i++) pre.push((await call('OPTIONS', '/chat', { headers: PRE })).status)
+  ok(pre.every((c) => c === 204), `preflight OPTIONS: ${pre.length} с одного адреса (> прочих ${cfg.server.rate.otherPerMin}/мин) → все 204`)
+  const pf = await call('OPTIONS', '/chat', { headers: { Origin: ORIGIN, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type,x-brain-session' } })
+  ok(/x-brain-session/i.test(String(pf.headers['access-control-allow-headers'])), 'CORS Allow-Headers: X-Brain-Session')
+  const adm = await call('GET', '/admin/status')
+  ok(((adm.json?.rate as { limits?: { perIp?: { chatPerMin?: number } } })?.limits?.perIp?.chatPerMin ?? 0) > cfg.server.rate.chatPerMin, '/admin/status показывает потолок адреса')
+}
+
 console.log('  очередь к модели (parallel 1)')
 queue.opts = { parallel: 1, queueCap: 1, queueWaitMs: 15_000 }
 const Q = 'Что такое оксиды?'
@@ -229,6 +317,25 @@ await new Promise((r) => setTimeout(r, 100))
 const s3 = await chat(Q, S)
 await Promise.all(sp)
 ok(s3.status === 429 && s3.json?.rule === 'streams', `третий одновременный поток одного ученика → 429 (лимит ${cfg.server.chatStreamsPerClient})`)
+
+console.log('  потоки за школьным NAT')
+{
+  queue.opts = { parallel: 1, queueCap: 8, queueWaitMs: 15_000 }
+  const N = (i: number) => ({ ...fwd('198.51.100.35'), 'X-Brain-Session': `s-stream-${i}-abcdef` })
+  const all = await Promise.all([chat(Q, N(1)), chat(Q, N(2)), chat(Q, N(3))])
+  ok(all.every((r) => r.status === 200), `3 одновременных потока с одного адреса от разных сессий — все 200 (лимит ${cfg.server.chatStreamsPerClient} — на ученика)`, all.map((r) => r.status).join(','))
+  const ip = cfg.server.rate.perIp
+  ip.chatStreams = 2
+  const M = (i: number) => ({ ...fwd('198.51.100.36'), 'X-Brain-Session': `s-ceil-${i}-abcdef` })
+  const mp = [chat(Q, M(1)), chat(Q, M(2))]
+  await new Promise((r) => setTimeout(r, 100))
+  const m3 = await chat(Q, M(3))
+  await Promise.all(mp)
+  ok(m3.status === 429 && m3.json?.rule === 'streams_ip', 'потолок потоков адреса (perIp.chatStreams=2): третий → 429 rule streams_ip', `${m3.status} ${String(m3.json?.rule)}`)
+  ip.chatStreams = DEFAULT_CONFIG.server.rate.perIp.chatStreams
+  const after = await chat(Q, M(4))
+  ok(after.status === 200, 'потоки закрылись — счётчики адреса и ученика освобождены')
+}
 
 console.log('  оценка ожидания')
 queue.opts = { parallel: 1, queueCap: 5, queueWaitMs: 600 }
@@ -275,6 +382,16 @@ console.log('  фото задачи (лимиты, сигнатура, журн
   for (let i = 0; i < ph.perMin; i++) if ((await call('POST', '/chat', { headers: { ...L, ...JSONH }, body: photoBody([small]) })).status !== 200) photosOk = false
   const r429 = await call('POST', '/chat', { headers: { ...L, ...JSONH }, body: photoBody([small]) })
   ok(photosOk && r429.status === 429 && r429.json?.rule === 'photo_minute' && Number(r429.headers['retry-after']) > 0, `фото: ${ph.perMin} в минуту, дальше 429 rule photo_minute`, `${r429.status} ${String(r429.json?.rule)}`)
+  const nb = await call('POST', '/chat', { headers: { ...L, ...JSONH, 'X-Brain-Session': 's-photo-neighbour-01' }, body: photoBody([small]) })
+  ok(nb.status === 200, 'фото: сосед с тем же адресом, но своей сессией — не ограничен чужим лимитом фото', String(nb.status))
+  const ipPh = cfg.server.rate.perIp
+  const keepPh = ipPh.photoPerMin
+  ipPh.photoPerMin = 2
+  const PI = fwd('198.51.100.68')
+  for (let i = 0; i < 2; i++) await call('POST', '/chat', { headers: { ...PI, ...JSONH, 'X-Brain-Session': `s-photo-ip-${i}-ab` }, body: photoBody([small]) })
+  const phCeil = await call('POST', '/chat', { headers: { ...PI, ...JSONH, 'X-Brain-Session': 's-photo-ip-new-ab' }, body: photoBody([small]) })
+  ok(phCeil.status === 429 && phCeil.json?.rule === 'photo_ip_minute', 'потолок фото адреса (perIp.photoPerMin) → 429 rule photo_ip_minute', `${phCeil.status} ${String(phCeil.json?.rule)}`)
+  ipPh.photoPerMin = keepPh
   const txt = await call('POST', '/chat', { headers: { ...L, ...JSONH }, body: chatBody('Что такое моль?') })
   ok(txt.status === 200, 'тот же ученик без фото — не ограничен лимитом фото')
   const empty = await call('POST', '/chat', { headers: { ...fwd('198.51.100.67'), ...JSONH }, body: photoBody([small], '') })
