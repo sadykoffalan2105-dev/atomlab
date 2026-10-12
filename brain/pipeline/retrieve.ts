@@ -14,6 +14,7 @@
  *   лучшего совпадения, coverage — доля понятий вопроса в top-3); школьный вопрос без учебника — не выше «medium».
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
+import { conceptUnitFor, definitionFor, unitForTopic } from '../curriculum/answer.ts'
 import { unitCard } from '../curriculum/card.ts'
 import { sharedCurriculum } from '../curriculum/map.ts'
 import { parseSectionRef } from '../curriculum/sectionRef.ts'
@@ -26,7 +27,7 @@ import type { Knowledge } from '../kb/shards.ts'
 import { normForHash } from '../kb/storage.ts'
 import type { LlmClient } from '../llm/ollama.ts'
 import type { GradeId, RankedFragment, RetrievalResultV2, RetrieveOptions, Scope, SourceKind, StandaloneQuery } from './dialogTypes.ts'
-import { findFormulas } from './entities.ts'
+import { findConcepts, findFormulas } from './entities.ts'
 import { hybridScore, mmrSelect, type Candidate } from './hybrid.ts'
 import { applyRelevance, isPersonCandidate } from './relevance.ts'
 import { cmpForm, type Lang } from './normalize.ts'
@@ -135,7 +136,17 @@ function fromRecord(r: JournalRecord, score: number): Candidate {
 }
 
 /** Результат retrieveV2 + сведения карты программы (локальное расширение, dialogTypes.ts не меняем). */
-export type CurriculumInfo = { unitId: string; cite: string; viaRef: boolean }
+export type CurriculumInfo = {
+  unitId: string
+  cite: string
+  viaRef: boolean
+  /** вопрос-определение: номер определения единицы (unit.definitions[defIndex]), чей термин — термин вопроса */
+  defIndex?: number
+  /** вопрос-определение: термин — в «Изучаемых понятиях» единицы (определения в карте нет — ответ из текста §) */
+  concept?: boolean
+  /** подпись со страницей — первая цитата школьного ответа */
+  citeFull?: string
+}
 export type RetrievalResultV2x = RetrievalResultV2 & {
   /** §-карточка в items[0]: какая единица и откуда (ссылка на § в вопросе или подбор по теме) */
   curriculum?: CurriculumInfo
@@ -147,7 +158,7 @@ export type RetrievalResultV2x = RetrievalResultV2 & {
 const NO_CARD_KINDS = new Set(['who_history', 'broad', 'chitchat', 'confirm', 'repeat'])
 
 /** §-карточка единицы как фрагмент поиска: первое знание школьного ответа с точной подписью «[Kimyo 8, §12, стр. 50]». */
-function cardFragment(unit: Unit, lang: Lang, g: number | null, maxChars: number, bm: number, score: number, queryTerms?: Set<string>): RankedFragment {
+function cardFragment(unit: Unit, lang: Lang, g: number | null, maxChars: number, bm: number, score: number, queryTerms?: Set<string>, page?: number): RankedFragment {
   const title = `${unit.label.ru}: ${unit.title.ru}`
   const text = unitCard(unit, lang, maxChars, queryTerms)
   const sourceKind: SourceKind = g != null && unit.grade === g ? 'textbook_grade' : 'textbook_other'
@@ -163,7 +174,7 @@ function cardFragment(unit: Unit, lang: Lang, g: number | null, maxChars: number
     lang: `card-${lang}`,
     grade: unit.grade,
     source: `Kimyo ${unit.grade}`,
-    citation: unit.pages.start ? `${unit.cite.slice(0, -1)}, стр. ${unit.pages.start}]` : unit.cite,
+    citation: page || unit.pages.start ? `${unit.cite.slice(0, -1)}, стр. ${page || unit.pages.start}]` : unit.cite,
     origin: 'shard',
     bm,
     sBm: 0,
@@ -525,20 +536,41 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
         const card = cardFragment(unit, lang, g, cardChars, topBm * 1.5 + 1, (items[0]?.score ?? 0) + 1)
         items = [card, ...frags]
         scopeUsed = 'school'
-        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: true }
+        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: true, citeFull: card.citation }
       }
     }
-    if (!curriculum && !sectionRef && scopeUsed === 'school' && sq.scope === 'school' && g != null && !NO_CARD_KINDS.has(sq.kind)) {
+    // (в) вопрос-определение: термин определён в учебнике класса ученика (термин целиком в вопросе) — вопрос школьный,
+    //     даже если по словам он «широкий» («Что означает термин «вещество»?»): энциклопедия уходит, §-карточка — первой
+    const wantsDef = !curriculum && !sectionRef && g != null && (sq.kind === 'definition' || sq.kind === 'properties') && sq.scope !== 'offtopic'
+    const defAny = wantsDef && sq.kind === 'definition' ? definitionFor(cur, queryTerms, g) : null
+    const exactDef = !!defAny && defAny.inGrade && defAny.termCov === 1 && defAny.qCov === 1
+    // понятие § (без определения в карте) точнее частичного совпадения определения: «общая формула» ≠ «развёрнутые формулы»
+    const byConcept = wantsDef && !exactDef ? conceptUnitFor(cur, queryTerms, g) : null
+    const defHit = byConcept ? null : defAny
+    const strongDef = (!!defHit && defHit.inGrade && defHit.termCov === 1) || !!byConcept
+    if (strongDef && scopeUsed !== 'school') {
+      scopeUsed = 'school'
+      for (const f of items) if (!isSchoolSource(f)) dropped.push({ c: f, why: 'school_first' })
+      items = items.filter(isSchoolSource)
+    }
+    if (!curriculum && !sectionRef && scopeUsed === 'school' && (sq.scope === 'school' || strongDef) && g != null && !NO_CARD_KINDS.has(sq.kind)) {
       const byQuery = cur.unitsForQuery(queryTerms, g)[0]
       const bestSchool = items.find((f) => f.sourceKind === 'textbook_grade' && (f.cov ?? 0) >= 0.5)
       const bk = bestSchool ? hitKp.get(bestSchool) : undefined
       const byFragment = bk ? cur.unitFor(bk.grade, bk.kp) : null
-      // тема целиком в названии единицы → она; иначе единица лучшего фрагмента учебника класса; иначе по понятиям
-      const unit = byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null))
+      // определение — единица, где термин определён; «почему» — § класса по теме вопроса;
+      // иначе: тема целиком в названии единицы → она; иначе единица лучшего фрагмента учебника класса; иначе по понятиям
+      const byDef = defHit?.inGrade ? defHit.unit : null
+      // тема «почему» — по вопросу и по понятиям ядра, о которых он (их определение и закон по-русски: «атом электронейтрален»
+      // → протоны, электроны → строение атома), — так же, как темы единиц размечены по названию и понятиям
+      const whyExtra = sq.kind === 'why' ? [sq.topic ?? '', ...findConcepts(sq.text).slice(0, 2).map((c) => `${c.def.ru} ${c.law.ru}`)].join(' ') : ''
+      const byTopic = !byDef && !byConcept && sq.kind === 'why' ? unitForTopic(cur, sq.text, queryTerms, g, whyExtra) : null
+      const unit = byDef ?? byConcept ?? byTopic ?? (byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null)))
       if (unit) {
-        const card = cardFragment(unit, lang, g, cardChars, Math.max(0, ...items.map((f) => f.bm)) + 1, (items[0]?.score ?? 0) + 1, queryTerms)
+        const page = byDef ? defHit!.def.page : undefined
+        const card = cardFragment(unit, lang, g, cardChars, Math.max(0, ...items.map((f) => f.bm)) + 1, (items[0]?.score ?? 0) + 1, queryTerms, page)
         items = [card, ...items.filter((f) => f.id !== card.id)].slice(0, maxItems)
-        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: false }
+        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: false, citeFull: card.citation, ...(byDef ? { defIndex: defHit!.index } : {}), ...(unit === byConcept ? { concept: true } : {}) }
       }
     }
   }

@@ -38,7 +38,8 @@ const UZ_CYR = ub(/\b(нима|қандай|учун|билан|нега|ҳақ�
 export function detectLang(text: string): Lang {
   // формулы («HCl», «Ca(OH)2», «KMnO4») и «pH» — не язык: убираем до подсчёта букв
   const stripFormula = (m: string) => (m !== 'OK' && (/\d/.test(m) || (m.match(/[A-Z]/g) ?? []).length >= 2) ? ' ' : m)
-  const t = cmpForm(text.replace(FORMULA_LIKE, stripFormula).replace(/\bp[Hh]\b/g, ' '))
+  // название учебника «Kimyo 8» — не язык вопроса («О чём Kimyo 8, §44?» — русский вопрос)
+  const t = cmpForm(text.replace(/\bKimyo\s*\d{1,2}\b/gu, ' ').replace(FORMULA_LIKE, stripFormula).replace(/\bp[Hh]\b/g, ' '))
   const noFormula = t.replace(/\b[a-z]{0,2}\d[a-z0-9()]*\b/g, ' ')
   const cyr = (noFormula.match(/[а-яўқғҳ]/g) ?? []).length
   const lat = (noFormula.match(/[a-z]/g) ?? []).length

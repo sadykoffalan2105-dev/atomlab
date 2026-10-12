@@ -12,11 +12,13 @@
  * «пример» — уравнение с сущностью из qaBank; «а у натрия?» — факты новой сущности первыми.
  */
 import { ELEMENT_DISCOVERY_YEARS } from '../../src/data/elementDiscoveryYears.ts'
+import { sectionAnswer, termFrameUzEn, termOfQuestion, termTerms } from '../curriculum/answer.ts'
 import { analogyFor } from '../persona/analogies.ts'
 import type { AnswerPlan, StandaloneQuery } from './dialogTypes.ts'
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
 import { FIRST_PRINCIPLES, type Concept } from '../kb/concepts.ts'
 import type { Knowledge, QaElement, QaSubstance } from '../kb/shards.ts'
+import type { Unit } from '../curriculum/types.ts'
 import type { StudentSnapshot } from '../student/model.ts'
 import { fallbackStyle } from '../student/adapt.ts'
 import { genitive } from './declension.ts'
@@ -28,7 +30,7 @@ import { jaccard } from './hybrid.ts'
 import type { Intent, QType } from './intent.ts'
 import type { Lang } from './normalize.ts'
 import { splitSentences, trimToWords, wordCount } from './postcheck.ts'
-import type { RetrievalResult } from './retrieve.ts'
+import type { CurriculumInfo, RetrievalResult } from './retrieve.ts'
 import { fmt, type ToolResult } from './tools.ts'
 
 const T = (lang: Lang, ru: string, uz: string, en: string) => (lang === 'ru' ? ru : lang === 'uz' ? uz : en)
@@ -119,6 +121,46 @@ const MICRO: Record<QType | 'calc', Record<Lang, string[]>> = {
 }
 
 // ---------------------------------------------------------------- тексты учебника
+
+/**
+ * Лучшее предложение текста единицы (§) о термине вопроса: больше стемов вопроса, «… называется / — это …» выше,
+ * короткое и раннее выше. Нет предложения хотя бы с половиной стемов вопроса — null.
+ */
+function unitSentence(kb: Knowledge, unit: Unit, allTerms: Set<string>, causal = false, skip: string[] = []): string | null {
+  const qTerms = termTerms(allTerms)
+  if (!qTerms.size) return null
+  // «амфотерные оксиды» — нужны оба стема (предложение про «оксид алюминия» — не ответ); длинный вопрос — две трети;
+  // «почему» (causal) — половина: причина в учебнике редко повторяет все слова вопроса
+  const need = causal ? Math.max(1, Math.ceil(qTerms.size / 2)) : qTerms.size <= 2 ? qTerms.size : Math.ceil((qTerms.size * 2) / 3)
+  let best: string | null = null
+  let bestScore = -Infinity
+  const chunks = kb.engine.paragraphChunks(unit.grade, unit.kp, ['definition', 'summary', 'textbook'])
+  chunks.slice(0, 40).forEach((h, ci) => {
+    splitSentences(cleanChunk(h.text, h.title))
+      .filter(goodSentence)
+      .slice(0, 30)
+      .forEach((x, pos) => {
+        const terms = new Set(analyzeTerms(x))
+        const hits = [...qTerms].filter((t) => terms.has(t)).length
+        if (hits < need || skip.includes(x)) return
+        let score = hits * 2 - x.length / 400 - ci * 0.02 - pos * 0.01
+        if (causal ? CAUSAL.test(x) : /\s[—–-]\s(это\s)?|называ|является|представляет собой/iu.test(x)) score += 2
+        if (h.type === 'definition') score += 1
+        if (score > bestScore) {
+          bestScore = score
+          best = x
+        }
+      })
+  })
+  return best
+}
+
+/** Определение учебника для ответа: без OCR-переносов, не длиннее ~2 предложений. */
+function clipDef(t: string): string {
+  const s = t.replace(/(\p{Ll})-\s+(\p{Ll})/gu, '$1$2').replace(/\s+/g, ' ').trim()
+  if (s.length <= 320) return /[.!?…:]$/u.test(s) ? s : s + '.'
+  return s.slice(0, 319).replace(/\s+\S*$/u, '') + '…'
+}
 
 export function cleanChunk(text: string, title = ''): string {
   let t = text
@@ -378,6 +420,43 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   const lines: string[] = []
   let logic = ''
 
+  // 0) §-путь (карта программы): подпись единицы — первой цитатой школьного ответа; ссылка на § («о чём §12?») —
+  //    содержание § на языке вопроса; вопрос-определение — текст определения учебника этой единицы (uz/en: понятие ядра
+  //    на языке вопроса или честная рамка «термин — где его изучают», без русских цитат)
+  const curInfo = (r as (RetrievalResult & { curriculum?: CurriculumInfo }) | null)?.curriculum
+  const curUnit = curInfo && !tools.length && (school || curInfo.viaRef) ? (kb.curriculum?.byId.get(curInfo.unitId) ?? null) : null
+  if (curInfo && curUnit) {
+    cite(curInfo.citeFull ?? curInfo.cite)
+    if (curInfo.viaRef) {
+      const body = style.prefix + sectionAnswer(curUnit, lang) + '\n' + pick(MICRO.general[lang], inp.seed) + (style.suffix ? ' ' + style.suffix : '')
+      return { text: trimToWords(body, Math.max(inp.wordLimit, 90)), citations, confidence: Math.max(confidence, 0.8) }
+    }
+    const d = curInfo.defIndex != null ? curUnit.definitions[curInfo.defIndex] : undefined
+    // понятие § без определения в карте: ru — предложение этого § с термином вопроса; uz/en — как определение ниже
+    const conceptLine = !d && curInfo.concept && lang === 'ru' ? unitSentence(kb, curUnit, qTerms) : null
+    if (conceptLine) {
+      lines.push(conceptLine)
+      confidence = Math.max(confidence, 0.75)
+    } else if (d || curInfo.concept) {
+      if (d && lang === 'ru') lines.push(clipDef(d.text.ru))
+      else {
+        const term = termOfQuestion(inp.text, lang)
+        const stem = term ? term.toLowerCase().slice(0, 5) : ''
+        const def = primary?.def[lang]
+        if (def && (!stem || def.toLowerCase().includes(stem))) lines.push(def)
+        else if (term && lang !== 'ru') lines.push(termFrameUzEn(term, curUnit, lang))
+        else if (def) lines.push(def)
+      }
+      if (lines.length) {
+        if (primary) {
+          logic = primary.law[lang]
+          conceptId = primary.id
+        }
+        confidence = Math.max(confidence, 0.8)
+      }
+    }
+  }
+
   // 0a) мозг v2: ловушка «если катализатор ускоряет, значит смещает равновесие?» — сначала короткая поправка;
   // частый «почему» с выверенным объяснением («почему медь растворяется в азотной») — им и отвечаем
   const fixLine = trapFor(inp.text, lang) ?? explainFor(inp.text, lang)
@@ -502,6 +581,13 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     }
     if (haveThesis && items[0] && (r?.confR ?? 0) >= inp.thresholds.medium && !(school && items[0].type === 'encyclopedia')) cite(items[0].citation)
 
+    // 3a) «почему» по § класса (карта): объяснение из текста этого § (ru) / закон второго понятия (uz, en) — причина
+    //     из учебника ученика, а не только общее определение понятия
+    if (qtype === 'why' && curUnit && lines.length < 3) {
+      const add = lang === 'ru' ? unitSentence(kb, curUnit, qTerms, true, lines) : concepts[1] && concepts[1].law[lang] !== primary?.law[lang] ? concepts[1].law[lang] : null
+      if (add && !lines.some((l) => jaccard(new Set(analyzeTerms(l)), new Set(analyzeTerms(add))) > 0.45)) lines.push(add)
+    }
+
     // 4) логика по типу вопроса
     // «как получить кислород» — элемент назван, а получают простое вещество (O₂)
     const howSub = substances[0] ?? (elements[0] ? (kb.substanceByFormula.get(DIATOMIC.has(elements[0].s) ? `${elements[0].s}2` : elements[0].s) ?? null) : null)
@@ -527,6 +613,21 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   }
 
   // 5) мало знаний — от основ, без выдумок
+  // 5') школьный вопрос с известным § (карта), а знаний на языке вопроса мало: ru — предложение § с термином вопроса,
+  //     uz/en — «термин — где его изучают» или содержание § (не «разберём от основ» при найденном параграфе)
+  if (!lines.length && curUnit && !curInfo?.viaRef) {
+    const s = lang === 'ru' ? unitSentence(kb, curUnit, qTerms) : null
+    const term = lang !== 'ru' ? termOfQuestion(inp.text, lang) : null
+    const line = s ?? (lang === 'uz' || lang === 'en' ? (term ? termFrameUzEn(term, curUnit, lang) : sectionAnswer(curUnit, lang)) : null)
+    if (line) {
+      lines.push(line)
+      if (primary && !logic) {
+        logic = primary.law[lang]
+        conceptId = primary.id
+      }
+      confidence = Math.max(confidence, inp.thresholds.medium)
+    }
+  }
   const lowConfidence = !lines.length
   if (lowConfidence) {
     const near = items

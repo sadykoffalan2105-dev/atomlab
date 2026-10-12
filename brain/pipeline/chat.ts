@@ -32,7 +32,7 @@ import { cmpForm, detectLang, GIBBERISH_REPLY, normalizeInput, type Lang } from 
 import { isOwnerRuleQuestion, R1 } from './ownerRule.ts'
 import { runPhotoChat } from './photo.ts'
 import { DANGER_REPLY, ensureToolNumbers, isDangerousRequest, scrubR3, splitSentences, wordCount } from './postcheck.ts'
-import { retrieveV2, type RetrievalResult } from './retrieve.ts'
+import { retrieveV2, type RetrievalResult, type RetrievalResultV2x } from './retrieve.ts'
 import { checkStudentNumbers, runTools, type ToolResult } from './tools.ts'
 
 export type ChatMessage = { role: 'user' | 'assistant'; content: string }
@@ -535,7 +535,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
       return finish({ text: lead + ans.text, intent, route: ans.text ? 'llm' : 'fallback', source: ans.text ? 'llm' : 'local', confidence: 0, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
     }
     // цитаты — только из знаний подсказки (учебник, ATOMLAB; энциклопедия — лишь у широкого вопроса)
-    const citations = () => [...tools.map((t) => t.cite ?? '[ATOMLAB: расчёт]'), ...relevantCitations(knowledge, overlapQ)].filter((c, i, a) => a.indexOf(c) === i)
+    const citations = () => curriculumFirst([...tools.map((t) => t.cite ?? '[ATOMLAB: расчёт]'), ...relevantCitations(knowledge, overlapQ)].filter((c, i, a) => a.indexOf(c) === i), retrieval, sq.scope, tools.length)
     if (ans.ok || ans.text) {
       // ответ модели (возможно, оборванный по времени или на CJK) — договариваем недостающее из запасного пути
       openStream('llm')
@@ -603,7 +603,8 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   if (hwNote) body += '\n' + hwNote
   streamText(body, sink)
   const source: DoneEvent['source'] = toolOnly ? 'tool' : 'local'
-  return finish({ text: lead + body, intent, route: toolOnly ? 'tool' : 'fallback', source, citations: fb.citations, confidence: fb.confidence, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
+  const fbCites = intent === 'offtopic' ? fb.citations : curriculumFirst(fb.citations, retrieval, sq.scope, tools.length)
+  return finish({ text: lead + body, intent, route: toolOnly ? 'tool' : 'fallback', source, citations: fbCites, confidence: fb.confidence, streamed: true, snap, tags: tagsArr, good, retrieval, tools })
 }
 
 /** Термы вопроса, по которым проверяем, что найденный фрагмент вообще о нём. */
@@ -628,4 +629,16 @@ function relevantCitations(items: RankedFragment[], question: string): string[] 
     .filter((c) => overlap(question, c) >= 0.34)
     .slice(0, 3)
     .map((c) => c.citation)
+}
+
+/**
+ * Школьный ответ: подпись §-карточки (карта программы, «[Kimyo 8, §12, стр. 50]») — первой цитатой; другие страницы того же §
+ * не дублируются. Ответы инструментов (расчёт, уравнение, получение) несут свою точную подпись — их порядок не трогаем.
+ */
+function curriculumFirst(cites: string[], retrieval: RetrievalResult | null, scope: string, toolCount: number): string[] {
+  const cur = (retrieval as RetrievalResultV2x | null)?.curriculum
+  if (!cur || toolCount || (scope !== 'school' && !cur.viaRef)) return cites
+  const first = cur.citeFull ?? cur.cite
+  const same = cur.cite.slice(0, -1)
+  return [first, ...cites.filter((c) => c !== first && c !== cur.cite && !c.startsWith(`${same},`) && !/википед|wikipedia/iu.test(c))]
 }

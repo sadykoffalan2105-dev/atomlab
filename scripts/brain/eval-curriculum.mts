@@ -37,7 +37,7 @@ const CJK_MAX = 0
 
 type Need = 'A' | 'B'
 type CQuestion = Question & { unit: string; sub: string; needs?: Need[]; calcType?: string }
-type Row = { q: CQuestion; a: Answer; why: string[]; waits: Need[]; citeHit: boolean; citeLoose: boolean }
+type Row = { q: CQuestion; a: Answer; why: string[]; waits: Need[]; citeHit: boolean; citeLoose: boolean; unfair?: string }
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..')
 const DIR = path.join(ROOT, 'brain', 'eval', 'curriculum')
@@ -89,6 +89,47 @@ const pendingFile = JSON.parse(fs.readFileSync(path.join(DIR, 'pending.json'), '
 const merged = new Set((arg('merged') ?? '').split(',').filter(Boolean))
 const pending: Record<Need, boolean> = { A: pendingFile.A && !merged.has('A'), B: pendingFile.B && !merged.has('B') }
 
+// ——— честность проверок (аудит 12.10, подтипы definition / why — см. docs/plans/curriculum-coverage.md, «Аудит проверок»)
+// 1) «почему»: один и тот же шаблон вопроса прикреплён к нескольким единицам класса с той же темой (до 3), а ученик с тем же
+//    классом получает один ответ — «точный §» здесь любой § своего класса с этой темой (topics карты), а не случайный из трёх.
+// 2) определение: тот же термин в том же классе встречается в нескольких единицах или определениях (термин повторяется в §,
+//    вопрос задан разными шаблонами) — ответ засчитывается, если проходит проверку любой из них (её цитату и её определение).
+// 3) uz-определение без узбекского термина: генератор подставил русскую словоформу из учебника («синтезом» nima?) — такой
+//    вопрос ученик не задаст, а «ответ по-узбекски, содержащий русскую словоформу» проверить честно нельзя: не в пороге, печатается.
+const reEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** как citeRegex генератора: «[Kimyo 8, §12]» → «Kimyo 8, §12(?![\d.])» */
+const citeRe = (cite: string) => `${reEscape(cite.replace(/^\[|\]$/g, ''))}(?![\\d.])`
+type MapUnit = { id: string; grade: number; cite: string; topics: string[] }
+const MAP_FILE = path.join(ROOT, 'src', 'data', 'kb', 'curriculum', 'kimyo-map.json')
+const mapUnits: MapUnit[] = fs.existsSync(MAP_FILE)
+  ? Object.values((JSON.parse(fs.readFileSync(MAP_FILE, 'utf8')) as { grades: Record<string, { units: MapUnit[] }> }).grades).flatMap((g) => g.units)
+  : []
+const whyTpl = (JSON.parse(fs.readFileSync(path.join(DIR, 'why-templates.json'), 'utf8')) as { templates: { topic: string; q: Record<string, string> }[] }).templates
+/** why: регекс цитаты — любой § класса с темой шаблона */
+function whyCiteRe(q: CQuestion): string | undefined {
+  const tpl = whyTpl.find((t) => t.q[q.lang] === q.q)
+  const g = Number(gradeOf(q).slice(1))
+  const units = tpl ? mapUnits.filter((u) => u.grade === g && u.topics.includes(tpl.topic)) : []
+  return units.length ? `(?:${units.map((u) => citeRe(u.cite)).join('|')})` : undefined
+}
+/** термин вопроса-определения без шаблона генератора: «Дай определение: изомерами» ≡ «Что такое изомерами?» */
+const termKey = (q: string) =>
+  q
+    .toLowerCase()
+    .replace(/^(что такое|дай определение:|что означает термин|what is|define)\s*/u, '')
+    .replace(/\s*(deb nimaga aytiladi|nima)?\s*[?.]*\s*$/u, '')
+    .replace(/[«»"“”]/g, '')
+    .trim()
+const sibKey = (q: CQuestion) => `${gradeOf(q)}|${q.lang}|${termKey(q.q)}`
+/** соседи: тот же термин того же класса и языка — в другой единице или другим шаблоном (по загруженному набору) */
+const siblings = new Map<string, CQuestion[]>()
+for (const q of all) {
+  if (q.sub !== 'definition') continue
+  siblings.set(sibKey(q), [...(siblings.get(sibKey(q)) ?? []), q])
+}
+const unfairOf = (q: CQuestion): string | undefined =>
+  q.sub === 'definition' && q.lang === 'uz' && /^«[^»]*[а-яё]/iu.test(q.q) ? 'uz-вопрос с русской словоформой (нет узбекского термина)' : undefined
+
 // ——— исполнитель
 const liveUrl = arg('url') ?? (flag('live') ? (JSON.parse(fs.readFileSync(path.join(ROOT, 'public', 'brain.json'), 'utf8')) as { urls: string[] }).urls[0] : undefined)
 const runner = flag('mock-llm') ? await inprocRunner(true) : liveUrl ? await httpRunner(liveUrl.replace(/\/+$/, ''), 'brain:eval:curriculum') : await inprocRunner(false)
@@ -114,11 +155,17 @@ for (const [i, q] of set.entries()) {
   // ждёт: B — случаи калькулятора; A — только подтип section (ссылка на §); цитату § до A просто не проверяем в случае
   const waits = (q.needs ?? []).filter((n) => pending[n] && (n === 'B' || q.sub === 'section'))
   // до слияния A цитату точного § не требуем в самом случае (считаем отдельно — citationHit)
-  const qq: CQuestion = pending.A ? { ...q, expect: { ...q.expect, citationMatch: undefined } } : q
-  const why = check(qq, a, true)
+  const fair: CQuestion = q.sub === 'why' && q.expect.citationMatch ? { ...q, expect: { ...q.expect, citationMatch: whyCiteRe(q) ?? q.expect.citationMatch } } : q
+  const qq: CQuestion = pending.A ? { ...fair, expect: { ...fair.expect, citationMatch: undefined } } : fair
+  let why = check(qq, a, true)
+  // определение: проходит проверку любой единицы класса с тем же вопросом — засчитано
+  const sibs = q.sub === 'definition' ? (siblings.get(sibKey(q)) ?? []).filter((s) => s !== q && s.id !== q.id) : []
+  let sibHit: CQuestion | undefined
+  if (why.length) for (const s of sibs) if (!check(pending.A ? { ...q, expect: { ...s.expect, citationMatch: undefined } } : { ...q, expect: s.expect }, a, true).length) ((why = []), (sibHit = s))
   const cites = (a.done?.citations ?? []).join(' ')
-  const citeHit = !!q.expect.citationMatch && new RegExp(q.expect.citationMatch, 'iu').test(cites)
-  rows.push({ q, a, why, waits, citeHit, citeLoose: looseCite(q.unit).test(cites) })
+  const citeRx = [fair.expect.citationMatch, ...sibs.map((s) => s.expect.citationMatch)].filter((x): x is string => !!x)
+  const citeHit = citeRx.some((re) => new RegExp(re, 'iu').test(cites)) || !!sibHit
+  rows.push({ q, a, why, waits, citeHit, citeLoose: looseCite(q.unit).test(cites), unfair: unfairOf(q) })
   if ((i + 1) % 500 === 0) console.log(`  … ${i + 1}/${set.length} (${Math.round((performance.now() - t0) / 1000)} с)`)
 }
 
@@ -129,13 +176,15 @@ const quant = (xs: number[], p: number) => {
   const s = [...xs].sort((a, b) => a - b)
   return s.length ? s[Math.min(s.length - 1, Math.max(0, Math.ceil((p / 100) * s.length) - 1))]! : 0
 }
-const gated = rows.filter((r) => !r.waits.length)
+const gated = rows.filter((r) => !r.waits.length && !r.unfair)
+const fairRows = rows.filter((r) => !r.unfair)
 const ok = (r: Row) => !r.why.length
-const school = rows.filter((r) => (r.a.meta as { scope?: string } | null)?.scope !== 'broad')
+const school = fairRows.filter((r) => (r.a.meta as { scope?: string } | null)?.scope !== 'broad')
 const metrics = {
   cases: rows.length,
   gated: gated.length,
-  waiting: rows.length - gated.length,
+  waiting: rows.filter((r) => r.waits.length).length,
+  unfair: rows.filter((r) => r.unfair).length,
   pass: gated.filter(ok).length,
   passAll: rows.filter(ok).length,
   citationHit: school.filter((r) => r.citeHit).length,
@@ -145,7 +194,8 @@ const metrics = {
   wikiLeak: rows.filter((r) => /википед|wikipedia/iu.test((r.a.done?.citations ?? []).join(' '))).length,
   r3: rows.filter((r) => hasR3(r.a.text)).length,
   cjk: rows.filter((r) => CJK_RE.test(r.a.text)).length,
-  langOk: rows.filter((r) => matchesLang(r.a.text.trim(), r.q.lang as Lang)).length,
+  langOk: fairRows.filter((r) => matchesLang(r.a.text.trim(), r.q.lang as Lang)).length,
+  langCases: fairRows.length,
   calc: rows.filter((r) => r.q.sub === 'calc').length,
   numberOk: rows.filter((r) => r.q.sub === 'calc' && !r.why.some((w) => w.startsWith('нет числа'))).length,
   msP50: quant(rows.map((r) => r.a.ms), 50),
@@ -159,7 +209,7 @@ function aggregate(key: (r: Row) => string): Map<string, Agg> {
     const a = m.get(k) ?? { n: 0, ok: 0, gated: 0, gatedOk: 0, cite: 0 }
     a.n++
     if (ok(r)) a.ok++
-    if (!r.waits.length) (a.gated++, ok(r) && a.gatedOk++)
+    if (!r.waits.length && !r.unfair) (a.gated++, ok(r) && a.gatedOk++)
     if (r.citeHit) a.cite++
     m.set(k, a)
   }
@@ -178,7 +228,7 @@ console.log('\nкласс        всего  прошло   доля   цита�
 for (const [k, a] of byGrade) console.log(`${k.padEnd(12)} ${String(a.n).padStart(6)} ${String(a.ok).padStart(7)} ${fmtP(a.ok, a.n).padStart(8)} ${fmtP(a.cite, a.n).padStart(9)}`)
 console.log(`\nязыки: ${[...byLang].map(([k, a]) => `${k} ${fmtP(a.ok, a.n)} (${a.n})`).join(' · ')}`)
 console.log(
-  `МЕТРИКИ: в пороге ${metrics.pass}/${metrics.gated} (${fmtP(metrics.pass, metrics.gated)}) · все ${fmtP(metrics.passAll, metrics.cases)} · ждут ${metrics.waiting} · citationHit ${fmtP(metrics.citationHit, metrics.schoolCases)}${pending.A ? ' (ждёт A; любой формат § — ' + fmtP(metrics.citationHitLoose, metrics.schoolCases) + ')' : ''} · schoolTop1 ${fmtP(metrics.schoolTop1, metrics.cases)} · wikiLeak ${metrics.wikiLeak} · R3 ${metrics.r3} · CJK ${metrics.cjk} · язык ${fmtP(metrics.langOk, metrics.cases)} · numberOk ${metrics.numberOk}/${metrics.calc} · мс p50 ${metrics.msP50}, p95 ${metrics.msP95}`,
+  `МЕТРИКИ: в пороге ${metrics.pass}/${metrics.gated} (${fmtP(metrics.pass, metrics.gated)}) · все ${fmtP(metrics.passAll, metrics.cases)} · ждут ${metrics.waiting} · citationHit ${fmtP(metrics.citationHit, metrics.schoolCases)}${pending.A ? ' (ждёт A; любой формат § — ' + fmtP(metrics.citationHitLoose, metrics.schoolCases) + ')' : ''} · schoolTop1 ${fmtP(metrics.schoolTop1, metrics.cases)} · wikiLeak ${metrics.wikiLeak} · R3 ${metrics.r3} · CJK ${metrics.cjk} · язык ${fmtP(metrics.langOk, metrics.langCases)} · не в пороге (артефакты вопросов) ${metrics.unfair} · numberOk ${metrics.numberOk}/${metrics.calc} · мс p50 ${metrics.msP50}, p95 ${metrics.msP95}`,
 )
 
 // ——— худшие единицы
@@ -207,14 +257,14 @@ for (const [sub, min] of Object.entries(th)) {
 }
 if (!pending.A && metrics.schoolCases && metrics.citationHit / metrics.schoolCases < CITATION_HIT_MIN) fails.push(`citationHit ${fmtP(metrics.citationHit, metrics.schoolCases)} < ${CITATION_HIT_MIN * 100} %`)
 if (live && metrics.calc && metrics.numberOk < rows.filter((r) => r.q.sub === 'calc' && !r.waits.length).length) fails.push(`numberOk ${metrics.numberOk}/${metrics.calc} (нужно 100 %)`)
-if (metrics.cases && metrics.langOk / metrics.cases < LANG_OK_MIN) fails.push(`язык ${fmtP(metrics.langOk, metrics.cases)} < ${LANG_OK_MIN * 100} %`)
+if (metrics.langCases && metrics.langOk / metrics.langCases < LANG_OK_MIN) fails.push(`язык ${fmtP(metrics.langOk, metrics.langCases)} < ${LANG_OK_MIN * 100} %`)
 if (metrics.wikiLeak > WIKI_LEAK_MAX) fails.push(`wikiLeak ${metrics.wikiLeak}`)
 if (metrics.r3 > R3_MAX) fails.push(`R3 ${metrics.r3}`)
 if (metrics.cjk > CJK_MAX) fails.push(`CJK ${metrics.cjk}`)
 
 if (flag('fails'))
   for (const r of rows.filter((x) => !ok(x)))
-    console.log(`  ✗ [${r.q.id}]${r.waits.length ? ` (ждёт ${r.waits.join(',')})` : ''} ${r.q.q.split('\n')[0]!.slice(0, 100)} → ${r.why.join('; ')}\n      «${r.a.text.replace(/\s+/g, ' ').slice(0, 200)}»`)
+    console.log(`  ✗ [${r.q.id}]${r.waits.length ? ` (ждёт ${r.waits.join(',')})` : ''}${r.unfair ? ` (не в пороге: ${r.unfair})` : ''} ${r.q.q.split('\n')[0]!.slice(0, 100)} → ${r.why.join('; ')}\n      «${r.a.text.replace(/\s+/g, ' ').slice(0, 200)}»`)
 
 // ——— отчёт
 const index = fs.existsSync(path.join(DIR, 'index.json')) ? (JSON.parse(fs.readFileSync(path.join(DIR, 'index.json'), 'utf8')) as { mapSource?: string; gaps?: { g9AppSectionsWithoutBook?: string[]; lowCoverage?: string[] } }) : {}
@@ -243,7 +293,7 @@ if (baseline && fs.existsSync(baseline)) {
   console.log(`\nдельты к ${baseline}: всего ${(pct(metrics.passAll, metrics.cases) - pct(b.metrics.passAll, b.metrics.cases)).toFixed(1)} п.п. · ${[...bySub].map(([k, a]) => `${k} ${d(a, (b.bySub as Record<string, Agg>)[k])}`).join(' · ')}`)
 }
 const jsonOut = arg('json')
-if (jsonOut) fs.writeFileSync(jsonOut, JSON.stringify(rows.map((r) => ({ id: r.q.id, unit: r.q.unit, sub: r.q.sub, lang: r.q.lang, q: r.q.q, text: r.a.text, citations: r.a.done?.citations, why: r.why, waits: r.waits, ms: r.a.ms })), null, 2))
+if (jsonOut) fs.writeFileSync(jsonOut, JSON.stringify(rows.map((r) => ({ id: r.q.id, unit: r.q.unit, sub: r.q.sub, lang: r.q.lang, q: r.q.q, text: r.a.text, citations: r.a.done?.citations, why: r.why, waits: r.waits, unfair: r.unfair, ms: r.a.ms })), null, 2))
 if ((!filtered || flag('report')) && !flag('no-report')) {
   const reportName = mode === 'inproc' ? 'report.json' : `report-${mode}.json`
   fs.writeFileSync(path.join(DIR, reportName), JSON.stringify(report, null, 2) + '\n')
@@ -264,7 +314,7 @@ function markdown(): string {
   L.push('')
   L.push(`- В пороге: **${metrics.pass}/${metrics.gated} (${fmtP(metrics.pass, metrics.gated)})**, всего с ждущими: ${fmtP(metrics.passAll, metrics.cases)}; ждут слияния: ${metrics.waiting}.`)
   L.push(`- citationHit (цитата нужного §): ${fmtP(metrics.citationHit, metrics.schoolCases)}${pending.A ? ` — ждёт A; § в любом формате: ${fmtP(metrics.citationHitLoose, metrics.schoolCases)}` : ''}; schoolTop1 ${fmtP(metrics.schoolTop1, metrics.cases)}.`)
-  L.push(`- Википедия в цитатах: ${metrics.wikiLeak}; R3: ${metrics.r3}; CJK: ${metrics.cjk}; язык ответа = языку вопроса: ${fmtP(metrics.langOk, metrics.cases)}; числа в расчётах: ${metrics.numberOk}/${metrics.calc}.`)
+  L.push(`- Википедия в цитатах: ${metrics.wikiLeak}; R3: ${metrics.r3}; CJK: ${metrics.cjk}; язык ответа = языку вопроса: ${fmtP(metrics.langOk, metrics.langCases)}; числа в расчётах: ${metrics.numberOk}/${metrics.calc}.`)
   L.push(`- Пороги: ${fails.length ? '**не пройдены** — ' + fails.join('; ') : '**пройдены**'}.`)
   L.push('')
   L.push('## По классам и подтипам (доля прошедших, в скобках — число случаев)')
@@ -281,6 +331,13 @@ function markdown(): string {
   L.push('| единица | прошло | причины | пример провала |')
   L.push('|---|---|---|---|')
   for (const w of worst) L.push(`| ${w.unit} | ${w.ok}/${w.n} | ${w.reasons.join('; ') || '—'} | ${w.examples[0] ? `«${w.examples[0].q.replace(/\|/g, '/')}» — ${w.examples[0].why.replace(/\|/g, '/').slice(0, 90)}` : '—'} |`)
+  L.push('')
+  L.push('## Аудит проверок (12.10: definition, why, section)')
+  L.push('')
+  L.push('- «Почему»: один шаблон прикреплён к нескольким (до 3) единицам класса с той же темой, а ученик того же класса получает один ответ — «точный §» засчитывается для любого § своего класса с темой шаблона (topics карты), а не одного случайного.')
+  L.push('- Определение: тот же термин того же класса встречается в нескольких единицах или определениях (и разными шаблонами вопроса) — ответ засчитывается, если проходит проверку любой из них (её цитату и её определение).')
+  L.push(`- uz-определение без узбекского термина (генератор подставил русскую словоформу: «синтезом» nima?) — артефакт генератора, не в пороге и не в метрике языка, печатается: ${metrics.unfair} случаев.`)
+  L.push('- Пороги не снижались; мозг отвечает определением § класса, «о чём §» — содержанием §, цитата § — первой.')
   L.push('')
   L.push('## Пробелы книги (не «дотягиваются» — показываются честно)')
   L.push('')
