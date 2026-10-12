@@ -20,6 +20,9 @@ type Waiter = {
   fail: (why: QueueBusy) => void
   onPosition?: (p: QueuePosition) => void
   lastPos: number
+  /** срок ожидания (мс, Date.now()); пауза окна картинок продлевает его (rearm) */
+  deadline: number
+  rearm: (at: number) => void
 }
 
 /** Минимум на первый токен после ожидания в очереди (ожидание вычитается из config.timeouts.firstTokenMs). */
@@ -35,20 +38,77 @@ export class LlmQueue {
   private holding = new Map<number, number>()
   private nextId = 1
   readonly counters = { served: 0, queued: 0, busyOverflow: 0, busyPredicted: 0, busyTimeout: 0, aborted: 0, maxWaitingSeen: 0 }
+  /**
+   * Пауза (окно картинок, brain/llm/gpuArbiter.ts): новые слоты не выдаются, идущие ответы дорабатывают,
+   * ждущие остаются в очереди — их сроки продлеваются на время паузы (никто не получает «занят» из-за картинки).
+   */
+  paused = false
+  pauseReason = ''
+  private pauseUntil = 0
 
   constructor(opts: QueueOptions) {
     this.opts = { ...opts }
   }
 
   stats() {
-    return { parallel: this.opts.parallel, running: this.running, waiting: this.waiting.length, cap: this.opts.queueCap, ...this.counters }
+    return {
+      parallel: this.opts.parallel,
+      running: this.running,
+      waiting: this.waiting.length,
+      cap: this.opts.queueCap,
+      ...this.counters,
+      paused: this.paused,
+      pauseReason: this.paused ? this.pauseReason : '',
+      pauseRemainingMs: this.pauseRemainingMs(),
+    }
+  }
+
+  /** Сколько ещё (по оценке) продлится пауза, мс; 0 — паузы нет. */
+  pauseRemainingMs(now = Date.now()): number {
+    return this.paused ? Math.max(0, this.pauseUntil - now) : 0
+  }
+
+  /** Поставить выдачу слотов на паузу на etaMs (оценка); сроки ждущих продлеваются на etaMs. */
+  pause(reason: string, etaMs: number): void {
+    const now = Date.now()
+    const eta = Math.max(0, etaMs)
+    if (this.paused) return this.extendPause(eta)
+    this.paused = true
+    this.pauseReason = reason
+    this.pauseUntil = now + eta
+    for (const w of this.waiting) w.rearm(w.deadline + eta)
+  }
+
+  /** Пауза затягивается (долгий дренаж, вторая картинка): ещё etaMs и ждущим, и оценке. */
+  extendPause(etaMs: number): void {
+    if (!this.paused) return
+    const eta = Math.max(0, etaMs)
+    this.pauseUntil = Math.max(this.pauseUntil, Date.now()) + eta
+    for (const w of this.waiting) w.rearm(w.deadline + eta)
+  }
+
+  /** Снять паузу и раздать свободные слоты ждущим по порядку. Повторный вызов безопасен. */
+  resume(): void {
+    if (!this.paused) return
+    this.paused = false
+    this.pauseReason = ''
+    this.pauseUntil = 0
+    this.next()
   }
 
   /**
    * Оценка ожидания для места position (1 — следующий), мс: слоты освобождаются через «среднее − уже прошло»,
    * дальше каждый ждущий занимает слот на среднее время. undefined — замеров мало (меньше 3 ответов).
+   * Во время паузы прибавляется её остаток (без замеров — только остаток паузы).
    */
   estimateWaitMs(position: number, now = Date.now()): number | undefined {
+    const base = this.baseEstimateMs(position, now)
+    const pause = this.pauseRemainingMs(now)
+    if (!pause) return base
+    return (base ?? 0) + pause
+  }
+
+  private baseEstimateMs(position: number, now = Date.now()): number | undefined {
     if (!this.avgHoldMs || this.counters.served < 3) return undefined
     const par = Math.max(1, this.opts.parallel)
     const free = [...this.holding.values()].map((t) => Math.max(0, this.avgHoldMs - (now - t)))
@@ -105,13 +165,14 @@ export class LlmQueue {
       }
     }
     if (o.signal?.aborted) return Promise.resolve({ busy: 'abort' as const })
-    if (this.running < Math.max(1, this.opts.parallel) && !this.waiting.length) return Promise.resolve(slot())
+    if (!this.paused && this.running < Math.max(1, this.opts.parallel) && !this.waiting.length) return Promise.resolve(slot())
     if (this.waiting.length >= this.opts.queueCap) {
       this.counters.busyOverflow++
       return Promise.resolve({ busy: 'overflow' as const })
     }
     // по замерам очередь не дойдёт за queueWaitMs (с запасом 25 %) — сразу честный запасной путь, без пустого ожидания
-    const est = this.estimateWaitMs(this.waiting.length + 1)
+    // (оценка без паузы: из-за окна картинок «занят» не выдаётся — срок ожидания продлевается ниже)
+    const est = this.baseEstimateMs(this.waiting.length + 1)
     if (est !== undefined && est > this.opts.queueWaitMs * 1.25) {
       this.counters.busyPredicted++
       return Promise.resolve({ busy: 'predicted' as const })
@@ -126,6 +187,13 @@ export class LlmQueue {
       }
       const w: Waiter = {
         lastPos: 0,
+        deadline: 0,
+        rearm: (at) => {
+          w.deadline = at
+          if (timer) clearTimeout(timer)
+          timer = setTimeout(() => w.fail('timeout'), Math.max(0, at - Date.now()))
+          timer.unref?.()
+        },
         onPosition: o.onPosition,
         grant: () => {
           cleanup()
@@ -141,8 +209,8 @@ export class LlmQueue {
       }
       const onAbort = () => w.fail('abort')
       o.signal?.addEventListener('abort', onAbort, { once: true })
-      timer = setTimeout(() => w.fail('timeout'), Math.max(0, this.opts.queueWaitMs))
-      timer.unref?.()
+      // в паузе срок = queueWaitMs + остаток паузы (окно картинок не съедает время ученика)
+      w.rearm(Date.now() + Math.max(0, this.opts.queueWaitMs) + this.pauseRemainingMs())
       this.waiting.push(w)
       this.counters.queued++
       this.counters.maxWaitingSeen = Math.max(this.counters.maxWaitingSeen, this.waiting.length)
@@ -151,7 +219,7 @@ export class LlmQueue {
   }
 
   private next(): void {
-    while (this.running < Math.max(1, this.opts.parallel) && this.waiting.length) {
+    while (!this.paused && this.running < Math.max(1, this.opts.parallel) && this.waiting.length) {
       const w = this.waiting[0]!
       w.grant() // grant убирает его из списка и занимает слот
     }

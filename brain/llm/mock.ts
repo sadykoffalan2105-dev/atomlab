@@ -81,7 +81,26 @@ const PHOTO_READ = {
   uz: (n: number) => `Rasmda (${n}) — daftardagi masala. Shart qisqacha: modda va uning miqdori berilgan, massasini topish kerak. Bosqichma-bosqich yechim: 1) m = n·M formulasini yozamiz; 2) molyar massani jadvaldan qoʻyamiz; 3) hisoblab, javobni birligi bilan yozamiz.`,
   en: (n: number) => `The photo (${n}) shows a notebook task. In short: a substance and its amount are given, find the mass. Step by step: 1) write m = n·M; 2) put in the molar mass from the table; 3) calculate and write the answer with units.`,
 }
-const R3_OPENERS ={ ru: 'Я не знаю точно, но думаю, что ', uz: 'Bilmayman, lekin menimcha, ', en: "I don't know for sure, but I think " }
+/** «Перевод» запроса картинки словарём: мок не знает языков, но отвечает английским описанием и строгим JSON. */
+const IMAGE_WORDS: [RegExp, string][] = [
+  [/серн|sulfat|sulfur/i, 'sulfuric'], [/соля|xlorid|hydrochlor/i, 'hydrochloric'], [/кислот|kislota|acid/i, 'acid'],
+  [/колб|kolba|flask/i, 'glass flask'], [/пробирк|probirka|test tube/i, 'test tube'], [/стакан|beaker/i, 'beaker'],
+  [/вод[аыуе]|suv|water/i, 'water'], [/кристалл|kristall|crystal/i, 'crystals'], [/медн|mis |copper/i, 'copper'],
+  [/цинк|rux|zinc/i, 'zinc'], [/магни|magniy|magnesium/i, 'magnesium'], [/натри|natriy|sodium/i, 'sodium'],
+  [/пламен|пламя|alanga|flame/i, 'flame'], [/горени|горит|yonish|burning/i, 'burning'], [/пузыр|pufak|bubble/i, 'gas bubbles'],
+  [/атом|atom/i, 'atom model'], [/молекул|molekula|molecule/i, 'molecule model'], [/штатив|shtativ|stand/i, 'retort stand'],
+]
+
+function mockImageCheck(text: string): string {
+  // «модель» отклоняет то, что регекс-фильтр мог пропустить (политика, флаги организаций)
+  if (/политическ|флаг|siyosiy|bayroq|political|flag of/i.test(text)) return JSON.stringify({ ok: false, reason: 'политика и символы организаций', subject_en: '', historical_figure: false })
+  const words = [...new Set(IMAGE_WORDS.filter(([re]) => re.test(text)).map(([, w]) => w))]
+  const subject = words.length ? `a school chemistry experiment with ${words.join(', ')} on a laboratory bench` : 'a glass flask with a clear liquid on a laboratory bench'
+  const historical = /менделеев|mendeleev|mendeleyev|ломоносов|lomonosov/i.test(text)
+  return `Here is the check: ${JSON.stringify({ ok: true, reason: 'ok', subject_en: historical ? `portrait of the chemist Dmitri Mendeleev at his desk, ${subject}` : subject, historical_figure: historical })}`
+}
+
+const R3_OPENERS ={ ru:'Я не знаю точно, но думаю, что ', uz: 'Bilmayman, lekin menimcha, ', en: "I don't know for sure, but I think " }
 
 export class MockLlm implements LlmClient {
   calls = 0
@@ -186,6 +205,8 @@ export class MockLlm implements LlmClient {
       const q = o.messages[1]?.content ?? ''
       return /\d/.test(q) ? 'calc' : /химия|kimyo|chemi|вещест|reakts|реакц/i.test(q) ? 'chemistry' : 'offtopic'
     }
+    // проверка/перевод запроса картинки (brain/image/prompt.ts): строгий JSON, детерминированно
+    if (/^IMAGE_CHECK/.test(system)) return mockImageCheck(o.messages[1]?.content ?? '')
     // «перевод» — запасной путь проверяет, что ответ уже на нужном языке; мок перевести не умеет
     return null
   }

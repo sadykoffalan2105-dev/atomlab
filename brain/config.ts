@@ -128,6 +128,50 @@ export type BrainConfig = {
    * классы длины ответа и бюджеты подсказки по профилю. Профили различаются только числами.
    */
   dialog: DialogConfig
+  // — блок IMAGE (картинки, brain/image/**) —
+  /** «Нарисовать»: ComfyUI на той же видеокарте, что Gemma (окно GPU — brain/llm/gpuArbiter.ts). По умолчанию выключено. */
+  image: ImageConfig
+}
+
+// — блок IMAGE (картинки) —
+export type ImageEngine = 'z-image-turbo' | 'flux2-klein-4b'
+export type ImageVariant = 'int8' | 'bf16' | 'nvfp4' | 'fp8'
+/**
+ * Картинки (brain/README.md, раздел «Картинки»). Установщик сервера пишет enabled, engine, variant, comfyUrl,
+ * comfyOutputDir, students.enabled, teacherTokens; остальное — умолчания ниже (владелец правит config.json).
+ */
+export type ImageConfig = {
+  enabled: boolean
+  engine: ImageEngine
+  /** z-image-turbo: int8 | bf16 | nvfp4; flux2-klein-4b: fp8 */
+  variant: ImageVariant
+  /** адрес ComfyUI (env BRAIN_COMFY_URL важнее) и как часто проверять его готовность */
+  comfyUrl: string
+  comfyPollMs: number
+  /**
+   * папка вывода ComfyUI (C:\ATOMLAB\comfy-out) — для сведения: мозг файлы НЕ удаляет (в brain/** нет удалений,
+   * проверка brain:smoke), старые PNG чистит задача установщика «ATOMLAB Comfy»
+   */
+  comfyOutputDir: string
+  /** 0 — по движку (z-image 8, klein 4) */
+  steps: number
+  sizes: { square: [number, number]; wide: [number, number]; tall: [number, number] }
+  /** ученики: выключены по умолчанию; только пресеты своего класса ±gradeWindow; свой порог классификатора */
+  students: { enabled: boolean; presetsOnly: boolean; nsfwThreshold: number; gradeWindow: number }
+  /** ключи учителя (поле teacherKey в теле запроса), каждый ≥ 16 символов */
+  teacherTokens: string[]
+  freeText: { owner: boolean; teacher: boolean }
+  /** проверка/перевод свободного запроса Gemma (строгий JSON) */
+  llmCheck: boolean
+  rate: { perMin: number; perDay: number; globalPerMin: number; queueCap: number; perClientQueued: number }
+  jobTimeoutMs: number
+  /** окно GPU: сколько картинок за одно переключение, сколько ждать текст, когда снова пускать картинки */
+  window: { maxJobs: number; maxMs: number; drainMaxMs: number; maxStarvationMs: number; cooldownMs: number; reloadWaitMs: number; unloadWaitMs: number }
+  /** классификатор готовой картинки (узел ATOMLABSafetyCheck): обязателен; порог для владельца и учителя */
+  safety: { required: boolean; nsfwThreshold: number }
+  result: { quality: number; cacheTtlMs: number; cacheMaxBytes: number }
+  /** сколько видеопамяти (ГБ) нужно движку — ключ «engine:variant» */
+  vramNeedGB: Record<string, number>
 }
 
 // — блок DIALOG (агент A) —
@@ -216,6 +260,27 @@ export const DEFAULT_CONFIG: BrainConfig = {
     laptop: { historyMessages: 2, historyChars: 300, knowledgeChars: 600, knowledgeItems: 3, numPredictLong: 650 },
     dialogBlockChars: 220,
     summaryAfterTurns: 6,
+  },
+  // — блок IMAGE (картинки): выключено; сервер с видеокартой включает через config.json (установщик) —
+  image: {
+    enabled: false,
+    engine: 'z-image-turbo',
+    variant: 'int8',
+    comfyUrl: 'http://127.0.0.1:8188',
+    comfyPollMs: 60_000,
+    comfyOutputDir: '',
+    steps: 0,
+    sizes: { square: [1024, 1024], wide: [1216, 832], tall: [832, 1216] },
+    students: { enabled: false, presetsOnly: true, nsfwThreshold: 0.3, gradeWindow: 1 },
+    teacherTokens: [],
+    freeText: { owner: true, teacher: true },
+    llmCheck: true,
+    rate: { perMin: 2, perDay: 20, globalPerMin: 6, queueCap: 8, perClientQueued: 1 },
+    jobTimeoutMs: 120_000,
+    window: { maxJobs: 2, maxMs: 30_000, drainMaxMs: 45_000, maxStarvationMs: 60_000, cooldownMs: 8000, reloadWaitMs: 15_000, unloadWaitMs: 10_000 },
+    safety: { required: true, nsfwThreshold: 0.5 },
+    result: { quality: 85, cacheTtlMs: 600_000, cacheMaxBytes: 64 * 1024 * 1024 },
+    vramNeedGB: { 'z-image-turbo:int8': 10.5, 'z-image-turbo:bf16': 13, 'z-image-turbo:nvfp4': 8, 'flux2-klein-4b:fp8': 10 },
   },
 }
 
