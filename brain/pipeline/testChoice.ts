@@ -108,7 +108,9 @@ export function findBankTest(map: CurriculumMap, q: ChoiceQuestion, grade: numbe
     const overlap = ch.filter((c) => mine.includes(norm(c))).length / Math.max(ch.length, mine.length)
     const stemOk = norm(e.test.q[e.lang]!.replace(PREFIX_RE, '')) === stem
     if (!stemOk && overlap < 1) continue
-    const score = overlap + (stemOk ? 1 : 0) + (grade != null && e.unit.grade === grade ? 0.5 : 0) - e.order / 1e6
+    // тот же порядок вариантов — это тот самый тест (одинаковые вопросы встречаются в нескольких §)
+    const sameOrder = ch.length === mine.length && ch.every((c, k) => norm(c) === mine[k])
+    const score = overlap + (stemOk ? 1 : 0) + (sameOrder ? 0.75 : 0) + (grade != null && e.unit.grade === grade ? 0.5 : 0) - e.order / 1e6
     if (!best || score > best.score) best = { entry: e, correctAt, score }
   }
   return best ? { entry: best.entry, correctAt: best.correctAt } : null

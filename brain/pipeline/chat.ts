@@ -390,7 +390,7 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   // 4d) тип и охват вопроса (классификаторы SOURCES)
   // шаблоны («проще», «пример», «повтори», «да») сохраняют тип из правил (прежний вопрос / confirm / repeat)
   if (sq.followUp === 'why') sq.kind = 'why'
-  else if (!template && sq.followUp !== 'repeat') sq.kind = questionKindOf(sqCmp, sq.text, intent, tools.length > 0)
+  else if (!template && sq.followUp !== 'repeat') sq.kind = questionKindOf(sqCmp, sq.text, intent, tools.some((t) => t.tool !== 'test'))
   sq.scope = intent === 'offtopic' ? 'offtopic' : classifyScope(sq.text, sqCmp, lang, kb).scope
   if (template && sq.scope === 'offtopic') sq.scope = 'school'
   sqInfo = sq
