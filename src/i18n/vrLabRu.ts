@@ -96,7 +96,7 @@ export const vrLabRu = {
   'vrLab.curated.color_fe2o3_hcl': 'Fe₂O₃ + HCl → желтый раствор',
   'vrLab.curated.color_fe2o3_hcl.theory': 'Оксид железа(III) растворяется в кислоте.',
 
-  'vrLab.lesson.kicker': 'Обучение · Theory → Quiz → Practice',
+  'vrLab.lesson.kicker': 'Обучение · Теория → Тест → Практика',
   'vrLab.lesson.phase.theory': 'Теория',
   'vrLab.lesson.phase.quiz': 'Тест',
   'vrLab.lesson.phase.practice': 'Практика',
