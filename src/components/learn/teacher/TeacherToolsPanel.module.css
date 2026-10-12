@@ -439,6 +439,9 @@
   border-radius: 10px;
   background: #fffdf8;
   color: #111;
+  /* в светлой теме лист иначе сливается с фоном */
+  border: 1px solid rgba(100, 120, 160, 0.35);
+  box-shadow: 0 1px 6px rgba(20, 30, 60, 0.12);
   font-size: 0.92rem;
   line-height: 1.45;
   overflow-wrap: anywhere;

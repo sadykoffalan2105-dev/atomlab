@@ -34,7 +34,7 @@ const l3 = (x: L3 | undefined): { ru: string; uz: string; en: string } => ({
 })
 
 /** Главы 8–9 классов в карте только по-русски — переводы uz/en, чтобы в узбекском/английском интерфейсе не было кириллицы. */
-const CH_I18N: Record<string, { uz: string; en: string }> = {
+const CH_I18N: Record<string, { uz: string; en: string; always?: boolean }> = {
   'Повторение основных понятий курса химии 7 класса': { uz: '7-sinf kimyo kursining asosiy tushunchalarini takrorlash', en: 'Review of the main concepts of grade 7 chemistry' },
   'Периодический закон и периодическая таблица элементов. Строение атома': { uz: 'Davriy qonun va elementlar davriy jadvali. Atom tuzilishi', en: 'The periodic law and the periodic table. Atomic structure' },
   'Общая характеристика элементов главной подгруппы шестой группы': { uz: 'VI guruh bosh guruhchasi elementlarining umumiy tavsifi', en: 'General properties of the group VI main-subgroup elements' },
@@ -43,6 +43,10 @@ const CH_I18N: Record<string, { uz: string; en: string }> = {
   'Повторение наиболее важных тем курса химии 8 класса': { uz: '8-sinf kimyo kursining eng muhim mavzularini takrorlash', en: 'Review of the key topics of grade 8 chemistry' },
   'Теория электролитической диссоциации': { uz: 'Elektrolitik dissotsilanish nazariyasi', en: 'Electrolytic dissociation theory' },
   'Неметаллы. Группа углерода': { uz: 'Metallmaslar. Uglerod guruhi', en: 'Nonmetals. The carbon group' },
+  // в карте uz/en этих глав — словарные слова со строчной («kimyoviy bogʻ», «metal») — заменяем названиями глав
+  'Химические связи': { uz: 'Kimyoviy bog‘lanish', en: 'Chemical bonding', always: true },
+  'Неметаллы': { uz: 'Metallmaslar', en: 'Nonmetals', always: true },
+  'Металлы': { uz: 'Metallar', en: 'Metals', always: true },
   'Обобщение знаний, полученных по неорганической химии': { uz: 'Anorganik kimyo bo‘yicha bilimlarni umumlashtirish', en: 'Summary of inorganic chemistry' },
 }
 const CYR = /[А-Яа-яЁё]/
@@ -50,8 +54,8 @@ const chL3 = (x: L3 | undefined) => {
   const v = l3(x)
   const tr = CH_I18N[v.ru]
   if (tr) {
-    if (!x?.uz || CYR.test(v.uz)) v.uz = tr.uz
-    if (!x?.en || CYR.test(v.en)) v.en = tr.en
+    if (tr.always || !x?.uz || CYR.test(v.uz)) v.uz = tr.uz
+    if (tr.always || !x?.en || CYR.test(v.en)) v.en = tr.en
   }
   return v
 }

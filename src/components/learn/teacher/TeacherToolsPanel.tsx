@@ -119,7 +119,9 @@ export function TeacherToolsPanel() {
   const [tool, setTool] = useState<TeacherToolKind>('plan')
   const [units, setUnits] = useState<UnitRow[]>(unitsCache ?? [])
   const [gradeNum, setGradeNum] = useState<number>(8)
-  const [lang, setLang] = useState<AppLocale>(locale)
+  // язык результата: по умолчанию — язык интерфейса (меняется вместе с ним), пока учитель не выберет другой
+  const [langPicked, setLang] = useState<AppLocale | null>(null)
+  const lang: AppLocale = langPicked ?? locale
   // план
   const [planUnit, setPlanUnit] = useState('')
   const [minutes, setMinutes] = useState<number>(PLAN_MINUTES.def)
@@ -131,11 +133,15 @@ export function TeacherToolsPanel() {
   const [nItems, setNItems] = useState<number>(TEST_N_DEFAULT.sor)
   // проверка
   const [gradeUnit, setGradeUnit] = useState('')
-  const [rubric, setRubric] = useState<{ name: string; max: number }[]>(() => [
+  // критерии: пока учитель их не трогал — образец на языке интерфейса (переводится вместе с ним)
+  type RubricRow = { name: string; max: number }
+  const [rubricEdited, setRubricEdited] = useState<RubricRow[] | null>(null)
+  const rubric: RubricRow[] = rubricEdited ?? [
     { name: tt('rubricDefault1'), max: 2 },
     { name: tt('rubricDefault2'), max: 2 },
     { name: tt('rubricDefault3'), max: 1 },
-  ])
+  ]
+  const setRubric = (f: (cur: RubricRow[]) => RubricRow[]) => setRubricEdited(f(rubric))
   const [photos, setPhotos] = useState<ChatPhoto[]>([])
   const [photoErr, setPhotoErr] = useState(false)
   // ключ
