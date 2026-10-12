@@ -14,7 +14,7 @@
  *   лучшего совпадения, coverage — доля понятий вопроса в top-3); школьный вопрос без учебника — не выше «medium».
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
-import { conceptUnitFor, definitionFor, termOfQuestion, unitForTopic } from '../curriculum/answer.ts'
+import { conceptUnitByName, conceptUnitFor, definitionFor, termOfQuestion, unitForTopic } from '../curriculum/answer.ts'
 import { whyRuleFor, whyUnitFor } from '../curriculum/why.ts'
 import { termToRu } from '../persona/uzGlossary.ts'
 import { unitCard } from '../curriculum/card.ts'
@@ -551,7 +551,10 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     const defAny = wantsDef && sq.kind === 'definition' ? ((defTerms && definitionFor(cur, defTerms, g)) || definitionFor(cur, queryTerms, g)) : null
     const exactDef = !!defAny && defAny.inGrade && defAny.termCov === 1 && defAny.qCov === 1
     // понятие § (без определения в карте) точнее частичного совпадения определения: «общая формула» ≠ «развёрнутые формулы»
-    const byConcept = wantsDef && !exactDef ? ((defTerms && conceptUnitFor(cur, defTerms, g)) || conceptUnitFor(cur, queryTerms, g)) : null
+    // понятие § по названию на языке вопроса (у понятий карты есть uz/en-названия) — и для «что такое история химии?»,
+    // который по словам похож на вопрос об истории (энциклопедия), а в программе это понятие § класса
+    const byName = !curriculum && !sectionRef && g != null && sq.scope !== 'offtopic' && !exactDef && NAME_KINDS.has(sq.kind) ? conceptUnitByName(cur, sq.text, lang, g) : null
+    const byConcept = wantsDef && !exactDef ? ((defTerms && conceptUnitFor(cur, defTerms, g)) || conceptUnitFor(cur, queryTerms, g) || byName) : byName
     const defHit = byConcept ? null : defAny
     // «почему» с известной причиной (brain/curriculum/why.ts): § класса с этой темой — вопрос школьный
     const whyRule = !curriculum && !sectionRef && g != null && sq.kind === 'why' && sq.scope !== 'offtopic' ? whyRuleFor(sq.text) : null
@@ -562,7 +565,7 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
       for (const f of items) if (!isSchoolSource(f)) dropped.push({ c: f, why: 'school_first' })
       items = items.filter(isSchoolSource)
     }
-    if (!curriculum && !sectionRef && scopeUsed === 'school' && (sq.scope === 'school' || strongDef) && g != null && !NO_CARD_KINDS.has(sq.kind)) {
+    if (!curriculum && !sectionRef && scopeUsed === 'school' && (sq.scope === 'school' || strongDef) && g != null && (!NO_CARD_KINDS.has(sq.kind) || !!byName)) {
       const byQuery = cur.unitsForQuery(queryTerms, g)[0]
       const bestSchool = items.find((f) => f.sourceKind === 'textbook_grade' && (f.cov ?? 0) >= 0.5)
       const bk = bestSchool ? hitKp.get(bestSchool) : undefined
@@ -627,6 +630,9 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     ...(sectionRef ? { sectionRef } : {}),
   }
 }
+
+/** Виды вопроса, где термин можно искать по названию понятия § («что такое X?» может быть понят и как история/применение). */
+const NAME_KINDS = new Set(['definition', 'properties', 'who_history', 'uses', 'general'])
 
 /** uz/en: русские стемы термина вопроса через словарь (только полный перевод), иначе null. */
 function termStemsRu(text: string, lang: 'uz' | 'en'): Set<string> | null {

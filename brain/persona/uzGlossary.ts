@@ -149,6 +149,25 @@ export const UZ_GLOSSARY: GlossaryPair[] = [
   { uz: 'polimer', ru: 'полимеры', en: 'polymers' },
   { uz: 'oqsil', ru: 'белки', en: 'proteins' },
   { uz: 'uglevod', ru: 'углеводы', en: 'carbohydrates' },
+  { uz: 'funksional guruh', ru: 'функциональная группа', en: 'functional group' },
+  { uz: 'gomolog', ru: 'гомологи', en: 'homologues' },
+  { uz: 'etilenglikol', ru: 'этиленгликоль', en: 'ethylene glycol' },
+  { uz: 'chumoli kislota', ru: 'муравьиная кислота', en: 'formic acid' },
+  { uz: 'sirka kislota', ru: 'уксусная кислота', en: 'acetic acid' },
+  // термины программы 7–11, которых не хватало для поиска § по uz/en-вопросу «… nima?» (аудит покрытия 12.10)
+  { uz: 'kimyo', ru: 'химия', en: 'chemistry' },
+  { uz: 'yonish', ru: 'горение', en: 'combustion' },
+  { uz: 'osh tuzi', ru: 'поваренная соль', en: 'table salt' },
+  { uz: 'xlorid kislota', ru: 'соляная кислота', en: 'hydrochloric acid' },
+  { uz: 'fosfor kislota', ru: 'фосфорная кислота', en: 'phosphoric acid' },
+  { uz: 'karbonat kislota', ru: 'угольная кислота', en: 'carbonic acid' },
+  { uz: 'ishqoriy metall', ru: 'щелочные металлы', en: 'alkali metals' },
+  { uz: 'ishqoriy-yer metall', ru: 'щелочноземельные металлы', en: 'alkaline earth metals' },
+  { uz: 'metallurgiya', ru: 'металлургия', en: 'metallurgy' },
+  { uz: 'ideal gaz', ru: 'идеальный газ', en: 'ideal gas' },
+  { uz: 'molyar konsentratsiya', ru: 'молярная концентрация', en: 'molar concentration' },
+  { uz: 'ftor', ru: 'фтор', en: 'fluorine' },
+  { uz: 'kremniy', ru: 'кремний', en: 'silicon' },
 ]
 
 /** Апострофы узбекской латиницы к одному виду (oʻ, gʻ — U+02BB), нижний регистр. */
@@ -241,12 +260,14 @@ export function termToRu(term: string, lang: 'uz' | 'en'): string[] | null {
   const forms = ru.flatMap((r) => (lang === 'uz' ? ruToUz(r) : ruToEn(r)) ?? '').join(' ')
   const fw = (lang === 'uz' ? foldUz(forms) : forms.toLowerCase()).split(/[\s-]+/).filter(Boolean)
   const tw = (lang === 'uz' ? foldUz(term) : term.toLowerCase()).split(/[^\p{L}ʻʼ']+/u).filter((w) => w.length >= 3 && !/^(the|and|of|an?|va|bilan)$/.test(w))
-  const covered = (w: string) => fw.some((f) => f.length >= 3 && (w.startsWith(f.slice(0, Math.max(3, Math.min(f.length, 5)))) || f.startsWith(w)))
+  // слово термина = словарная форма + окончание до 5 букв (valentlik → valentligi: k/q чередуются с g/gʻ)
+  const covered = (w: string) =>
+    fw.some((f) => f.length >= 2 && (f.startsWith(w) || ((w.startsWith(f) || (/[kq]$/.test(f) && w.startsWith(f.slice(0, -1)))) && w.length - f.length <= 5)))
   return tw.length && tw.every(covered) ? ru : null
 }
 
 /** Вещества и элементы словаря — это сущности, а не тема («kislorodning valentligi» → тема «валентность»). */
-const ENTITY_RU = new Set(['водород', 'кислород', 'азот', 'углерод', 'сера', 'фосфор', 'хлор', 'натрий', 'калий', 'кальций', 'железо', 'медь', 'алюминий', 'вода', 'озон', 'аммиак'])
+const ENTITY_RU = new Set(['водород', 'кислород', 'азот', 'углерод', 'сера', 'фосфор', 'хлор', 'натрий', 'калий', 'кальций', 'железо', 'медь', 'алюминий', 'вода', 'озон', 'аммиак', 'фтор', 'кремний', 'поваренная соль', 'соляная кислота', 'фосфорная кислота', 'угольная кислота', 'муравьиная кислота', 'уксусная кислота', 'этиленгликоль'])
 
 /** Термины-темы (без веществ и элементов) из узбекского текста. */
 export function uzTopicTerms(text: string): string[] {

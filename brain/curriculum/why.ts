@@ -22,7 +22,7 @@ export const whyForm = (s: string) =>
 export const WHY_RULES: WhyRule[] = [
   {
     topic: 'periodic-law',
-    re: /(периодическ\w* (повтор|измен)|повторя\w* периодич|davriy (ravishda )?(takror|o'zgar)|repeat\w* periodic|periodic\w* repeat)/u,
+    re: /(периодическ\p{L}* (повтор|измен)|повторя\p{L}* периодич|davriy (ravishda )?(takror|o'zgar)|repeat\p{L}* periodic|periodic\p{L}* repeat)/u,
     text: {
       ru: 'Свойства элементов повторяются потому, что периодически повторяется строение внешнего электронного слоя: с ростом заряда ядра заполняется новая электронная оболочка, и у элементов одной группы снова одинаковое число внешних электронов.',
       uz: 'Elementlar xossalari takrorlanadi, chunki tashqi elektron qavat tuzilishi davriy takrorlanadi: yadro zaryadi ortgan sari yangi elektron qobiq toʻladi va bir guruh elementlarida tashqi elektronlar soni yana bir xil boʻladi.',
@@ -31,7 +31,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'isotopes',
-    re: /(атомн\w* масс\w* .{0,30}дробн|дробн\w* .{0,30}атомн\w* масс|atom massasi kasr|kasr son|atomic mass .{0,40}(not a whole|fraction))/u,
+    re: /(атомн\p{L}* масс\p{L}* .{0,30}дробн|дробн\p{L}* .{0,30}атомн\p{L}* масс|atom massasi kasr|kasr son|atomic mass .{0,40}(not a whole|fraction))/u,
     text: {
       ru: 'Относительная атомная масса — среднее значение по природным изотопам элемента: у хлора это ³⁵Cl (около 75 %) и ³⁷Cl (около 25 %), поэтому Ar(Cl) ≈ 35,5 — дробное число.',
       uz: 'Nisbiy atom massa — elementning tabiiy izotoplari boʻyicha oʻrtacha qiymat: xlorda bular ³⁵Cl (taxminan 75 %) va ³⁷Cl (taxminan 25 %), shuning uchun Ar(Cl) ≈ 35,5 — kasr son.',
@@ -40,7 +40,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'ionic-bond',
-    re: /((хлорид натрия|поваренн\w* сол|nacl|natriy xlorid|sodium chloride|ионн\w* (кристал|соедин|вещест)|ionli|ionic (compound|crystal)).{0,40}(температур\w* плавлен|плав|suyuqlanish|melting))/u,
+    re: /((хлорид натрия|поваренн\p{L}* сол|nacl|natriy xlorid|sodium chloride|ионн\p{L}* (кристал|соедин|вещест)|ionli|ionic (compound|crystal)).{0,40}(температур\p{L}* плавлен|плав|suyuqlanish|melting))/u,
     text: {
       ru: 'В кристалле хлорида натрия ионы Na⁺ и Cl⁻ связаны сильным электростатическим притяжением (ионная связь) по всей ионной решётке; чтобы расплавить кристалл, нужно разорвать множество таких связей, поэтому температура плавления высокая (801 °C).',
       uz: 'Natriy xlorid kristalida Na⁺ va Cl⁻ ionlari butun ion panjara boʻylab kuchli elektrostatik tortishish (ion bogʻ) bilan bogʻlangan; kristalni suyuqlantirish uchun koʻp bogʻlarni uzish kerak, shuning uchun suyuqlanish harorati yuqori (801 °C).',
@@ -49,7 +49,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'crystal-lattice',
-    re: /(алмаз\w* .{0,20}тверд|тверд\w* .{0,20}алмаз|olmos .{0,20}qattiq|diamond .{0,20}hard)/u,
+    re: /(алмаз\p{L}* .{0,20}тверд|тверд\p{L}* .{0,20}алмаз|olmos .{0,20}qattiq|diamond .{0,20}hard)/u,
     text: {
       ru: 'Алмаз имеет атомную кристаллическую решётку: каждый атом углерода прочно связан ковалентными связями с четырьмя соседями, и вся решётка — одна огромная сетка таких связей, поэтому алмаз очень твёрдый.',
       uz: 'Olmosda atom kristall panjara bor: har bir uglerod atomi toʻrtta qoʻshnisi bilan mustahkam kovalent bogʻlar orqali bogʻlangan, butun panjara shunday bogʻlarning yagona toʻri, shuning uchun olmos juda qattiq.',
@@ -58,7 +58,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'valence',
-    re: /(валентн\w* водород|водород\w* .{0,20}валентн|vodorodning valentlig|valentlig\w* .{0,20}vodorod|valen\w* of hydrogen|hydrogen\w* valen)/u,
+    re: /(валентн\p{L}* водород|водород\p{L}* .{0,20}валентн|vodorodning valentlig|valentlig\p{L}* .{0,20}vodorod|valen\p{L}* of hydrogen|hydrogen\p{L}* valen)/u,
     text: {
       ru: 'У атома водорода один электрон, и он может образовать только одну общую электронную пару — одну химическую связь, поэтому валентность водорода всегда равна I.',
       uz: 'Vodorod atomida bitta elektron bor va u faqat bitta umumiy elektron juft — bitta kimyoviy bogʻ hosil qila oladi, shuning uchun vodorodning valentligi doim I ga teng.',
@@ -67,7 +67,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'mass-conservation',
-    re: /(масс\w* .{0,40}до реакци.{0,40}после|massasi reaksiyadan keyingi|reaksiyagacha .{0,30}massa|mass .{0,40}before .{0,30}reaction .{0,30}after|сохранени\w* масс)/u,
+    re: /(масс\p{L}* .{0,40}до реакци.{0,40}после|massasi reaksiyadan keyingi|reaksiyagacha .{0,30}massa|mass .{0,40}before .{0,30}reaction .{0,30}after|сохранени\p{L}* масс)/u,
     text: {
       ru: 'При химической реакции атомы не исчезают и не появляются — они только перегруппировываются в новые молекулы; число атомов каждого элемента и их массы не меняются, поэтому масса веществ до реакции равна массе после (закон сохранения массы).',
       uz: 'Kimyoviy reaksiyada atomlar yoʻqolmaydi va paydo boʻlmaydi — ular faqat yangi molekulalarga qayta guruhlanadi; har bir element atomlari soni va massasi oʻzgarmaydi, shuning uchun reaksiyagacha massa reaksiyadan keyingi massaga teng (massaning saqlanish qonuni).',
@@ -76,7 +76,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'chemical-phenomena',
-    re: /((горени|сгоран|yonish|burning|combustion).{0,40}(химическ\w* явлен|kimyoviy hodisa|chemical (phenomen|change)))/u,
+    re: /((горени|сгоран|yonish|burning|combustion).{0,40}(химическ\p{L}* явлен|kimyoviy hodisa|chemical (phenomen|change)))/u,
     text: {
       ru: 'При горении свечи образуются новые вещества — углекислый газ и вода, выделяются тепло и свет; признак химического явления — образование новых веществ с другими свойствами.',
       uz: 'Sham yonganda yangi moddalar — karbonat angidrid va suv hosil boʻladi, issiqlik va yorugʻlik ajraladi; kimyoviy hodisaning belgisi — boshqa xossali yangi moddalar hosil boʻlishi.',
@@ -85,7 +85,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'simple-complex',
-    re: /((прост\w* вещест.{0,40}сложн)|(oddiy modda.{0,40}murakkab)|(simple substance.{0,40}compound))/u,
+    re: /((прост\p{L}* вещест.{0,40}сложн)|(oddiy modda.{0,40}murakkab)|(simple substance.{0,40}compound))/u,
     text: {
       ru: 'Простое вещество состоит из атомов одного химического элемента (O₂ — только кислород), а сложное — из атомов разных элементов (H₂O — водород и кислород).',
       uz: 'Oddiy modda bitta kimyoviy element atomlaridan iborat (O₂ — faqat kislorod), murakkab modda esa turli elementlar atomlaridan tashkil topgan (H₂O — vodorod va kislorod).',
@@ -94,7 +94,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'amphoteric',
-    re: /((гидроксид\w* алюмин|al\(oh\)3|alyuminiy gidroksid|aluminium hydroxide|aluminum hydroxide).{0,60}(кислот.{0,20}щелоч|kislota.{0,30}ishqor|acid.{0,20}alkal)|амфотерн\w* .{0,20}почему)/u,
+    re: /((гидроксид\p{L}* алюмин|al\(oh\)3|alyuminiy gidroksid|aluminium hydroxide|aluminum hydroxide).{0,60}(кислот.{0,20}щелоч|kislota.{0,30}ishqor|acid.{0,20}alkal)|амфотерн\p{L}* .{0,20}почему)/u,
     text: {
       ru: 'Гидроксид алюминия Al(OH)₃ амфотерный: с кислотами он реагирует как основание (Al(OH)₃ + 3HCl → AlCl₃ + 3H₂O), а со щелочами — как кислота (Al(OH)₃ + NaOH → Na[Al(OH)₄]).',
       uz: 'Alyuminiy gidroksid Al(OH)₃ amfoter: kislotalar bilan asos kabi (Al(OH)₃ + 3HCl → AlCl₃ + 3H₂O), ishqorlar bilan esa kislota kabi reaksiyaga kirishadi (Al(OH)₃ + NaOH → Na[Al(OH)₄]).',
@@ -103,7 +103,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'water',
-    re: /(универсальн\w* растворител|universal erituvchi|universal solvent)/u,
+    re: /(универсальн\p{L}* растворител|universal erituvchi|universal solvent)/u,
     text: {
       ru: 'Молекула воды полярная: на кислороде частичный отрицательный заряд, на водородах — положительный; полярные молекулы воды окружают ионы и полярные молекулы и отрывают их друг от друга, поэтому в воде растворяется очень много веществ.',
       uz: 'Suv molekulasi qutbli: kislorodda qisman manfiy, vodorodlarda musbat zaryad bor; qutbli suv molekulalari ionlar va qutbli molekulalarni oʻrab, ularni bir-biridan ajratadi, shuning uchun suvda juda koʻp moddalar eriydi.',
@@ -157,7 +157,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'solutions',
-    re: /((растворимост\w* газ|gazlarning .{0,20}eruvchanlig|solubility of gases|gas solubility).{0,60}(нагрев|qizdir|heat|температур|harorat))|((нагрев|qizdir|heat).{0,60}(растворимост\w* газ|gazlarning .{0,20}eruvchanlig|solubility of gases))/u,
+    re: /((растворимост\p{L}* газ|gazlarning .{0,20}eruvchanlig|solubility of gases|gas solubility).{0,60}(нагрев|qizdir|heat|температур|harorat))|((нагрев|qizdir|heat).{0,60}(растворимост\p{L}* газ|gazlarning .{0,20}eruvchanlig|solubility of gases))/u,
     text: {
       ru: 'При нагревании молекулы газа движутся быстрее и легче покидают раствор, а растворение газов в воде идёт с выделением тепла — поэтому с ростом температуры растворимость газов уменьшается (тёплая вода содержит меньше кислорода).',
       uz: 'Qizdirilganda gaz molekulalari tezroq harakatlanadi va eritmani osonroq tark etadi, gazlarning suvda erishi esa issiqlik ajralishi bilan boradi — shuning uchun harorat ortishi bilan gazlarning eruvchanligi kamayadi (iliq suvda kislorod kamroq).',
@@ -175,7 +175,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'gas-laws',
-    re: /((объем\w* газ|gaz hajmi|volume of a gas|gas volume).{0,40}(нагрев|qizdir|heat))|((нагрев|qizdir|heat).{0,40}(объем\w* газ|gaz hajmi|volume of a gas|gas volume))/u,
+    re: /((объем\p{L}* газ|gaz hajmi|volume of a gas|gas volume).{0,40}(нагрев|qizdir|heat))|((нагрев|qizdir|heat).{0,40}(объем\p{L}* газ|gaz hajmi|volume of a gas|gas volume))/u,
     text: {
       ru: 'При нагревании растёт температура, молекулы газа движутся быстрее и сильнее ударяют о стенки, расстояния между ними увеличиваются — поэтому при постоянном давлении объём газа увеличивается (закон Гей-Люссака: V/T = const).',
       uz: 'Qizdirilganda harorat ortadi, gaz molekulalari tezroq harakatlanadi va devorlarga kuchliroq uriladi, ular orasidagi masofa ortadi — shuning uchun oʻzgarmas bosimda gaz hajmi ortadi (Gey-Lyussak qonuni: V/T = const).',
@@ -184,7 +184,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'organic-general',
-    re: /((органическ\w* вещест.{0,40}больше)|(organik moddalar .{0,40}ko'p)|(more organic compounds|organic compounds than inorganic))/u,
+    re: /((органическ\p{L}* вещест.{0,40}больше)|(organik moddalar .{0,40}ko'p)|(more organic compounds|organic compounds than inorganic))/u,
     text: {
       ru: 'Атомы углерода четырёхвалентны и прочно соединяются друг с другом в длинные цепи — прямые, разветвлённые и кольца, с одинарными, двойными и тройными связями; к тому же одинаковый состав даёт разные изомеры — поэтому органических веществ так много.',
       uz: 'Uglerod atomlari toʻrt valentli va bir-biri bilan mustahkam bogʻlanib uzun zanjirlar — toʻgʻri, tarmoqlangan va halqali, oddiy, qoʻsh va uchlamchi bogʻli zanjirlar hosil qiladi; buning ustiga bir xil tarkib turli izomerlarni beradi — shuning uchun organik moddalar juda koʻp.',
@@ -193,7 +193,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'structure-theory',
-    re: /((одинаков\w* состав.{0,40}разн\w* свойств)|(tarkibi bir xil .{0,40}har xil xossa)|(same composition .{0,40}different properties))/u,
+    re: /((одинаков\p{L}* состав.{0,40}разн\p{L}* свойств)|(tarkibi bir xil .{0,40}har xil xossa)|(same composition .{0,40}different properties))/u,
     text: {
       ru: 'По теории химического строения Бутлерова свойства вещества зависят не только от состава, но и от строения — порядка соединения атомов в молекуле; вещества с одинаковым составом и разным строением — изомеры, и свойства у них разные.',
       uz: 'Butlerovning kimyoviy tuzilish nazariyasiga koʻra moddaning xossalari faqat tarkibiga emas, balki tuzilishiga — molekulada atomlarning birikish tartibiga ham bogʻliq; tarkibi bir xil, tuzilishi har xil moddalar — izomerlar, ularning xossalari ham har xil.',
@@ -202,7 +202,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'isomerism',
-    re: /((бутан.{0,10}изобутан)|(butan va izobutan)|(butane and isobutane)|изомер\w* .{0,20}разн)/u,
+    re: /((бутан.{0,10}изобутан)|(butan va izobutan)|(butane and isobutane)|изомер\p{L}* .{0,20}разн)/u,
     text: {
       ru: 'Бутан и изобутан — изомеры: состав одинаковый (C₄H₁₀), а строение разное — у бутана прямая цепь из четырёх атомов углерода, у изобутана цепь разветвлённая; разное строение даёт разные свойства (tкип −0,5 °C и −11,7 °C).',
       uz: 'Butan va izobutan — izomerlar: tarkibi bir xil (C₄H₁₀), tuzilishi esa har xil — butanda toʻrtta uglerod atomidan toʻgʻri zanjir, izobutanda tarmoqlangan zanjir; tuzilish har xil boʻlgani uchun xossalari ham har xil (qaynash harorati −0,5 °C va −11,7 °C).',
@@ -211,7 +211,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'alkanes',
-    re: /((алкан\w* .{0,30}предельн)|(alkanlar .{0,30}to'yingan)|(alkanes .{0,30}saturated))/u,
+    re: /((алкан\p{L}* .{0,30}предельн)|(alkanlar .{0,30}to'yingan)|(alkanes .{0,30}saturated))/u,
     text: {
       ru: 'В молекулах алканов все связи между атомами углерода одинарные, и каждый атом углерода насыщен атомами водорода до предела (CₙH₂ₙ₊₂) — присоединять больше нечего, поэтому их называют предельными (насыщенными).',
       uz: 'Alkanlar molekulalarida uglerod atomlari orasidagi barcha bogʻlar oddiy bogʻlar, har bir uglerod atomi vodorod atomlari bilan toʻla toʻyingan (CₙH₂ₙ₊₂) — boshqa biriktiradigan narsa yoʻq, shuning uchun ular toʻyingan uglevodorodlar deyiladi.',
@@ -220,7 +220,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'alkenes',
-    re: /((этилен|алкен|etilen|alken|ethene|ethylene|alkene).{0,40}(бромн\w* вод|brom suv|bromine water))/u,
+    re: /((этилен|алкен|etilen|alken|ethene|ethylene|alkene).{0,40}(бромн\p{L}* вод|brom suv|bromine water))/u,
     text: {
       ru: 'В молекуле этилена есть двойная связь C=C; бром присоединяется по месту её разрыва (CH₂=CH₂ + Br₂ → CH₂Br–CH₂Br), бурый бром расходуется — бромная вода обесцвечивается. Это качественная реакция на кратную связь.',
       uz: 'Etilen molekulasida qoʻsh bogʻ C=C bor; brom uning uzilish joyiga birikadi (CH₂=CH₂ + Br₂ → CH₂Br–CH₂Br), qoʻngʻir brom sarflanadi — brom suvi rangsizlanadi. Bu karrali bogʻga sifat reaksiyasi.',
@@ -238,7 +238,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'carboxylic-acids',
-    re: /((уксусн\w* кислот|sirka kislota|acetic acid).{0,30}(слаб|kuchsiz|weak))/u,
+    re: /((уксусн\p{L}* кислот|sirka kislota|acetic acid).{0,30}(слаб|kuchsiz|weak))/u,
     text: {
       ru: 'Уксусная кислота в воде диссоциирует частично: лишь малая часть молекул CH₃COOH отдаёт ион H⁺ (CH₃COOH ⇄ CH₃COO⁻ + H⁺), равновесие сильно смещено влево — поэтому она слабая кислота.',
       uz: 'Sirka kislota suvda qisman dissotsilanadi: CH₃COOH molekulalarining faqat kichik qismi H⁺ ionini beradi (CH₃COOH ⇄ CH₃COO⁻ + H⁺), muvozanat chapga kuchli siljigan — shuning uchun u kuchsiz kislota.',
@@ -247,7 +247,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'esters-fats',
-    re: /((жидк\w* .{0,30}масл.{0,40}тверд)|(suyuq .{0,30}moy.{0,40}qattiq)|(liquid .{0,30}oils? .{0,40}solid))/u,
+    re: /((жидк\p{L}* .{0,30}масл.{0,40}тверд)|(suyuq .{0,30}moy.{0,40}qattiq)|(liquid .{0,30}oils? .{0,40}solid))/u,
     text: {
       ru: 'Жидкие растительные масла содержат остатки непредельных кислот с двойными связями C=C; при гидрировании (присоединении водорода H₂ на никелевом катализаторе) двойные связи становятся одинарными, и масло превращается в твёрдый жир (маргарин).',
       uz: 'Suyuq oʻsimlik moylarida qoʻsh bogʻli C=C toʻyinmagan kislotalar qoldiqlari bor; gidrogenlashda (nikel katalizatorida vodorod H₂ biriktirilganda) qoʻsh bogʻlar oddiy bogʻga aylanadi va moy qattiq yogʻga (margarin) aylanadi.',
@@ -265,7 +265,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'salts',
-    re: /((поваренн\w* сол|osh tuzi|table salt).{0,40}(ток|tok|electric))/u,
+    re: /((поваренн\p{L}* сол|osh tuzi|table salt).{0,40}(ток|tok|electric))/u,
     text: {
       ru: 'В воде поваренная соль диссоциирует на ионы: NaCl → Na⁺ + Cl⁻; заряженные ионы свободно движутся в растворе и переносят электрический заряд, поэтому раствор проводит ток.',
       uz: 'Suvda osh tuzi ionlarga dissotsilanadi: NaCl → Na⁺ + Cl⁻; zaryadlangan ionlar eritmada erkin harakatlanib, elektr zaryadini tashiydi, shuning uchun eritma tok oʻtkazadi.',
@@ -283,7 +283,7 @@ export const WHY_RULES: WhyRule[] = [
   },
   {
     topic: 'redox',
-    re: /((окислител\w* .{0,30}восстанавлива)|(oksidlovchi .{0,30}qaytariladi)|(oxidi[sz]ing agent .{0,30}reduced))/u,
+    re: /((окислител\p{L}* .{0,30}восстанавлива)|(oksidlovchi .{0,30}qaytariladi)|(oxidi[sz]ing agent .{0,30}reduced))/u,
     text: {
       ru: 'Окислитель принимает электроны от восстановителя; принятие электронов — это восстановление (степень окисления понижается), поэтому окислитель в реакции восстанавливается, а восстановитель окисляется.',
       uz: 'Oksidlovchi qaytaruvchidan elektron qabul qiladi; elektron qabul qilish — qaytarilish (oksidlanish darajasi pasayadi), shuning uchun reaksiyada oksidlovchi qaytariladi, qaytaruvchi esa oksidlanadi.',
