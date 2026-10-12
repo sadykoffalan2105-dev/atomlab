@@ -34,8 +34,23 @@ const FORMULA_LIKE = /(?<![\p{L}])(?:[A-Z][a-z]?\d*|\((?:[A-Z][a-z]?\d*)+\)\d*)+
 
 const UZ_CYR = ub(/\b(нима|қандай|учун|билан|нега|ҳақида|кимё|модда)\b/)
 
+/** Термин в кавычках — упомянутое слово, а не язык фразы. */
+const QUOTED = /«[^«»]{1,80}»|“[^“”]{1,80}”|"[^"]{1,80}"/gu
+/** Русское начало вопроса («Что такое Hydrogenium?», «Дай определение: Oxygenium») — фраза русская, латиница — термин. */
+const RU_HEAD = /^[^\p{L}]*(?:что|чем|как|какой|какая|какое|какие|почему|зачем|где|когда|кто|сколько|дай|дайте|объясни|расскажи|назови|напиши|определи|опиши)(?![\p{L}])/u
+
 /** Язык вопроса: кириллица → ru (узбекская кириллица ў/қ/ғ/ҳ → uz); латиница + узбекские маркеры → uz; иначе en. */
 export function detectLang(text: string): Lang {
+  // «тело» nima? — узбекский вопрос о русском слове из учебника; What does «вещество» mean? — английский:
+  // язык решают слова вне кавычек, если их хватает (термин в кавычках — только упоминание)
+  const outside = text.replace(QUOTED, ' ')
+  if (outside !== text && /[\p{L}]{3,}/u.test(outside.replace(/\bKimyo\s*\d{1,2}\b/gu, ' '))) {
+    const o = outside.normalize('NFC').toLowerCase()
+    const oc = (o.match(/[а-яёўқғҳ]/g) ?? []).length
+    const ol = (o.match(/[a-z]/g) ?? []).length
+    // вне кавычек только одна письменность — по ней; смешанный остаток — как раньше, по всему тексту
+    if ((oc === 0) !== (ol === 0)) return detectLang(outside)
+  }
   // формулы («HCl», «Ca(OH)2», «KMnO4») и «pH» — не язык: убираем до подсчёта букв
   const stripFormula = (m: string) => (m !== 'OK' && (/\d/.test(m) || (m.match(/[A-Z]/g) ?? []).length >= 2) ? ' ' : m)
   // название учебника «Kimyo 8» — не язык вопроса («О чём Kimyo 8, §44?» — русский вопрос)
@@ -44,7 +59,9 @@ export function detectLang(text: string): Lang {
   const noFormula = t.replace(/\b[a-z]{0,2}\d[a-z0-9()]*\b/g, ' ').replace(/(^|\s)[a-f]\)/g, ' ')
   const cyr = (noFormula.match(/[а-яўқғҳ]/g) ?? []).length
   const lat = (noFormula.match(/[a-z]/g) ?? []).length
-  if (cyr > 0 && cyr >= lat) {
+  // латинский термин в русском вопросе («Что такое Hydrogenium?»): русское начало и не больше двух латинских слов
+  const ruHead = cyr > 0 && RU_HEAD.test(noFormula) && (noFormula.match(/[a-z]{2,}/g) ?? []).length <= 2
+  if (cyr > 0 && (cyr >= lat || ruHead)) {
     if (/[ўқғҳ]/.test(noFormula) || UZ_CYR.test(noFormula)) return 'uz'
     return 'ru'
   }

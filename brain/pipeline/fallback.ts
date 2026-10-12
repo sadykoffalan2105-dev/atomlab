@@ -146,6 +146,11 @@ function unitSentence(kb: Knowledge, unit: Unit, allTerms: Set<string>, causal =
         if (hits < need || skip.includes(x)) return
         let score = hits * 2 - x.length / 400 - ci * 0.02 - pos * 0.01
         if (causal ? CAUSAL.test(x) : /\s[—–-]\s(это\s)?|называ|является|представляет собой/iu.test(x)) score += 2
+        // определение начинается с термина («Марганец – серебристо-белый металл»), а не упоминает его в хвосте
+        // («…получают марганец восстановлением…»): подлежащее — термин вопроса
+        if (!causal && [...qTerms].some((t) => new Set(analyzeTerms(x.split(/\s[—–-]\s|,|:/u)[0]!.split(/\s+/).slice(0, 4).join(' '))).has(t))) score += 1.5
+        // OCR-обрывки уравнений («Mn O = MnCl +Cl +2H O2 202 2 , 11 -2e 0 22») — не ответ ученику
+        if ((x.match(/(?:^|\s)[-+]?\d+(?=[\s,.]|$)/g) ?? []).length >= 4) score -= 4
         if (h.type === 'definition') score += 1
         if (score > bestScore) {
           bestScore = score
@@ -661,14 +666,17 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   }
   const lowConfidence = !lines.length
   if (lowConfidence) {
+    // «ближайшие темы в учебнике» — только учебник и ATOMLAB: статья энциклопедии не тема учебника, а её подпись
+    // в ответе «от основ» (содержание статьи не использовано) — ложная ссылка («Альтернативная биохимия» на «альтернативный вариант»)
     const near = items
+      .filter((c) => c.type !== 'encyclopedia')
       .map((c) => topicTitle(c, lang, kb))
       .filter((x): x is string => !!x && x.length < 90)
       .filter((x, i, a) => a.indexOf(x) === i)
       .slice(0, 2)
     let body = T(lang, 'Разберём от основ: ', 'Asoslardan boshlaymiz: ', 'Let us reason from the basics: ') + FIRST_PRINCIPLES[lang]
     if (near.length) body += ' ' + T(lang, `Ближайшие темы в учебнике: «${near.join('», «')}».`, `Darslikdagi eng yaqin mavzular: «${near.join('», «')}».`, `The closest textbook topics: “${near.join('”, “')}”.`)
-    for (const c of items.slice(0, 2)) if (!(school && c.type === 'encyclopedia')) cite(c.citation)
+    for (const c of items.filter((x) => x.type !== 'encyclopedia').slice(0, 2)) cite(c.citation)
     body += ' ' + T(lang, 'Уточните, пожалуйста: о каком веществе, явлении или законе идёт речь? Тогда разберу точно и с примером.', 'Iltimos, aniqlashtiring: qaysi modda, hodisa yoki qonun haqida gap ketyapti? Shunda aniq va misol bilan tushuntiraman.', 'Could you clarify which substance, phenomenon or law you mean? Then I will go through it precisely, with an example.')
     const text = style.prefix + body + (style.suffix ? ' ' + style.suffix : '')
     return { text: trimToWords(text, inp.wordLimit), citations, confidence: Math.min(confidence, inp.thresholds.medium - 0.01) }
