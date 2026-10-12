@@ -123,7 +123,8 @@ export function unitForTopic(map: CurriculumMap, text: string, terms: Set<string
   if (grade == null) return null
   const units = map.byGrade.get(grade) ?? []
   // темы самого вопроса весят вдвое больше тем из пояснения понятий (extra)
-  const own = new Set(topicsOf(text))
+  // + русские стемы вопроса (у uz/en — перевод KbEngine.analyzeQuery): правила тем в основном на русских корнях
+  const own = new Set(topicsOf(`${text} ${[...terms].join(' ')}`))
   const topics = new Set([...own, ...topicsOf(extra)])
   const byQuery = new Map(map.unitsForQuery(terms, grade).map((x) => [x.unit.id, x.score]))
   let best: Unit | null = null

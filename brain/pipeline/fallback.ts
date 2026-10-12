@@ -126,11 +126,12 @@ const MICRO: Record<QType | 'calc', Record<Lang, string[]>> = {
  * Лучшее предложение текста единицы (§) о термине вопроса: больше стемов вопроса, «… называется / — это …» выше,
  * короткое и раннее выше. Нет предложения хотя бы с половиной стемов вопроса — null.
  */
-function unitSentence(kb: Knowledge, unit: Unit, allTerms: Set<string>): string | null {
+function unitSentence(kb: Knowledge, unit: Unit, allTerms: Set<string>, causal = false, skip: string[] = []): string | null {
   const qTerms = termTerms(allTerms)
   if (!qTerms.size) return null
-  // «амфотерные оксиды» — нужны оба стема (предложение про «оксид алюминия» — не ответ); длинный вопрос — две трети
-  const need = qTerms.size <= 2 ? qTerms.size : Math.ceil((qTerms.size * 2) / 3)
+  // «амфотерные оксиды» — нужны оба стема (предложение про «оксид алюминия» — не ответ); длинный вопрос — две трети;
+  // «почему» (causal) — половина: причина в учебнике редко повторяет все слова вопроса
+  const need = causal ? Math.max(1, Math.ceil(qTerms.size / 2)) : qTerms.size <= 2 ? qTerms.size : Math.ceil((qTerms.size * 2) / 3)
   let best: string | null = null
   let bestScore = -Infinity
   const chunks = kb.engine.paragraphChunks(unit.grade, unit.kp, ['definition', 'summary', 'textbook'])
@@ -141,9 +142,9 @@ function unitSentence(kb: Knowledge, unit: Unit, allTerms: Set<string>): string 
       .forEach((x, pos) => {
         const terms = new Set(analyzeTerms(x))
         const hits = [...qTerms].filter((t) => terms.has(t)).length
-        if (hits < need) return
+        if (hits < need || skip.includes(x)) return
         let score = hits * 2 - x.length / 400 - ci * 0.02 - pos * 0.01
-        if (/\s[—–-]\s(это\s)?|называ|является|представляет собой/iu.test(x)) score += 2
+        if (causal ? CAUSAL.test(x) : /\s[—–-]\s(это\s)?|называ|является|представляет собой/iu.test(x)) score += 2
         if (h.type === 'definition') score += 1
         if (score > bestScore) {
           bestScore = score
@@ -579,6 +580,13 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       if (concepts[1] && lines.length < 2) lines.push(concepts[1].def[lang])
     }
     if (haveThesis && items[0] && (r?.confR ?? 0) >= inp.thresholds.medium && !(school && items[0].type === 'encyclopedia')) cite(items[0].citation)
+
+    // 3a) «почему» по § класса (карта): объяснение из текста этого § (ru) / закон второго понятия (uz, en) — причина
+    //     из учебника ученика, а не только общее определение понятия
+    if (qtype === 'why' && curUnit && lines.length < 3) {
+      const add = lang === 'ru' ? unitSentence(kb, curUnit, qTerms, true, lines) : concepts[1] && concepts[1].law[lang] !== primary?.law[lang] ? concepts[1].law[lang] : null
+      if (add && !lines.some((l) => jaccard(new Set(analyzeTerms(l)), new Set(analyzeTerms(add))) > 0.45)) lines.push(add)
+    }
 
     // 4) логика по типу вопроса
     // «как получить кислород» — элемент назван, а получают простое вещество (O₂)
