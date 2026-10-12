@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   LEARN_GRADES,
@@ -22,6 +22,9 @@ import { readLearnProgress } from '../learn/learnProgressStorage'
 import { useT } from '../i18n/useT'
 import { HomeworkReviewPanel } from './HomeworkReviewPanel'
 import styles from './LearnPage.module.css'
+
+// ИИ-помощник учителя (план урока / тест / проверка по фото, nextBuild #4) — отдельный чанк
+const TeacherToolsPanel = lazy(() => import('../components/learn/teacher/TeacherToolsPanel'))
 
 export function LearnTeacherHub() {
   const { t } = useT()
@@ -119,6 +122,11 @@ export function LearnTeacherHub() {
           {t('learn.teacher.exportProgress')}
         </button>
       </div>
+
+      {/* ИИ-помощник учителя: /teacher/plan|test|grade */}
+      <Suspense fallback={null}>
+        <TeacherToolsPanel />
+      </Suspense>
 
       <HomeworkReviewPanel />
 
