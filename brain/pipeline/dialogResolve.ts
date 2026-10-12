@@ -187,8 +187,10 @@ export function entitiesOf(text: string, kb: Knowledge, lang: Lang): FoundEntity
   }
   for (const s of findSubstances(text, kb)) {
     if (fillerAt(s.index)) continue
-    const nWords = (lang === 'ru' ? s.item.ru : lang === 'uz' ? s.item.uz : s.item.en).split(/\s+/).length
-    out.push({ ru: s.item.ru, local: (lang === 'ru' ? s.item.ru : lang === 'uz' ? s.item.uz : s.item.en) || s.item.ru, kind: 'substance', at: s.index, end: span(s.index, nWords) })
+    // у части веществ нет uz/en-названия (русское слово в узбекском вопросе: «соляная кислота» nima?) — русское
+    const local = (lang === 'ru' ? s.item.ru : lang === 'uz' ? s.item.uz : s.item.en) || s.item.ru
+    const nWords = local.split(/\s+/).length
+    out.push({ ru: s.item.ru, local, kind: 'substance', at: s.index, end: span(s.index, nWords) })
   }
   for (const e of findElements(text, kb)) {
     if (fillerAt(e.index)) continue

@@ -22,6 +22,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { CJK_RE, hasR3 } from '../../brain/pipeline/postcheck.ts'
 import { matchesLang, type Lang } from '../../brain/pipeline/normalize.ts'
+import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
 import { check, httpRunner, inprocRunner, type Answer, type Question } from './evalCheck.mts'
 
 /** Пороги без живой модели (--inproc и --mock-llm): доля прошедших по подтипу; код выхода 1 при провале. */
@@ -192,10 +193,35 @@ function fairUnits(q: CQuestion): string[] {
   }
   return [...ok]
 }
+// ——— честная цитата § для определения (аудит 12.10, второй круг): тот же термин учебник определяет в нескольких § класса
+// («Горизонтальные ряды называются периодами» — и в гл. 3, теме 1, и в теме 3; «щелочные металлы» — в темах 1 и 2).
+// Вопрос «Что такое периоды?» не называет §, мозг честно цитирует первый §, где термин определён. Засчитываем цитату
+// любого § класса, в определениях которого (карта: definitions[].term) стоит тот же термин — те же стемы (ru) или та же
+// запись (uz/en). Только определения, не «изучаемые понятия» (заголовки «получение», «строение атома» есть почти в каждом §).
+// Содержание ответа (ожидаемый факт) проверяется как прежде; пороги не меняются — меняется только «какой § верный».
+type MDef = { term: { ru?: string; uz?: string; en?: string } }
+const MDEFS = new Map(MUNITS.map((u) => [u.id, (u as unknown as { definitions?: MDef[] }).definitions ?? []]))
+const foldTerm = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[ʻʼ‘’`´']/g, "'").replace(/[«»"“”▪•·]/g, ' ').replace(/\s+/g, ' ').trim()
+const stemKey = (s: string) => [...new Set(analyzeTerms(s))].sort().join(' ')
+function defFairUnits(q: CQuestion): string[] {
+  const own = MBYID.get(q.unit)
+  const term = termKey(q.q)
+  if (!own || !term) return [q.unit]
+  const lang = q.lang as 'ru' | 'uz' | 'en'
+  const k = lang === 'ru' ? stemKey(term) : foldTerm(term)
+  if (!k) return [q.unit]
+  const same = (d: MDef) => {
+    const t = d.term[lang]
+    return !!t && (lang === 'ru' ? stemKey(t) === k : foldTerm(t) === k)
+  }
+  const ok = new Set([own.id])
+  for (const u of MUNITS) if (u.grade === own.grade && (MDEFS.get(u.id) ?? []).some(same)) ok.add(u.id)
+  return [...ok]
+}
 const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 function fairCitation(q: CQuestion): CQuestion {
-  if (!q.expect.citationMatch || !['reaction', 'obtain', 'calc', 'test'].includes(q.sub)) return q
-  const ids = fairUnits(q)
+  if (!q.expect.citationMatch || !['reaction', 'obtain', 'calc', 'test', 'definition'].includes(q.sub)) return q
+  const ids = q.sub === 'definition' ? defFairUnits(q) : fairUnits(q)
   if (ids.length < 2) return q
   const alts = ids.map((id) => escRe(MBYID.get(id)!.cite.slice(1, -1)))
   return { ...q, expect: { ...q.expect, citationMatch: `(?:${alts.join('|')})(?![\\d.])` } }
@@ -391,6 +417,7 @@ function markdown(): string {
   L.push('')
   L.push('- «Почему»: один шаблон прикреплён к нескольким (до 3) единицам класса с той же темой, а ученик того же класса получает один ответ — «точный §» засчитывается для любого § своего класса с темой шаблона (topics карты), а не одного случайного.')
   L.push('- Определение: тот же термин того же класса встречается в нескольких единицах или определениях (и разными шаблонами вопроса) — ответ засчитывается, если проходит проверку любой из них (её цитату и её определение).')
+  L.push('- Определение, цитата § (второй круг 12.10): засчитывается § класса, в определениях которого (карта, definitions[].term) стоит тот же термин — те же стемы (ru) или та же запись (uz/en): «Горизонтальные ряды называются периодами» напечатано и в гл. 3, теме 1, и в теме 3. «Изучаемые понятия»-заголовки («получение», «строение атома») так не засчитываются; ожидаемый факт проверяется как прежде.')
   L.push(`- uz-определение без узбекского термина (генератор подставил русскую словоформу: «синтезом» nima?) — артефакт генератора, не в пороге и не в метрике языка, печатается: ${metrics.unfair} случаев.`)
   L.push('- Пороги не снижались; мозг отвечает определением § класса, «о чём §» — содержанием §, цитата § — первой.')
   L.push('')

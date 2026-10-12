@@ -168,6 +168,45 @@ export const UZ_GLOSSARY: GlossaryPair[] = [
   { uz: 'molyar konsentratsiya', ru: 'молярная концентрация', en: 'molar concentration' },
   { uz: 'ftor', ru: 'фтор', en: 'fluorine' },
   { uz: 'kremniy', ru: 'кремний', en: 'silicon' },
+  // термины определений Kimyo 7–11, которых не было в словаре (аудит вопросов-определений 12.10): без них
+  // «Kondensatsiya deb nimaga aytiladi?» не находил § и уходил в ответ «от основ»
+  { uz: 'kondensatsiya', ru: 'конденсация', en: 'condensation' },
+  { uz: 'fizik hodisa', ru: 'физические явления', en: 'physical phenomena' },
+  { uz: 'kimyoviy hodisa', ru: 'химические явления', en: 'chemical phenomena' },
+  { uz: 'fizik xossa', ru: 'физические свойства', en: 'physical properties' },
+  { uz: 'kimyoviy xossa', ru: 'химические свойства', en: 'chemical properties' },
+  { uz: 'kimyoviy belgi', ru: 'химический знак', en: 'chemical symbol' },
+  { uz: 'izobar', ru: 'изобары', en: 'isobars' },
+  { uz: 'izoton', ru: 'изотоны', en: 'isotones' },
+  { uz: 'zichlik', ru: 'плотность', en: 'density' },
+  { uz: 'shtativ', ru: 'штатив', en: 'stand' },
+  { uz: 'erigan modda', ru: 'растворённое вещество', en: 'solute' },
+  { uz: 'normal konsentratsiya', ru: 'нормальная концентрация', en: 'normal concentration' },
+  { uz: 'aktivlanish energiyasi', ru: 'энергия активации', en: 'activation energy' },
+  { uz: 'ingibitor', ru: 'ингибитор', en: 'inhibitor' },
+  { uz: 'adsorbsiya', ru: 'адсорбция', en: 'adsorption' },
+  { uz: 'katod', ru: 'катод', en: 'cathode' },
+  { uz: 'korroziya', ru: 'коррозия', en: 'corrosion' },
+  { uz: 'qotishma', ru: 'сплав', en: 'alloy' },
+  { uz: 'choʻyan', ru: 'чугун', en: 'cast iron' },
+  { uz: 'poʻlat', ru: 'сталь', en: 'steel' },
+  { uz: 'shisha', ru: 'стекло', en: 'glass' },
+  { uz: 'tellur', ru: 'теллур', en: 'tellurium' },
+  { uz: 'marganets', ru: 'марганец', en: 'manganese' },
+  { uz: 'alyuminiy oksidi', ru: 'оксид алюминия', en: 'aluminium oxide' },
+  { uz: 'alyuminiy gidroksidi', ru: 'гидроксид алюминия', en: 'aluminium hydroxide' },
+  { uz: 'kumush nitrat', ru: 'нитрат серебра', en: 'silver nitrate' },
+  { uz: 'natriy xlorid', ru: 'хлорид натрия', en: 'sodium chloride' },
+  { uz: 'neft', ru: 'нефть', en: 'petroleum' },
+  { uz: 'tabiiy gaz', ru: 'природный газ', en: 'natural gas' },
+  { uz: 'toshkoʻmir', ru: 'каменный уголь', en: 'coal' },
+  { uz: 'kauchuk', ru: 'каучук', en: 'rubber' },
+  { uz: 'arenlar', ru: 'арены', en: 'arenes' },
+  { uz: 'stirol', ru: 'стирол', en: 'styrene' },
+  { uz: 'glitserin', ru: 'глицерин', en: 'glycerol' },
+  { uz: 'fenol', ru: 'фенол', en: 'phenol' },
+  { uz: 'aldegid', ru: 'альдегиды', en: 'aldehydes' },
+  { uz: 'karbon kislota', ru: 'карбоновые кислоты', en: 'carboxylic acids' },
 ]
 
 /** Апострофы узбекской латиницы к одному виду (oʻ, gʻ — U+02BB), нижний регистр. */
@@ -270,7 +309,7 @@ export function termToRu(term: string, lang: 'uz' | 'en'): string[] | null {
 }
 
 /** Вещества и элементы словаря — это сущности, а не тема («kislorodning valentligi» → тема «валентность»). */
-const ENTITY_RU = new Set(['водород', 'кислород', 'азот', 'углерод', 'сера', 'фосфор', 'хлор', 'натрий', 'калий', 'кальций', 'железо', 'медь', 'алюминий', 'вода', 'озон', 'аммиак', 'фтор', 'кремний', 'поваренная соль', 'соляная кислота', 'фосфорная кислота', 'угольная кислота', 'муравьиная кислота', 'уксусная кислота', 'этиленгликоль'])
+const ENTITY_RU = new Set(['водород', 'кислород', 'азот', 'углерод', 'сера', 'фосфор', 'хлор', 'натрий', 'калий', 'кальций', 'железо', 'медь', 'алюминий', 'вода', 'озон', 'аммиак', 'фтор', 'кремний', 'поваренная соль', 'соляная кислота', 'фосфорная кислота', 'угольная кислота', 'муравьиная кислота', 'уксусная кислота', 'этиленгликоль', 'теллур', 'марганец', 'оксид алюминия', 'гидроксид алюминия', 'нитрат серебра', 'хлорид натрия', 'стирол', 'глицерин', 'фенол'])
 
 /** Термины-темы (без веществ и элементов) из узбекского текста. */
 export function uzTopicTerms(text: string): string[] {
