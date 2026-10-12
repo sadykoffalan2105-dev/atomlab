@@ -33,6 +33,8 @@ const THRESHOLDS_LIVE: Record<string, number> = { all: 0.85, calc: 1, test: 0.85
 /** Цитата нужного § среди школьных случаев (после слияния A), язык ответа = языку вопроса, Википедия/R3/CJK. */
 const CITATION_HIT_MIN = 0.85
 const LANG_OK_MIN = 0.98
+/** без живой модели язык ответа ≥ 99 % (12.10, nextBuild #3 — приёмка «язык ≥ 99 %»; живой порог прежний) */
+const LANG_OK_MIN_OFFLINE = 0.99
 const WIKI_LEAK_MAX = 0
 const R3_MAX = 0
 const CJK_MAX = 0
@@ -350,7 +352,8 @@ for (const [sub, min] of Object.entries(th)) {
 }
 if (!pending.A && metrics.schoolCases && metrics.citationHit / metrics.schoolCases < CITATION_HIT_MIN) fails.push(`citationHit ${fmtP(metrics.citationHit, metrics.schoolCases)} < ${CITATION_HIT_MIN * 100} %`)
 if (live && metrics.calc && metrics.numberOk < rows.filter((r) => r.q.sub === 'calc' && !r.waits.length).length) fails.push(`numberOk ${metrics.numberOk}/${metrics.calc} (нужно 100 %)`)
-if (metrics.langCases && metrics.langOk / metrics.langCases < LANG_OK_MIN) fails.push(`язык ${fmtP(metrics.langOk, metrics.langCases)} < ${LANG_OK_MIN * 100} %`)
+const langMin = live ? LANG_OK_MIN : LANG_OK_MIN_OFFLINE
+if (metrics.langCases && metrics.langOk / metrics.langCases < langMin) fails.push(`язык ${fmtP(metrics.langOk, metrics.langCases)} < ${langMin * 100} %`)
 if (metrics.wikiLeak > WIKI_LEAK_MAX) fails.push(`wikiLeak ${metrics.wikiLeak}`)
 if (metrics.r3 > R3_MAX) fails.push(`R3 ${metrics.r3}`)
 if (metrics.cjk > CJK_MAX) fails.push(`CJK ${metrics.cjk}`)
@@ -370,7 +373,7 @@ const report = {
   mapSource: index.mapSource ?? '—',
   filters: filtered ? { file, ...filters, sample: arg('sample') } : null,
   metrics,
-  thresholds: { offline: THRESHOLDS_OFFLINE, live: THRESHOLDS_LIVE, citationHit: CITATION_HIT_MIN, langOk: LANG_OK_MIN },
+  thresholds: { offline: THRESHOLDS_OFFLINE, live: THRESHOLDS_LIVE, citationHit: CITATION_HIT_MIN, langOk: LANG_OK_MIN, langOkOffline: LANG_OK_MIN_OFFLINE },
   bySub: Object.fromEntries(bySub),
   byGrade: Object.fromEntries(byGrade),
   byGradeSub: Object.fromEntries(byGradeSub),
@@ -419,7 +422,7 @@ function markdown(): string {
   L.push(`|---|---|${subs.map(() => '---').join('|')}|---|`)
   for (const [g, a] of byGrade) L.push(`| ${g} | ${fmtP(a.ok, a.n)} (${a.n}) | ${subs.map((s) => { const x = byGradeSub.get(`${g}/${s}`); return x ? `${fmtP(x.ok, x.n)} (${x.n})` : '—' }).join(' | ')} | ${fmtP(a.cite, a.n)} |`)
   L.push('')
-  L.push('Пороги без LLM: ' + Object.entries(THRESHOLDS_OFFLINE).map(([k, v]) => `${k} ≥ ${v * 100} %`).join(', ') + `; citationHit ≥ ${CITATION_HIT_MIN * 100} % (после A); wikiLeak = 0, R3 = 0, CJK = 0, язык ≥ ${LANG_OK_MIN * 100} %.`)
+  L.push('Пороги без LLM: ' + Object.entries(THRESHOLDS_OFFLINE).map(([k, v]) => `${k} ≥ ${v * 100} %`).join(', ') + `; citationHit ≥ ${CITATION_HIT_MIN * 100} % (после A); wikiLeak = 0, R3 = 0, CJK = 0, язык ≥ ${LANG_OK_MIN_OFFLINE * 100} % (с живой моделью ≥ ${LANG_OK_MIN * 100} %).`)
   L.push('Живая модель (sample-live.jsonl, 100 случаев): ' + Object.entries(THRESHOLDS_LIVE).map(([k, v]) => `${k} ≥ ${v * 100} %`).join(', ') + ', numberOk 100 %.')
   L.push('')
   // по языкам (12.10, nextBuild #3: uz ≥ 90 % в пороге): доля в пороге, в скобках — число случаев в пороге
@@ -443,7 +446,7 @@ function markdown(): string {
     L.push(row('всего', { n: metrics.cases, ok: metrics.passAll, gated: metrics.gated, gatedOk: metrics.pass, cite: 0 }, { n: base.metrics.cases, ok: base.metrics.passAll, gated: base.metrics.gated, gatedOk: base.metrics.pass, cite: 0 }))
     for (const s of subs) L.push(row(s, bySub.get(s), bAgg(base.bySub as Record<string, Agg>, s)))
     for (const [lg, a] of byLang) L.push(row(`язык ${lg}`, a, bAgg(base.byLang as Record<string, Agg> | undefined, lg)))
-    for (const lg of byLang.keys()) for (const s of ['definition']) L.push(row(`${lg} / ${s}`, byLangSub.get(`${lg}/${s}`), bAgg(base.byLangSub as Record<string, Agg> | undefined, `${lg}/${s}`)))
+    if (base.byLangSub) for (const lg of byLang.keys()) for (const s of ['definition']) L.push(row(`${lg} / ${s}`, byLangSub.get(`${lg}/${s}`), bAgg(base.byLangSub as Record<string, Agg> | undefined, `${lg}/${s}`)))
     L.push(`| язык ответа = языку вопроса | ${fmtP(base.metrics.langOk, base.metrics.langCases)} | ${fmtP(metrics.langOk, metrics.langCases)} | — |`)
     L.push(`| citationHit | ${fmtP(base.metrics.citationHit, base.metrics.schoolCases)} | ${fmtP(metrics.citationHit, metrics.schoolCases)} | — |`)
     L.push(`| не в пороге (артефакты вопросов) | ${base.metrics.unfair ?? '—'} | ${metrics.unfair} | — |`)

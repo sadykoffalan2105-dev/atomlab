@@ -9,25 +9,25 @@
   "mapSource": "src/data/kb/curriculum/kimyo-map.json",
   "filters": null,
   "metrics": {
-    "cases": 4227,
-    "gated": 3947,
+    "cases": 4095,
+    "gated": 4095,
     "waiting": 0,
-    "unfair": 280,
-    "pass": 3735,
-    "passAll": 3998,
-    "citationHit": 3811,
-    "citationHitLoose": 2913,
-    "schoolCases": 3933,
-    "schoolTop1": 4101,
+    "unfair": 0,
+    "pass": 3985,
+    "passAll": 3985,
+    "citationHit": 4026,
+    "citationHitLoose": 3171,
+    "schoolCases": 4083,
+    "schoolTop1": 3975,
     "wikiLeak": 0,
     "r3": 0,
     "cjk": 0,
-    "langOk": 3912,
-    "langCases": 3947,
+    "langOk": 4095,
+    "langCases": 4095,
     "calc": 201,
     "numberOk": 201,
-    "msP50": 35,
-    "msP95": 77
+    "msP50": 36,
+    "msP95": 101
   },
   "thresholds": {
     "offline": {
@@ -46,7 +46,8 @@
       "why": 0.85
     },
     "citationHit": 0.85,
-    "langOk": 0.98
+    "langOk": 0.98,
+    "langOkOffline": 0.99
   },
   "bySub": {
     "calc": {
@@ -57,11 +58,11 @@
       "cite": 201
     },
     "definition": {
-      "n": 1459,
-      "ok": 1331,
-      "gated": 1179,
-      "gatedOk": 1068,
-      "cite": 1378
+      "n": 1327,
+      "ok": 1256,
+      "gated": 1327,
+      "gatedOk": 1256,
+      "cite": 1294
     },
     "obtain": {
       "n": 29,
@@ -72,10 +73,10 @@
     },
     "reaction": {
       "n": 721,
-      "ok": 664,
+      "ok": 715,
       "gated": 721,
-      "gatedOk": 664,
-      "cite": 687
+      "gatedOk": 715,
+      "cite": 715
     },
     "section": {
       "n": 542,
@@ -86,9 +87,9 @@
     },
     "test": {
       "n": 885,
-      "ok": 858,
+      "ok": 869,
       "gated": 885,
-      "gatedOk": 858,
+      "gatedOk": 869,
       "cite": 879
     },
     "why": {
@@ -101,39 +102,39 @@
   },
   "byGrade": {
     "g7": {
-      "n": 1123,
-      "ok": 1084,
-      "gated": 1048,
-      "gatedOk": 1013,
-      "cite": 1108
+      "n": 1104,
+      "ok": 1072,
+      "gated": 1104,
+      "gatedOk": 1072,
+      "cite": 1092
     },
     "g8": {
       "n": 876,
-      "ok": 839,
-      "gated": 827,
-      "gatedOk": 792,
-      "cite": 856
+      "ok": 852,
+      "gated": 876,
+      "gatedOk": 852,
+      "cite": 862
     },
     "g9": {
-      "n": 942,
-      "ok": 890,
-      "gated": 897,
-      "gatedOk": 849,
-      "cite": 915
+      "n": 917,
+      "ok": 889,
+      "gated": 917,
+      "gatedOk": 889,
+      "cite": 901
     },
     "g10": {
-      "n": 824,
-      "ok": 754,
+      "n": 748,
+      "ok": 731,
       "gated": 748,
-      "gatedOk": 682,
-      "cite": 778
+      "gatedOk": 731,
+      "cite": 738
     },
     "g11": {
-      "n": 462,
-      "ok": 431,
-      "gated": 427,
-      "gatedOk": 399,
-      "cite": 434
+      "n": 450,
+      "ok": 441,
+      "gated": 450,
+      "gatedOk": 441,
+      "cite": 442
     }
   },
   "byGradeSub": {
@@ -145,17 +146,17 @@
       "cite": 28
     },
     "g7/definition": {
-      "n": 392,
-      "ok": 369,
-      "gated": 317,
-      "gatedOk": 298,
-      "cite": 382
+      "n": 373,
+      "ok": 356,
+      "gated": 373,
+      "gatedOk": 356,
+      "cite": 366
     },
     "g7/reaction": {
       "n": 75,
-      "ok": 72,
+      "ok": 73,
       "gated": 75,
-      "gatedOk": 72,
+      "gatedOk": 73,
       "cite": 73
     },
     "g7/section": {
@@ -188,10 +189,10 @@
     },
     "g8/definition": {
       "n": 288,
-      "ok": 265,
-      "gated": 239,
-      "gatedOk": 218,
-      "cite": 275
+      "ok": 271,
+      "gated": 288,
+      "gatedOk": 271,
+      "cite": 281
     },
     "g8/obtain": {
       "n": 10,
@@ -202,9 +203,9 @@
     },
     "g8/reaction": {
       "n": 158,
-      "ok": 155,
+      "ok": 158,
       "gated": 158,
-      "gatedOk": 155,
+      "gatedOk": 158,
       "cite": 158
     },
     "g8/section": {
@@ -216,9 +217,9 @@
     },
     "g8/test": {
       "n": 186,
-      "ok": 179,
+      "ok": 183,
       "gated": 186,
-      "gatedOk": 179,
+      "gatedOk": 183,
       "cite": 183
     },
     "g8/why": {
@@ -236,11 +237,11 @@
       "cite": 40
     },
     "g9/definition": {
-      "n": 261,
-      "ok": 227,
-      "gated": 216,
-      "gatedOk": 186,
-      "cite": 238
+      "n": 236,
+      "ok": 214,
+      "gated": 236,
+      "gatedOk": 214,
+      "cite": 224
     },
     "g9/obtain": {
       "n": 17,
@@ -251,9 +252,9 @@
     },
     "g9/reaction": {
       "n": 186,
-      "ok": 181,
+      "ok": 186,
       "gated": 186,
-      "gatedOk": 181,
+      "gatedOk": 186,
       "cite": 186
     },
     "g9/section": {
@@ -265,9 +266,9 @@
     },
     "g9/test": {
       "n": 246,
-      "ok": 239,
+      "ok": 246,
       "gated": 246,
-      "gatedOk": 239,
+      "gatedOk": 246,
       "cite": 246
     },
     "g9/why": {
@@ -285,18 +286,18 @@
       "cite": 14
     },
     "g10/definition": {
-      "n": 375,
-      "ok": 333,
+      "n": 299,
+      "ok": 288,
       "gated": 299,
-      "gatedOk": 261,
-      "cite": 344
+      "gatedOk": 288,
+      "cite": 295
     },
     "g10/reaction": {
       "n": 193,
-      "ok": 167,
+      "ok": 189,
       "gated": 193,
-      "gatedOk": 167,
-      "cite": 180
+      "gatedOk": 189,
+      "cite": 189
     },
     "g10/section": {
       "n": 142,
@@ -320,11 +321,11 @@
       "cite": 60
     },
     "g11/definition": {
-      "n": 143,
-      "ok": 137,
-      "gated": 108,
-      "gatedOk": 105,
-      "cite": 139
+      "n": 131,
+      "ok": 127,
+      "gated": 131,
+      "gatedOk": 127,
+      "cite": 128
     },
     "g11/obtain": {
       "n": 2,
@@ -335,10 +336,10 @@
     },
     "g11/reaction": {
       "n": 109,
-      "ok": 89,
+      "ok": 109,
       "gated": 109,
-      "gatedOk": 89,
-      "cite": 90
+      "gatedOk": 109,
+      "cite": 109
     },
     "g11/section": {
       "n": 76,
@@ -357,241 +358,358 @@
   },
   "byLang": {
     "en": {
-      "n": 381,
-      "ok": 370,
-      "gated": 381,
-      "gatedOk": 370,
-      "cite": 373
+      "n": 447,
+      "ok": 440,
+      "gated": 447,
+      "gatedOk": 440,
+      "cite": 443
     },
     "ru": {
-      "n": 2017,
-      "ok": 1905,
-      "gated": 2017,
-      "gatedOk": 1905,
-      "cite": 1961
+      "n": 1962,
+      "ok": 1899,
+      "gated": 1962,
+      "gatedOk": 1899,
+      "cite": 1935
     },
     "uz": {
-      "n": 1829,
-      "ok": 1723,
-      "gated": 1549,
-      "gatedOk": 1460,
-      "cite": 1757
+      "n": 1686,
+      "ok": 1646,
+      "gated": 1686,
+      "gatedOk": 1646,
+      "cite": 1657
+    }
+  },
+  "byLangSub": {
+    "en/definition": {
+      "n": 119,
+      "ok": 117,
+      "gated": 119,
+      "gatedOk": 117,
+      "cite": 119
+    },
+    "en/reaction": {
+      "n": 91,
+      "ok": 91,
+      "gated": 91,
+      "gatedOk": 91,
+      "cite": 91
+    },
+    "en/section": {
+      "n": 72,
+      "ok": 72,
+      "gated": 72,
+      "gatedOk": 72,
+      "cite": 72
+    },
+    "en/test": {
+      "n": 111,
+      "ok": 110,
+      "gated": 111,
+      "gatedOk": 110,
+      "cite": 111
+    },
+    "en/why": {
+      "n": 54,
+      "ok": 50,
+      "gated": 54,
+      "gatedOk": 50,
+      "cite": 50
+    },
+    "ru/calc": {
+      "n": 100,
+      "ok": 100,
+      "gated": 100,
+      "gatedOk": 100,
+      "cite": 100
+    },
+    "ru/definition": {
+      "n": 741,
+      "ok": 689,
+      "gated": 741,
+      "gatedOk": 689,
+      "cite": 722
+    },
+    "ru/obtain": {
+      "n": 16,
+      "ok": 16,
+      "gated": 16,
+      "gatedOk": 16,
+      "cite": 16
+    },
+    "ru/reaction": {
+      "n": 315,
+      "ok": 312,
+      "gated": 315,
+      "gatedOk": 312,
+      "cite": 312
+    },
+    "ru/section": {
+      "n": 235,
+      "ok": 235,
+      "gated": 235,
+      "gatedOk": 235,
+      "cite": 235
+    },
+    "ru/test": {
+      "n": 387,
+      "ok": 385,
+      "gated": 387,
+      "gatedOk": 385,
+      "cite": 387
+    },
+    "ru/why": {
+      "n": 168,
+      "ok": 162,
+      "gated": 168,
+      "gatedOk": 162,
+      "cite": 163
+    },
+    "uz/calc": {
+      "n": 101,
+      "ok": 101,
+      "gated": 101,
+      "gatedOk": 101,
+      "cite": 101
+    },
+    "uz/definition": {
+      "n": 467,
+      "ok": 450,
+      "gated": 467,
+      "gatedOk": 450,
+      "cite": 453
+    },
+    "uz/obtain": {
+      "n": 13,
+      "ok": 13,
+      "gated": 13,
+      "gatedOk": 13,
+      "cite": 13
+    },
+    "uz/reaction": {
+      "n": 315,
+      "ok": 312,
+      "gated": 315,
+      "gatedOk": 312,
+      "cite": 312
+    },
+    "uz/section": {
+      "n": 235,
+      "ok": 233,
+      "gated": 235,
+      "gatedOk": 233,
+      "cite": 233
+    },
+    "uz/test": {
+      "n": 387,
+      "ok": 374,
+      "gated": 387,
+      "gatedOk": 374,
+      "cite": 381
+    },
+    "uz/why": {
+      "n": 168,
+      "ok": 163,
+      "gated": 168,
+      "gatedOk": 163,
+      "cite": 164
     }
   },
   "worstUnits": [
     {
-      "unit": "g10:3.7",
-      "share": 0.5,
-      "n": 12,
-      "ok": 6,
-      "reasons": [
-        "язык ответа ×3",
-        "нет цитаты § ×3"
-      ],
-      "examples": [
-        {
-          "q": "Уравняй: C₆H₅CH₂Cl + H₂O → HCl + C₆H₅CH₂OH",
-          "why": "язык ≠ ru",
-          "answer": "Balanced equation: C₆H₅CH₂Cl + H₂O → HCl + C₆H₅CH₂OH Atom check: C: 7 = 7, H: 9 = 9, Cl: 1 = 1, O: 1 = 1. Can you check the answer another w"
-        },
-        {
-          "q": "Уравняй: C₆H₅SO₃H + NaOH → C₆H₅SO₃Na + H₂O",
-          "why": "язык ≠ ru",
-          "answer": "Balanced equation: C₆H₅SO₃H + NaOH → C₆H₅SO₃Na + H₂O Atom check: C: 6 = 6, H: 7 = 7, S: 1 = 1, O: 4 = 4, Na: 1 = 1. Would you like a similar"
-        }
-      ]
-    },
-    {
-      "unit": "g11:26",
-      "share": 0.5263157894736842,
-      "n": 19,
-      "ok": 10,
-      "reasons": [
-        "нет цитаты § ×9"
-      ],
-      "examples": [
-        {
-          "q": "Уравняй: CO₂ + H₂ → CO + H₂O",
-          "why": "цитаты без /Kimyo 11, §26(?![\\d.])/: [ATOMLAB: расчёт]",
-          "answer": "Уравненное уравнение: CO₂ + H₂ → CO + H₂O Проверка по атомам: C: 1 = 1, O: 2 = 2, H: 2 = 2. Хотите похожую задачу для тренировки?"
-        },
-        {
-          "q": "Tenglashtiring: CO₂ + H₂ → CO + H₂O",
-          "why": "цитаты без /Kimyo 11, §26(?![\\d.])/: [ATOMLAB: расчёт]",
-          "answer": "Tenglashtirilgan tenglama: CO₂ + H₂ → CO + H₂O Atomlar boʻyicha tekshiruv: C: 1 = 1, O: 2 = 2, H: 2 = 2. Mashq uchun shunga oʻxshash masala "
-        }
-      ]
-    },
-    {
-      "unit": "g11:27",
-      "share": 0.6666666666666666,
-      "n": 12,
-      "ok": 8,
-      "reasons": [
-        "нет цитаты § ×4"
-      ],
-      "examples": [
-        {
-          "q": "Уравняй: SO₂ + NO₂ → SO₃ + NO",
-          "why": "цитаты без /Kimyo 11, §27(?![\\d.])/: [ATOMLAB: расчёт]",
-          "answer": "Уравненное уравнение: SO₂ + NO₂ → SO₃ + NO Проверка по атомам: S: 1 = 1, O: 4 = 4, N: 1 = 1. Хотите похожую задачу для тренировки?"
-        },
-        {
-          "q": "Tenglashtiring: SO₂ + NO₂ → SO₃ + NO",
-          "why": "цитаты без /Kimyo 11, §27(?![\\d.])/: [ATOMLAB: расчёт]",
-          "answer": "Tenglashtirilgan tenglama: SO₂ + NO₂ → SO₃ + NO Atomlar boʻyicha tekshiruv: S: 1 = 1, O: 4 = 4, N: 1 = 1. Mashq uchun shunga oʻxshash masala"
-        }
-      ]
-    },
-    {
-      "unit": "g11:11",
-      "share": 0.6818181818181818,
-      "n": 22,
-      "ok": 15,
-      "reasons": [
-        "нет цитаты § ×7"
-      ],
-      "examples": [
-        {
-          "q": "Nima uchun natriy karbonat eritmasi ishqoriy muhitga ega?",
-          "why": "цитаты без /(?:Kimyo 11, §11(?![\\d.]))/: [Kimyo 11, §12, стр. 62]",
-          "answer": "Asoslar — metall kationi va gidroksid-ionlari OH⁻ dan iborat murakkab moddalar (NaOH, Ca(OH)₂); eriydigan asoslar ishqorlar deyiladi; Brenst"
-        },
-        {
-          "q": "Уравняй: NH₄Cl + H₂O → NH₄OH + HCl",
-          "why": "цитаты без /Kimyo 11, §11(?![\\d.])/: [ATOMLAB: расчёт]",
-          "answer": "Уравненное уравнение: NH₄Cl + H₂O → NH₄OH + HCl Проверка по атомам: N: 1 = 1, H: 6 = 6, Cl: 1 = 1, O: 1 = 1. Хотите похожую задачу для трени"
-        }
-      ]
-    },
-    {
-      "unit": "g10:2.16",
-      "share": 0.7222222222222222,
-      "n": 18,
-      "ok": 13,
-      "reasons": [
-        "[поле] kind ×2",
-        "нет цитаты § ×2",
-        "язык ответа ×1"
-      ],
-      "examples": [
-        {
-          "q": "Что означает термин «наиболее часто используемый представитель»?",
-          "why": "[поле] kind uses ≠ definition",
-          "answer": "Наиболее часто используемый представитель – бензол. Наиболее важные представители многоатомных спиртов содержат от двух до шести гидроксильн"
-        },
-        {
-          "q": "«наиболее часто используемый представитель» nima?",
-          "why": "[поле] kind uses ≠ definition",
-          "answer": "«Наиболее часто используемый представитель» — Kimyo 10, 2-bob, 16-mavzu mavzusida oʻrganiladigan tushuncha. U bilan bogʻliq tushunchalar: ol"
-        }
-      ]
-    },
-    {
-      "unit": "g10:3.20",
-      "share": 0.7333333333333333,
-      "n": 15,
-      "ok": 11,
-      "reasons": [
-        "нет цитаты § ×3",
-        "язык ответа ×1"
-      ],
-      "examples": [
-        {
-          "q": "Uglevodlar deb nimaga aytiladi?",
-          "why": "цитаты без /Kimyo 10, гл\\. 3, тема 20(?![\\d.])/: [Kimyo 10, гл. 3, тема 18, стр. 156]",
-          "answer": "Uglevodlar — Cₙ(H₂O)ₘ tarkibli organik moddalar: monosaxaridlar (glyukoza C₆H₁₂O₆), disaxaridlar (saxaroza) va polisaxaridlar (kraxmal, sell"
-        },
-        {
-          "q": "Уравняй: C₁₂H₂₂O₁₁ + H₂O → C₆H₁₂O₆",
-          "why": "язык ≠ ru",
-          "answer": "Balanced equation: C₁₂H₂₂O₁₁ + H₂O → 2C₆H₁₂O₆ Atom check: C: 12 = 12, H: 24 = 24, O: 12 = 12. Would you like a similar problem to practise?"
-        }
-      ]
-    },
-    {
-      "unit": "g10:2.14",
+      "unit": "g8:lab",
       "share": 0.75,
-      "n": 16,
-      "ok": 12,
+      "n": 4,
+      "ok": 3,
       "reasons": [
-        "нет цитаты § ×4"
-      ],
-      "examples": [
-        {
-          "q": "Alkinlar deb nimaga aytiladi?",
-          "why": "цитаты без /Kimyo 10, гл\\. 2, тема 14(?![\\d.])/: [Kimyo 10, гл. 2, тема 13, стр. 72]",
-          "answer": "Alkinlar — uch karrali C≡C bogʻli, umumiy formulasi CₙH₂ₙ₋₂ boʻlgan uglevodorodlar (atsetilen C₂H₂); bu bogʻdagi atomlar sp-gibridlangan, mo"
-        },
-        {
-          "q": "Что такое ▪ свойства?",
-          "why": "цитаты без /Kimyo 10, гл\\. 2, тема 14(?![\\d.])/: [Kimyo 10, гл. 2, тема 11, стр. 66]",
-          "answer": "Физические свойства диеновых углеводородов изменяются в том же порядке, что и гомологические ряды насыщенных и ненасыщенных углеводородов. И"
-        }
-      ]
-    },
-    {
-      "unit": "g10:3.18",
-      "share": 0.75,
-      "n": 16,
-      "ok": 12,
-      "reasons": [
-        "язык ответа ×2",
-        "нет цитаты § ×2"
-      ],
-      "examples": [
-        {
-          "q": "Уравняй: C₆H₁₂O₆ + CH₃OH → C₆H₁₁O₅OCH₃ + H₂O",
-          "why": "язык ≠ ru",
-          "answer": "Balanced equation: C₆H₁₂O₆ + CH₃OH → C₆H₁₁O₅OCH₃ + H₂O Atom check: C: 7 = 7, H: 16 = 16, O: 7 = 7. Would you like a similar problem to pract"
-        },
-        {
-          "q": "Уравняй: C₆H₁₂O₆ + Cu(OH)₂ → C₆H₁₀O₆Cu + H₂O",
-          "why": "язык ≠ ru",
-          "answer": "Balanced equation: C₆H₁₂O₆ + Cu(OH)₂ → C₆H₁₀O₆Cu + 2H₂O Atom check: C: 6 = 6, H: 14 = 14, O: 8 = 8, Cu: 1 = 1. Can you check the answer anot"
-        }
-      ]
-    },
-    {
-      "unit": "g9:40",
-      "share": 0.75,
-      "n": 8,
-      "ok": 6,
-      "reasons": [
-        "нет ожидаемого факта ×1",
         "нет цитаты § ×1"
       ],
       "examples": [
         {
-          "q": "Дай определение: определения",
-          "why": "нет /^(?:(?=[\\s\\S]*эл[её]ктр)(?=[\\s\\S]*эл[её]м[её])|(?=[\\s\\S]*эл[её]ктр)(?=[\\s\\S]*б[её]рилл)|(?=[\\s\\S]*эл[её]м[её])(?=[\\s\\S]*б[её]рилл))/",
-          "answer": "· сродство к электрону – это количество энергии, которая выделяется или поглощается в результате присоединения одного электрона к нейтрально"
-        },
-        {
-          "q": "«определения» nima?",
-          "why": "цитаты без /Kimyo 9, §40(?![\\d.])/: [Kimyo 9, §1, стр. 11]",
-          "answer": "«Определения» — Kimyo 9, 1-§ mavzusida oʻrganiladigan tushuncha. U bilan bogʻliq tushunchalar: elektron konfiguratsiya, kimyoviy element, io"
+          "q": "Kimyo 8, amaliy ishlar nima haqida?",
+          "why": "цитаты без /Kimyo 8, практические работы(?![\\d.])/: [Kimyo 7, гл. 1, тема 3, стр. 15] [Kimyo 7]",
+          "answer": "Asoslardan boshlaymiz: Har qanday modda zarrachalardan — atomlar, ionlar yoki molekulalardan iborat; uning xossalarini atomlar tuzilishi va "
         }
       ]
     },
     {
-      "unit": "g10:3.17",
-      "share": 0.75,
-      "n": 8,
-      "ok": 6,
+      "unit": "g7:2.14",
+      "share": 0.7777777777777778,
+      "n": 9,
+      "ok": 7,
       "reasons": [
-        "нет цитаты § ×2"
+        "[поле] scope ×2",
+        "[поле] notSource ×2"
       ],
       "examples": [
         {
-          "q": "Уравняй: C₁₇H₃₅COONa + H₂O → C₁₇H₃₅COOH + NaOH",
-          "why": "цитаты без /Kimyo 10, гл\\. 3, тема 17(?![\\d.])/: [ATOMLAB: расчёт]",
-          "answer": "Уравненное уравнение: C₁₇H₃₅COONa + H₂O → C₁₇H₃₅COOH + NaOH Проверка по атомам: C: 18 = 18, H: 37 = 37, O: 3 = 3, Na: 1 = 1. Сможете провери"
+          "q": "Выбери правильный ответ: Выберите утверждение, согласованное с курсом химии 7 класса?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "а) Электронейтральная частица, состоящая из ядра и электронов — Атом электронейтрален: ядро (+) и электроны (−). Источник: Kimyo 7, гл. 2, т"
         },
         {
-          "q": "Tenglashtiring: C₁₇H₃₅COONa + H₂O → C₁₇H₃₅COOH + NaOH",
-          "why": "цитаты без /Kimyo 10, гл\\. 3, тема 17(?![\\d.])/: [ATOMLAB: расчёт]",
-          "answer": "Tenglashtirilgan tenglama: C₁₇H₃₅COONa + H₂O → C₁₇H₃₅COOH + NaOH Atomlar boʻyicha tekshiruv: C: 18 = 18, H: 37 = 37, O: 3 = 3, Na: 1 = 1. Ja"
+          "q": "Toʻgʻri javobni tanlang: 7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "a) Yadro va elektronlardan tashkil topgan elektr neytral zarracha — toʻgʻri, chunki darslikda shunday yozilgan (Kimyo 7, 2-bob, 1-mavzu)."
+        }
+      ]
+    },
+    {
+      "unit": "g9:8",
+      "share": 0.8076923076923077,
+      "n": 26,
+      "ok": 21,
+      "reasons": [
+        "нет цитаты § ×5"
+      ],
+      "examples": [
+        {
+          "q": "Почему степень окисления кислорода в соединениях обычно −2?",
+          "why": "цитаты без /(?:Kimyo 9, §8(?![\\d.]))/: [Kimyo 9, §2, стр. 15]",
+          "answer": "Степень окисления — условный заряд атома в соединении, если считать все связи ионными; бывает положительной, отрицательной и нулевой (в KMnO"
+        },
+        {
+          "q": "Nima uchun birikmalarda kislorodning oksidlanish darajasi odatda −2?",
+          "why": "цитаты без /(?:Kimyo 9, §8(?![\\d.]))/: [ATOMLAB: справочник понятий]",
+          "answer": "Oksidlanish darajasi — barcha bogʻlarni ionli deb hisoblaganda atomning birikmadagi shartli zaryadi; musbat, manfiy yoki nol boʻladi (KMnO₄ "
+        }
+      ]
+    },
+    {
+      "unit": "g7:2.1",
+      "share": 0.8333333333333334,
+      "n": 12,
+      "ok": 10,
+      "reasons": [
+        "[поле] scope ×2",
+        "[поле] notSource ×2"
+      ],
+      "examples": [
+        {
+          "q": "Выбери правильный ответ: Выберите утверждение, согласованное с курсом химии 7 класса?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "а) Электронейтральная частица, состоящая из ядра и электронов — Атом электронейтрален: ядро (+) и электроны (−). Источник: Kimyo 7, гл. 2, т"
+        },
+        {
+          "q": "Toʻgʻri javobni tanlang: 7-sinf kimyo kursingizga mos keladigan gapni tanlang?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "a) Yadro va elektronlardan tashkil topgan elektr neytral zarracha — toʻgʻri, chunki darslikda shunday yozilgan (Kimyo 7, 2-bob, 1-mavzu)."
+        }
+      ]
+    },
+    {
+      "unit": "g7:7.5",
+      "share": 0.8333333333333334,
+      "n": 12,
+      "ok": 10,
+      "reasons": [
+        "нет цитаты § ×2",
+        "нет ожидаемого факта ×2"
+      ],
+      "examples": [
+        {
+          "q": "Что такое определение наличия кислоты?",
+          "why": "цитаты без /Kimyo 7, гл\\. 7, тема 5(?![\\d.])/: [Kimyo 7, гл. 6, тема 4, стр. 138]",
+          "answer": "Кислоты — сложные вещества, которые в водном растворе отщепляют катионы водорода H⁺ (HCl, H₂SO₄); по Брёнстеду кислота — донор протона. Логи"
+        },
+        {
+          "q": "Что такое определение витамина E?",
+          "why": "цитаты без /Kimyo 7, гл\\. 7, тема 5(?![\\d.])/: [Kimyo 7, гл. 7, тема 3, стр. 157]",
+          "answer": "Частичная нехватка витаминов называется гиповитаминозом, полная нехватка называется авитаминозом. Сможете привести свой пример?"
+        }
+      ]
+    },
+    {
+      "unit": "g10:1.4",
+      "share": 0.8333333333333334,
+      "n": 12,
+      "ok": 10,
+      "reasons": [
+        "нет ожидаемого факта ×2",
+        "нет цитаты § ×1"
+      ],
+      "examples": [
+        {
+          "q": "Define Isomerism.",
+          "why": "нет /isomeri/",
+          "answer": "Isomers have the same composition (molecular formula) but different structures and therefore different properties (butane and isobutane C₄H₁"
+        },
+        {
+          "q": "Why are butane and isobutane different substances?",
+          "why": "цитаты без /(?:Kimyo 10, гл\\. 1, тема 4(?![\\d.])|Kimyo 10, гл\\. 1, тема 8(?![\\d.])|Kimyo 10, гл\\. 2, тема 2(?![\\d.])|Kimyo 10, гл\\. 2, тема 5(?![\\d.])|Kimyo 10, гл\\. 2, тема 7(?![\\d.])|Kimyo 10, гл\\. 2, тема 13(?![\\d.])|Kimyo 10, гл\\. 3, тема 3(?![\\d.])|Kimyo 10, гл\\. 3, тема 6(?![\\d.])|Kimyo 10, гл\\. 3, тема 8(?![\\d.])|Kimyo 10, гл\\. 3, тема 14(?![\\d.]))/: [Kimyo 10, гл. 2, тема 21, стр. 95]",
+          "answer": "“Why are butane and isobutane different substances” is a concept studied in Kimyo 10, ch. 2, topic 21. Can you add one more difference?"
+        }
+      ]
+    },
+    {
+      "unit": "g10:3.11",
+      "share": 0.8333333333333334,
+      "n": 12,
+      "ok": 10,
+      "reasons": [
+        "[поле] нет ×4",
+        "нет цитаты § ×2",
+        "нет ожидаемого факта ×2"
+      ],
+      "examples": [
+        {
+          "q": "Уравняй: CH₃CCl₂CH₃ + H₂O → CH₃COCH₃ + HCl",
+          "why": "[поле] нет meta.scope",
+          "answer": "Кажется, сообщение получилось случайным набором букв — я не разобрал вопрос. Напишите его словами: например, «что такое моль?» или «уравняй "
+        },
+        {
+          "q": "Tenglashtiring: CH₃CCl₂CH₃ + H₂O → CH₃COCH₃ + HCl",
+          "why": "[поле] нет meta.scope",
+          "answer": "Xabar tasodifiy harflar toʻplamiga oʻxshaydi — savolni tushunmadim. Iltimos, soʻz bilan yozing: masalan, «mol nima?» yoki «Fe + O₂ ni tengla"
+        }
+      ]
+    },
+    {
+      "unit": "g7:3.4",
+      "share": 0.8333333333333334,
+      "n": 6,
+      "ok": 5,
+      "reasons": [
+        "[поле] scope ×1",
+        "[поле] notSource ×1"
+      ],
+      "examples": [
+        {
+          "q": "Toʻgʻri javobni tanlang: Qaysi variant paragrafdagi ko'chmas mulk yoki hodisani aks ettira",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "a) Yadro va elektronlardan tashkil topgan elektr neytral zarracha — toʻgʻri, chunki darslikda shunday yozilgan (Kimyo 7, 3-bob, 4-mavzu)."
+        }
+      ]
+    },
+    {
+      "unit": "g7:6.9",
+      "share": 0.8333333333333334,
+      "n": 6,
+      "ok": 5,
+      "reasons": [
+        "[поле] scope ×1",
+        "[поле] notSource ×1"
+      ],
+      "examples": [
+        {
+          "q": "Toʻgʻri javobni tanlang: “Mustahkamlash darsi” mavzusida qanday fakt xatosiz tuzilgan?",
+          "why": "[поле] scope broad ≠ school",
+          "answer": "a) Yadro va elektronlardan tashkil topgan elektr neytral zarracha — toʻgʻri, chunki darslikda shunday yozilgan (Kimyo 7, 6-bob, 9-mavzu)."
+        }
+      ]
+    },
+    {
+      "unit": "g11:7",
+      "share": 0.8333333333333334,
+      "n": 6,
+      "ok": 5,
+      "reasons": [
+        "[поле] kind ×1"
+      ],
+      "examples": [
+        {
+          "q": "Дай определение: 9 - 1= 9 г (1 —валентный металл с атомной массой равной",
+          "why": "[поле] kind calc ≠ definition",
+          "answer": "Металлы — элементы, атомы которых легко отдают внешние электроны; их простые вещества блестят, проводят ток и тепло, пластичны. 9 - 1= 9 г ("
         }
       ]
     }
