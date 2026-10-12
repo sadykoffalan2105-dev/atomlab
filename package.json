@@ -78,6 +78,7 @@
     "brain:stt-sidecar-test": "python -I brain/stt/sidecar/test_sidecar.py",
     "brain:image-live": "tsx scripts/brain/image.live.mts",
     "test:image-client": "tsx src/learn/brain/remote/imageClient.selftest.ts",
+    "test:feedback-client": "tsx src/learn/brain/remote/feedbackClient.selftest.ts",
     "brain:admin-token": "tsx scripts/brain/admin-token.mts",
     "brain:probe": "tsx scripts/brain/probe-retrieve.mts",
     "brain:curriculum-eval": "tsx scripts/brain/build-curriculum-eval.mts",
