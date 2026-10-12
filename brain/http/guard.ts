@@ -27,7 +27,8 @@ export function corsHeaders(origin: string | null, req: http.IncomingMessage): R
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Brain-Admin',
+    // X-Brain-Session — сессия сайта: лимиты на ученика за общим адресом школы (brain/http/clientIp.ts)
+    'Access-Control-Allow-Headers': 'Content-Type, X-Brain-Admin, X-Brain-Session',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
     // сайт с GitHub Pages ходит на http://127.0.0.1 ноутбука владельца (Private Network Access в Chrome)

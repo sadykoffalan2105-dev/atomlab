@@ -726,6 +726,12 @@ export function useBrainStudent(): BrainStudentModel | null {
 
 let sessionId: string | null = null
 
+/**
+ * Заголовок с brainSessionId() для POST /chat и /image: сервер считает лимиты на ученика по паре «адрес + сессия»
+ * (30 компьютеров класса за одним адресом школы не делят один лимит). Формат id — [A-Za-z0-9_-]{8,64}.
+ */
+export const BRAIN_SESSION_HEADER = 'X-Brain-Session'
+
 export function brainSessionId(): string {
   if (sessionId) return sessionId
   const rand =
@@ -868,7 +874,8 @@ export async function streamChat(opts: StreamChatOptions): Promise<BrainDone | n
     arm(FIRST_BYTE_TIMEOUT_MS + (withPhoto ? PHOTO_UPLOAD_EXTRA_MS : 0))
     const res = await fetch(`${base}/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+      // X-Brain-Session: лимиты мозга — на ученика, а не на весь адрес школы (класс за одним NAT)
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', [BRAIN_SESSION_HEADER]: brainSessionId() },
       body: JSON.stringify({
         sessionId: opts.sessionId ?? brainSessionId(),
         ...(opts.studentId ? { studentId: opts.studentId } : {}),
