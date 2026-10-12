@@ -3,9 +3,10 @@
  * Проверки до конвейера: не больше maxImages фото, каждое ≤ maxImageBytes после декодирования, сигнатура JPEG/PNG/WebP
  * (по первым байтам, а не по словам клиента). Тело с фото может быть больше обычного (photo.bodyLimitBytes), без фото
  * действует прежний bodyLimitBytes. Фото никуда не пишутся (в журнал — только флаг hasImage) и не кешируются;
- * лимит фото на ученика — отдельный (photoRules), поверх обычного лимита /chat.
+ * лимит фото на ученика — отдельный (photoRules), поверх обычного лимита /chat; потолок фото на адрес — photoIpRules
+ * (школьный NAT, config.server.rate.perIp).
  */
-import type { BrainConfig } from '../config.ts'
+import type { BrainConfig, RatePerIp } from '../config.ts'
 import { DEFAULT_CONFIG } from '../config.ts'
 import type { RateRule } from './rateLimit.ts'
 
@@ -24,6 +25,14 @@ export function photoRules(p: PhotoLimits): RateRule[] {
   return [
     { name: 'photo_minute', windowMs: MIN, max: p.perMin },
     { name: 'photo_day', windowMs: DAY, max: p.perDay },
+  ]
+}
+
+/** Потолок фото на один адрес (весь класс за NAT школы); имена photo_ip_* — сайт тоже понимает их как «лимит фото». */
+export function photoIpRules(ip: Pick<RatePerIp, 'photoPerMin' | 'photoPerDay'>): RateRule[] {
+  return [
+    { name: 'photo_ip_minute', windowMs: MIN, max: ip.photoPerMin },
+    { name: 'photo_ip_day', windowMs: DAY, max: ip.photoPerDay },
   ]
 }
 

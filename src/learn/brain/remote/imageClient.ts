@@ -13,6 +13,7 @@
  */
 import { useSyncExternalStore } from 'react'
 import {
+  BRAIN_SESSION_HEADER,
   brainGradeId,
   brainSessionId,
   ensureBrainOnline,
@@ -490,7 +491,8 @@ export async function generateImage(req: ImageRequest, h: ImageHandlers = {}): P
 
   const owner = readKey('owner')
   const teacher = readKey('teacher')
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'text/event-stream' }
+  // X-Brain-Session — лимиты картинок на ученика, а не на весь адрес школы
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'text/event-stream', [BRAIN_SESSION_HEADER]: brainSessionId() }
   if (owner) headers['X-Brain-Admin'] = owner
   const body: Record<string, unknown> = {
     sessionId: req.sessionId ?? brainSessionId(),

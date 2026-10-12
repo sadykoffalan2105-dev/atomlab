@@ -10,16 +10,17 @@
  * Запуск: npx tsx brain/server.ts (или npm run brain:start). Без Ollama работает запасным путём.
  *
  * Публичный режим (туннель Tailscale Funnel → http://127.0.0.1:8787): адрес ученика — из заголовков прокси
- * (brain/http/clientIp.ts, только солёный хеш), лимиты частоты и размера (brain/http/rateLimit.ts, guard.ts),
+ * (brain/http/clientIp.ts, только солёный хеш), лимиты частоты и размера (brain/http/rateLimit.ts, guard.ts) —
+ * на ученика (адрес + сессия сайта X-Brain-Session) с щедрым потолком на адрес (школьный NAT, config.server.rate.perIp),
  * очередь к модели (brain/llm/queue.ts), админ — по ключу X-Brain-Admin (config.adminToken).
  */
 import http from 'node:http'
 import { pathToFileURL } from 'node:url'
-import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, loadConfig, PORT, SERVICE, VERSION, type BrainConfig } from './config.ts'
-import { clientInfo } from './http/clientIp.ts'
+import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, loadConfig, PORT, SERVICE, VERSION, type BrainConfig, type RatePerIp } from './config.ts'
+import { clientInfo, type ClientInfo } from './http/clientIp.ts'
 import { BodyError, checkChatLimits, checkOriginWith, corsHeaders, isAdmin, json, jsonError, readJson, readJsonWithSize } from './http/guard.ts'
-import { checkChatImages, fillPhotoText, photoLimits, photoRules } from './http/photo.ts'
-import { RateLimiter, StreamCounter, type RateRule } from './http/rateLimit.ts'
+import { checkChatImages, fillPhotoText, photoIpRules, photoLimits, photoRules } from './http/photo.ts'
+import { RateLimiter, StreamCounter, type RateCheck, type RateRule } from './http/rateLimit.ts'
 import { handleImageRequest } from './image/http.ts'
 import { createImageService, type ImageService } from './image/service.ts'
 import { EmbedStore } from './kb/embedStore.ts'
@@ -121,29 +122,70 @@ export function healthBody(brain: Brain) {
 const MIN = 60_000
 const DAY = 24 * 60 * MIN
 
-/** Группа лимитов по пути запроса. */
-function rateRules(method: string, path: string, r: BrainConfig['server']['rate'], img?: BrainConfig['image']['rate'], stt?: BrainConfig['stt']['rate']): { group: string; rules: RateRule[] } {
+/** Потолок адреса из конфига (старый config.json без perIp — умолчания). */
+export function perIpOf(r: BrainConfig['server']['rate']): RatePerIp {
+  return { ...DEFAULT_CONFIG.server.rate.perIp, ...(r.perIp ?? {}) }
+}
+
+/**
+ * Проверки частоты по пути запроса: лимит ученика (ключ client.student — адрес + сессия X-Brain-Session; без неё —
+ * адрес) и щедрый потолок адреса (client.key, школьный NAT). Отказ любой — 429, не засчитывается ни одна.
+ * OPTIONS (preflight CORS) — только потолок адреса: сессии в нём нет, а класс за одним адресом шлёт их пачкой.
+ */
+export function rateChecks(
+  method: string,
+  path: string,
+  client: Pick<ClientInfo, 'key' | 'student'>,
+  r: BrainConfig['server']['rate'],
+  img?: BrainConfig['image']['rate'],
+  stt?: BrainConfig['stt']['rate'],
+): RateCheck[] {
+  const ip = perIpOf(r)
+  const pair = (group: string, student: RateRule[], ceiling: RateRule[]): RateCheck[] => [
+    { group, key: client.student, rules: student },
+    { group: `${group}_ip`, key: client.key, rules: ceiling },
+  ]
+  if (method === 'OPTIONS') return [{ group: 'preflight_ip', key: client.key, rules: [{ name: 'preflight_ip_minute', windowMs: MIN, max: ip.preflightPerMin }] }]
   if (method === 'POST' && path === '/chat')
-    return {
-      group: 'chat',
-      rules: [
+    return pair(
+      'chat',
+      [
         { name: 'chat_minute', windowMs: MIN, max: r.chatPerMin },
         { name: 'chat_day', windowMs: DAY, max: r.chatPerDay },
       ],
-    }
-  if (method === 'GET' && path === '/health') return { group: 'health', rules: [{ name: 'health_minute', windowMs: MIN, max: r.healthPerMin }] }
+      [
+        { name: 'chat_ip_minute', windowMs: MIN, max: ip.chatPerMin },
+        { name: 'chat_ip_day', windowMs: DAY, max: ip.chatPerDay },
+      ],
+    )
+  if (method === 'GET' && path === '/health') return pair('health', [{ name: 'health_minute', windowMs: MIN, max: r.healthPerMin }], [{ name: 'health_ip_minute', windowMs: MIN, max: ip.healthPerMin }])
   // картинки — своя группа (GPU дороже текста); остальные /image/* — как прочие запросы
   if (method === 'POST' && path === '/image' && img)
-    return {
-      group: 'image',
-      rules: [
+    return pair(
+      'image',
+      [
         { name: 'image_minute', windowMs: MIN, max: img.perMin },
         { name: 'image_day', windowMs: DAY, max: img.perDay },
       ],
-    }
-  // голос — своя группа: щедрый потолок на адрес (школьный NAT), лимиты по сессии — в brain/stt/limits.ts
-  if (method === 'POST' && path === '/stt' && stt) return sttIpRule(stt)
-  return { group: 'other', rules: [{ name: 'other_minute', windowMs: MIN, max: r.otherPerMin }] }
+      [
+        { name: 'image_ip_minute', windowMs: MIN, max: ip.imagePerMin },
+        { name: 'image_ip_day', windowMs: DAY, max: ip.imagePerDay },
+      ],
+    )
+  // голос — своя группа: сессия (адрес + session) и потолок адреса считаются в brain/stt/limits.ts (429 по контракту «Голос»)
+  if (method === 'POST' && path === '/stt' && stt) {
+    const g = sttIpRule(stt)
+    return g.rules.length ? [{ group: g.group, key: client.student, rules: g.rules }] : []
+  }
+  return pair('other', [{ name: 'other_minute', windowMs: MIN, max: r.otherPerMin }], [{ name: 'other_ip_minute', windowMs: MIN, max: ip.otherPerMin }])
+}
+
+/** Лимит фото на ученика + потолок фото на адрес (правила photo_* — сайт не считает мозг занятым). */
+export function photoChecks(client: Pick<ClientInfo, 'key' | 'student'>, ph: ReturnType<typeof photoLimits>, r: BrainConfig['server']['rate']): RateCheck[] {
+  return [
+    { group: 'photo', key: client.student, rules: photoRules(ph) },
+    { group: 'photo_ip', key: client.key, rules: photoIpRules(perIpOf(r)) },
+  ]
 }
 
 /** Пути, которые пишут или показывают внутренности: только админ. */
@@ -179,8 +221,7 @@ export function createServer(brain: Brain): http.Server {
     try {
       // лимит частоты — до чтения тела
       if (limited) {
-        const rr = rateRules(method, path, sc.rate, cfg.image?.rate, sttConfig(cfg).rate)
-        const v = limiter.hit(rr.group, client.key, rr.rules)
+        const v = limiter.hitAll(rateChecks(method, path, client, sc.rate, cfg.image?.rate, sttConfig(cfg).rate))
         if (!v.ok) {
           req.resume()
           return json(
@@ -252,7 +293,7 @@ export function createServer(brain: Brain): http.Server {
         if (photo.images.length) {
           // отдельный лимит фото на ученика (модель со зрением дороже текста); 429 с rule photo_* — сайт не считает мозг занятым
           if (limited) {
-            const v = limiter.hit('photo', client.key, photoRules(ph))
+            const v = limiter.hitAll(photoChecks(client, ph, sc.rate))
             if (!v.ok) {
               return json(
                 res,
@@ -266,8 +307,16 @@ export function createServer(brain: Brain): http.Server {
           chat.images = photo.images
           chat.hasImage = true
         }
-        if (!streams.tryOpen(client.key, sc.chatStreamsPerClient)) {
-          return json(res, 429, { ok: false, error: 'rate', code: 'rate', rule: 'streams', retryAfterSec: 5, message: 'Дождитесь ответа на предыдущий вопрос.' }, { ...cors, 'Retry-After': '5' })
+        // потоки: на ученика (адрес + сессия) и потолок на адрес (школьный NAT); ключи потолка — с префиксом ip:
+        const streamKeys = [client.student, `ip:${client.key}`]
+        const sb = streams.tryOpenAll([
+          { key: streamKeys[0]!, max: sc.chatStreamsPerClient },
+          { key: streamKeys[1]!, max: perIpOf(sc.rate).chatStreams },
+        ])
+        if (sb >= 0) {
+          const rule = sb === 0 ? 'streams' : 'streams_ip'
+          const message = sb === 0 ? 'Дождитесь ответа на предыдущий вопрос.' : 'Сейчас много вопросов из вашей сети — подождите немного.'
+          return json(res, 429, { ok: false, error: 'rate', code: 'rate', rule, retryAfterSec: 5, message }, { ...cors, 'Retry-After': '5' })
         }
         const ac = new AbortController()
         res.on('close', () => {
@@ -304,7 +353,7 @@ export function createServer(brain: Brain): http.Server {
         } finally {
           clearInterval(hb)
           ticket?.release()
-          streams.close(client.key)
+          for (const k of streamKeys) streams.close(k)
         }
         return res.end()
       }

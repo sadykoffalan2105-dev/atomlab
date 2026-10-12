@@ -8,6 +8,11 @@
  *
  * Сырой адрес нигде не хранится: наружу — только солёный хеш (соль случайная на запуск процесса), IPv6 — по сети /64
  * (иначе один ученик обходит лимит сменой адреса внутри своей сети).
+ *
+ * Школьный NAT: 30 компьютеров класса выходят в интернет с ОДНОГО адреса. Поэтому лимиты «на ученика» — по паре
+ * «адрес + сессия сайта» (заголовок X-Brain-Session, brainSessionId() на сайте), а по одному адресу — только щедрый
+ * потолок (config.server.rate.perIp), чтобы смена сессий не обходила защиту. Нет заголовка (или он кривой) —
+ * ученик = адрес, как раньше. Сессия, как и адрес, хранится только солёным хешем и только в памяти.
  */
 import crypto from 'node:crypto'
 import type { IncomingMessage } from 'node:http'
@@ -18,9 +23,21 @@ const PROXY_HEADERS = ['x-forwarded-for', 'x-real-ip', 'forwarded', 'x-forwarded
 
 const SALT = crypto.randomBytes(32)
 
+/** Заголовок сессии сайта: лимиты на ученика за общим адресом школы. */
+export const SESSION_HEADER = 'x-brain-session'
+/** Допустимая сессия в заголовке; иное значение игнорируется (лимиты по адресу, как без заголовка). */
+export const SESSION_HEADER_RE = /^[A-Za-z0-9_-]{8,64}$/
+
 export type ClientInfo = {
-  /** солёный хеш адреса (16 hex) — ключ лимитов; сырой адрес не хранится */
+  /** солёный хеш адреса (16 hex) — ключ потолка адреса; сырой адрес не хранится */
   key: string
+  /**
+   * ключ ученика для лимитов «на ученика»: с верной X-Brain-Session — «s» + солёный хеш пары адрес+сессия
+   * (17 символов), без неё — равен key (ученик = адрес)
+   */
+  student: string
+  /** прислана верная X-Brain-Session */
+  session: boolean
   /** запрос прошёл через прокси/туннель (есть его заголовки) */
   forwarded: boolean
   /** сокет — loopback (127.0.0.0/8, ::1) */
@@ -103,10 +120,31 @@ export function hashAddress(ip: string): string {
   return crypto.createHmac('sha256', SALT).update(unit).digest('hex').slice(0, 16)
 }
 
+/** Сессия сайта из X-Brain-Session или null (нет, повторена, не по формату [A-Za-z0-9_-]{8,64}). */
+export function sessionFromHeader(req: Pick<IncomingMessage, 'headers'>): string | null {
+  const v = req.headers[SESSION_HEADER]
+  if (typeof v !== 'string') return null
+  const s = v.trim()
+  return SESSION_HEADER_RE.test(s) ? s : null
+}
+
+/**
+ * Ключ ученика: адрес + сессия (солёный хеш; та же сессия с другого адреса — другой ученик, чужую сессию «выбрать»
+ * извне нельзя). Без сессии — ключ адреса.
+ */
+export function studentKey(ipKey: string, session: string | null): string {
+  if (!session) return ipKey
+  return 's' + crypto.createHmac('sha256', SALT).update(`${ipKey}|${session}`).digest('hex').slice(0, 16)
+}
+
 export function clientInfo(req: Pick<IncomingMessage, 'headers' | 'socket'>, trustProxy = true): ClientInfo {
   const a = clientAddress(req, trustProxy)
+  const key = hashAddress(a.ip)
+  const session = sessionFromHeader(req)
   return {
-    key: hashAddress(a.ip),
+    key,
+    student: studentKey(key, session),
+    session: session !== null,
     forwarded: a.forwarded,
     loopback: a.loopback,
     local: a.loopback && !a.forwarded && isLocalHost(header(req, 'host')),

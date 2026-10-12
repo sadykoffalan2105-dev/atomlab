@@ -23,6 +23,20 @@ export function defaultDataDir(): string {
 
 export const DATA_DIR = path.resolve(process.env.BRAIN_DATA_DIR || defaultDataDir())
 
+/** Потолок на один адрес (config.server.rate.perIp): школьный NAT — много учеников за одним адресом. */
+export type RatePerIp = {
+  chatPerMin: number
+  chatPerDay: number
+  chatStreams: number
+  photoPerMin: number
+  photoPerDay: number
+  imagePerMin: number
+  imagePerDay: number
+  healthPerMin: number
+  otherPerMin: number
+  preflightPerMin: number
+}
+
 export type BrainConfig = {
   /** Версия схемы умолчаний: старый config.json (без неё) мигрируется в памяти — см. CONFIG_MIGRATIONS. */
   configVersion: number
@@ -89,8 +103,21 @@ export type BrainConfig = {
     maxMessageChars: number
     /** Сколько потоков /chat один ученик держит одновременно. */
     chatStreamsPerClient: number
-    /** Частота запросов на ученика (окна: минута и сутки). exemptLocal — владелец с этого ПК без прокси не ограничен. */
-    rate: { chatPerMin: number; chatPerDay: number; healthPerMin: number; otherPerMin: number; exemptLocal: boolean }
+    /**
+     * Частота запросов на ученика (окна: минута и сутки). Ученик — адрес + сессия сайта (заголовок X-Brain-Session,
+     * brain/http/clientIp.ts); без заголовка ученик = адрес. exemptLocal — владелец с этого ПК без прокси не ограничен.
+     * perIp — щедрый потолок на ОДИН адрес (школьный NAT: весь класс за одним адресом), чтобы смена сессий не обходила
+     * защиту: chat/photo/image — запросы в минуту и сутки, chatStreams — одновременных потоков /chat с адреса,
+     * health/other — запросы в минуту, preflight — CORS-запросы OPTIONS в минуту (только по адресу: в них нет сессии).
+     */
+    rate: {
+      chatPerMin: number
+      chatPerDay: number
+      healthPerMin: number
+      otherPerMin: number
+      exemptLocal: boolean
+      perIp: RatePerIp
+    }
     /** Журнал диалогов: 'all' — все; 'local' — только с этого ПК (ученики из интернета не пишутся); 'off' — никакие. */
     dialogLog: 'all' | 'local' | 'off'
     /**
@@ -249,7 +276,15 @@ export const DEFAULT_CONFIG: BrainConfig = {
     maxMessages: 12,
     maxMessageChars: 4000,
     chatStreamsPerClient: 2,
-    rate: { chatPerMin: 8, chatPerDay: 120, healthPerMin: 120, otherPerMin: 60, exemptLocal: true },
+    // на ученика (адрес + сессия сайта); perIp — потолок адреса: класс из 30 учеников за одним адресом школы проходит
+    rate: {
+      chatPerMin: 8,
+      chatPerDay: 120,
+      healthPerMin: 120,
+      otherPerMin: 60,
+      exemptLocal: true,
+      perIp: { chatPerMin: 240, chatPerDay: 4000, chatStreams: 60, photoPerMin: 60, photoPerDay: 900, imagePerMin: 20, imagePerDay: 400, healthPerMin: 1200, otherPerMin: 600, preflightPerMin: 600 },
+    },
     dialogLog: 'all',
     // фото сжимает сайт (≤ 1280 px, JPEG 0,8 — обычно 150–400 КБ); 1,5 МБ — запас на чужие клиенты
     photo: { maxImages: 2, maxImageBytes: 1_572_864, bodyLimitBytes: 4 * 1024 * 1024, perMin: 3, perDay: 30 },

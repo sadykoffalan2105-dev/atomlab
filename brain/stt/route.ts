@@ -159,7 +159,8 @@ export async function handleSttRequest(c: SttHttpContext): Promise<void> {
     req.resume()
     return jsonError(res, 400, 'bad_request', 'session: [A-Za-z0-9_-]{1,64}', cors)
   }
-  const session = sessRaw ? `s:${sessRaw}` : `ip:${client.key}`
+  // ученик = адрес + сессия (та же сессия с другого адреса — другой ученик); без сессии — адрес
+  const session = sessRaw ? `s:${client.key}:${sessRaw}` : `ip:${client.key}`
   const pq = url.searchParams.get('partial')
   const partial = pq === '1' || pq === 'true'
   if (!AUDIO_TYPES.test(String(req.headers['content-type'] ?? ''))) {
