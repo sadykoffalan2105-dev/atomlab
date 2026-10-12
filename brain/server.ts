@@ -3,6 +3,7 @@
  *   GET  /health        — состояние: LLM (Ollama), база, очередь (публично, без путей и секретов);
  *   POST /chat          — ответ потоком SSE (queue / meta / delta / done / error);
  *   POST /kb/append     — дописать запись в журнал базы (только append) — ТОЛЬКО админ;
+ *   POST /kb/feedback   — «Сообщить об ошибке» (публично, строгие лимиты, без адреса и сессии — brain/http/feedback.ts);
  *   GET  /kb/stats      — статистика журнала (с путём папки данных) — ТОЛЬКО админ;
  *   GET  /admin/status  — очередь, лимиты, профиль — ТОЛЬКО админ;
  *   /image, /image/*, /admin/image/* — картинки (brain/image/http.ts; по умолчанию выключены, config.image).
@@ -15,16 +16,19 @@
  * очередь к модели (brain/llm/queue.ts), админ — по ключу X-Brain-Admin (config.adminToken).
  */
 import http from 'node:http'
+import nodePath from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, loadConfig, PORT, SERVICE, VERSION, type BrainConfig, type RatePerIp } from './config.ts'
+import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, DIRS, loadConfig, PORT, SERVICE, VERSION, type BrainConfig, type RatePerIp } from './config.ts'
 import { clientInfo, type ClientInfo } from './http/clientIp.ts'
 import { BodyError, checkChatLimits, checkOriginWith, corsHeaders, isAdmin, json, jsonError, readJson, readJsonWithSize } from './http/guard.ts'
+import { handleFeedbackRequest } from './http/feedback.ts' // «Сообщить об ошибке» (POST /kb/feedback)
 import { checkChatImages, fillPhotoText, photoIpRules, photoLimits, photoRules } from './http/photo.ts'
 import { RateLimiter, StreamCounter, type RateCheck, type RateRule } from './http/rateLimit.ts'
 import { handleImageRequest } from './image/http.ts'
 import { createImageService, type ImageService } from './image/service.ts'
 import { EmbedStore } from './kb/embedStore.ts'
 import { Journal, validateAppend } from './kb/journal.ts'
+import { retentionOf, rotateLogs } from './kb/retention.ts' // сроки хранения: диалоги 90 дней, ротация логов
 import { Knowledge } from './kb/shards.ts'
 import { OllamaClient, type LlmClient } from './llm/ollama.ts'
 import { LlmQueue, QueueTicket } from './llm/queue.ts'
@@ -63,7 +67,15 @@ export function createBrain(opts: { llm?: LlmClient | null; config?: BrainConfig
   const ollama = opts.llm === undefined ? new OllamaClient(config) : null
   const llm = opts.llm === undefined ? ollama : opts.llm
   const deps: BrainDeps = { kb, journal, embeds, llm, students: new StudentStore(), config }
+  applyRetention(deps)
   return { deps, startedAt: Date.now(), ollama }
+}
+
+/** Сроки хранения (brain/kb/retention.ts): записи из диалогов старше N дней — вне поиска и модели ученика. */
+export function applyRetention(deps: Pick<BrainDeps, 'journal' | 'students' | 'config'>): void {
+  const r = retentionOf(deps.config)
+  deps.journal.dialogRetentionDays = r.dialogDays
+  deps.students.retentionDays = r.dialogDays
 }
 
 /**
@@ -80,6 +92,7 @@ export function createBrainLazy(opts: { llm?: LlmClient | null; config?: BrainCo
   const llm = opts.llm === undefined ? ollama : opts.llm
   // BRAIN_NO_DIALOG_LOG=1 — замеры/eval на втором экземпляре: не дописывать диалоги и события учеников в журнал владельца
   const deps: BrainDeps = { kb, journal, embeds, llm, students: new StudentStore(), config, noJournal: process.env.BRAIN_NO_DIALOG_LOG === '1' }
+  applyRetention(deps)
   const brain: Brain = { deps, startedAt: Date.now(), ollama, loading: true }
   brain.ready = (async () => {
     const t0 = performance.now()
@@ -272,6 +285,8 @@ export function createServer(brain: Brain): http.Server {
         const { record, line } = deps.journal.append(v)
         return json(res, 200, { ok: true, id: record.id, line, ...(record.kind === 'dup' ? { dup: true, ref: record.meta.ref } : {}) }, cors)
       }
+      // «Сообщить об ошибке» (brain/http/feedback.ts): публично, свои строгие лимиты; в журнал — без адреса и сессии
+      if (path === '/kb/feedback') return await handleFeedbackRequest({ req, res, method, cors, client, limited, limiter, brain })
       // распознавание речи (brain/stt/route.ts): POST /stt, GET /stt/health
       if (path === '/stt' || path.startsWith('/stt/')) return await handleSttRequest({ req, res, url, method, cors, client, limited, brain })
       // картинки (brain/image/http.ts) — до ветки /chat, саму её не меняют
@@ -385,6 +400,13 @@ export async function main(): Promise<void> {
   brain.ollama?.start() // первый опрос /api/tags сразу прогревает чат- и быструю модели (персона в кеше)
   brain.image?.start() // картинки: опрос готовности ComfyUI (только если config.image.enabled)
   const cfg = brain.deps.config
+  // месячная ротация логов диалогов и картинок (brain/kb/retention.ts): при старте и раз в 6 часов; журнал знаний не трогается
+  const rotate = () => {
+    if (!retentionOf(brain.deps.config).rotateLogs || brain.deps.noJournal) return
+    for (const r of rotateLogs(DIRS.journal)) console.log(`[brain] лог ${nodePath.basename(r.from)} → archive/${nodePath.basename(r.to)}`)
+  }
+  rotate()
+  setInterval(rotate, 6 * 3_600_000).unref()
   console.log(`[brain] ${SERVICE} ${VERSION} слушает http://127.0.0.1:${PORT} за ${Math.round(performance.now() - t0)} мс · данные: ${DATA_DIR} · Ollama: ${cfg.ollamaUrl} (опрос каждые ${Math.round(cfg.pollMs / 1000)} с)`)
   console.log(
     `[brain] профиль ${cfg.profile}: очередь ${cfg.llm.parallel} одновременно, ждут до ${cfg.llm.queueCap} (≤ ${Math.round(cfg.llm.queueWaitMs / 1000)} с), keep_alive ${cfg.keepAlive}, окно ${cfg.numCtx} · лимит /chat ${cfg.server.rate.chatPerMin}/мин и ${cfg.server.rate.chatPerDay}/сутки · журнал диалогов: ${brain.deps.noJournal ? 'off' : cfg.server.dialogLog} · ключ админа: ${cfg.adminToken ? 'задан' : 'пуст (админ только с этого ПК)'}`,

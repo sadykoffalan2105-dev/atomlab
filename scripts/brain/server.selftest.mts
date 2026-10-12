@@ -9,7 +9,11 @@
  *      запасной путь с reason 'busy'; журнал диалогов без адресов, режим 'local';
  *   4) школьный NAT: лимиты на ученика по паре «адрес + X-Brain-Session» (30 сессий за одним адресом проходят, одна
  *      сессия сверх 8/мин → 429), потолок адреса (config.server.rate.perIp), кривой заголовок игнорируется (лимит по адресу),
- *      потоки /chat и фото — на ученика, preflight OPTIONS класса не упирается в лимит «прочего».
+ *      потоки /chat и фото — на ученика, preflight OPTIONS класса не упирается в лимит «прочего»;
+ *   5) «Сообщить об ошибке» POST /kb/feedback: публично, лимиты (ученик / адрес / сервер), строгие поля, в журнале — ни
+ *      адреса, ни сессии, ни их хешей, телефоны и почта замаскированы; kind 'feedback' вне поиска;
+ *   6) сроки хранения: dialogLog по умолчанию 'local' (+ миграция v4), записи из диалогов старше 90 дней вне поиска и
+ *      модели ученика, месячная ротация логов (только dialogs/images, журнал знаний — никогда).
  * Код выхода 1, если хоть одна проверка не прошла.
  */
 import fs from 'node:fs'
@@ -26,7 +30,7 @@ delete process.env.BRAIN_NO_DIALOG_LOG
 process.env.BRAIN_NO_WARM = '1'
 const ORIGIN = 'https://sadykoffalan2105-dev.github.io'
 
-const { applyProfile, DEFAULT_CONFIG, FILES, loadConfig } = await import('../../brain/config.ts')
+const { applyProfile, DEFAULT_CONFIG, FILES, loadConfig, migrateConfig } = await import('../../brain/config.ts')
 const { createBrainLazy, createServer } = await import('../../brain/server.ts')
 const { MockLlm } = await import('../../brain/llm/mock.ts')
 const { clientInfo, hashAddress, studentKey } = await import('../../brain/http/clientIp.ts')
@@ -128,6 +132,10 @@ const port = await new Promise<number>((resolve, reject) => {
 console.log(`  слушает 127.0.0.1:${port}`)
 const cfg = brain.deps.config
 const queue = brain.queue!
+// умолчание журнала диалогов — 'local' (docs/COMPLIANCE.md); проверки журнала ниже ведут учеников «из интернета»,
+// поэтому для них режим 'all' включается явно (как владелец, который сам так решил)
+ok(DEFAULT_CONFIG.server.dialogLog === 'local' && cfg.server.dialogLog === 'local', "умолчание журнала диалогов — 'local' (ученики из интернета не пишутся)")
+cfg.server.dialogLog = 'all'
 
 type Res = { status: number; headers: http.IncomingHttpHeaders; text: string; json: Record<string, unknown> | null }
 function call(method: string, p: string, o: { headers?: Record<string, string>; body?: string | Buffer } = {}): Promise<Res> {
@@ -415,6 +423,144 @@ ok(n1 === n0 && n2 === n0 + 1, "dialogLog 'local': ученики из инте�
 cfg.server.dialogLog = 'off'
 await chat('Что такое моль?', {})
 ok(lines() === n2, "dialogLog 'off': не пишется никто")
+
+// ——— 5) «Сообщить об ошибке»
+console.log('5) POST /kb/feedback')
+{
+  const { FEEDBACK_DEFAULTS, maskPersonal } = await import('../../brain/http/feedback.ts')
+  const fb = (body: unknown, headers: Record<string, string>) =>
+    call('POST', '/kb/feedback', { headers: { ...JSONH, Origin: ORIGIN, ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) })
+  const SID = 's-feedback-0123456789'
+  const IP = '198.51.100.90'
+  const H = fwd(IP, { 'X-Brain-Session': SID })
+  const good = { question: 'Сколько протонов у натрия?', answer: 'У натрия 12 протонов.', comment: 'Должно быть 11. Мой номер +998 90 123 45 67, почта ali@example.com', reason: 'wrong', lang: 'ru', grade: 'g8', route: 'llm' }
+  const pre = await call('OPTIONS', '/kb/feedback', { headers: { Origin: ORIGIN, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type, x-brain-session' } })
+  ok(pre.status === 204 && pre.headers['access-control-allow-origin'] === ORIGIN, 'preflight OPTIONS /kb/feedback → 204 с Allow-Origin сайта')
+  const before = fs.existsSync(FILES.kbJournal) ? fs.readFileSync(FILES.kbJournal, 'utf8').length : 0
+  const r1 = await fb(good, H)
+  ok(r1.status === 200 && r1.json?.ok === true && r1.json?.stored === true && /^j-/.test(String(r1.json?.id)), 'ученик из интернета без ключа админа: 200, запись в журнале', `${r1.status} ${r1.text.slice(0, 80)}`)
+  const jtxt = fs.readFileSync(FILES.kbJournal, 'utf8').slice(before)
+  const rec = jtxt
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as Record<string, unknown>)
+    .find((x) => x.id === r1.json?.id) as { kind: string; meta: Record<string, unknown>; tags: string[]; source: string } | undefined
+  ok(rec?.kind === 'feedback' && rec.source === 'site-feedback' && rec.meta.question === good.question && rec.meta.answer === good.answer && typeof rec.meta.comment === 'string', "запись: kind 'feedback', meta {question, answer, comment}")
+  const st = clientInfo(fake('127.0.0.1', { 'x-forwarded-for': IP, 'x-brain-session': SID }))
+  ok(
+    !jtxt.includes(IP) && !jtxt.includes('198.51.100') && !jtxt.includes(SID) && !jtxt.includes(hashAddress(IP)) && !jtxt.includes(st.student) && !/session|x-forwarded|ts\.net/i.test(jtxt),
+    'в журнале нет ни адреса, ни сессии, ни их хешей',
+  )
+  ok(!jtxt.includes('123 45 67') && !jtxt.includes('ali@example.com') && /\[телефон\]/.test(String(rec?.meta.comment)) && /\[почта\]/.test(String(rec?.meta.comment)), 'телефон и почта в комментарии замаскированы')
+  ok(maskPersonal('2,5 моль NaCl и 1000 г воды при 25 °C') === '2,5 моль NaCl и 1000 г воды при 25 °C', 'маскировка не трогает химические числа')
+  const found = brain.deps.journal.search([{ term: 'протон', weight: 1 }], 50).some((x) => x.rec.kind === 'feedback')
+  ok(!found && !brain.deps.journal.searchable(brain.deps.journal.get(String(r1.json?.id))!), "kind 'feedback' в поиск не попадает")
+
+  // лимиты: ученик (3/мин), соседняя сессия не страдает, потолок адреса, общий потолок сервера
+  for (let i = 0; i < FEEDBACK_DEFAULTS.perMin - 1; i++) await fb(good, H)
+  const over = await fb(good, H)
+  ok(over.status === 429 && over.json?.rule === 'feedback_minute' && Number(over.headers['retry-after']) > 0, `ученик: ${FEEDBACK_DEFAULTS.perMin}/мин, дальше 429 feedback_minute + Retry-After`, `${over.status} ${String(over.json?.rule)}`)
+  const neigh = await fb(good, fwd(IP, { 'X-Brain-Session': 's-feedback-neighbour-01' }))
+  ok(neigh.status === 200, 'сосед за тем же адресом со своей сессией — не ограничен чужим лимитом')
+  cfg.server.feedback = { ipPerMin: 3 }
+  const IP2 = '198.51.100.91'
+  for (let i = 0; i < 3; i++) await fb(good, fwd(IP2, { 'X-Brain-Session': `s-feedback-ip-${i}-abcdef` }))
+  const ipOver = await fb(good, fwd(IP2, { 'X-Brain-Session': 's-feedback-ip-new-abcdef' }))
+  ok(ipOver.status === 429 && ipOver.json?.rule === 'feedback_ip_minute', 'потолок адреса (feedback.ipPerMin) → 429 feedback_ip_minute', `${ipOver.status} ${String(ipOver.json?.rule)}`)
+  cfg.server.feedback = { globalPerDay: 1 }
+  const gl = await fb(good, fwd('198.51.100.92', { 'X-Brain-Session': 's-feedback-global-01' }))
+  ok(gl.status === 429 && gl.json?.rule === 'feedback_global_day', 'общий потолок сервера в сутки → 429 feedback_global_day', `${gl.status} ${String(gl.json?.rule)}`)
+  cfg.server.feedback = undefined
+  const own = await fb(good, {})
+  ok(own.status === 200, 'владелец с этого ПК лимитами не ограничен', String(own.status))
+
+  // строгие поля: отказ, а не обрезка
+  let n = 0
+  const P = () => fwd(`198.51.100.${100 + n}`, { 'X-Brain-Session': `s-feedback-bad-${n++}-abcdef` })
+  const bads = [
+    await fb({ question: 'q', comment: 'c' }, P()),
+    await fb({ ...good, answer: 'а'.repeat(FEEDBACK_DEFAULTS.maxAnswerChars + 1) }, P()),
+    await fb({ ...good, comment: 'к'.repeat(FEEDBACK_DEFAULTS.maxCommentChars + 1) }, P()),
+    await fb({ ...good, question: 'в'.repeat(FEEDBACK_DEFAULTS.maxQuestionChars + 1) }, P()),
+    await fb({ ...good, ip: '1.2.3.4' }, P()),
+    await fb({ ...good, comment: 42 }, P()),
+    await fb({ ...good, grade: 'g99' }, P()),
+    await fb({ ...good, reason: 'delete' }, P()),
+  ]
+  ok(bads.every((r) => r.status === 400), 'нет ответа / длины сверх лимита / лишнее поле / не строка / кривой класс / причина → 400', bads.map((r) => r.status).join(','))
+  const big = await fb(JSON.stringify({ ...good, comment: 'x'.repeat(FEEDBACK_DEFAULTS.bodyLimitBytes) }), P())
+  ok(big.status === 413, `тело > ${FEEDBACK_DEFAULTS.bodyLimitBytes} байт → 413`, String(big.status))
+  const form = await call('POST', '/kb/feedback', { headers: { ...P(), 'Content-Type': 'text/plain' }, body: 'hello' })
+  ok(form.status === 415, 'не JSON → 415', String(form.status))
+  const get = await call('GET', '/kb/feedback', { headers: P() })
+  ok(get.status === 405, 'GET /kb/feedback → 405', String(get.status))
+  const app = await call('POST', '/kb/append', { headers: { ...P(), ...JSONH }, body: JSON.stringify({ kind: 'feedback', text: 'x' }) })
+  ok(app.status === 403, '/kb/append по-прежнему только для админа')
+  cfg.server.feedback = { enabled: false }
+  const off = await fb(good, P())
+  ok(off.status === 404, 'feedback.enabled=false → 404')
+  cfg.server.feedback = undefined
+  const jall = fs.readFileSync(FILES.kbJournal, 'utf8')
+  ok(!/198\.51\.100|203\.0\.113|s-feedback-/.test(jall), 'во всём журнале знаний — ни одного адреса и ни одной сессии')
+}
+
+// ——— 6) сроки хранения
+console.log('6) сроки хранения и ротация логов')
+{
+  const { Journal } = await import('../../brain/kb/journal.ts')
+  const { StudentStore } = await import('../../brain/student/events.ts')
+  const { expiredArchives, isDialogDerived, retentionOf, rotateLogs, withinRetention } = await import('../../brain/kb/retention.ts')
+  const withLog = (dl: 'all' | 'local' | 'off') => ({ ...structuredClone(DEFAULT_CONFIG), server: { ...structuredClone(DEFAULT_CONFIG.server), dialogLog: dl } })
+  const v3 = migrateConfig(withLog('all'), 3)
+  const v4 = migrateConfig(withLog('all'), 4)
+  ok(DEFAULT_CONFIG.configVersion === 4 && v3.cfg.server.dialogLog === 'local' && v4.cfg.server.dialogLog === 'all', "миграция v4: старое умолчание 'all' → 'local'; явное 'all' после v4 сохраняется")
+  ok(applyProfile(withLog('странное' as 'all')).server.dialogLog === 'local', "кривое значение dialogLog → 'local'")
+  ok(retentionOf(DEFAULT_CONFIG).dialogDays === 90 && retentionOf({ server: {} }).dialogDays === 90 && retentionOf(DEFAULT_CONFIG).rotateLogs, 'срок по умолчанию — 90 дней, ротация включена (и для config.json без блока)')
+  ok(brain.deps.journal.dialogRetentionDays === 90, 'сервер применил срок к журналу')
+  const DAY_MS = 86_400_000
+  const old = new Date(Date.now() - 100 * DAY_MS).toISOString()
+  const fresh = new Date(Date.now() - 10 * DAY_MS).toISOString()
+  const cut = new Date(Date.now() - 90 * DAY_MS).toISOString()
+  ok(isDialogDerived({ kind: 'qa', source: 'dialog-learn' }) && isDialogDerived({ kind: 'qa', tags: ['from:dialog'] }) && !isDialogDerived({ kind: 'qa', source: 'textbook' }), 'запись из диалога узнаётся по source/тегу')
+  ok(!withinRetention({ at: old, kind: 'qa', source: 'dialog' }, cut) && withinRetention({ at: old, kind: 'qa', source: 'book' }, cut), 'старше 90 дней — вне срока только записи из диалогов')
+
+  const tdir = fs.mkdtempSync(path.join(os.tmpdir(), 'atomlab-retention-'))
+  const j = new Journal(path.join(tdir, 'kb.jsonl'))
+  const mk = (text: string, at: string, source: string) => ({ ...j.prepare({ kind: 'qa', text, source }), at })
+  j.appendPrepared([
+    mk('Цинк реагирует с соляной кислотой: ответ из старого диалога', old, 'dialog'),
+    mk('Цинк реагирует с соляной кислотой: ответ из свежего диалога', fresh, 'dialog'),
+    mk('Цинк реагирует с соляной кислотой: учебник', old, 'book'),
+  ])
+  await j.buildIndex({ useCache: false })
+  j.dialogRetentionDays = 90
+  const hits = j.search([{ term: 'цинк', weight: 1 }], 10).map((x) => x.rec.text)
+  ok(hits.length === 2 && !hits.some((t) => t.includes('старого')) && hits.some((t) => t.includes('учебник')), 'поиск: запись из диалога старше 90 дней не находится, учебник и свежая — находятся', `${hits.length} находок`)
+  ok(fs.readFileSync(path.join(tdir, 'kb.jsonl'), 'utf8').includes('старого'), 'журнал знаний не изменён (append-only)')
+  const ss = new StudentStore(path.join(tdir, 'students'))
+  ss.retentionDays = 90
+  ss.append('stu', { type: 'turn', at: old })
+  ss.append('stu', { type: 'turn', at: fresh })
+  ok(ss.events('stu').length === 1 && fs.readFileSync(ss.file('stu'), 'utf8').trim().split('\n').length === 2, 'события ученика старше 90 дней не влияют на модель, файл не меняется')
+
+  const jd = path.join(tdir, 'journal')
+  fs.mkdirSync(jd, { recursive: true })
+  fs.writeFileSync(path.join(jd, 'dialogs.jsonl'), JSON.stringify({ at: '2026-08-15T10:00:00.000Z', q: 'x' }) + '\n')
+  fs.writeFileSync(path.join(jd, 'images.jsonl'), JSON.stringify({ at: '2026-10-02T10:00:00.000Z' }) + '\n')
+  fs.writeFileSync(path.join(jd, 'kb-journal.jsonl'), JSON.stringify({ at: '2026-01-01T00:00:00.000Z' }) + '\n')
+  const rot = rotateLogs(jd, new Date('2026-10-12T00:00:00Z'), ['dialogs.jsonl', 'images.jsonl', 'kb-journal.jsonl'])
+  ok(rot.length === 1 && fs.existsSync(path.join(jd, 'archive', 'dialogs-2026-08.jsonl')) && !fs.existsSync(path.join(jd, 'dialogs.jsonl')), 'ротация: лог диалогов прошлого месяца → archive/dialogs-2026-08.jsonl')
+  ok(fs.existsSync(path.join(jd, 'images.jsonl')) && fs.existsSync(path.join(jd, 'kb-journal.jsonl')), 'лог текущего месяца остаётся; журнал знаний не ротируется даже по прямой просьбе')
+  const arch = path.join(jd, 'archive', 'dialogs-2026-08.jsonl')
+  const t100 = new Date(Date.now() - 100 * DAY_MS)
+  fs.utimesSync(arch, t100, t100)
+  ok(expiredArchives(jd, 90).length === 1 && expiredArchives(jd, 120).length === 0, 'архив старше срока находится для удаления владельцем (scripts/brain/logs-retention.mts)')
+  try {
+    fs.rmSync(tdir, { recursive: true, force: true })
+  } catch {
+    /* временная папка */
+  }
+}
 
 server.close()
 server.closeAllConnections?.()

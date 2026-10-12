@@ -6,6 +6,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { DIRS } from '../config.ts'
 import { appendLine, readJsonl, safeStudentFile } from '../kb/storage.ts'
+import { retentionCutoff } from '../kb/retention.ts'
 
 export type StudentEventType = 'turn' | 'error_tag' | 'feedback' | 'mood'
 export type StudentEvent = {
@@ -26,6 +27,8 @@ export type StudentEvent = {
 export class StudentStore {
   private cache = new Map<string, StudentEvent[]>()
   private readonly dir: string
+  /** Срок хранения (brain/kb/retention.ts): события старше N дней не влияют на модель ученика; файл не меняется. 0 — без отсечки. */
+  retentionDays = 0
 
   constructor(dir = DIRS.students) {
     this.dir = dir
@@ -36,6 +39,13 @@ export class StudentStore {
   }
 
   events(studentId: string): StudentEvent[] {
+    const list = this.all(studentId)
+    const cutoff = retentionCutoff(this.retentionDays)
+    return cutoff ? list.filter((e) => typeof e.at === 'string' && e.at >= cutoff) : list
+  }
+
+  /** Все события из файла (кеш), без отсечки по сроку. */
+  private all(studentId: string): StudentEvent[] {
     let list = this.cache.get(studentId)
     if (!list) {
       list = fs.existsSync(this.file(studentId)) ? readJsonl<StudentEvent>(this.file(studentId)).rows : []
@@ -47,7 +57,7 @@ export class StudentStore {
 
   append(studentId: string, ev: Omit<StudentEvent, 'at'> & { at?: string }): StudentEvent {
     const full: StudentEvent = { at: ev.at ?? new Date().toISOString(), ...ev } as StudentEvent
-    const list = this.events(studentId)
+    const list = this.all(studentId)
     appendLine(this.file(studentId), full)
     list.push(full)
     return full

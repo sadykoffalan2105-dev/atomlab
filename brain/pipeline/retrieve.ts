@@ -414,7 +414,8 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
       }
       for (const { id, cos } of deps.embeds.topK(qv, 20, (id) => {
         const r = journal.get(id)
-        return !!r && (r.kind === 'fact' || r.kind === 'qa' || r.kind === 'correction' || r.kind === 'note')
+        // вид записи + срок хранения записей из диалогов (brain/kb/retention.ts)
+        return !!r && journal.searchable(r)
       })) {
         const r = journal.get(id)!
         const c = fromRecord(r, 0)
