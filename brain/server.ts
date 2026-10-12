@@ -5,6 +5,7 @@
  *   POST /kb/append     — дописать запись в журнал базы (только append) — ТОЛЬКО админ;
  *   GET  /kb/stats      — статистика журнала (с путём папки данных) — ТОЛЬКО админ;
  *   GET  /admin/status  — очередь, лимиты, профиль — ТОЛЬКО админ;
+ *   GET  /admin/live-report — ночной живой отчёт качества (brain/http/liveReport.ts) — ТОЛЬКО админ;
  *   /image, /image/*, /admin/image/* — картинки (brain/image/http.ts; по умолчанию выключены, config.image).
  *   POST /stt, GET /stt/health — распознавание речи (brain/stt/route.ts → сайдкар 127.0.0.1:8788, config.stt).
  * Запуск: npx tsx brain/server.ts (или npm run brain:start). Без Ollama работает запасным путём.
@@ -18,6 +19,7 @@ import http from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { applyProfile, CONTRACT, DATA_DIR, DEFAULT_CONFIG, loadConfig, PORT, SERVICE, VERSION, type BrainConfig, type RatePerIp } from './config.ts'
 import { clientInfo, type ClientInfo } from './http/clientIp.ts'
+import { handleLiveReport, LIVE_REPORT_PATH } from './http/liveReport.ts'
 import { BodyError, checkChatLimits, checkOriginWith, corsHeaders, isAdmin, json, jsonError, readJson, readJsonWithSize } from './http/guard.ts'
 import { checkChatImages, fillPhotoText, photoIpRules, photoLimits, photoRules } from './http/photo.ts'
 import { RateLimiter, StreamCounter, type RateCheck, type RateRule } from './http/rateLimit.ts'
@@ -189,7 +191,8 @@ export function photoChecks(client: Pick<ClientInfo, 'key' | 'student'>, ph: Ret
 }
 
 /** Пути, которые пишут или показывают внутренности: только админ. */
-const ADMIN_PATHS = new Set(['/kb/append', '/kb/stats', '/admin/status'])
+// /admin/live-report — ночной живой отчёт качества (brain/http/liveReport.ts, только чтение)
+const ADMIN_PATHS = new Set(['/kb/append', '/kb/stats', '/admin/status', LIVE_REPORT_PATH])
 
 export function createServer(brain: Brain): http.Server {
   const { deps } = brain
@@ -263,6 +266,8 @@ export function createServer(brain: Brain): http.Server {
           cors,
         )
       }
+      // ночной живой отчёт (задача ATOMLAB Nightly) — только чтение файла из папки reports
+      if (method === 'GET' && path === LIVE_REPORT_PATH) return handleLiveReport(res, url, cors)
       if (method === 'POST' && path === '/kb/append') {
         const body = await readJson(req, 512 * 1024)
         const v = validateAppend(body)
