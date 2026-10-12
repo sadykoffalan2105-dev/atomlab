@@ -26,8 +26,8 @@
     "langCases": 4095,
     "calc": 201,
     "numberOk": 201,
-    "msP50": 36,
-    "msP95": 101
+    "msP50": 20,
+    "msP95": 43
   },
   "thresholds": {
     "offline": {
