@@ -171,14 +171,24 @@ class Worker:
                 if e is None:
                     job.error = "not_loaded"
                     continue
-                with self.gpu_lock:
-                    text, conf = e.transcribe(job.audio, job.lang)
+                try:
+                    with self.gpu_lock:
+                        text, conf = e.transcribe(job.audio, job.lang)
+                except Exception as ex1:
+                    # движок упал: тип и начало сообщения в журнал (без текста реплики), затем запасной движок — whisper
+                    log(f"ошибка распознавания {e.name}: {type(ex1).__name__}: {str(ex1)[:200]}")
+                    w = self.engines.whisper
+                    if w is None or not w.loaded or w is e:
+                        raise
+                    e = w
+                    with self.gpu_lock:
+                        text, conf = e.transcribe(job.audio, job.lang)
                 job.result = {"text": text or "", "engine": e.name, "device": e.device, "confidence": conf}
                 # whisper по английской подсказке — язык уже известен (мозг: langSource 'whisper')
                 if e.name.startswith("whisper") and job.lang == "en":
                     job.result["lang"] = "en"
             except Exception as ex:  # ошибка движка — код без подробностей текста
-                log(f"ошибка распознавания: {type(ex).__name__}")
+                log(f"ошибка распознавания: {type(ex).__name__}: {str(ex)[:200]}")
                 job.error = "internal"
             finally:
                 job.t_end = time.perf_counter()

@@ -148,13 +148,18 @@ class GigaAMEngine(Engine):
         self.loaded = True
 
     def _set_precision(self) -> None:
-        # fp16 на CUDA (600M → ~1,3 ГБ), на CPU — float32
-        self.fp16 = self.device == "cuda"
+        # fp16 только у энкодера (600M → ~1,3 ГБ); препроцессор (мел-спектр, STFT n_fft=320) остаётся float32:
+        # cuFFT в half требует размер окна степенью двойки — model.half() целиком давал ошибку на каждой реплике (HTTP 500)
+        self.model.float()
+        self.fp16 = False
+        if self.device != "cuda":
+            return
+        enc = getattr(self.model, "encoder", None)
+        if enc is None:
+            return
         try:
-            if self.fp16:
-                self.model.half()
-            else:
-                self.model.float()
+            enc.half()
+            self.fp16 = True
         except Exception:
             self.fp16 = False
 
@@ -162,14 +167,18 @@ class GigaAMEngine(Engine):
         torch = _torch()
         m = self.model
         with self.lock, torch.inference_mode():
-            wav = torch.from_numpy(audio).to(self.device)
-            if self.fp16:
-                wav = wav.half()
+            # вход float32 (препроцессор в float32); энкодер в fp16 — под autocast, как в самом gigaam
+            wav = torch.from_numpy(audio).to(self.device).float()
             wav = wav.unsqueeze(0)
             length = torch.tensor([wav.shape[-1]], device=self.device)
             # уровень forward + decoding (как внутри transcribe(path), но без файла на диске)
             if hasattr(m, "forward") and hasattr(m, "decoding") and hasattr(m, "head"):
-                encoded, encoded_len = m.forward(wav, length)
+                if self.device == "cuda":
+                    with torch.autocast(device_type="cuda", dtype=torch.float16):
+                        encoded, encoded_len = m.forward(wav, length)
+                    encoded = encoded.float()
+                else:
+                    encoded, encoded_len = m.forward(wav, length)
                 out = m.decoding.decode(m.head, encoded, encoded_len)
                 text = out[0] if isinstance(out, (list, tuple)) else str(out)
             elif hasattr(m, "transcribe_tensor"):
