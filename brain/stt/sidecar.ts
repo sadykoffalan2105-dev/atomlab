@@ -17,6 +17,8 @@ export type SidecarResult =
   | { ok: false; code: 'too_long' | 'bad_audio' | 'busy' | 'timeout' | 'not_loaded' | 'unavailable' | 'internal'; message?: string }
 
 const HEALTH_TTL_MS = 5000
+/** сколько миллисекунд после отказа соединения отвечать 503 сразу (сайдкар перезапускается — не ждать повторы SYN) */
+const DOWN_HOLD_MS = 3000
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : 0)
 
 export class SttSidecar {

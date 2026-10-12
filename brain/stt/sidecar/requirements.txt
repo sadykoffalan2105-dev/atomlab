@@ -1,0 +1,9 @@
+# Сайдкар распознавания речи (разработка). На сервере ставит deploy/brain-pc/stt.ps1 по deploy/brain-pc/stt-requirements.txt.
+# Сначала torch: pip install torch==2.8.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+gigaam @ git+https://github.com/salute-developers/GigaAM
+faster-whisper>=1.1.1,<2
+ctranslate2>=4.6.3,<5
+soundfile>=0.12,<1
+numpy>=1.26,<3
+huggingface_hub>=0.30
+transformers>=4.46,<6
