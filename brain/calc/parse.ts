@@ -131,7 +131,8 @@ const ALIASES: [RegExp, string][] = [
   [/(?<![\p{L}])(etan|ethane|этан)(?![\p{L}])/giu, 'C2H6'],
   [/(?<![\p{L}])(propan|propane|пропан)\p{L}{0,7}/giu, 'C3H8'],
   [/(?<![\p{L}])(ozon|ozone|озон)\p{L}{0,7}/giu, 'O3'],
-  [/(?<![\p{L}])(karbonat angidrid|carbon dioxide|углекисл\p{L}* газ)\p{L}{0,7}/giu, 'CO2'],
+  [/(?<![\p{L}])(karbonat angidrid|carbon dioxide|углекисл\p{L}* газ|оксид\p{L}* углерода\s*\(\s*IV\s*\)|uglerod\s*\(IV\)\s*oksid)\p{L}{0,7}/giu, 'CO2'],
+  [/(?<![\p{L}])(угарн\p{L}* газ|is gazi|carbon monoxide|оксид\p{L}* углерода\s*\(\s*II\s*\)|uglerod\s*\(II\)\s*oksid)\p{L}{0,7}/giu, 'CO'],
   [/(?<![\p{L}])(известняк|ohaktosh|limestone|мрамор)\p{L}{0,4}/giu, 'CaCO3'],
   [/(?<![\p{L}])(негашён\p{L}* извест\p{L}*|so['ʻ’]ndirilmagan ohak|quicklime)/giu, 'CaO'],
 ]
@@ -141,7 +142,9 @@ export function findSpecies(raw: string, kb: Knowledge, lang: Lang = 'ru'): Spec
   // «Mr(CO2)», «m(Zn)», «V(H₂)» — обозначение величины, внутри — формула (длина текста сохраняется)
   const text = raw.replace(/(?<![A-Za-z])(Mr|Mэ|M|m|n|V|N|C|ρ)\s*\(([^()]{1,20})\)/g, (all: string, _p: string, inner: string) => ' '.repeat(all.length - inner.length - 1) + inner + ' ')
   const out: Species[] = []
-  const add = (ascii: string, index: number, end: number, counts: Record<string, number> | null, charge = 0) => {
+  const add = (ascii0: string, index: number, end: number, counts: Record<string, number> | null, charge = 0) => {
+    // «(CH4)» — формула в скобках после названия: вещество CH4
+    const ascii = /^\([^()]+\)$/.test(ascii0) ? ascii0.slice(1, -1) : ascii0
     if (!counts || out.some((x) => x.index === index || (x.ascii === ascii && Math.abs(x.index - index) < 3))) return
     if (out.some((x) => index >= x.index && index < x.end)) return
     out.push({ ascii, pretty: pretty(ascii), counts, index, end, charge })
@@ -261,7 +264,10 @@ export type Ctx = {
 
 /** Разбор целиком (ParsedTask строит каждый решатель сам по Ctx). */
 export function buildCtx(rawText: string, cmp: string, lang: Lang, kb: Knowledge): Ctx {
-  const text = stripStudentAnswer(rawText).replace(/(?<=[A-Za-z0-9)])\.(\d*H2O)(?![a-z])/g, '·$1')
+  const text = stripStudentAnswer(rawText)
+    .replace(/(?<=[A-Za-z0-9)])\.(\d*H2O)(?![a-z])/g, '·$1')
+    // формула кириллицей-двойником в скобках: «(СО)», «(СН4)» → латиница (длина текста та же)
+    .replace(/\(([СОНРК][СОНРК₀-₉0-9]{0,5})\)/gu, (_m, f: string) => `(${f.replace(/[СОНРК]/gu, (ch) => ({ С: 'C', О: 'O', Н: 'H', Р: 'P', К: 'K' })[ch]!)})`)
   const qs = extractQuantities(text)
   const species = findSpecies(text, kb, lang)
   const a = askClause(text)

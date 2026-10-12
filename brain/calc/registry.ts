@@ -8,6 +8,7 @@
 import type { Ctx } from './parse.ts'
 import type { Solution } from './format.ts'
 import { BASIC_SOLVERS } from './solvers/basic.ts'
+import { EXTRA_SOLVERS } from './solvers/extra.ts'
 import { PHYSICAL_SOLVERS } from './solvers/physical.ts'
 import { REACTION_SOLVERS } from './solvers/reaction.ts'
 import { SOLUTION_SOLVERS } from './solvers/solutions.ts'
@@ -35,4 +36,4 @@ export type Solver = {
   solve(ctx: Ctx): Solution | null
 }
 
-export const SOLVERS: Solver[] = [...BASIC_SOLVERS, ...REACTION_SOLVERS, ...SOLUTION_SOLVERS, ...PHYSICAL_SOLVERS].sort((a, b) => b.priority - a.priority)
+export const SOLVERS: Solver[] = [...BASIC_SOLVERS, ...REACTION_SOLVERS, ...SOLUTION_SOLVERS, ...PHYSICAL_SOLVERS, ...EXTRA_SOLVERS].sort((a, b) => b.priority - a.priority)
