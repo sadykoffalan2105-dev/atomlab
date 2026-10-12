@@ -32,6 +32,8 @@ import { mainReactionLabNeeds, type MainReaction } from '../../data/catalog/main
 import { ReactorAtomLedger, ReactorLedgerComment, useAtomLedger } from './ReactorAtomLedger'
 import type { BalanceLesson } from '../../chemistry/balanceLessonBank'
 import panelStyles from './SynthesisReactorPanel.module.css'
+// «Нарисовать» картинку к реакции (видна, только если сервер мозга рисует и роль позволяет)
+import { DrawButton } from '../learn/teacher/DrawButton'
 import { reactorRouteFor } from './formation/routes/routeIndex'
 import { formationLabChunksPrewarm, formationLabPrewarm, formationLabProductFor, formationWarm } from './formation/lab/formationLabIndex'
 import { formationLab, useFormationLab, useFormationLabId } from './formation/lab/formationLabStore'
@@ -969,6 +971,15 @@ export function SynthesisReactorPanel({
               ) : null}
             </div>
           ) : null}
+          <DrawButton
+            place="lab"
+            className={panelStyles.reactorBtnSecondary}
+            label={t('lab.draw.button')}
+            context={{
+              subject: productStrings?.name ?? productCompound?.nameRu ?? '',
+              formula: (mainReaction?.equation ?? productCompound?.formulaUnicode ?? '').slice(0, 80),
+            }}
+          />
           {routeId ? (
             <button
               type="button"

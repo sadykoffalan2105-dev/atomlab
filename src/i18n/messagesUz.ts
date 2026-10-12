@@ -360,6 +360,8 @@ export const messagesUz: Record<MessageKey, string> = {
   'lab.teacher.explainMute': 'Tushuntirishni o‘chirish',
   'lab.teacher.mute': 'Ovozni o‘chirish',
   'lab.teacher.unmute': 'Ovozni yoqish',
+  'lab.draw.button': 'Rasm chizish',
+  'lab.draw.title': 'Tajriba rasmini chizish',
   'lab.teacher.voiceOn': 'Ovoz',
   'lab.teacher.voiceOff': 'Ovozsiz',
   'lab.teacher.replay': 'Iborani takrorlash',
