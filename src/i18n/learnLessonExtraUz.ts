@@ -49,7 +49,7 @@ export const learnLessonExtraUz = {
   'learn.L.l_gases_sulfur.s5':
     'Oltingugurtning S⁰ dan S⁶⁺ gacha oksidlanish zanjirini har bosqichda modda misollari bilan tuzing.',
   'learn.L.l_halogens_intro.s4':
-    'Galogенid-ionlari suvda barqaror; elementar galogenlar kuchli oksidlovchilar. HCl eritmasi va Cl₂ gazini aralashtirmang.',
+    'Galogenid-ionlari suvda barqaror; elementar galogenlar kuchli oksidlovchilar. HCl eritmasi va Cl₂ gazini aralashtirmang.',
   'learn.L.l_halogens_intro.s5':
     'Cl₂ + H₂O molekulyar tenglamasini yozing (o\'rgansangiz) va HCl ning suvda xatti-harakati bilan solishtiring.',
   'learn.L.l_metals_activity.s4':

@@ -78,6 +78,7 @@ import {
 import { StreamingReply } from './teacher/StreamingReply'
 // «Нарисовать»: кнопка в поле ввода, «нарисуй …» открывает диалог, картинка в пузыре (формулы накладывает сайт)
 import { DrawButton, DrawChatImage, type DrawInsert } from './teacher/DrawButton'
+import { onRadioGroupKeyDown } from './teacher/radioGroupKeys'
 import { parseDrawRequest } from '../../learn/brain/image/drawIntent'
 import { canUseDrawing } from '../../learn/brain/remote/imageClient'
 import kit from './studio/StudioKit.module.css'
@@ -1117,11 +1118,13 @@ export function LearnAssistantPanel({
               role="radiogroup"
               aria-label={t('learn.teacherUi.chatMode')}
               aria-describedby={personaHintId}
+              onKeyDown={onRadioGroupKeyDown}
             >
               <button
                 type="button"
                 role="radio"
                 aria-checked={mode === 'teacher'}
+                tabIndex={mode === 'teacher' ? 0 : -1}
                 className={mode === 'teacher' ? `${kit.segmentedItem} ${kit.segmentedItemActive}` : kit.segmentedItem}
                 onClick={() => setMode('teacher')}
               >
@@ -1132,6 +1135,7 @@ export function LearnAssistantPanel({
                 type="button"
                 role="radio"
                 aria-checked={mode === 'helper'}
+                tabIndex={mode === 'helper' ? 0 : -1}
                 className={mode === 'helper' ? `${kit.segmentedItem} ${kit.segmentedItemActive}` : kit.segmentedItem}
                 onClick={() => setMode('helper')}
               >

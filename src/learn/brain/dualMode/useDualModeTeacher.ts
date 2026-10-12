@@ -266,30 +266,40 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
     setState((prev) => ({ ...prev, ...partial }))
   }, [])
 
+  // id сообщения выдаём ДО setState, а функция-обновитель остаётся чистой: React может вызвать её
+  // повторно (StrictMode, «жадное» состояние, перебазирование обновлений). Раньше id и turnId → id
+  // писались внутри обновителя: второй вызов перезаписывал карту на id, которого нет в ленте, и следующий
+  // кусок того же ответа создавал второй пузырь («Понял: что так» + «Понял: что такое валентность»).
   const pushMessage = useCallback((role: LiveMessage['role'], text: string, extra?: Partial<LiveMessage>) => {
     const clean = text.trim()
     if (!clean) return
+    const id = msgIdRef.current++
     setState((prev) => {
-      const next = [...prev.messages, { id: msgIdRef.current++, role, text: clean, ...extra }]
+      if (prev.messages.some((m) => m.id === id)) return prev
+      const next = [...prev.messages, { id, role, text: clean, ...extra }]
       return { ...prev, messages: next.slice(-60) }
     })
   }, [])
 
-  /** Создать/обновить сообщение учителя по turnId. */
+  /** Создать/обновить сообщение учителя по turnId (один ход учителя — всегда один пузырь). */
   const upsertTeacher = useCallback((turnId: number | undefined, text: string, extra: Partial<LiveMessage>) => {
     const clean = text.trim()
+    let id = turnId != null ? turnMsgRef.current.get(turnId) : undefined
+    if (id == null) {
+      if (!clean) return
+      id = msgIdRef.current++
+      if (turnId != null) turnMsgRef.current.set(turnId, id)
+    }
+    const msgId = id
     setState((prev) => {
-      const known = turnId != null ? turnMsgRef.current.get(turnId) : undefined
-      if (known != null && prev.messages.some((m) => m.id === known)) {
+      if (prev.messages.some((m) => m.id === msgId)) {
         return {
           ...prev,
-          messages: prev.messages.map((m) => (m.id === known ? { ...m, ...extra, text: clean || m.text } : m)),
+          messages: prev.messages.map((m) => (m.id === msgId ? { ...m, ...extra, text: clean || m.text } : m)),
         }
       }
       if (!clean) return prev
-      const id = msgIdRef.current++
-      if (turnId != null) turnMsgRef.current.set(turnId, id)
-      const next = [...prev.messages, { id, role: 'teacher' as const, text: clean, turnId, ...extra }]
+      const next = [...prev.messages, { id: msgId, role: 'teacher' as const, text: clean, turnId, ...extra }]
       return { ...prev, messages: next.slice(-60) }
     })
   }, [])

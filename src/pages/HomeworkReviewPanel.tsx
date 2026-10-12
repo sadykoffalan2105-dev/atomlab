@@ -95,6 +95,7 @@ export function HomeworkReviewPanel() {
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           placeholder={t('learn.teacher.homeworkTopic')}
+          aria-label={t('learn.teacher.homeworkTopic')}
         />
         <select
           className={styles.teacherInput}

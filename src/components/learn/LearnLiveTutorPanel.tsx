@@ -45,6 +45,7 @@ import {
   IconWifiOff,
 } from './teacher/TeacherIcons'
 import { EMOTION_LABEL, ENGAGEMENT_LABEL, ENGAGEMENT_TONE, PACE_HINT, labelLocale } from './teacher/liveTutorLabels'
+import { onRadioGroupKeyDown } from './teacher/radioGroupKeys'
 import styles from './teacher/LiveTutor.module.css'
 
 type Props = {
@@ -347,13 +348,14 @@ function LiveTutorSession({
         <div className={styles.topMeta}>
           <BrainStatusChip />
           {withVoice ? <SttPathChip /> : null}
-          <div className={styles.segmented} role="radiogroup" aria-label={t('learn.teacherUi.modeAria')}>
+          <div className={styles.segmented} role="radiogroup" aria-label={t('learn.teacherUi.modeAria')} onKeyDown={onRadioGroupKeyDown}>
             {(['training', 'exam'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 role="radio"
                 aria-checked={state.mode === m}
+                tabIndex={state.mode === m ? 0 : -1}
                 className={styles.segBtn}
                 data-on={state.mode === m ? '1' : undefined}
                 data-mode={m}
@@ -454,6 +456,7 @@ function LiveTutorSession({
                   className={`${styles.segmented} ${styles.voiceModes}`}
                   role="radiogroup"
                   aria-label={t('learn.voice.modeAria')}
+                  onKeyDown={onRadioGroupKeyDown}
                 >
                   {(['hands_free', 'push_to_talk'] as const).map((m) => (
                     <button
@@ -461,6 +464,7 @@ function LiveTutorSession({
                       type="button"
                       role="radio"
                       aria-checked={state.voiceMode === m}
+                      tabIndex={state.voiceMode === m ? 0 : -1}
                       className={styles.segBtn}
                       data-on={state.voiceMode === m ? '1' : undefined}
                       data-testid={`voice-mode-${m}`}
