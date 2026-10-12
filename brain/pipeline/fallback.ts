@@ -13,6 +13,7 @@
  */
 import { ELEMENT_DISCOVERY_YEARS } from '../../src/data/elementDiscoveryYears.ts'
 import { sectionAnswer, termFrameUzEn, termOfQuestion, termTerms } from '../curriculum/answer.ts'
+import { whyRuleFor } from '../curriculum/why.ts'
 import { analogyFor } from '../persona/analogies.ts'
 import type { AnswerPlan, StandaloneQuery } from './dialogTypes.ts'
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
@@ -356,6 +357,26 @@ export function referenceFacts(text: string, lang: Lang, kb: Knowledge, qtype: Q
   return out.slice(0, 4)
 }
 
+/**
+ * uz/en: определение понятия ядра — о термине вопроса? Голова определения («Asoslar — …») должна совпасть с термином
+ * пословно (общее начало слов без окончаний): «asosli oksid» ≠ «Asoslar», «ishqoriy-yer metallar» ≠ «Ishqoriy metallar»
+ * (раньше хватало первых 5 букв — и на «основный оксид» отвечали определением оснований). Головы нет — как раньше.
+ */
+function defIsAbout(def: string, term: string): boolean {
+  const f = (s: string) => s.toLowerCase().replace(/[ʻʼ‘’`´']/g, "'").split(/[\s-]+/).filter(Boolean)
+  const head = /^(.{2,60}?)\s+[—–]\s/u.exec(def)?.[1]
+  if (!head || /\(/.test(head)) return def.toLowerCase().includes(term.toLowerCase().slice(0, 5))
+  // обозначение в голове («Molyar massa M») — не слово термина
+  const a = f(head).filter((w, i, all) => i < all.length - 1 || w.length > 2 || all.length === 1)
+  const b = f(term)
+  if (a.length !== b.length) return false
+  return a.every((x, i) => {
+    const y = b[i]!
+    const n = Math.max(3, Math.min(x.length, y.length) - 2)
+    return x.slice(0, n) === y.slice(0, n)
+  })
+}
+
 /** Понятия-свойства элемента: при названном элементе отвечаем про элемент («валентность азота»). */
 const ELEMENT_PROPS = new Set(['valence', 'oxstate', 'econfig', 'electronegativity', 'atom', 'isotope', 'orbital'])
 
@@ -444,9 +465,8 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       if (d && lang === 'ru') lines.push(clipDef(d.text.ru))
       else {
         const term = termOfQuestion(inp.text, lang)
-        const stem = term ? term.toLowerCase().slice(0, 5) : ''
         const def = primary?.def[lang]
-        if (def && (!stem || def.toLowerCase().includes(stem))) lines.push(def)
+        if (def && (!term || defIsAbout(def, term))) lines.push(def)
         else if (term && lang !== 'ru') lines.push(termFrameUzEn(term, curUnit, lang))
         else if (def) lines.push(def)
       }
@@ -463,6 +483,14 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   // 0a) мозг v2: ловушка «если катализатор ускоряет, значит смещает равновесие?» — сначала короткая поправка;
   // частый «почему» с выверенным объяснением («почему медь растворяется в азотной») — им и отвечаем
   const fixLine = trapFor(inp.text, lang) ?? explainFor(inp.text, lang)
+  // «почему» с частой школьной причиной (brain/curriculum/why.ts) — причина на языке вопроса через строение и законы,
+  // без чужой карточки вещества и без «логики» постороннего понятия (у uz/en нет русских предложений учебника)
+  const whyRule = !fixLine && !lines.length && (qtype === 'why' || inp.sq?.kind === 'why') ? whyRuleFor(inp.text) : null
+  if (whyRule) {
+    lines.push(whyRule.text[lang])
+    cite('[ATOMLAB: справочник понятий]')
+    confidence = Math.max(confidence, 0.8)
+  }
   if (fixLine) {
     lines.push(fixLine)
     if (primary) {

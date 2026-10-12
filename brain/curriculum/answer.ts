@@ -208,6 +208,33 @@ export function termOfQuestion(text: string, lang: Lang): string | null {
   return term && term !== t && term.length <= 60 ? term.trim() : null
 }
 
+const RU_Q_HEAD = /^\s*(?:что\s+такое|что\s+означает\s+(?:термин|понятие)|дай(?:те)?\s+определение\s*:?|определение\s*:)\s*/iu
+/** Термин вопроса-определения на любом языке («Что такое история химии?» → «история химии»). */
+export function questionTerm(text: string, lang: Lang): string | null {
+  if (lang !== 'ru') return termOfQuestion(text, lang)
+  const t = text.trim().replace(/[«»“”"]/g, '')
+  const term = t.replace(RU_Q_HEAD, '').replace(/\s*[?.!]\s*$/u, '')
+  return term && term !== t.replace(/\s*[?.!]\s*$/u, '') && term.length <= 60 ? term.trim() : null
+}
+
+const foldName = (s: string) => norm(s).replace(/[ʻʼ‘’`´']/g, "'").replace(/\s+/g, ' ').trim()
+/**
+ * Понятие § по названию на языке вопроса: термин вопроса совпадает с понятием карты (у понятий есть uz/en-названия:
+ * «kimyo tarixi», «history of chemistry») или с названием единицы — § класса ученика, раньше в книге первым.
+ */
+export function conceptUnitByName(map: CurriculumMap, text: string, lang: Lang, grade: number | null): Unit | null {
+  if (grade == null) return null
+  const term = questionTerm(text, lang)
+  if (!term) return null
+  const k = foldName(term)
+  for (const u of map.byGrade.get(grade) ?? []) {
+    if (u.kind === 'review') continue
+    const names = [...u.concepts.map((c) => (lang === 'ru' ? c.ru : c[lang])), lang === 'ru' ? u.title.ru : lang === 'uz' && u.title.uzSource !== 'ru' ? u.title.uz : lang === 'en' ? u.title.en : undefined]
+    if (names.some((n) => !!n && foldName(n) === k)) return u
+  }
+  return null
+}
+
 /**
  * uz/en: определение § по-русски, перевода нет — рамка на языке вопроса: термин (как в вопросе), где его изучают
  * (§ и название), связанные понятия §. Не выдумывает содержание определения.
@@ -216,12 +243,26 @@ export function termFrameUzEn(term: string, u: Unit, lang: 'uz' | 'en'): string 
   const T = term.charAt(0).toUpperCase() + term.slice(1)
   const title = titleOf(u, lang)
   const near = conceptsOf(u, lang, 5).filter((c) => norm(c) !== norm(term))
+  // факты § на языке вопроса: законы (uz/en-название из карты), вещества с узбекским названием и формулой, реакция §
+  // «Avogadro's law» → «Avogadro law»: апостроф после o/g проверка языка читает как узбекский (oʻ, gʻ)
+  const laws = u.laws
+    .map((l) => l.name[lang]?.replace(/(\p{L})['’]s\b/gu, '$1'))
+    .filter((x): x is string => !!x && !/[а-яё]/iu.test(x))
+    .filter((x, i, a) => a.indexOf(x) === i)
+    .slice(0, 2)
+  const subs = lang === 'uz' ? u.substances.filter((x) => x.role === 'studied' && x.nameUz && !/[а-яё]/iu.test(x.nameUz)).slice(0, 3).map((x) => `${x.nameUz} (${x.formula})`) : []
+  const rx = u.reactions.find((r) => !r.isGeneral)?.eq
   if (lang === 'uz') {
     let s = `«${T}» — ${u.label.uz}${title ? ` («${title}»)` : ''} mavzusida oʻrganiladigan tushuncha.`
     if (near.length) s += ` U bilan bogʻliq tushunchalar: ${near.join(', ')}.`
+    if (laws.length) s += ` Mavzudagi qonunlar: ${laws.join(', ')}.`
+    if (subs.length) s += ` Misollar: ${subs.join(', ')}.`
+    if (rx) s += ` Reaksiya: ${rx}.`
     return s
   }
   let s = `“${T}” is a concept studied in ${u.label.en}${title ? ` (“${title}”)` : ''}.`
   if (near.length) s += ` Related concepts: ${near.join(', ')}.`
+  if (laws.length) s += ` Laws of the topic: ${laws.join(', ')}.`
+  if (rx) s += ` Reaction: ${rx}.`
   return s
 }

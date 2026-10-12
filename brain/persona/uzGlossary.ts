@@ -149,6 +149,25 @@ export const UZ_GLOSSARY: GlossaryPair[] = [
   { uz: 'polimer', ru: 'полимеры', en: 'polymers' },
   { uz: 'oqsil', ru: 'белки', en: 'proteins' },
   { uz: 'uglevod', ru: 'углеводы', en: 'carbohydrates' },
+  { uz: 'funksional guruh', ru: 'функциональная группа', en: 'functional group' },
+  { uz: 'gomolog', ru: 'гомологи', en: 'homologues' },
+  { uz: 'etilenglikol', ru: 'этиленгликоль', en: 'ethylene glycol' },
+  { uz: 'chumoli kislota', ru: 'муравьиная кислота', en: 'formic acid' },
+  { uz: 'sirka kislota', ru: 'уксусная кислота', en: 'acetic acid' },
+  // термины программы 7–11, которых не хватало для поиска § по uz/en-вопросу «… nima?» (аудит покрытия 12.10)
+  { uz: 'kimyo', ru: 'химия', en: 'chemistry' },
+  { uz: 'yonish', ru: 'горение', en: 'combustion' },
+  { uz: 'osh tuzi', ru: 'поваренная соль', en: 'table salt' },
+  { uz: 'xlorid kislota', ru: 'соляная кислота', en: 'hydrochloric acid' },
+  { uz: 'fosfor kislota', ru: 'фосфорная кислота', en: 'phosphoric acid' },
+  { uz: 'karbonat kislota', ru: 'угольная кислота', en: 'carbonic acid' },
+  { uz: 'ishqoriy metall', ru: 'щелочные металлы', en: 'alkali metals' },
+  { uz: 'ishqoriy-yer metall', ru: 'щелочноземельные металлы', en: 'alkaline earth metals' },
+  { uz: 'metallurgiya', ru: 'металлургия', en: 'metallurgy' },
+  { uz: 'ideal gaz', ru: 'идеальный газ', en: 'ideal gas' },
+  { uz: 'molyar konsentratsiya', ru: 'молярная концентрация', en: 'molar concentration' },
+  { uz: 'ftor', ru: 'фтор', en: 'fluorine' },
+  { uz: 'kremniy', ru: 'кремний', en: 'silicon' },
 ]
 
 /** Апострофы узбекской латиницы к одному виду (oʻ, gʻ — U+02BB), нижний регистр. */
@@ -200,8 +219,58 @@ export function uzToRuTerms(text: string): string[] {
     .filter((x, i, a) => a.indexOf(x) === i)
 }
 
+let SORTED_EN: GlossaryPair[] | null = null
+
+/**
+ * Русские термины из английского текста (для поиска § по русской карте): длинные сочетания первыми, окончания
+ * -s/-es/-ies и -ic/-al не мешают («isotopes» → «изотоп», «oxidation states» → «степень окисления»).
+ */
+export function enToRuTerms(text: string): string[] {
+  SORTED_EN ??= [...UZ_GLOSSARY].sort((a, b) => b.en.length - a.en.length)
+  let t = ` ${text.toLowerCase().replace(/[’']/g, "'").replace(/[^\p{L}\d' -]+/gu, ' ').replace(/\s+/g, ' ')} `
+  const hits: { at: number; ru: string }[] = []
+  for (const p of SORTED_EN) {
+    const words = p.en.toLowerCase().split(/\s+/).filter(Boolean)
+    if (!words.length) continue
+    const re = new RegExp(`(^|[^\\p{L}])${words.map((w) => `${esc(w.replace(/(y|e|s)$/u, ''))}[\\p{L}]{0,4}`).join(' ')}(?![\\p{L}])`, 'u')
+    const m = re.exec(t)
+    if (!m) continue
+    hits.push({ at: m.index, ru: p.ru })
+    t = t.slice(0, m.index) + ' '.repeat(m[0].length) + t.slice(m.index + m[0].length)
+  }
+  return hits
+    .sort((a, b) => a.at - b.at)
+    .map((h) => h.ru)
+    .filter((x, i, a) => a.indexOf(x) === i)
+}
+
+/** Русские термины вопроса на uz/en (для uz — узбекский словарь, для en — английский столбец того же словаря). */
+export function toRuTerms(text: string, lang: 'ru' | 'uz' | 'en'): string[] {
+  return lang === 'uz' ? uzToRuTerms(text) : lang === 'en' ? enToRuTerms(text) : []
+}
+
+/**
+ * Термин вопроса («nisbiy atom massa», «isotopes») целиком через словарь: русские термины, если каждое слово термина
+ * (кроме коротких связок) покрыто найденными словарными формами; иначе null — неполный перевод («atom» из «nisbiy atom
+ * massa») увёл бы к чужому определению.
+ */
+export function termToRu(term: string, lang: 'uz' | 'en'): string[] | null {
+  const ru = toRuTerms(term, lang)
+  if (!ru.length) return null
+  const forms = ru.flatMap((r) => (lang === 'uz' ? ruToUz(r) : ruToEn(r)) ?? '').join(' ')
+  const fw = (lang === 'uz' ? foldUz(forms) : forms.toLowerCase()).split(/[\s-]+/).filter(Boolean)
+  const tw = (lang === 'uz' ? foldUz(term) : term.toLowerCase()).split(/[^\p{L}ʻʼ']+/u).filter((w) => w.length >= 3 && !/^(the|and|of|an?|va|bilan)$/.test(w))
+  // слово термина = словарная форма + окончание до 5 букв (valentlik → valentligi: k/q чередуются с g/gʻ)
+  const covered = (w: string) =>
+    fw.some((f) => f.length >= 2 && (f.startsWith(w) || ((w.startsWith(f) || (/[kq]$/.test(f) && w.startsWith(f.slice(0, -1)))) && w.length - f.length <= 5)))
+  if (!tw.length || !tw.every(covered)) return null
+  // «valence of sodium», «natriyning valentligi» — свойство вещества/элемента, а не термин: определение не ищем
+  if (ru.length > 1 && ru.some((r) => ENTITY_RU.has(r))) return null
+  return ru
+}
+
 /** Вещества и элементы словаря — это сущности, а не тема («kislorodning valentligi» → тема «валентность»). */
-const ENTITY_RU = new Set(['водород', 'кислород', 'азот', 'углерод', 'сера', 'фосфор', 'хлор', 'натрий', 'калий', 'кальций', 'железо', 'медь', 'алюминий', 'вода', 'озон', 'аммиак'])
+const ENTITY_RU = new Set(['водород', 'кислород', 'азот', 'углерод', 'сера', 'фосфор', 'хлор', 'натрий', 'калий', 'кальций', 'железо', 'медь', 'алюминий', 'вода', 'озон', 'аммиак', 'фтор', 'кремний', 'поваренная соль', 'соляная кислота', 'фосфорная кислота', 'угольная кислота', 'муравьиная кислота', 'уксусная кислота', 'этиленгликоль'])
 
 /** Термины-темы (без веществ и элементов) из узбекского текста. */
 export function uzTopicTerms(text: string): string[] {

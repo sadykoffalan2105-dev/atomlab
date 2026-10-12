@@ -243,7 +243,12 @@ const SCHOOL_SEARCH_TYPES: KbChunkType[] = ['textbook', 'definition', 'summary',
  * broad — история, промышленность, «в жизни», вузовские термины, явная просьба о глубине или школа пуста;
  * offtopic — не про химию. why — короткая причина для журнала и eval.
  */
+/** Тест с вариантами («Выбери правильный ответ: … а) … б) …», банк тестов учебника) — вопрос школьной программы. */
+const TEST_RE = /^(?:выбери(?:те)? правильный ответ|to'g'ri javobni tanlang|choose the correct answer)\s*:|(?:^|\s)а\)\s.{1,300}\sб\)\s|(?:^|\s)a\)\s.{1,300}\sb\)\s.{1,300}\sc\)\s/u
+
 export function classifyScope(text: string, cmp: string, lang: Lang, kb: Knowledge): { scope: Scope; why: string } {
+  // тест с вариантами: ответ — по учебнику класса (не энциклопедия), даже если в вариантах «история», «применение»
+  if (TEST_RE.test(cmp)) return { scope: 'school', why: 'test' }
   const chem = hasChemVocabulary(text)
   if (!chem && (OFFTOPIC_RE.test(cmp) || LIVE_DATA_RE.test(cmp))) return { scope: 'offtopic', why: 'offtopic' }
   if (UNIV_RE.test(cmp)) return { scope: 'broad', why: 'univ_term' }
