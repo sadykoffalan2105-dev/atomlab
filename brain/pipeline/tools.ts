@@ -877,6 +877,19 @@ function arithmeticTool(text: string, lang: Lang): ToolResult | null {
 
 // ---------------------------------------------------------------- запуск
 
+/** прежние инструменты → тип задачи карты программы (для подписи «расчёт по §») */
+const OLD_TOOL_TYPE: Record<string, string> = {
+  molarMass: 'molar_mass',
+  massFraction: 'mass_fraction_element',
+  stoich: 'moles_mass_volume_particles',
+  solution: 'solution_mass_fraction',
+  dilution: 'solution_mass_fraction',
+  gas: 'clapeyron',
+  thermo: 'thermochem',
+  pH: 'ph',
+  oxidation: 'oxidation_state',
+}
+
 export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge, opts: ToolOpts = {}): ToolResult[] {
   const grade = gradeOf(opts.gradeId)
   const out: ToolResult[] = []
@@ -912,8 +925,14 @@ export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge, o
   if (!out.length) push(elementGuardTool(cmp, lang, kb))
   if (!out.length) push(unitsTool(text, lang))
   if (!out.length) push(arithmeticTool(text, lang))
-  // способы получения: подпись — § учебника (класс ученика первым), где напечатано одно из уравнений
+  // способы получения: подпись — § учебника (класс ученика первым), где напечатано одно из уравнений;
+  // прежние расчётные инструменты без подписи — § класса, где решают задачи этого типа
   return out.map((r) => {
+    const type = OLD_TOOL_TYPE[r.tool]
+    if (type && !r.cite && kb.curriculum) {
+      const unit = taskTypeUnit(kb.curriculum, type, grade)
+      return unit ? { ...r, cite: `[ATOMLAB: расчёт по ${unit.cite.slice(1, -1)}]` } : r
+    }
     if (r.tool !== 'obtain' || !r.eqs?.length || !kb.curriculum) return r
     // у каждого уравнения свой §: до трёх разных единиц (класс ученика первым)
     const units: string[] = []
