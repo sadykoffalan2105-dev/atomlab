@@ -131,6 +131,24 @@ export type BrainConfig = {
   // — блок IMAGE (картинки, brain/image/**) —
   /** «Нарисовать»: ComfyUI на той же видеокарте, что Gemma (окно GPU — brain/llm/gpuArbiter.ts). По умолчанию выключено. */
   image: ImageConfig
+  // — блок STT (распознавание речи, brain/stt/**) —
+  /** Голос ученика → текст: сайдкар Python на 127.0.0.1:8788 (GigaAM ru/uz, whisper en). Нет сайдкара — /stt честно 503. */
+  stt: SttConfig
+}
+
+// — блок STT (распознавание речи) —
+/**
+ * /stt (brain/stt/route.ts): sidecarUrl — сайдкар atomlab-stt (env BRAIN_STT_URL важнее файла); maxSeconds — длина
+ * аудио; maxBodyBytes — тело запроса; rate — лимиты на сессию сайта (финальные и partial раздельно) и потолок на адрес;
+ * timeoutMs — сколько ждать сайдкар (дальше 503 stt_unavailable).
+ */
+export type SttConfig = {
+  enabled: boolean
+  sidecarUrl: string
+  maxSeconds: number
+  maxBodyBytes: number
+  rate: { sessionPerMin: number; sessionPerDay: number; partialPerMin: number; ipPerMin: number }
+  timeoutMs: number
 }
 
 // — блок IMAGE (картинки) —
@@ -281,6 +299,16 @@ export const DEFAULT_CONFIG: BrainConfig = {
     safety: { required: true, nsfwThreshold: 0.5 },
     result: { quality: 85, cacheTtlMs: 600_000, cacheMaxBytes: 64 * 1024 * 1024 },
     vramNeedGB: { 'z-image-turbo:int8': 10.5, 'z-image-turbo:bf16': 13, 'z-image-turbo:nvfp4': 8, 'flux2-klein-4b:fp8': 10 },
+  },
+  // — блок STT (распознавание речи): без сайдкара /stt отвечает 503 за миллисекунды, сайт уходит на Web Speech —
+  stt: {
+    enabled: true,
+    sidecarUrl: 'http://127.0.0.1:8788',
+    maxSeconds: 25,
+    maxBodyBytes: 1_048_576,
+    // школьный NAT: 30 учеников за одним адресом — потолок по адресу щедрый, основной лимит — по сессии сайта
+    rate: { sessionPerMin: 30, sessionPerDay: 600, partialPerMin: 60, ipPerMin: 300 },
+    timeoutMs: 15_000,
   },
 }
 
