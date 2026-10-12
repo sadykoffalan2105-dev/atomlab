@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atomlab/kimyo-map.schema.json",
+  "title": "Карта программы Kimyo 7–11 (version 1)",
+  "description": "Собирает scripts/brain/build-curriculum-map.mts; TS-типы — brain/curriculum/types.ts; описание — docs/plans/curriculum-map.md.",
+  "type": "object",
+  "required": ["version", "generatedAt", "sources", "taskTypes", "grades"],
+  "properties": {
+    "version": { "const": 1 },
+    "generatedAt": { "type": "string", "description": "дата сборки; не меняется, пока не изменились входы (sources)" },
+    "sources": { "type": "object", "additionalProperties": { "type": "string" }, "description": "путь входа → sha1 (12 символов)" },
+    "taskTypes": { "type": "array", "items": { "$ref": "#/$defs/taskType" }, "minItems": 32, "maxItems": 32 },
+    "grades": {
+      "type": "object",
+      "required": ["g7", "g8", "g9", "g10", "g11"],
+      "additionalProperties": { "$ref": "#/$defs/grade" }
+    }
+  },
+  "$defs": {
+    "tri": { "type": "object", "required": ["ru", "uz", "en"], "properties": { "ru": { "type": "string" }, "uz": { "type": "string" }, "en": { "type": "string" } } },
+    "triOpt": { "type": "object", "required": ["ru"], "properties": { "ru": { "type": "string" }, "uz": { "type": "string" }, "en": { "type": "string" } } },
+    "taskType": {
+      "type": "object",
+      "required": ["id", "name", "markers", "introducedIn"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "$ref": "#/$defs/tri" },
+        "markers": { "type": "object", "required": ["ru", "uz", "en"], "additionalProperties": { "type": "array", "items": { "type": "string" } } },
+        "introducedIn": { "type": "array", "items": { "type": "string", "pattern": "^g(7|8|9|10|11):" } }
+      }
+    },
+    "grade": {
+      "type": "object",
+      "required": ["book", "chapters", "units"],
+      "properties": {
+        "book": { "type": "object", "required": ["title", "pages"] },
+        "chapters": { "type": "array", "items": { "type": "object", "required": ["id", "num", "title", "units"] } },
+        "units": { "type": "array", "items": { "$ref": "#/$defs/unit" } }
+      }
+    },
+    "unit": {
+      "type": "object",
+      "required": ["id", "grade", "kp", "kind", "label", "cite", "chapter", "appSections", "title", "pages", "concepts", "definitions", "laws", "formulas", "reactions", "substances", "tasks", "tests", "topics", "domain", "level", "stats"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^g(7|8|9|10|11):(\\d+(\\.\\d+)?|lab)$" },
+        "grade": { "enum": [7, 8, 9, 10, 11] },
+        "kp": { "type": "string" },
+        "kind": { "enum": ["paragraph", "practical", "review", "tasks", "lab"] },
+        "label": { "$ref": "#/$defs/tri" },
+        "cite": { "type": "string", "pattern": "^\\[Kimyo (7|8|9|10|11), .+\\]$" },
+        "chapter": { "type": "object", "required": ["id", "num", "title"] },
+        "appSections": { "type": "array", "items": { "type": "string", "pattern": "^c\\d+-s\\d+$" } },
+        "title": { "type": "object", "required": ["ru", "uz", "en", "uzSource"], "properties": { "uzSource": { "enum": ["i18n", "auto", "ru"] } } },
+        "pages": { "type": "object", "required": ["start", "end"] },
+        "concepts": { "type": "array", "maxItems": 12, "items": { "type": "object", "required": ["ru"] } },
+        "definitions": { "type": "array", "maxItems": 10, "items": { "type": "object", "required": ["term", "text", "source"], "properties": { "term": { "$ref": "#/$defs/triOpt" }, "source": { "enum": ["textbook", "qaBank"] } } } },
+        "laws": { "type": "array", "maxItems": 4 },
+        "formulas": { "type": "array", "maxItems": 12, "items": { "type": "string" } },
+        "reactions": { "type": "array", "items": { "type": "object", "required": ["eq", "ascii", "type"] } },
+        "substances": { "type": "array", "maxItems": 30, "items": { "type": "object", "required": ["formula", "nameRu", "role", "kind"] } },
+        "tasks": {
+          "type": "object",
+          "required": ["types", "examples", "exercises"],
+          "properties": {
+            "examples": { "type": "array", "items": { "type": "object", "required": ["statement", "source"], "properties": { "source": { "enum": ["example", "exercise", "labTask"] } } } },
+            "exercises": { "type": "array", "maxItems": 15 }
+          }
+        },
+        "tests": { "type": "array", "maxItems": 10 },
+        "topics": { "type": "array", "items": { "type": "string" } },
+        "domain": { "type": "string" },
+        "level": { "type": "object", "required": ["prereq", "next"] },
+        "stats": { "type": "object", "required": ["coverageScore"], "properties": { "coverageScore": { "type": "number", "minimum": 0, "maximum": 1 } } }
+      }
+    }
+  }
+}

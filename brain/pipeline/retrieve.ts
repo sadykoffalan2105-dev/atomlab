@@ -8,10 +8,16 @@
  * Затем: тип источника и ярус (учебник своего класса → соседний → ATOMLAB/журнал → энциклопедия); hybrid.ts — нормировка,
  *   веса, бонусы; relevance.ts — проверка темы (имена собственные, персоналии, слабый терм); ярусные множители
  *   (config.retrievalV2.tierBoost); MMR; гарантия «учебник класса — первым», энциклопедия в школьном вопросе — не больше
- *   одного фрагмента и не выше 3-го места. Уверенность conf_r = 0.6·s_top + 0.4·coverage (s_top — абсолютная сила
+ *   одного фрагмента и не выше 3-го места. Карта программы (brain/curriculum): ссылка «§12 Kimyo 8» отдаёт сам параграф,
+ *   школьный вопрос с известным классом получает «§-карточку» первым знанием, подписи учебника — «[Kimyo 8, §12, стр. 50]».
+ *   Уверенность conf_r = 0.6·s_top + 0.4·coverage (s_top — абсолютная сила
  *   лучшего совпадения, coverage — доля понятий вопроса в top-3); школьный вопрос без учебника — не выше «medium».
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
+import { unitCard } from '../curriculum/card.ts'
+import { sharedCurriculum } from '../curriculum/map.ts'
+import { parseSectionRef } from '../curriculum/sectionRef.ts'
+import type { Unit } from '../curriculum/types.ts'
 import type { KbChunkType, KbHit, KbLang } from '../../src/learn/kb/types.ts'
 import { DEFAULT_CONFIG, type BrainConfig } from '../config.ts'
 import type { EmbedStore } from '../kb/embedStore.ts'
@@ -53,15 +59,27 @@ export function gradeNum(gradeId?: string): number | null {
   return m ? Number(m[1]) : null
 }
 
+/**
+ * Подпись источника. Учебник — через карту программы: «[Kimyo 8, §12, стр. 50]», для 7 и 10 кл. «[Kimyo 7, гл. 2, тема 6,
+ * стр. 54]»; карты нет или такой единицы в ней нет — прежний формат «[Kimyo 7, §2.6, стр. 54]».
+ */
 export function citationOf(source: string, title: string, kp?: string | null, page?: number | null, type?: string): string {
+  const kg = source.match(/^Kimyo\s*(\d+)/i)
+  if (kg && kp) {
+    const viaMap = sharedCurriculum()?.citeFor(Number(kg[1]), String(kp), page)
+    if (viaMap) return viaMap
+  }
   if (/^Kimyo/i.test(source)) return `[${source}${kp ? `, §${kp}` : ''}${page ? `, стр. ${page}` : ''}]`
   if (type === 'encyclopedia' || /википед|wikipedia/i.test(source)) return `[Википедия: ${title} — CC BY-SA]`
   if (/^ATOMLAB/i.test(source)) return `[${source.replace(/\s+/g, ' ').slice(0, 80)}]`
   return `[${source.slice(0, 80)}]`
 }
 
+/** номер печатной единицы фрагмента учебника (Candidate его не несёт; нужен для §-карточки) */
+const hitKp = new WeakMap<Candidate, { grade: number; kp: string }>()
+
 function fromHit(h: KbHit): Candidate {
-  return {
+  const c: Candidate = {
     key: normForHash(h.text).slice(0, 160),
     id: h.id,
     title: h.title,
@@ -80,10 +98,19 @@ function fromHit(h: KbHit): Candidate {
     terms: new Set(analyzeTerms(`${h.title} ${h.text}`)),
     titleTerms: new Set(analyzeTerms(h.title)),
   }
+  if (h.grade != null && h.kp) hitKp.set(c, { grade: h.grade, kp: String(h.kp) })
+  return c
+}
+
+/** Старая подпись журнала «[Kimyo 7, §2.6, стр. 51]» → через карту «[Kimyo 7, гл. 2, тема 6, стр. 51]» (строки журнала не правим — только показ). */
+function remapCite(cite: string): string {
+  const m = cite.match(/^\[Kimyo\s*(\d+), §([\d.]+|lab)(?:, стр\. (\d+))?\]$/u)
+  if (!m) return cite
+  return sharedCurriculum()?.citeFor(Number(m[1]), m[2]!, m[3] ? Number(m[3]) : null) ?? cite
 }
 
 function fromRecord(r: JournalRecord, score: number): Candidate {
-  const cite = typeof r.meta.cite === 'string' ? r.meta.cite : r.kind === 'correction' ? '[ATOMLAB: правка учителя]' : citationOf(r.source || 'ATOMLAB: журнал', r.title, null, null)
+  const cite = typeof r.meta.cite === 'string' ? remapCite(r.meta.cite) : r.kind === 'correction' ? '[ATOMLAB: правка учителя]' : citationOf(r.source || 'ATOMLAB: журнал', r.title, null, null)
   const g = r.tags.find((t) => t.startsWith('grade:'))
   return {
     key: normForHash(r.text).slice(0, 160),
@@ -104,6 +131,52 @@ function fromRecord(r: JournalRecord, score: number): Candidate {
     score: 0,
     terms: new Set(analyzeTerms(`${r.title} ${r.text.slice(0, 4000)}`)),
     titleTerms: new Set(analyzeTerms(r.title)),
+  }
+}
+
+/** Результат retrieveV2 + сведения карты программы (локальное расширение, dialogTypes.ts не меняем). */
+export type CurriculumInfo = { unitId: string; cite: string; viaRef: boolean }
+export type RetrievalResultV2x = RetrievalResultV2 & {
+  /** §-карточка в items[0]: какая единица и откуда (ссылка на § в вопросе или подбор по теме) */
+  curriculum?: CurriculumInfo
+  /** в вопросе была ссылка на § — нашлась ли такая единица */
+  sectionRef?: { asked: true; found: boolean; grade?: number; kp?: string }
+}
+
+/** Вопросы, к которым §-карточка не нужна: история/персоналии, широкие, болтовня, «да/повтори». */
+const NO_CARD_KINDS = new Set(['who_history', 'broad', 'chitchat', 'confirm', 'repeat'])
+
+/** §-карточка единицы как фрагмент поиска: первое знание школьного ответа с точной подписью «[Kimyo 8, §12, стр. 50]». */
+function cardFragment(unit: Unit, lang: Lang, g: number | null, maxChars: number, bm: number, score: number, queryTerms?: Set<string>): RankedFragment {
+  const title = `${unit.label.ru}: ${unit.title.ru}`
+  const text = unitCard(unit, lang, maxChars, queryTerms)
+  const sourceKind: SourceKind = g != null && unit.grade === g ? 'textbook_grade' : 'textbook_other'
+  const gradeDelta = g != null ? Math.abs(unit.grade - g) : null
+  return {
+    key: `cur-${unit.id}`,
+    id: `cur-${unit.id}`,
+    title,
+    text,
+    type: 'summary',
+    // не 'ru': запасной путь без LLM (fallback.ts берёт предложения только из ru-фрагментов) не вставляет служебные
+    // строки карточки («Kimyo 9, §4 «…» — понятия: …») в текст ответа; модели карточка уходит как обычное знание
+    lang: `card-${lang}`,
+    grade: unit.grade,
+    source: `Kimyo ${unit.grade}`,
+    citation: unit.pages.start ? `${unit.cite.slice(0, -1)}, стр. ${unit.pages.start}]` : unit.cite,
+    origin: 'shard',
+    bm,
+    sBm: 0,
+    vec: null,
+    cos: null,
+    score,
+    terms: new Set(analyzeTerms(`${title} ${text} ${unit.concepts.map((c) => c.ru).join(' ')}`)),
+    titleTerms: new Set(analyzeTerms(title)),
+    cov: 1,
+    titleHit: true,
+    sourceKind,
+    gradeDelta,
+    tier: tierOf(sourceKind, gradeDelta),
   }
 }
 
@@ -238,7 +311,7 @@ function coveredBy(text: string, extra: string): boolean {
  * (в школьном вопросе — не больше одного фрагмента, не выше 3-го места; DIALOG кладёт его в блок «ФОН», не в цитаты).
  * Подробно — комментарии шагов a)–i) ниже и brain/README.md.
  */
-export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, signal?: AbortSignal): Promise<RetrievalResultV2> {
+export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, signal?: AbortSignal): Promise<RetrievalResultV2x> {
   const t0 = performance.now()
   const { kb, journal, config } = deps
   const rc = v2Config(config)
@@ -420,6 +493,56 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     } else items = bg
   }
 
+  // j) карта программы: (а) ссылка на § — фрагменты этого параграфа без проверки темы (в «что в §12?» нет термов
+  //    параграфа) и §-карточка первой; такого § нет — ничего не добавляем, но сообщаем sectionRef.found = false;
+  //    (б) школьный вопрос с известным классом — §-карточка единицы по теме первым знанием
+  const cur = kb.curriculum
+  let curriculum: CurriculumInfo | undefined
+  let sectionRef: RetrievalResultV2x['sectionRef']
+  const cardChars = opts.budgetChars < 900 ? 300 : 600
+  const maxItems = Math.max(1, opts.maxItems)
+  if (cur) {
+    const ref = parseSectionRef(sq.text, lang) ?? (sq.original && sq.original !== sq.text ? parseSectionRef(sq.original, lang) : null)
+    if (ref) {
+      const rg = ref.grade ?? g
+      const unit = rg != null && ref.kp ? cur.unitFor(rg, ref.kp) : null
+      sectionRef = { asked: true, found: !!unit, ...(rg != null ? { grade: rg } : {}), ...(ref.kp ? { kp: ref.kp } : {}) }
+      if (unit) {
+        const topBm = Math.max(1, ...items.map((f) => f.bm))
+        const order: Record<string, number> = { summary: 0, definition: 1, textbook: 2 }
+        const hits = kb.engine
+          .paragraphChunks(unit.grade, unit.kp, ['textbook', 'definition', 'summary'])
+          .map((h, i) => ({ h, i }))
+          .sort((a, b) => (order[a.h.type] ?? 3) - (order[b.h.type] ?? 3) || a.i - b.i)
+          .map(({ h }) => h)
+        const frags: RankedFragment[] = hits.slice(0, maxItems - 1).map((h, i) => {
+          const c = fromHit(h)
+          const sk = sourceKindOf(c, g)
+          c.bm = topBm * 1.5 - i * 0.01
+          c.cov = 1
+          return Object.assign(c, sk, { tier: tierOf(sk.sourceKind, sk.gradeDelta) })
+        })
+        const card = cardFragment(unit, lang, g, cardChars, topBm * 1.5 + 1, (items[0]?.score ?? 0) + 1)
+        items = [card, ...frags]
+        scopeUsed = 'school'
+        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: true }
+      }
+    }
+    if (!curriculum && !sectionRef && scopeUsed === 'school' && sq.scope === 'school' && g != null && !NO_CARD_KINDS.has(sq.kind)) {
+      const byQuery = cur.unitsForQuery(queryTerms, g)[0]
+      const bestSchool = items.find((f) => f.sourceKind === 'textbook_grade' && (f.cov ?? 0) >= 0.5)
+      const bk = bestSchool ? hitKp.get(bestSchool) : undefined
+      const byFragment = bk ? cur.unitFor(bk.grade, bk.kp) : null
+      // тема целиком в названии единицы → она; иначе единица лучшего фрагмента учебника класса; иначе по понятиям
+      const unit = byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null))
+      if (unit) {
+        const card = cardFragment(unit, lang, g, cardChars, Math.max(0, ...items.map((f) => f.bm)) + 1, (items[0]?.score ?? 0) + 1, queryTerms)
+        items = [card, ...items.filter((f) => f.id !== card.id)].slice(0, maxItems)
+        curriculum = { unitId: unit.id, cite: unit.cite, viaRef: false }
+      }
+    }
+  }
+
   // уверенность (по первому фрагменту)
   const best = items[0]
   let sTop = 0
@@ -441,6 +564,8 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
   // h) школьный вопрос без учебника своего/соседнего класса — честно «reasoned/medium», не «high»
   const schoolHit = items.some((f) => f.tier <= 2)
   if (scopeUsed === 'school' && !schoolHit) confR = Math.min(confR, config.thresholds.medium - 0.01)
+  // §-карточка / ссылка на § — опора из учебника: не ниже «medium»
+  if (curriculum) confR = Math.max(confR, config.thresholds.medium)
   const tiers: Partial<Record<SourceKind, number>> = {}
   for (const f of items) tiers[f.sourceKind] = (tiers[f.sourceKind] ?? 0) + 1
   return {
@@ -457,6 +582,8 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     schoolHit,
     encyclopediaUsed: items.some((f) => f.sourceKind === 'encyclopedia'),
     tiers,
+    ...(curriculum ? { curriculum } : {}),
+    ...(sectionRef ? { sectionRef } : {}),
   }
 }
 

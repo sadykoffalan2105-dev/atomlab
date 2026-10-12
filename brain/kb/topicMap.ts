@@ -132,6 +132,10 @@ const RAW: Raw[] = [
   ['химическ(ая|ой) технологи|химическ(ое|ого) производств|kimyoviy texnologiya|chemical engineering|industrial', 'chemtech', 'chemtech-general', 'u'],
   ['экологи|загрязнени|кислотн(ые|ый) дожд|парников|ekologiya|pollution|acid rain|greenhouse', 'chemtech', 'environment', 's', 9],
   // — растворы, электролиты
+  // карта программы Kimyo 7–11: эквиваленты (8 кл. §26, 11 кл. §7) и нормальная концентрация (11 кл. §19) — свои темы,
+  // иначе их §-карточки уходят в общие «solutions»/«general»
+  ['закон эквивалент|эквивалентн(ая|ой|ую) масс|молярн(ая|ой) масс[аы] эквивалент|ekvivalentlar qonuni|law of equivalents|equivalent mass', 'general', 'equivalents', 's', 8],
+  ['нормальн(ая|ой|ую) концентрац|normal konsentratsiya|normality', 'physical', 'concentration', 's', 11],
   ['раствор|растворимост|eritma|eruvchanlik|solution|solubility', 'physical', 'solutions', 's', 8],
   ['концентрац|молярност|моляльн|konsentratsiya|concentration|molarity', 'physical', 'concentration', 'sa', 9],
   ['электролитическ(ая|ой) диссоциац|диссоциац|электролит|elektrolitik dissotsilanish|dissociation|electrolyte', 'physical', 'electrolytic-dissociation', 's', 9],
