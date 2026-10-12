@@ -191,3 +191,100 @@ ATOMLAB Comfy, запасная уборка — в Update; журналы `comf
 | живой сервер (клипы `scripts/voice/clips/*.wav` или синтетика; p50/p95 при 4 клиентах) | `npx tsx scripts/brain/stt.selftest.mts --live=https://<узел>.ts.net` |
 | руками | `curl -X POST --data-binary @clip.wav -H "Content-Type: audio/wav" "http://127.0.0.1:8787/stt?lang=ru&session=test"` |
 | состояние | `curl http://127.0.0.1:8787/stt/health`, `curl http://127.0.0.1:8788/health`, `C:\ATOMLAB\logs\stt-*.log` |
+
+## 8. Наблюдение
+
+Три вещи: **монитор доступности** на ноутбуке владельца (узнать, что сервер молчит, раньше учеников), **ночной живой
+прогон качества** на самом сервере (03:00) и **отчёт** в репозитории (`docs/plans/live-report.md`).
+
+### Монитор доступности (ноутбук владельца)
+
+`npm run brain:monitor` — `GET <адрес>/health` через Funnel (адрес — `public/brain.json` `urls[0]` или `--url=`):
+
+| статус | значит | что видят ученики |
+|---|---|---|
+| `up` | мозг отвечает, модель в памяти | обычный ИИ-учитель |
+| `degraded` | мозг отвечает, но LLM недоступна или идёт загрузка базы | ответы запасным путём (без модели) |
+| `down` | нет ответа за 15 с, HTTP ≠ 200 или не JSON | сайт говорит «сервер недоступен» |
+
+- Журнал — `.tmp\brain-monitor\log.jsonl` (строка на проверку), состояние — `.tmp\brain-monitor\state.json`
+  (`--dir=` — другая папка). Смена статуса печатается; о сбое сообщается после **2 проверок подряд** (`--fail-after=`,
+  дребезг Funnel/DNS), о восстановлении — сразу, с длительностью простоя; пока сервер лежит — напоминание раз в 6 ч
+  (`--remind-hours=`, 0 — без напоминаний).
+- **Telegram (по желанию).** Бот — у @BotFather (`/newbot` → токен). Написать боту любое сообщение, открыть
+  `https://api.telegram.org/bot<токен>/getUpdates` и взять `chat.id`. Ключи — **только вне репозитория**, файл
+  `%USERPROFILE%\atomlab-monitor.env`:
+  ```
+  ATOMLAB_TG_TOKEN=123456:ABC…
+  ATOMLAB_TG_CHAT=123456789
+  ```
+  (или переменные среды пользователя с теми же именами). Токен не пишется ни в вывод, ни в журнал.
+- Проверка руками (PowerShell): `npm run brain:monitor -- --once --env-file=$env:USERPROFILE\atomlab-monitor.env` (код 0 — `up`).
+- **Сводка доступности** (24 ч / 7 / 30 дней, простои): `npm run brain:monitor -- --summary --md=docs/plans/brain-availability.md`
+  — этот файл и есть журнал доступности в репозитории (обновлять и коммитить раз в неделю или после простоя).
+
+**Каждые 5 минут — «Планировщик заданий» Windows.** PowerShell **от администратора** (S4U: без окна, без пароля,
+работает и при заблокированном экране; путь к репозиторию поправить, если он другой):
+
+```powershell
+$repo = "$env:USERPROFILE\Desktop\химия"
+$node = (Get-Command node.exe).Source
+$act = New-ScheduledTaskAction -Execute $node -WorkingDirectory $repo -Argument ('--import tsx scripts\brain\monitor.mts --once --env-file="{0}\atomlab-monitor.env"' -f $env:USERPROFILE)
+$trg = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+$who = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U
+$set = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 2) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'ATOMLAB Monitor' -Action $act -Trigger $trg -Principal $who -Settings $set -Description 'ATOMLAB: /health сервера мозга каждые 5 мин'
+```
+
+Проверить: `Start-ScheduledTask 'ATOMLAB Monitor'`, через минуту — новая строка в `.tmp\brain-monitor\log.jsonl`.
+Убрать: `Unregister-ScheduledTask 'ATOMLAB Monitor' -Confirm:$false`. Монитор работает, только пока включён ноутбук;
+для круглосуточного взгляда со стороны можно добавить бесплатный внешний пинг (UptimeRobot / Healthchecks) на
+`https://<узел>.ts.net/health` со словом `"ok":true`.
+
+### Что делать, если сервер молчит
+
+1. Открыть `https://<узел>.ts.net/health` в браузере. Ответил — это был дребезг сети (монитор сам пришлёт «работает»).
+2. `degraded` (мозг отвечает, LLM нет): сторож **ATOMLAB Update** сам поднимает Ollama и мозг каждые 15 мин —
+   подождать 15–20 мин. Не прошло — пункт 4.
+3. `down` дольше 20 мин — написать другу: ПК включён и не спит? Есть интернет? Значок Tailscale «Connected»?
+   Самое надёжное — **перезагрузить ПК**: Ollama, мозг, ComfyUI, STT и Funnel поднимаются задачами при старте сами
+   (вход в Windows не нужен).
+4. Если друг разрешил SSH (`ssh <пользователь>@atomlab-brain`): `schtasks /Query /TN "ATOMLAB Brain"`,
+   `type C:\ATOMLAB\logs\update.log`, последние строки `C:\ATOMLAB\logs\brain-*.log`, `curl http://127.0.0.1:8787/health`;
+   вручную: `schtasks /Run /TN "ATOMLAB Update"` (сторож + обновление).
+5. Пока сервер лежит, сайт работает без ИИ-учителя, ничего не ломается и не теряется.
+
+### Ночной живой прогон качества (на сервере, 03:00)
+
+Задача **ATOMLAB Nightly** (`deploy/brain-pc/nightly-eval.ps1`, SYSTEM; ставится установщиком, на старых серверах её
+один раз добавляет Update) → `scripts/brain/nightly-live.mts` против `http://127.0.0.1:8787` с ключом админа из
+`secrets\admin-token.txt` (лимиты учеников его не касаются):
+
+| часть | что | пороги (Fable, nextBuild #2) |
+|---|---|---|
+| диалоги | `brain:eval --sample=40 --cat=dialog-ru,dialog-uz,dialog-en,length,logic,calc` | общий ≥ 85 %, calc 100 %, первое слово p50 ≤ 2 с и p95 ≤ 8 с (без busy), R3 / CJK / wikiLeak = 0 |
+| программа Kimyo | `brain:eval:curriculum --file=brain/eval/curriculum/sample-live.jsonl --no-report` | общий ≥ 85 %, calc 100 %, test и why ≥ 85 %, R3 / CJK / wikiLeak = 0 |
+| картинки | `POST /admin/image/test` × 3 темы (картинки выключены — «пропущено») | все готовы, p50 ≤ 15 с, p95 ≤ 30 с, nsfw < 0,1 |
+| речь | `voice:eval` по `scripts/voice/fixtures` на `/stt` (STT недоступно — «пропущено») | WER ru ≤ 12 %, uz ≤ 18 %, en ≤ 10 % |
+
+- Итог — `C:\ATOMLAB\reports\live-ГГГГММДД.json` (хранится 60 дней), журнал — `C:\ATOMLAB\logs\nightly-eval.log`.
+  Провал порога печатается красным, но **никогда** не останавливает обновление и работу мозга; любой сбой самого
+  прогона — только предупреждение (код 0). Пороги меняются в `scripts/brain/liveReportLib.mts`.
+- Если ПК в 03:00 был выключен — прогон пропускается до следующей ночи (днём видеокарта — ученикам).
+- Вручную на сервере: `Start-ScheduledTask 'ATOMLAB Nightly'` или
+  `powershell -NoProfile -ExecutionPolicy Bypass -File C:\ATOMLAB\bin\nightly-eval.ps1 [-Only eval,stt]`.
+- Отчёт отдаёт мозг: `GET /admin/live-report` (последний), `?date=2026-10-12`, `?list=1` (даты и итоги) — только с
+  заголовком `X-Brain-Admin`, только чтение.
+- Вопросы ночного прогона идут обычным `/chat` — в журнале диалогов сервера в 03:00 будут эти контрольные вопросы.
+
+**Отчёт в репозиторий (ноутбук владельца):**
+
+```powershell
+$env:BRAIN_ADMIN_TOKEN = '<ключ из C:\ATOMLAB\secrets\admin-token.txt>'
+npm run brain:live-report                  # → docs/plans/live-report.md (+ live-report.json), затем commit
+npm run brain:live-report -- --date=2026-10-12
+npm run brain:live-report -- --file=live-20261012.json   # без сети: файл, скопированный с сервера
+```
+
+Проверка без живого сервера (пороги, `/admin/live-report`, ночной прогон на mock-LLM и STT-заглушке, монитор с
+Telegram-заглушкой): `npm run brain:live-selftest`.
