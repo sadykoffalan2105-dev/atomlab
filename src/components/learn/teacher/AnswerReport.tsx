@@ -111,7 +111,8 @@ export function AiAdvisoryNote() {
       {aiNoticeText(locale, 'advisory')}{' '}
       <a className={styles.aboutLink} href="#/about-ai">
         {aiNoticeText(locale, 'aboutLink')}
-      </a>{' '}
+      </a>
+      {' · '}
     </span>
   )
 }

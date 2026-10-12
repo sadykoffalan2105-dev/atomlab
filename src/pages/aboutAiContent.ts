@@ -78,7 +78,7 @@ const RU: AboutAiContent = {
   storage: [
     { what: 'История чата по теме', where: 'Только в этой вкладке браузера', howLong: 'До закрытия вкладки или кнопки «Очистить»' },
     { what: 'Уровень и темп ученика (для подстройки ответов)', where: 'На этом устройстве', howLong: 'Пока не нажата кнопка «Забыть всё»' },
-    { what: 'Тексты вопросов и ответов', where: 'На сервере ИИ-учителя не сохраняются (по умолчанию журнал ведётся только для проверок на компьютере владельца)', howLong: 'Записи из диалогов старше 90 дней не используются; логи раз в месяц архивируются, архивы старше 90 дней удаляются' },
+    { what: 'Тексты вопросов и ответов', where: 'На сервере ИИ-учителя не сохраняются (по умолчанию журнал ведётся только для проверок на компьютере владельца)', howLong: 'Записи из диалогов старше 90 дней не используются; логи раз в месяц архивируются, архивы старше 90 дней удаляет владелец сервера' },
     { what: 'Адрес IP и номер сессии', where: 'Не сохраняются. Для защиты от перегрузки в памяти сервера — только зашифрованный отпечаток', howLong: 'Сбрасывается при перезапуске сервера' },
     { what: 'Фото задачи и голос', where: 'Обрабатываются в памяти сервера на время ответа', howLong: 'Не сохраняются' },
     { what: 'Нарисованные картинки', where: 'Временная папка генератора; в журнале — только отпечаток запроса без текста', howLong: 'Файлы удаляются примерно через час' },
@@ -155,7 +155,7 @@ const UZ: AboutAiContent = {
   storage: [
     { what: 'Mavzu boʻyicha chat tarixi', where: 'Faqat shu brauzer oynasida', howLong: 'Oyna yopilguncha yoki «Tozalash» tugmasigacha' },
     { what: 'Oʻquvchining darajasi va sur’ati (javoblarni moslash uchun)', where: 'Shu qurilmada', howLong: '«Hammasini unutish» tugmasi bosilguncha' },
-    { what: 'Savol va javob matnlari', where: 'SI-oʻqituvchi serverida saqlanmaydi (sukut boʻyicha jurnal faqat egasining kompyuterida tekshiruv uchun yuritiladi)', howLong: '90 kundan eski dialog yozuvlari ishlatilmaydi; loglar oyiga bir marta arxivlanadi, 90 kundan eski arxivlar oʻchiriladi' },
+    { what: 'Savol va javob matnlari', where: 'SI-oʻqituvchi serverida saqlanmaydi (sukut boʻyicha jurnal faqat egasining kompyuterida tekshiruv uchun yuritiladi)', howLong: '90 kundan eski dialog yozuvlari ishlatilmaydi; loglar oyiga bir marta arxivlanadi, 90 kundan eski arxivlarni server egasi oʻchiradi' },
     { what: 'IP manzil va sessiya raqami', where: 'Saqlanmaydi. Ortiqcha yuklamadan himoya uchun server xotirasida — faqat shifrlangan iz', howLong: 'Server qayta ishga tushganda yoʻqoladi' },
     { what: 'Masala rasmi va ovoz', where: 'Javob davomida server xotirasida qayta ishlanadi', howLong: 'Saqlanmaydi' },
     { what: 'Chizilgan rasmlar', where: 'Generatorning vaqtinchalik papkasi; jurnalda — matnsiz soʻrov izi', howLong: 'Fayllar taxminan bir soatdan keyin oʻchiriladi' },
@@ -226,7 +226,7 @@ const EN: AboutAiContent = {
   storage: [
     { what: 'Chat history of a topic', where: 'Only in this browser tab', howLong: 'Until the tab is closed or «Clear» is pressed' },
     { what: 'Student level and pace (to adapt answers)', where: 'On this device', howLong: 'Until «Forget everything» is pressed' },
-    { what: 'Question and answer texts', where: 'Not stored on the AI teacher server (by default the log is kept only for tests on the owner’s computer)', howLong: 'Dialog records older than 90 days are not used; logs are archived monthly, archives older than 90 days are deleted' },
+    { what: 'Question and answer texts', where: 'Not stored on the AI teacher server (by default the log is kept only for tests on the owner’s computer)', howLong: 'Dialog records older than 90 days are not used; logs are archived monthly, the server owner deletes archives older than 90 days' },
     { what: 'IP address and session number', where: 'Not stored. For overload protection the server memory keeps only an encrypted fingerprint', howLong: 'Reset when the server restarts' },
     { what: 'Problem photos and voice', where: 'Processed in server memory while answering', howLong: 'Not stored' },
     { what: 'Drawn pictures', where: 'Temporary folder of the generator; the log keeps only a fingerprint of the request, no text', howLong: 'Files are deleted after about an hour' },
