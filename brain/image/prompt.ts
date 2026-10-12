@@ -47,6 +47,12 @@ export const STYLE_TEMPLATES: Record<ImageStyle, string> = {
 const HISTORICAL = ' Stylised historical illustration, not photorealistic.'
 export const MAX_FINAL_CHARS = 600
 
+/** Не учебная тема (любое безопасное описание): нейтральная иллюстрация без «лабораторного» шаблона. */
+export function generalPrompt(subject: string): string {
+  const subj = subject.replace(/\s+/g, ' ').replace(/[.\s]+$/, '').trim().slice(0, 400)
+  return `High-quality detailed illustration: ${subj}. Balanced composition, soft natural light, rich but calm colors, sharp focus. No text, no letters, no watermark, no logos.`.slice(0, MAX_FINAL_CHARS)
+}
+
 export function stylePrompt(subject: string, style: ImageStyle, historical = false): string {
   const tpl = STYLE_TEMPLATES[style] ?? STYLE_TEMPLATES.illustration
   const room = MAX_FINAL_CHARS - (tpl.length - '{subject}'.length) - (historical ? HISTORICAL.length : 0)
@@ -93,8 +99,10 @@ export async function checkFreeText(o: {
   llm: LlmClient | null
   queue: LlmQueue
   llmCheck: boolean
-  /** ученик без ключа: без проверки Gemma не рисуем (нет модели → честный not_ready), школьная тема обязательна */
+  /** ученик без ключа: без проверки Gemma не рисуем (нет модели → честный not_ready) */
   strict?: boolean
+  /** только учебные темы (config.image.students.schoolOnly); по умолчанию — любая безопасная тема */
+  schoolOnly?: boolean
   signal?: AbortSignal
 }): Promise<FreeTextResult> {
   const lang = o.lang
@@ -130,9 +138,11 @@ export async function checkFreeText(o: {
   if (j && !j.ok) return { ok: false, code: 'unsafe_prompt', message: lang === 'ru' && j.reason ? `${IMAGE_MESSAGES.unsafe_prompt.ru} (${j.reason.slice(0, 160)})` : IMAGE_MESSAGES.unsafe_prompt[lang], category: 'llm' }
   if (!j || !j.subject_en || j.subject_en.length > 400) return o.strict ? { ok: false, code: 'not_ready', message: IMAGE_MESSAGES.not_ready[lang] } : fallback()
   // ученик: только учебная тема (химия, физика, природа, приборы, схемы) — иначе отказ с причиной
-  if (o.strict && !j.school) return { ok: false, code: 'unsafe_prompt', message: OFF_TOPIC[lang], category: 'llm' }
+  if (o.strict && o.schoolOnly && !j.school) return { ok: false, code: 'unsafe_prompt', message: OFF_TOPIC[lang], category: 'llm' }
   // перевод Gemma тоже проходит фильтр (вдруг модель дописала запрещённое)
   const f2 = imageFilter(j.subject_en)
   if (!f2.ok) return { ok: false, code: 'unsafe_prompt', message: IMAGE_MESSAGES.unsafe_prompt[lang], category: f2.category }
-  return { ok: true, final: stylePrompt(j.subject_en, o.style, j.historical_figure), translated: !isLatinOnly(text) || j.subject_en !== text, subject: j.subject_en }
+  // учебная тема — школьный стиль (лаборатория, белый фон); любая другая — нейтральная качественная иллюстрация
+  const final = j.school ? stylePrompt(j.subject_en, o.style, j.historical_figure) : generalPrompt(j.subject_en)
+  return { ok: true, final, translated: !isLatinOnly(text) || j.subject_en !== text, subject: j.subject_en }
 }

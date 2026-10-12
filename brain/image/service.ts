@@ -374,7 +374,7 @@ export class ImageService {
       if (preset && !ctx.permit.freeText) {
         final = presetPrompt(preset, req.style)
       } else {
-        const r = await checkFreeText({ text: req.prompt ?? '', lang, style, llm: this.deps.llm, queue: this.deps.queue, llmCheck: ic.llmCheck || role === 'student', strict: role === 'student', signal: ctx.signal })
+        const r = await checkFreeText({ text: req.prompt ?? '', lang, style, llm: this.deps.llm, queue: this.deps.queue, llmCheck: ic.llmCheck || role === 'student', strict: role === 'student', schoolOnly: !!ic.students.schoolOnly, signal: ctx.signal })
         if (!r.ok) {
           if (r.code === 'unsafe_prompt') this.arbiter.counters.unsafePrompt++
           return fail(r.code, { message: r.message, reason: r.category ? `filter:${r.category}` : r.code })

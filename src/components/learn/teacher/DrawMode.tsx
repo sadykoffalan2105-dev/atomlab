@@ -585,7 +585,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
               if (canFree) setPrompt('')
             }}
             gradeN={gradeN}
-            collapsible={hasKey}
+            collapsible={canFree}
           />
 
           <div className={s.formulaRow}>

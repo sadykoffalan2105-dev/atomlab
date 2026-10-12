@@ -222,7 +222,7 @@ export type ImageConfig = {
    * perHour/perDay — свои лимиты картинок на ученика (адрес + сессия), строже общих rate.perMin/perDay; 0 — без своего лимита
    */
   /** freeText — ученикам (и всем без ключа) можно свой текст: обязательна проверка Gemma (llmCheck) и строгий порог классификатора */
-  students: { enabled: boolean; presetsOnly: boolean; freeText?: boolean; nsfwThreshold: number; gradeWindow: number; perHour?: number; perDay?: number }
+  students: { enabled: boolean; presetsOnly: boolean; freeText?: boolean; schoolOnly?: boolean; nsfwThreshold: number; gradeWindow: number; perHour?: number; perDay?: number }
   /** ключи учителя (поле teacherKey в теле запроса), каждый ≥ 16 символов */
   teacherTokens: string[]
   freeText: { owner: boolean; teacher: boolean }
