@@ -58,7 +58,6 @@ const scale = DEFAULT_TEACHER_CONFIG.scale
 const forLang = (xs: string[]) => xs.join(' \n').replace(/«[^«»]*»|“[^“”]*”/gu, ' ')
 /** Притяжательное «Avogadro's» — не узбекский диграф oʻ/gʻ (эвристика детектора языка срабатывает на него в en). */
 const langOk = (xs: string[], lang: Lang) => matchesLang(lang === 'en' ? forLang(xs).replace(/([og])['’]s\b/g, '$1s') : forLang(xs), lang)
-const SUP: Record<string, string> = { '⁻': '-', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' }
 /** Повторный расчёт калькулятором: те же ответы, что в задаче. */
 function sameAsCalc(statement: string, answers: string[], lang: Lang): boolean {
   const sol = solveSchoolTask(statement, cmpForm(statement), lang, kb)
@@ -186,10 +185,12 @@ const statusOf = (vision: boolean): LlmStatus => ({ available: true, chatModel: 
 /** Подменная модель: проверка работ — баллы = max (а 1.1 — 99, проверка обрезки); шлифовка — по сценарию. */
 class FakeLlm implements LlmClient {
   calls = 0
-  constructor(
-    private vision: boolean,
-    private polishReply?: (user: string) => string,
-  ) {}
+  private vision: boolean
+  private polishReply?: (user: string) => string
+  constructor(vision: boolean, polishReply?: (user: string) => string) {
+    this.vision = vision
+    this.polishReply = polishReply
+  }
   status() {
     return statusOf(this.vision)
   }
