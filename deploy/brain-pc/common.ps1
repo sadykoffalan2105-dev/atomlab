@@ -140,8 +140,11 @@ function Get-ImageKey($cfg, $manifest) {
   $mv = ''
   if ($manifest) { $tag = $manifest.comfy.tag; $mv = $manifest.version }
   $rv = ([double]$i.reserveVramGB).ToString([Globalization.CultureInfo]::InvariantCulture)   # «1.5», а не «1,5» в русской Windows
-  return ('{0}|{1}|{2}|{3}|{4}|s={5}|t={6}|p={7}|r={8}' -f $i.engine, $i.variant, $tag, $mv, [bool]($i.enabled -eq $true),
-    [bool]($i.students -eq $true), $i.teacherKeys, (Get-ComfyPort $cfg), $rv)
+  # f — свой текст картинки без ключа, tp — инструменты учителя без ключа: смена → update перепишет config.json мозга
+  $tp = $false
+  if ($cfg.teacher) { $tp = [bool]($cfg.teacher.public -eq $true) }
+  return ('{0}|{1}|{2}|{3}|{4}|s={5}|t={6}|p={7}|r={8}|f={9}|tp={10}' -f $i.engine, $i.variant, $tag, $mv, [bool]($i.enabled -eq $true),
+    [bool]($i.students -eq $true), $i.teacherKeys, (Get-ComfyPort $cfg), $rv, [bool]($i.studentsFreeText -eq $true), $tp)
 }
 
 # Аргументы запуска ComfyUI (run-comfy.ps1; копия для диагностики — run\comfy-args.txt).

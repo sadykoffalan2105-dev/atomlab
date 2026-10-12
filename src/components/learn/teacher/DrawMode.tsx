@@ -159,6 +159,9 @@ interface DrawComposerProps {
 
 const SIZE_OF_STYLE: ImageSize = 'square'
 
+/** Решение владельца 12.10: ключ учителя в интерфейсе не показываем (рисовать может любой; сервер даёт свой текст всем). */
+const SHOW_KEY_UI = false
+
 export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }: DrawComposerProps) {
   const { t, locale } = useT()
   const lang = langOf(locale)
@@ -612,7 +615,8 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
       ) : null}
 
       {/* ключ учителя / владельца: показываем, только если сервер без ключа свой текст не даёт (studentFreeText=false) */}
-      {info?.studentFreeText && !hasKey ? null : hasKey ? (
+      {/* решение владельца 12.10: ключ в интерфейсе не показываем совсем (рисовать может любой) */}
+      {!SHOW_KEY_UI ? null : hasKey ? (
         <div className={s.keyRow}>
           <span className={s.small}>{role === 'owner' ? t('learn.drawMode.roleOwner') : t('learn.drawMode.roleTeacher')}</span>
           <button type="button" className={s.linkBtn} onClick={forgetKey}>
@@ -626,7 +630,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
           </button>
         </div>
       )}
-      {!hasKey && keyOpen ? (
+      {SHOW_KEY_UI && !hasKey && keyOpen ? (
         <div id={`${uid}-key`} className={s.keyBox}>
           <label className={s.label} htmlFor={`${uid}-keyin`}>
             {t('learn.drawMode.key')}
