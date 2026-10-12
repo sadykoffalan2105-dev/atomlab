@@ -3,8 +3,11 @@
  * (сервер ATOMLAB для всех учеников или мозг на этом компьютере). Используются и в чате урока,
  * и в онлайн-уроке.
  */
+import { useSyncExternalStore } from 'react'
 import { useT } from '../../../i18n/useT'
 import { checkHealth, optInLocalBrain, useBrainInfo } from '../../../learn/brain/remote/brainClient'
+import { currentBrowserVoiceProfile } from '../../../learn/brain/speech/browserProfile'
+import { getVoiceDiag, subscribeVoiceDiag } from '../../../learn/brain/speech/voiceStatus'
 import { IconBook, IconBrainSpark, IconDatabase } from './TeacherIcons'
 import styles from './TeacherChips.module.css'
 
@@ -154,6 +157,42 @@ export function BrainQueueNote({ className }: { className?: string }) {
     <span className={`${styles.queue} ${className ?? ''}`} data-brain-queue={queue}>
       {' · '}
       {t('learn.teacherUi.brainQueue', { n: queue })}
+    </span>
+  )
+}
+
+/**
+ * Путь распознавания речи: «Распознавание: сервер ATOMLAB / браузер (Google) / браузер (Microsoft) /
+ * недоступно». data-testid="voice-path-chip" data-path — контракт e2e.
+ */
+export function SttPathChip({ className }: { className?: string }) {
+  const { t } = useT()
+  const diag = useSyncExternalStore(subscribeVoiceDiag, getVoiceDiag, getVoiceDiag)
+  const vendor = currentBrowserVoiceProfile().vendor
+  const name =
+    diag.path === 'server'
+      ? t('learn.voice.pathServer')
+      : diag.path === 'web_speech'
+        ? vendor === 'edge'
+          ? t('learn.voice.pathMicrosoft')
+          : vendor === 'chrome'
+            ? t('learn.voice.pathGoogle')
+            : vendor === 'safari'
+              ? t('learn.voice.pathApple')
+              : t('learn.voice.pathBrowser')
+        : t('learn.voice.pathNone')
+  const label = t('learn.voice.pathLabel', { path: name })
+  return (
+    <span
+      className={`${styles.brain} ${className ?? ''}`}
+      data-testid="voice-path-chip"
+      data-path={diag.path}
+      data-brain={diag.path === 'server' ? 'brain' : 'local'}
+      data-compact="1"
+      title={diag.path === 'server' ? `${label}. ${t('learn.voice.privacyServer')}` : label}
+      role="status"
+    >
+      <span className={styles.brainLabel}>{label}</span>
     </span>
   )
 }

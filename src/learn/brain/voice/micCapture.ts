@@ -37,6 +37,8 @@ export interface MicHandle {
   /** Имя ошибки getUserMedia (NotAllowedError / NotFoundError / NotReadableError…), если была. */
   error(): string | null
   deviceId?: string
+  /** Захват уже забрал этот микрофон (повторный монтаж в StrictMode откроет новый). */
+  claimed?: boolean
 }
 
 export function hasGetUserMedia(): boolean {
@@ -169,7 +171,9 @@ export class MicCapture implements CaptureSource {
   private onDeviceChange: (() => void) | null = null
 
   constructor(handle: MicHandle | null, options: { ringMs?: number } = {}) {
-    this.handle = handle
+    // Один захват на открытие: второй (повторный монтаж) открывает микрофон заново.
+    this.handle = handle && !handle.claimed ? handle : null
+    if (handle) handle.claimed = true
     this.ringMs = options.ringMs ?? 1_000
     this.vad = new AdaptiveVad({
       onSpeechStart: () => this.listeners.forEach((l) => l.speechStart?.(now())),
