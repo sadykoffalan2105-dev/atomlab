@@ -178,6 +178,36 @@ function capitalize(s: string): string {
   return s ? s[0]!.toUpperCase() + s.slice(1) : s
 }
 
+/** Чипы «Тема» неорганики: ключи глав — русские слова из данных; на EN/UZ показываем перевод. */
+const INORGANIC_CHAPTER_LABELS: Record<InorganicChapter, { en: string; uz: string }> = {
+  вода: { en: 'Water', uz: 'Suv' },
+  оксиды: { en: 'Oxides', uz: 'Oksidlar' },
+  кислоты: { en: 'Acids', uz: 'Kislotalar' },
+  основания: { en: 'Bases', uz: 'Asoslar' },
+  соли: { en: 'Salts', uz: 'Tuzlar' },
+  качественные: { en: 'Qualitative', uz: 'Sifat reaksiyalari' },
+  металлы: { en: 'Metals', uz: 'Metallar' },
+  неметаллы: { en: 'Nonmetals', uz: 'Metallmaslar' },
+  кислород: { en: 'Oxygen', uz: 'Kislorod' },
+  водород: { en: 'Hydrogen', uz: 'Vodorod' },
+  азот: { en: 'Nitrogen', uz: 'Azot' },
+  сера: { en: 'Sulfur', uz: 'Oltingugurt' },
+  фосфор: { en: 'Phosphorus', uz: 'Fosfor' },
+  хром: { en: 'Chromium', uz: 'Xrom' },
+  хлор: { en: 'Chlorine', uz: 'Xlor' },
+  марганец: { en: 'Manganese', uz: 'Marganes' },
+  кремний: { en: 'Silicon', uz: 'Kremniy' },
+  катализ: { en: 'Catalysis', uz: 'Kataliz' },
+  прочее: { en: 'Other', uz: 'Boshqalar' },
+}
+
+function inorganicChapterLabel(ch: InorganicChapter, locale: string): string {
+  const l = INORGANIC_CHAPTER_LABELS[ch]
+  if (l && locale === 'en') return l.en
+  if (l && locale === 'uz') return l.uz
+  return capitalize(ch)
+}
+
 function toneStyle(a: string, b: string): CSSProperties {
   return { '--tone-a': a, '--tone-b': b } as CSSProperties
 }
@@ -1165,7 +1195,7 @@ export function CatalogPage() {
         out.push({ key: 'fam', label: f ? familyName(f, locale) : String(family), clear: () => setFamily('all') })
       }
       if (inorganicChapter !== 'all')
-        out.push({ key: 'ch', label: capitalize(inorganicChapter), clear: () => setInorganicChapter('all') })
+        out.push({ key: 'ch', label: inorganicChapterLabel(inorganicChapter, locale), clear: () => setInorganicChapter('all') })
     } else if (isMainRx) {
       if (mainType !== 'all')
         out.push({
@@ -1434,7 +1464,7 @@ export function CatalogPage() {
                   className={inorganicChapter === ch ? `${styles.chip} ${styles.chipOn}` : styles.chip}
                   onClick={() => setInorganicChapter(inorganicChapter === ch ? 'all' : ch)}
                 >
-                  {capitalize(ch)}
+                  {inorganicChapterLabel(ch, locale)}
                 </button>
               ))}
             </>
@@ -1761,7 +1791,7 @@ export function CatalogPage() {
                 </header>
                 <ul className={styles.grid}>
                   {items.map((c) => (
-                    <li key={c.id} className={styles.item} title={capitalize(inorganicChapterForId(c.id))}>
+                    <li key={c.id} className={styles.item} title={inorganicChapterLabel(inorganicChapterForId(c.id), locale)}>
                       <SubstanceCard c={c} onOpen={onOpenSubstance} />
                     </li>
                   ))}
