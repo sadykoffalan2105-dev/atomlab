@@ -1,0 +1,1 @@
+function e(e){let t=e.replace(/^\//,``);if(typeof window>`u`)return`/${t}`;let n=`/atomlab/`;return n.startsWith(`http`)?`${n.replace(/\/$/,``)}/${t}`:n.startsWith(`/`)?`${`${window.location.origin}${n}`.replace(/\/$/,``)}/${t}`:new URL(t,window.location.href).href}export{e as t};
