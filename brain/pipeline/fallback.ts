@@ -12,6 +12,7 @@
  * «пример» — уравнение с сущностью из qaBank; «а у натрия?» — факты новой сущности первыми.
  */
 import { ELEMENT_DISCOVERY_YEARS } from '../../src/data/elementDiscoveryYears.ts'
+import { sectionAnswer, termFrameUzEn, termOfQuestion } from '../curriculum/answer.ts'
 import { analogyFor } from '../persona/analogies.ts'
 import type { AnswerPlan, StandaloneQuery } from './dialogTypes.ts'
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
@@ -28,7 +29,7 @@ import { jaccard } from './hybrid.ts'
 import type { Intent, QType } from './intent.ts'
 import type { Lang } from './normalize.ts'
 import { splitSentences, trimToWords, wordCount } from './postcheck.ts'
-import type { RetrievalResult } from './retrieve.ts'
+import type { CurriculumInfo, RetrievalResult } from './retrieve.ts'
 import { fmt, type ToolResult } from './tools.ts'
 
 const T = (lang: Lang, ru: string, uz: string, en: string) => (lang === 'ru' ? ru : lang === 'uz' ? uz : en)
@@ -119,6 +120,13 @@ const MICRO: Record<QType | 'calc', Record<Lang, string[]>> = {
 }
 
 // ---------------------------------------------------------------- тексты учебника
+
+/** Определение учебника для ответа: без OCR-переносов, не длиннее ~2 предложений. */
+function clipDef(t: string): string {
+  const s = t.replace(/(\p{Ll})-\s+(\p{Ll})/gu, '$1$2').replace(/\s+/g, ' ').trim()
+  if (s.length <= 320) return /[.!?…:]$/u.test(s) ? s : s + '.'
+  return s.slice(0, 319).replace(/\s+\S*$/u, '') + '…'
+}
 
 export function cleanChunk(text: string, title = ''): string {
   let t = text
@@ -377,6 +385,38 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   const primary: Concept | undefined = concepts[0]
   const lines: string[] = []
   let logic = ''
+
+  // 0) §-путь (карта программы): подпись единицы — первой цитатой школьного ответа; ссылка на § («о чём §12?») —
+  //    содержание § на языке вопроса; вопрос-определение — текст определения учебника этой единицы (uz/en: понятие ядра
+  //    на языке вопроса или честная рамка «термин — где его изучают», без русских цитат)
+  const curInfo = (r as (RetrievalResult & { curriculum?: CurriculumInfo }) | null)?.curriculum
+  const curUnit = curInfo && !tools.length && (school || curInfo.viaRef) ? (kb.curriculum?.byId.get(curInfo.unitId) ?? null) : null
+  if (curInfo && curUnit) {
+    cite(curInfo.citeFull ?? curInfo.cite)
+    if (curInfo.viaRef) {
+      const body = style.prefix + sectionAnswer(curUnit, lang) + '\n' + pick(MICRO.general[lang], inp.seed) + (style.suffix ? ' ' + style.suffix : '')
+      return { text: trimToWords(body, Math.max(inp.wordLimit, 90)), citations, confidence: Math.max(confidence, 0.8) }
+    }
+    const d = curInfo.defIndex != null ? curUnit.definitions[curInfo.defIndex] : undefined
+    if (d) {
+      if (lang === 'ru') lines.push(clipDef(d.text.ru))
+      else {
+        const term = termOfQuestion(inp.text, lang)
+        const stem = term ? term.toLowerCase().slice(0, 5) : ''
+        const def = primary?.def[lang]
+        if (def && (!stem || def.toLowerCase().includes(stem))) lines.push(def)
+        else if (term) lines.push(termFrameUzEn(term, curUnit, lang))
+        else if (def) lines.push(def)
+      }
+      if (lines.length) {
+        if (primary) {
+          logic = primary.law[lang]
+          conceptId = primary.id
+        }
+        confidence = Math.max(confidence, 0.8)
+      }
+    }
+  }
 
   // 0a) мозг v2: ловушка «если катализатор ускоряет, значит смещает равновесие?» — сначала короткая поправка;
   // частый «почему» с выверенным объяснением («почему медь растворяется в азотной») — им и отвечаем

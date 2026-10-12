@@ -59,7 +59,8 @@ export function parseSectionRef(text: string, _lang?: Lang): SectionRef | null {
       t.match(/bob\s*([IVX]+|\d)(?!\d)/iu)
     if (ch) chapter = num(ch[1])
     const tp =
-      t.match(/(?:тем[аеуы]|topic|mavzu)\s*(?:№\s*)?(\d{1,2})(?![\d.])/iu) ??
+      // «тема 1.» в конце предложения: точка — не часть номера («…гл. 1, тема 1.» раньше не читалось)
+      t.match(/(?:тем[аеуы]|topic|mavzu)\s*(?:№\s*)?(\d{1,2})(?!\d|\.\d)/iu) ??
       t.match(/(?<![\d.,])(\d{1,2})\s*[-–]?\s*(?:mavzu|тема)/iu)
     if (tp) topic = Number(tp[1])
   }
