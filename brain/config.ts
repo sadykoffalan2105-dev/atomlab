@@ -9,6 +9,7 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
+import { DEFAULT_TEACHER_CONFIG, type TeacherConfig } from './teacher/config.ts' // блок TEACHER (brain/teacher/**)
 
 export const SERVICE = 'atomlab-brain'
 export const VERSION = '1.0.0'
@@ -161,6 +162,8 @@ export type BrainConfig = {
   // — блок STT (распознавание речи, brain/stt/**) —
   /** Голос ученика → текст: сайдкар Python на 127.0.0.1:8788 (GigaAM ru/uz, whisper en). Нет сайдкара — /stt честно 503. */
   stt: SttConfig
+  // — блок TEACHER (автоматизация учителя v1, brain/teacher/**): план урока, тест СОР/СОЧ, проверка работ (рекомендация) —
+  teacher?: TeacherConfig
 }
 
 // — блок STT (распознавание речи) —
@@ -345,6 +348,8 @@ export const DEFAULT_CONFIG: BrainConfig = {
     rate: { sessionPerMin: 30, sessionPerDay: 600, partialPerMin: 60, ipPerMin: 300 },
     timeoutMs: 15_000,
   },
+  // — блок TEACHER (brain/teacher/config.ts): ключи учителей, свои лимиты, шлифовка LLM —
+  teacher: DEFAULT_TEACHER_CONFIG,
 }
 
 /**

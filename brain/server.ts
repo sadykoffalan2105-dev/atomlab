@@ -7,6 +7,7 @@
  *   GET  /admin/status  — очередь, лимиты, профиль — ТОЛЬКО админ;
  *   /image, /image/*, /admin/image/* — картинки (brain/image/http.ts; по умолчанию выключены, config.image).
  *   POST /stt, GET /stt/health — распознавание речи (brain/stt/route.ts → сайдкар 127.0.0.1:8788, config.stt).
+ *   POST /teacher/plan|test|grade — план урока, тест СОР/СОЧ, проверка работ (рекомендация) — по ключу учителя (brain/teacher/http.ts).
  * Запуск: npx tsx brain/server.ts (или npm run brain:start). Без Ollama работает запасным путём.
  *
  * Публичный режим (туннель Tailscale Funnel → http://127.0.0.1:8787): адрес ученика — из заголовков прокси
@@ -34,6 +35,7 @@ import { sseComment, sseHeaders, sseSend } from './sse.ts'
 import { StudentStore } from './student/events.ts'
 import { handleSttRequest, sttConfig, sttHealth } from './stt/route.ts' // распознавание речи (/stt, /stt/health)
 import { sttIpRule } from './stt/limits.ts'
+import { handleTeacherRequest } from './teacher/http.ts' // автоматизация учителя v1 (/teacher/*)
 
 /** null — запроса без Origin (curl, скрипты): CORS не нужен; false — чужой сайт (403). Списки — config.server. */
 export function checkOrigin(origin: string | undefined, cfg: Pick<BrainConfig['server'], 'corsOrigins' | 'corsLocalhost'> = DEFAULT_CONFIG.server): string | null | false {
@@ -274,6 +276,8 @@ export function createServer(brain: Brain): http.Server {
       }
       // распознавание речи (brain/stt/route.ts): POST /stt, GET /stt/health
       if (path === '/stt' || path.startsWith('/stt/')) return await handleSttRequest({ req, res, url, method, cors, client, limited, brain })
+      // автоматизация учителя (brain/teacher/http.ts): ключ учителя/админа, свои лимиты, без LLM для плана и теста
+      if (path.startsWith('/teacher/')) return await handleTeacherRequest({ req, res, url, method, cors, client, admin, brain })
       // картинки (brain/image/http.ts) — до ветки /chat, саму её не меняют
       if (path === '/image' || path.startsWith('/image/') || path.startsWith('/admin/image')) {
         return await handleImageRequest({ req, res, url, method, cors, client, admin, brain })
