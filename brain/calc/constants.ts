@@ -40,16 +40,28 @@ export const VEQ_O2 = 5.6
 /** Объёмная доля кислорода в воздухе (школьная) */
 export const O2_IN_AIR = 0.21
 
+/**
+ * Точные Ar (IUPAC, сокращённо) элементов, которых нет в atomicData (там 36 частых): B, Co, Sn, Pt из SCHOOL_AR и
+ * редкие для задач («40 г As₂S₃», SrCO₃, TiO₂, CdS…). Школьное значение — округлённое до целого.
+ */
+const EXTRA_AR: Readonly<Record<string, number>> = {
+  B: 10.81, Sc: 44.956, Ti: 47.867, Co: 58.933, Ga: 69.723, Ge: 72.63, As: 74.922, Se: 78.971, Kr: 83.798, Sr: 87.62, Y: 88.906,
+  Zr: 91.224, Nb: 92.906, Mo: 95.95, Ru: 101.07, Rh: 102.91, Pd: 106.42, Cd: 112.41, In: 114.82, Sn: 118.71, Sb: 121.76, Te: 127.6,
+  Xe: 131.29, La: 138.91, Ce: 140.12, Hf: 178.49, Ta: 180.95, Os: 190.23, Ir: 192.22, Pt: 195.08, Tl: 204.38, Bi: 208.98, Th: 232.04,
+  U: 238.03, Ra: 226, Rn: 222, Po: 209, Fr: 223, Tc: 98,
+}
+
 /** Ar элемента в школьном режиме. */
 export function schoolAr(sym: string): number | null {
-  if (!isElementSymbol(sym)) return null
   const s = SCHOOL_AR[sym]
-  return s ?? Math.round(atomicMassU(sym))
+  if (s != null) return s
+  if (isElementSymbol(sym)) return Math.round(atomicMassU(sym))
+  return EXTRA_AR[sym] != null ? Math.round(EXTRA_AR[sym]!) : null
 }
 
 export function arOf(sym: string, mode: CalcMode): number | null {
-  if (!isElementSymbol(sym)) return null
-  return mode === 'school' ? schoolAr(sym) : atomicMassU(sym)
+  if (mode === 'school') return schoolAr(sym)
+  return isElementSymbol(sym) ? atomicMassU(sym) : (EXTRA_AR[sym] ?? null)
 }
 
 /** M = Σ n·Ar (null — в формуле неизвестный символ). */

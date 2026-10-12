@@ -174,7 +174,10 @@ export const GIBBERISH_REPLY: Record<Lang, string> = {
 
 /** Языковая проверка ответа: доля букв нужной письменности. */
 export function scriptShare(text: string): { cyr: number; lat: number } {
-  const clean = text.replace(/\b[A-Z][a-z]?[₀-₉0-9A-Za-z()]*[₀-₉0-9]\b/g, ' ')
+  // формулы (NaNO₃, CH₃COONa, HCl — с индексами или ≥ 2 заглавных) и метки величин m(…), n(…) — не язык ответа
+  const clean = text
+    .replace(/(?<![A-Za-z0-9₀-₉])(?:[A-Z][a-z]?|[₀-₉0-9()⁺⁻⁰¹²³⁴⁵⁶⁷⁸⁹·])+(?![A-Za-z0-9₀-₉])/g, (x) => (/[0-9₀-₉]/.test(x) || (x.match(/[A-Z]/g) ?? []).length >= 2 ? ' ' : x))
+    .replace(/(?<![A-Za-z])[mnMVNpeQ](?=\s*\()/g, ' ')
   const cyr = (clean.match(/[а-яёА-ЯЁўқғҳЎҚҒҲ]/g) ?? []).length
   const lat = (clean.match(/[A-Za-z]/g) ?? []).length
   const all = cyr + lat || 1

@@ -434,3 +434,4 @@ const thermochem: Solver = {
 
 export const REACTION_SOLVERS: Solver[] = [reactionSolver, thermochem]
 export { withUnit }
+export { salt, ACIDS, valence }

@@ -35,7 +35,7 @@ function citeFor(type: string, kb: Knowledge): string {
 
 const HAS_DIGIT = /\d/
 /** Похоже на задачу: вопрос/повеление «найди/вычисли/сколько…» и число (или формула — для Mr и ω без чисел). */
-const TASK_RE = /(сколько|какая|какой|какое|каков|чему равн|найд|вычисл|рассчит|посчит|определ|составь|выведи|установи|how (much|many)|what|calculate|find|determine|compute|work out|привед|приведите|выразите|keltir|reduce|convert|qancha|necha|qanday|toping|hisobla|aniqla|nechta|chiqaring|\?)/iu
+const TASK_RE = /(сколько|какая|какой|какое|каков|чему равн|найд|вычисл|рассчит|посчит|определ|составь|выведи|установи|how (much|many)|what|calculate|find|determine|compute|work out|привед|приведите|выразите|keltir|reduce|convert|qancha|necha|qanday|toping|hisobla|aniqla|nechta|chiqaring|уравня|tenglashtir|balance|name the|назови|укажи|\?)/iu
 
 /** Решить задачу целиком (для селфтеста и отладки). */
 export function solveSchoolTask(text: string, cmp: string, lang: Lang, kb: Knowledge): Solution | null {
