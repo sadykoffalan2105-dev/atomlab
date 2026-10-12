@@ -557,7 +557,7 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     const byName = !curriculum && !sectionRef && g != null && sq.scope !== 'offtopic' && !exactDef && NAME_KINDS.has(sq.kind) && (lang !== 'ru' || !wantsDef) ? conceptUnitByName(cur, sq.text, lang, g) : null
     // понятие по переводу термина — только когда определения в классе ученика не нашлось (иначе «Fosfor kislotasi»
     // уходил к перечню классов веществ §2 вместо § о фосфорной кислоте)
-    const byConcept = wantsDef && !exactDef ? (conceptUnitFor(cur, queryTerms, g) || (defTerms && !defAny?.inGrade ? conceptUnitFor(cur, defTerms, g) : null) || byName) : byName
+    const byConcept = wantsDef && !exactDef ? (conceptUnitFor(cur, queryTerms, g) || (defTerms && !defAny?.inGrade ? conceptUnitFor(cur, defTerms, g) : null) || (!(defAny?.inGrade && defAny.termCov === 1) ? byName : null)) : byName
     const defHit = byConcept ? null : defAny
     // «почему» с известной причиной (brain/curriculum/why.ts): § класса с этой темой — вопрос школьный
     const whyRule = !curriculum && !sectionRef && g != null && sq.kind === 'why' && sq.scope !== 'offtopic' ? whyRuleFor(sq.text) : null

@@ -357,6 +357,26 @@ export function referenceFacts(text: string, lang: Lang, kb: Knowledge, qtype: Q
   return out.slice(0, 4)
 }
 
+/**
+ * uz/en: определение понятия ядра — о термине вопроса? Голова определения («Asoslar — …») должна совпасть с термином
+ * пословно (общее начало слов без окончаний): «asosli oksid» ≠ «Asoslar», «ishqoriy-yer metallar» ≠ «Ishqoriy metallar»
+ * (раньше хватало первых 5 букв — и на «основный оксид» отвечали определением оснований). Головы нет — как раньше.
+ */
+function defIsAbout(def: string, term: string): boolean {
+  const f = (s: string) => s.toLowerCase().replace(/[ʻʼ‘’`´']/g, "'").split(/[\s-]+/).filter(Boolean)
+  const head = /^(.{2,60}?)\s+[—–]\s/u.exec(def)?.[1]
+  if (!head || /\(/.test(head)) return def.toLowerCase().includes(term.toLowerCase().slice(0, 5))
+  // обозначение в голове («Molyar massa M») — не слово термина
+  const a = f(head).filter((w, i, all) => i < all.length - 1 || w.length > 2 || all.length === 1)
+  const b = f(term)
+  if (a.length !== b.length) return false
+  return a.every((x, i) => {
+    const y = b[i]!
+    const n = Math.max(3, Math.min(x.length, y.length) - 2)
+    return x.slice(0, n) === y.slice(0, n)
+  })
+}
+
 /** Понятия-свойства элемента: при названном элементе отвечаем про элемент («валентность азота»). */
 const ELEMENT_PROPS = new Set(['valence', 'oxstate', 'econfig', 'electronegativity', 'atom', 'isotope', 'orbital'])
 
@@ -445,9 +465,8 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
       if (d && lang === 'ru') lines.push(clipDef(d.text.ru))
       else {
         const term = termOfQuestion(inp.text, lang)
-        const stem = term ? term.toLowerCase().slice(0, 5) : ''
         const def = primary?.def[lang]
-        if (def && (!stem || def.toLowerCase().includes(stem))) lines.push(def)
+        if (def && (!term || defIsAbout(def, term))) lines.push(def)
         else if (term && lang !== 'ru') lines.push(termFrameUzEn(term, curUnit, lang))
         else if (def) lines.push(def)
       }
