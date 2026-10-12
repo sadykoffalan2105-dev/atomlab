@@ -75,7 +75,16 @@ export function BrainChip({
  * сайт из интернета стучится только с разрешения браузера или после щелчка «Использовать мозг на этом
  * компьютере» (не в компактном виде) — иначе браузер показывал бы окно «Разрешить» каждому ученику.
  */
-export function BrainStatusChip({ compact = false, className }: { compact?: boolean; className?: string }) {
+export function BrainStatusChip({
+  compact = false,
+  variant = 'chip',
+  className,
+}: {
+  compact?: boolean
+  /** 'pill' — маленькая «таблетка» шапки чата: точка (зелёная — сервер, серая — режим браузера) + короткая подпись, полный текст в подсказке. */
+  variant?: 'chip' | 'pill'
+  className?: string
+}) {
   const { t } = useT()
   const info = useBrainInfo()
   const { status } = info
@@ -110,6 +119,37 @@ export function BrainStatusChip({ compact = false, className }: { compact?: bool
             ? t('learn.teacherUi.brainRemoteHint')
             : `${t('learn.teacherUi.brainOffline')}. ${t('learn.teacherUi.brainHint')}`
   const Icon = online ? IconBrainSpark : IconDatabase
+  if (variant === 'pill') {
+    // короткая подпись; полный текст — в title и для экранного диктора
+    const short = busy
+      ? t('learn.teacherUi.pillBusy')
+      : online
+        ? remote
+          ? t('learn.teacherUi.pillOnline')
+          : t('learn.teacherUi.pillLocal')
+        : status === 'checking'
+          ? t('learn.teacherUi.pillChecking')
+          : t('learn.teacherUi.pillBrowser')
+    const tone = busy ? 'busy' : online ? 'online' : status === 'checking' ? 'checking' : 'browser'
+    const clickable = !(online && !busy)
+    return (
+      <button
+        type="button"
+        className={`${styles.pill} ${className ?? ''}`}
+        data-tone={tone}
+        data-brain-pill={tone}
+        title={title}
+        aria-label={`${t('learn.teacherUi.pillStatus')}: ${title}`}
+        aria-live="polite"
+        // не на связи — щелчок проверяет снова; запрещён доступ — подсказка, где включить
+        onClick={clickable ? (denied ? () => window.alert(t('learn.teacherUi.brainDeniedHint')) : () => void checkHealth(true)) : undefined}
+        data-static={clickable ? undefined : '1'}
+      >
+        <span className={styles.pillDot} aria-hidden />
+        <span className={styles.pillLabel}>{short}</span>
+      </button>
+    )
+  }
   const showOptIn = !compact && !online && info.canUseLocal && status !== 'checking'
   const chip = (
     <span

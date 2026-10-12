@@ -27,25 +27,25 @@
 
 .switch {
   display: inline-flex;
-  padding: 3px;
+  padding: 2px;
   gap: 2px;
-  border-radius: 999px;
+  border-radius: 12px;
   border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
-  background: var(--lt-surface-2, rgba(18, 24, 44, 0.5));
+  background: color-mix(in srgb, var(--lt-bg, #0b1024) 55%, transparent);
 }
 
 .switchBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
-  padding: 0 14px;
+  min-height: 30px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 10px;
   background: transparent;
   color: var(--lt-text-2, var(--lt-text, #c9d3f5));
   font: inherit;
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 650;
   cursor: pointer;
   white-space: nowrap;
@@ -69,6 +69,7 @@
 .switchOn:hover {
   background: var(--lt-grad-primary, linear-gradient(135deg, #4169dc 0%, #7c4ddf 55%, #b935c9 100%));
   color: #fff;
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--lt-primary, #5b8cff) 80%, transparent);
 }
 
 .switchOff {
@@ -77,7 +78,7 @@
 }
 
 .switchIcon {
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1;
 }
 
@@ -169,27 +170,82 @@
 /* ---------------------------------------------------------------- темы */
 
 .chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 6px;
-  max-height: 148px;
+  max-height: 212px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 2px;
+  scrollbar-width: thin;
+}
+
+.count {
+  margin-left: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--lt-text-3, var(--lt-text-mute, #9aa6c9));
 }
 
 .chip {
-  min-height: 34px;
-  max-width: 100%;
-  padding: 6px 12px;
-  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 5px 8px 5px 5px;
+  border-radius: 12px;
   border: 1px solid var(--lt-border, rgba(148, 170, 230, 0.14));
   background: var(--lt-surface, rgba(18, 24, 44, 0.72));
   color: var(--lt-text, #e8edff);
   font: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   text-align: left;
   cursor: pointer;
   overflow-wrap: anywhere;
+  transition:
+    border-color var(--lt-dur-fast, 0.15s) var(--lt-ease, ease),
+    background-color var(--lt-dur-fast, 0.15s) var(--lt-ease, ease);
+}
+
+.chipEmoji {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--lt-primary, #5b8cff) 12%, transparent);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.chipOn .chipEmoji {
+  background: color-mix(in srgb, var(--lt-primary, #5b8cff) 26%, transparent);
+}
+
+.chipText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.chipTitle {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.chipGrade {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--lt-text-3, var(--lt-text-mute, #9aa6c9));
 }
 
 .chip:hover {
@@ -205,8 +261,8 @@
 }
 
 .chipSkeleton {
-  width: 120px;
-  opacity: 0.5;
+  min-height: 46px;
+  opacity: 0.45;
   pointer-events: none;
 }
 
@@ -215,7 +271,11 @@
 .progress {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--lt-primary, #5b8cff) 35%, var(--lt-border, transparent));
+  background: color-mix(in srgb, var(--lt-primary, #5b8cff) 7%, transparent);
 }
 
 .steps {
@@ -301,6 +361,17 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  padding: 10px 12px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--lt-success, #34d399) 35%, var(--lt-border, transparent));
+  background: color-mix(in srgb, var(--lt-success, #34d399) 6%, transparent);
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lt-text, #e8edff);
 }
 
 .figure {
@@ -371,8 +442,8 @@
 
 .thumb {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border-radius: 10px;
   border: 2px solid transparent;

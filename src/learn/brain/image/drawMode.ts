@@ -36,6 +36,45 @@ export function drawAvailability(info: ImageInfo | null, role: ImageRole): DrawA
   return { selectable: true, canDraw: !studentsOff, reason: null, studentsOff }
 }
 
+/**
+ * Можно ли описать картинку своими словами: учитель / владелец (ключ на устройстве) — всегда,
+ * ученик — когда сервер разрешил (/health → image.studentFreeText === true; старый сервер без поля = нет).
+ */
+export function canFreeText(info: ImageInfo | null, role: ImageRole): boolean {
+  if (role !== 'student') return true
+  return info?.studentFreeText === true
+}
+
+/* ------------------------------------------------------------------ значок темы */
+
+/** Слово из id/темы пресета → эмодзи карточки (по порядку: первое совпадение). */
+const EMOJI: ReadonlyArray<[RegExp, string]> = [
+  [/kipp|hydrogen/, '⚗️'],
+  [/oxygen|collection|gas/, '🫧'],
+  [/water|distill|evapor/, '💧'],
+  [/flame|candle|burn|combust|spirit/, '🔥'],
+  [/periodic|mendeleev/, '🧮'],
+  [/atom|model|lattice|molecule|helix|micelle/, '⚛️'],
+  [/oil|petrol|methane|ethene|benzene|polyethyl|polymer/, '🛢️'],
+  [/protein|cellulose|starch|sugar|ferment|bread/, '🧬'],
+  [/soap|wash/, '🧼'],
+  [/iron|rust|blast|steel|zinc|magnes|alumin|metal|sodium|copper/, '⚙️'],
+  [/nacl|salt|crystal/, '🧂'],
+  [/electrolys|daniell|galvan|battery/, '🔋'],
+  [/acid|alkali|indicator|titrat|ammonia|sulfur|halogen|chlor|lime/, '🧪'],
+  [/plant|factory|industr/, '🏭'],
+  [/balance|conserv|mass/, '⚖️'],
+  [/glassware|stand|filtr|mixture|chromatog|states|lab|equip/, '🔬'],
+  [/safety|goggles|glove/, '🥽'],
+]
+
+/** Эмодзи для карточки темы (ничего не подошло — палитра). */
+export function presetEmoji(p: Pick<ImagePreset, 'id' | 'topic'>): string {
+  const hay = `${p.id} ${p.topic}`.toLowerCase()
+  for (const [re, e] of EMOJI) if (re.test(hay)) return e
+  return '🎨'
+}
+
 /* ------------------------------------------------------------------ этапы */
 
 export type DrawStage = 'request' | 'queue' | 'gpu' | 'draw' | 'check' | 'done'

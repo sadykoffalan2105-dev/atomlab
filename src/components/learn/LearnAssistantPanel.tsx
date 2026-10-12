@@ -43,7 +43,6 @@ import {
 } from '../../learn/homework'
 import {
   IconAlert,
-  IconArrowRight,
   IconBookmark,
   IconBroadcast,
   IconBulb,
@@ -58,6 +57,7 @@ import {
   IconSliders,
   IconSparkle,
   IconSpeaker,
+  IconSpeakerOff,
   IconSteps,
   IconStop,
   IconTrash,
@@ -83,7 +83,7 @@ import { ChatModeSwitch, DrawComposer } from './teacher/DrawMode'
 import { drawAvailability, type ChatComposeMode } from '../../learn/brain/image/drawMode'
 import { onRadioGroupKeyDown } from './teacher/radioGroupKeys'
 import { parseDrawRequest } from '../../learn/brain/image/drawIntent'
-import { getImageInfo, role as imageRole } from '../../learn/brain/remote/imageClient'
+import { getImageInfo, role as imageRole, useImageInfo, useImageRole } from '../../learn/brain/remote/imageClient'
 import kit from './studio/StudioKit.module.css'
 import styles from './LearnAssistantPanel.module.css'
 
@@ -316,6 +316,9 @@ export function LearnAssistantPanel({
   const settingsId = useId()
   const inputHintId = useId()
   const personaHintId = useId()
+  const liveHintId = useId()
+  const imageInfo = useImageInfo()
+  const imageRoleNow = useImageRole()
   /** Состояние разрешения на микрофон — только для подсказки под «Начать онлайн-диалог». */
   const [micPerm, setMicPerm] = useState<MicPermission | null>(null)
 
@@ -490,6 +493,20 @@ export function LearnAssistantPanel({
     speechRef.current?.stop()
     setSpeakingId(null)
   }, [])
+
+  /** Озвучка ответов: кнопка-динамик в шапке и переключатель в настройках (одно и то же). */
+  const toggleAutoRead = useCallback(
+    (on: boolean) => {
+      setAutoRead(on)
+      if (!on) stopSpeaking()
+      try {
+        localStorage.setItem('atomlab-learn-autoread', on ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+    },
+    [stopSpeaking],
+  )
 
   const toggleMic = useCallback(() => {
     if (!isSpeechRecognitionSupported()) return
@@ -1030,7 +1047,6 @@ export function LearnAssistantPanel({
               <Icon />
             </span>
             <span className={styles.suggestText}>{t(key)}</span>
-            {variant === 'grid' ? <IconArrowRight className={styles.suggestArrow} aria-hidden /> : null}
           </button>
         )
       })}
@@ -1050,6 +1066,8 @@ export function LearnAssistantPanel({
   const sendState = generating ? 'sending' : input.trim() || photos.length ? 'ready' : 'idle'
   /** Фото задачи можно приложить: мозг (сервер ATOMLAB или этот ПК) на связи. */
   const photoReady = brainStatus === 'online'
+  /** Сервер рисует — подсказка в поле упоминает «нарисуй …». */
+  const drawSelectable = drawAvailability(imageInfo, imageRoleNow).selectable
 
   return (
     <aside
@@ -1070,11 +1088,26 @@ export function LearnAssistantPanel({
               <span className={styles.statusText} data-state={statusState}>
                 {statusText}
               </span>
-              {headerBrain === 'server' ? <BrainChip brain="server" compact /> : <BrainStatusChip compact />}
             </p>
           </div>
 
+          {/* единственный индикатор сервера в панели: зелёная точка — сервер ATOMLAB, серая — режим браузера */}
+          {headerBrain === 'server' ? <BrainChip brain="server" compact className={styles.statusPill} /> : <BrainStatusChip variant="pill" className={styles.statusPill} />}
+
           <div className={styles.headTools}>
+            {canSpeak ? (
+              <button
+                type="button"
+                className={`${kit.iconBtn} ${styles.toolBtn}`}
+                aria-pressed={autoRead}
+                aria-label={t('learn.assistant.autoRead')}
+                title={autoRead ? t('learn.teacherUi.autoReadOn') : t('learn.teacherUi.autoReadOff')}
+                onClick={() => toggleAutoRead(!autoRead)}
+                data-autoread={autoRead ? '1' : undefined}
+              >
+                {autoRead ? <IconSpeaker /> : <IconSpeakerOff />}
+              </button>
+            ) : null}
             <button
               type="button"
               className={`${kit.iconBtn} ${styles.toolBtn}`}
@@ -1118,44 +1151,46 @@ export function LearnAssistantPanel({
         </div>
 
         <div className={styles.controls}>
-          <div className={styles.controlStack}>
-            <div
-              className={`${kit.segmented} ${styles.segmented}`}
-              role="radiogroup"
-              aria-label={t('learn.teacherUi.chatMode')}
-              aria-describedby={personaHintId}
-              onKeyDown={onRadioGroupKeyDown}
+          {/* персона — второстепенный компактный переключатель; пояснение в подсказке и для диктора */}
+          <div
+            className={`${kit.segmented} ${styles.segmented}`}
+            role="radiogroup"
+            aria-label={t('learn.teacherUi.chatMode')}
+            aria-describedby={personaHintId}
+            title={mode === 'teacher' ? t('learn.studio.ai.personaTeacher') : t('learn.studio.ai.personaHelper')}
+            onKeyDown={onRadioGroupKeyDown}
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === 'teacher'}
+              tabIndex={mode === 'teacher' ? 0 : -1}
+              className={mode === 'teacher' ? `${kit.segmentedItem} ${kit.segmentedItemOn} ${styles.segItem}` : `${kit.segmentedItem} ${styles.segItem}`}
+              onClick={() => setMode('teacher')}
+              title={t('learn.studio.ai.personaTeacher')}
             >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === 'teacher'}
-                tabIndex={mode === 'teacher' ? 0 : -1}
-                className={mode === 'teacher' ? `${kit.segmentedItem} ${kit.segmentedItemActive}` : kit.segmentedItem}
-                onClick={() => setMode('teacher')}
-              >
-                <IconSparkle aria-hidden />
-                <span className={styles.segLabel}>{t('learn.assistant.modeTeacher')}</span>
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === 'helper'}
-                tabIndex={mode === 'helper' ? 0 : -1}
-                className={mode === 'helper' ? `${kit.segmentedItem} ${kit.segmentedItemActive}` : kit.segmentedItem}
-                onClick={() => setMode('helper')}
-              >
-                <IconMessage aria-hidden />
-                <span className={styles.segLabel}>{t('learn.assistant.modeHelper')}</span>
-              </button>
-            </div>
-            <p id={personaHintId} className={styles.controlHint} key={mode}>
-              {mode === 'teacher' ? t('learn.studio.ai.personaTeacher') : t('learn.studio.ai.personaHelper')}
-            </p>
+              <IconSparkle aria-hidden />
+              <span className={styles.segLabel}>{t('learn.assistant.modeTeacher')}</span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === 'helper'}
+              tabIndex={mode === 'helper' ? 0 : -1}
+              className={mode === 'helper' ? `${kit.segmentedItem} ${kit.segmentedItemOn} ${styles.segItem}` : `${kit.segmentedItem} ${styles.segItem}`}
+              onClick={() => setMode('helper')}
+              title={t('learn.studio.ai.personaHelper')}
+            >
+              <IconMessage aria-hidden />
+              <span className={styles.segLabel}>{t('learn.assistant.modeHelper')}</span>
+            </button>
           </div>
+          <span id={personaHintId} className={kit.srOnly}>
+            {mode === 'teacher' ? t('learn.studio.ai.personaTeacher') : t('learn.studio.ai.personaHelper')}
+          </span>
 
           {grade && chapter ? (
-            <div className={styles.controlStack} data-live="">
+            <div className={styles.liveWrap} data-live="">
               <LiveDialogButton
                 grade={grade}
                 chapter={chapter}
@@ -1163,11 +1198,19 @@ export function LearnAssistantPanel({
                 rosterSectionId={rosterSectionId}
                 className={`${kit.btnPrimary} ${styles.liveBtn}`}
                 icon={<IconBroadcast className={styles.liveIcon} />}
+                title={`${t('learn.teacherUi.liveTitle')} — ${t(liveHint.key)}`}
+                describedBy={liveHintId}
               />
-              <p className={styles.controlHint} data-tone={liveHint.tone}>
-                <LiveHintIcon className={styles.hintIcon} aria-hidden />
-                <span>{t(liveHint.key)}</span>
-              </p>
+              {/* подсказка про микрофон — в подсказке кнопки и для диктора; на экране только предупреждение */}
+              <span id={liveHintId} className={kit.srOnly}>
+                {t(liveHint.key)}
+              </span>
+              {liveHint.tone === 'warn' ? (
+                <p className={styles.controlHint} data-tone={liveHint.tone}>
+                  <LiveHintIcon className={styles.hintIcon} aria-hidden />
+                  <span>{t(liveHint.key)}</span>
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -1193,16 +1236,7 @@ export function LearnAssistantPanel({
               role="switch"
               className={styles.switchInput}
               checked={autoRead}
-              onChange={(e) => {
-                const on = e.target.checked
-                setAutoRead(on)
-                if (!on) stopSpeaking()
-                try {
-                  localStorage.setItem('atomlab-learn-autoread', on ? '1' : '0')
-                } catch {
-                  /* ignore */
-                }
-              }}
+              onChange={(e) => toggleAutoRead(e.target.checked)}
             />
             <span className={styles.switchTrack} aria-hidden />
           </label>
@@ -1235,11 +1269,7 @@ export function LearnAssistantPanel({
                   <p className={styles.welcomeText}>{t('learn.assistant.welcome')}</p>
                 </div>
               </div>
-              <p className={styles.quickEyebrow} aria-hidden>
-                {t('learn.teacherUi.quickPrompts')}
-              </p>
               {quickChips('grid')}
-              <BrainStatusChip className={styles.welcomeCta} />
             </div>
           ) : null}
 
@@ -1520,8 +1550,8 @@ export function LearnAssistantPanel({
                   send()
                 }
               }}
-              placeholder={listening ? t('learn.teacherExam.liveStatusListening') : t('learn.assistant.placeholder')}
-              aria-label={t('learn.assistant.placeholder')}
+              placeholder={listening ? t('learn.teacherExam.liveStatusListening') : drawSelectable ? t('learn.assistant.placeholderDraw') : t('learn.assistant.placeholder')}
+              aria-label={drawSelectable ? t('learn.assistant.placeholderDraw') : t('learn.assistant.placeholder')}
               aria-describedby={inputHintId}
               enterKeyHint="send"
               maxLength={2000}

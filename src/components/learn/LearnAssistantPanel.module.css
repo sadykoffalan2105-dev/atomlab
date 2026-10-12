@@ -90,15 +90,37 @@
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px var(--ap-pad) 12px;
+  gap: 8px;
+  padding: 10px var(--ap-pad) 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--lt-border) 70%, transparent);
 }
 
+/* [аватар] [название + состояние] [таблетка сервера] [кнопки] */
 .identity {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'avatar brand pill tools';
   align-items: center;
-  gap: 10px;
+  column-gap: 10px;
   min-width: 0;
+}
+
+.identity > .avatar {
+  grid-area: avatar;
+}
+
+.identity > .brandText {
+  grid-area: brand;
+}
+
+.identity > .statusPill {
+  grid-area: pill;
+  justify-self: end;
+  max-width: 100%;
+}
+
+.identity > .headTools {
+  grid-area: tools;
 }
 
 /*
@@ -230,11 +252,15 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-left: auto;
+  margin-left: 2px;
 }
 
 .toolBtn {
   position: relative;
+}
+
+.panel .toolBtn[data-autoread='1'] {
+  color: var(--lt-accent-cyan);
 }
 
 .iconBadge {
@@ -248,28 +274,21 @@
   pointer-events: none;
 }
 
-/* Управление: [персона + пояснение] [онлайн-диалог + подсказка] */
+/* Управление: [персона — компактный второстепенный переключатель] [онлайн-диалог — главная кнопка] */
 
 .controls {
-  display: grid;
-  /* Кнопка диалога получает свою натуральную ширину (её подпись нельзя обрезать),
-     переключатель персоны забирает остаток и ужимается сам. */
-  grid-template-columns: minmax(0, 1fr) fit-content(280px);
-  gap: 8px 12px;
-  align-items: start;
-  min-width: 0;
-}
-
-.controlStack {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
   min-width: 0;
 }
 
 .panel .segmented {
-  width: 100%;
+  flex: 0 1 auto;
   min-width: 0;
+  padding: 2px;
+  border-radius: 12px;
 }
 
 .panel .segmented > button {
@@ -279,9 +298,25 @@
   min-width: 0;
 }
 
+.panel .segItem {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+
 .panel .segmented > button > svg {
   width: 14px;
   height: 14px;
+}
+
+/* Кнопка онлайн-диалога — главный призыв; подсказка про микрофон в title / для диктора. */
+.liveWrap {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
 }
 
 .segLabel {
@@ -327,7 +362,7 @@
   width: 100%;
   min-width: 0;
   min-height: 38px;
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 .panel .liveBtn > span {
@@ -582,26 +617,6 @@
   overflow-wrap: break-word;
 }
 
-.quickEyebrow {
-  margin: 2px 0 -4px;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--lt-text-3);
-}
-
-.welcomeCta {
-  justify-content: flex-start;
-  padding-top: 10px;
-  width: 100%;
-  border-top: 1px dashed var(--lt-border);
-}
-
-.welcomeCta > p {
-  flex-basis: 100%;
-}
-
 .offline {
   flex: 0 0 auto;
   display: flex;
@@ -651,23 +666,25 @@
   --tone: var(--lt-accent-cyan);
 }
 
+/* Быстрые вопросы: аккуратные чипы сеткой — 2 в ряд (телефон, узкая колонка), 3 — в широкой. */
 .suggestGrid {
   width: 100%;
   display: grid;
-  /* Две колонки, пока карточке хватает ширины на целое слово; иначе сама
-     схлопывается в одну — подписи никогда не рвутся посреди слова. */
-  grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .panel .suggest {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 8px 10px 8px 8px;
-  font-weight: 650;
+  gap: 8px;
+  min-height: 42px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.25;
+  text-align: left;
 }
 
 .panel .suggest:hover:not(:disabled) {
@@ -677,8 +694,8 @@
 
 .suggestIcon {
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 9px;
@@ -690,8 +707,8 @@
 }
 
 .suggestIcon > svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 .panel .suggest:hover:not(:disabled) .suggestIcon {
@@ -707,26 +724,6 @@
   word-break: normal;
   hyphens: manual;
   text-wrap: balance;
-}
-
-.suggestArrow {
-  flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  color: var(--lt-text-mute);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition:
-    opacity var(--lt-dur-fast) var(--lt-ease),
-    transform var(--lt-dur-fast) var(--lt-ease),
-    color var(--lt-dur-fast) var(--lt-ease);
-}
-
-.panel .suggest:hover:not(:disabled) .suggestArrow,
-.panel .suggest:focus-visible .suggestArrow {
-  opacity: 1;
-  transform: none;
-  color: var(--tone);
 }
 
 .quickStrip {
@@ -1334,15 +1331,16 @@
   height: 17px;
 }
 
+/* Одна тонкая строка: «рекомендательный характер · Об ИИ-учителе · может ошибаться». */
 .disclaimer {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   margin: 0;
-  padding: 8px var(--ap-pad) 12px;
-  font-size: 12px;
-  line-height: 1.35;
+  padding: 6px var(--ap-pad) 9px;
+  font-size: 11px;
+  line-height: 1.3;
   color: var(--lt-text-3);
   text-align: center;
   overflow-wrap: anywhere;
@@ -1350,8 +1348,8 @@
 
 .disclaimerIcon {
   flex: 0 0 auto;
-  width: 13px;
-  height: 13px;
+  width: 12px;
+  height: 12px;
   margin-top: 1px;
 }
 
@@ -1366,10 +1364,6 @@
 /* ——— Ширина ——— */
 
 @container ap (min-width: 620px) {
-  .suggestGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .welcome {
     padding: 18px 20px;
   }
@@ -1383,9 +1377,9 @@
   }
 }
 
-@container ap (max-width: 520px) {
-  .controls {
-    grid-template-columns: minmax(0, 1fr);
+@container ap (min-width: 560px) {
+  .suggestGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1395,9 +1389,17 @@
     display: none;
   }
 
-  /* В узкой колонке стрелка забирает место у подписи — убираем её. */
-  .suggestArrow {
-    display: none;
+  /* Узкая колонка / телефон: таблетка сервера — под названием, кнопки справа на обе строки. */
+  .identity {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'avatar brand tools'
+      'avatar pill tools';
+    row-gap: 4px;
+  }
+
+  .identity > .statusPill {
+    justify-self: start;
   }
 
   /* Иконка сегмента съедала 22px, и «Помощник» обрезался до «Помощ…».
@@ -1515,9 +1517,7 @@
   }
 
   .disclaimer,
-  .welcomeCta,
-  .welcomeText,
-  .quickEyebrow {
+  .welcomeText {
     display: none;
   }
 
@@ -1561,13 +1561,13 @@
     gap: 6px;
   }
 
-  .controlStack {
-    flex: 0 1 auto;
-  }
-
-  .controlStack[data-live] {
+  .liveWrap {
     flex: 0 0 auto;
     margin-left: auto;
+  }
+
+  .liveWrap > .controlHint {
+    display: none;
   }
 
   .panel .segmented > button {
@@ -1636,10 +1636,6 @@
     width: 24px;
     height: 24px;
     border-radius: 50%;
-  }
-
-  .suggestArrow {
-    display: none;
   }
 
   .footer > .quickStrip {
@@ -1891,10 +1887,6 @@
   .typingDots i {
     animation: none;
     opacity: 0.8;
-  }
-
-  .suggestArrow {
-    transition: none;
   }
 
   .panel .suggest:hover:not(:disabled),

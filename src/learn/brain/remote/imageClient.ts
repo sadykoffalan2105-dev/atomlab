@@ -55,6 +55,8 @@ export interface ImageHealth {
   engine?: string
   /** Сервер шлёт boolean (students.enabled); принимаем и объект {enabled}. */
   students?: boolean | { enabled?: boolean }
+  /** Ученикам можно писать свой запрос (не только темы учебника); нет поля = false. */
+  studentFreeText?: boolean
   queue?: { running?: number; waiting?: number; paused?: boolean }
   lastMs?: number
 }
@@ -64,6 +66,8 @@ export interface ImageInfo {
   ready: boolean
   /** Ученикам можно рисовать (пресеты своего класса ±1). */
   students: boolean
+  /** Ученикам можно описать картинку своими словами (/health → image.studentFreeText; нет поля = false). */
+  studentFreeText?: boolean
   engine: string
 }
 
@@ -270,6 +274,7 @@ export function getImageInfo(): ImageInfo | null {
     enabled: img.enabled === true,
     ready: img.ready === true,
     students: studentsOn(img.students),
+    studentFreeText: img.studentFreeText === true,
     engine: typeof img.engine === 'string' ? img.engine : '',
   }
 }
@@ -291,6 +296,7 @@ function infoSnapshot(): ImageInfo | null {
     prev.enabled === next.enabled &&
     prev.ready === next.ready &&
     prev.students === next.students &&
+    prev.studentFreeText === next.studentFreeText &&
     prev.engine === next.engine
   ) {
     return prev
