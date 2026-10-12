@@ -244,7 +244,13 @@ export function TeacherToolsPanel() {
       if (kind === 'plan') {
         next = { kind, data: await call('plan', { unit: planUnitEff, lang, minutes }), demo: mock, lang }
       } else if (kind === 'test') {
-        next = { kind, data: await call('test', { units: picked, lang, n: nItems, format }), demo: mock, lang }
+        const data = await call('test', { units: picked, lang, n: nItems, format })
+        // id единицы «g8:14» → подпись «Kimyo 8, §14» для листа, Word и Excel
+        const items = data.items.map((it) => {
+          const u = unitById.get(it.unit)
+          return u ? { ...it, unit: u.l[lang] || u.l.ru } : it
+        })
+        next = { kind, data: { ...data, items }, demo: mock, lang }
       } else {
         const data = await call('grade', { lang, unit: gradeUnit || undefined, rubric, images: photos.map((p) => p.base64) })
         next = { kind, data, demo: mock, lang, title: `${ttLang(lang, 'gradeTitle')}${gradeUnit ? `: ${titleOf(gradeUnit)}` : ''}` }
