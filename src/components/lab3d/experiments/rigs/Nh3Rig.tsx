@@ -275,6 +275,10 @@ export function Nh3Rig() {
         }}
       >
         <GlassRod length={0.2} wetColor="#eef6ff" />
+        {/* палочку с HCl держат за верхний конец у отверстия до конца опыта — не висит в воздухе */}
+        <group position={[0, 0.17, 0]}>
+          <GripHand r={0.0028} hold={(p) => ease(p, 8, 8.12)} />
+        </group>
       </Pose>
       <group position={[HCL[0], 0, HCL[2]]}>
         <Target name="hcl-rod" size={[0.06, 0.28, 0.06]} center={[0, 0.16, 0]} hintY={0.3} />
