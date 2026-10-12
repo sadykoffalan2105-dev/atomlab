@@ -7,6 +7,7 @@
 #      проходит до перезапуска мозга; затем с поломками в шаге картинок (битый manifest.json, исключение
 #      и код 1 в image-install) — всё равно код 0 и перезапуск мозга (необязательный шаг лишь предупреждает);
 #   4) install.ps1 -DryRun и uninstall.ps1 -DryRun на временном корне.
+#   5) write-brain-config.ps1 -DryRun: миграция v4 журнала диалогов (старое умолчание all → local).
 # Запуск: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\brain\deploy-check.ps1   (код 0 — всё зелёное)
 param([switch]$Keep)
 $ErrorActionPreference = 'Continue'   # git пишет в stderr — в 5.1 с 'Stop' это было бы исключением
@@ -103,6 +104,19 @@ try {
   New-Item -ItemType Directory -Force -Path (Join-Path $TmpRoot 'comfy\ComfyUI_windows_portable'), (Join-Path $TmpRoot 'comfy-out') | Out-Null
   $r = Run-Ps (Join-Path $dep 'uninstall.ps1') @('-Root', $TmpRoot, '-DryRun')
   Check ($r.code -eq 0 -and $r.out -match 'ATOMLAB Comfy' -and $r.out -match 'Удалить картинки') 'uninstall.ps1 -DryRun: задача и папки ComfyUI' (Tail $r.out)
+
+  # 5) write-brain-config: миграция v4 dialogLog 'all' → 'local' до подъёма configVersion (docs/COMPLIANCE.md)
+  Write-Host '5) write-brain-config.ps1 -DryRun: миграция журнала диалогов' -ForegroundColor Cyan
+  $mr = Join-Path $TmpRoot 'cfgmig'
+  New-Item -ItemType Directory -Force -Path (Join-Path $mr 'atomlab\brain'), (Join-Path $mr 'atomlab-brain-data') | Out-Null
+  Copy-Item -LiteralPath (Join-Path $repo 'brain\config.ts') -Destination (Join-Path $mr 'atomlab\brain\config.ts')
+  $mc = Join-Path $mr 'atomlab-brain-data\config.json'
+  [IO.File]::WriteAllText($mc, '{ "configVersion": 3, "server": { "dialogLog": "all" } }', (New-Object Text.UTF8Encoding($false)))
+  $r = Run-Ps (Join-Path $dep 'write-brain-config.ps1') @('-Root', $mr, '-DryRun')
+  Check ($r.code -eq 0 -and $r.out -match 'all → local') "config.json v3 с dialogLog 'all' → 'local'" (Tail $r.out)
+  [IO.File]::WriteAllText($mc, '{ "configVersion": 4, "server": { "dialogLog": "all" } }', (New-Object Text.UTF8Encoding($false)))
+  $r = Run-Ps (Join-Path $dep 'write-brain-config.ps1') @('-Root', $mr, '-DryRun')
+  Check ($r.code -eq 0 -and $r.out -notmatch 'all → local' -and $r.out -notmatch '!!') "config.json v4 с явным 'all' — правка владельца остаётся" (Tail $r.out)
 } catch {
   Check $false ('сбой проверки: ' + $_.Exception.Message)
 } finally {

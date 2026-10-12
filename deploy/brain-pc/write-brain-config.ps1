@@ -18,6 +18,16 @@ if (Test-Path -LiteralPath $ct) {
   $m = [regex]::Match((Get-Content -LiteralPath $ct -Raw -Encoding UTF8), 'DEFAULT_CONFIG[^=]*=\s*\{\s*configVersion:\s*(\d+)')
   if ($m.Success) { $ver = [int]$m.Groups[1].Value }
 }
+# миграция v4 (brain/config.ts CONFIG_MIGRATIONS, docs/COMPLIANCE.md): старое умолчание server.dialogLog 'all' → 'local'.
+# Делается ДО подъёма configVersion: после подъёма мозг счёл бы 'all' в файле явной правкой владельца и не мигрировал бы.
+try {
+  $fileVer = 0
+  if ($conf.configVersion) { $fileVer = [int]$conf.configVersion }
+  if ($fileVer -lt 4 -and $ver -ge 4 -and $conf.server -and [string]$conf.server.dialogLog -eq 'all') {
+    $conf.server.dialogLog = 'local'
+    Say '    журнал диалогов: старое умолчание all → local (ученики из интернета не пишутся)'
+  }
+} catch { Warn ("журнал диалогов: миграция v4 не применена — " + $_.Exception.Message) }
 if (-not $conf.configVersion -or [int]$conf.configVersion -lt $ver) { Set-StateValue $conf 'configVersion' $ver }
 $chat = Get-BrainModelName $cfg.models.chat
 $fast = Get-BrainModelName $cfg.models.fast

@@ -30,6 +30,8 @@
   журнал `journal/dialogs.jsonl` и события `students/*.jsonl` пишутся только для владельца с самого компьютера сервера
   (проверки качества), ученики через туннель не пишутся (`brain/server.ts`: `noJournal = … || (dialogLog === 'local' && !client.local)`).
   Старый `config.json` с прежним умолчанием `'all'` переводится на `'local'` миграцией v4 (в памяти, файл не меняется).
+  На сервере друга `deploy/brain-pc/write-brain-config.ps1` делает ту же замену в файле ДО подъёма `configVersion`
+  (иначе мозг счёл бы `'all'` явной правкой); проверка — раздел 5 `scripts/brain/deploy-check.ps1`.
   Если владелец осознанно хочет `'all'` (например, по договору со школой), он пишет в `config.json`
   `"configVersion": 4` и `"server": { "dialogLog": "all" }`.
 - **Фото задачи.** `brain/http/photo.ts`, `brain/pipeline/photo.ts`: картинка живёт в памяти запроса, в журнал — только флаг
