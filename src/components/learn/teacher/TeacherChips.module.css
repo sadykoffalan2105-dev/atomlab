@@ -87,6 +87,89 @@
   display: none;
 }
 
+/* «Таблетка» состояния в шапке чата: точка + короткая подпись (полный текст — в подсказке). */
+.pill {
+  --pill: var(--lt-text-mute);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  height: 24px;
+  padding: 0 9px 0 7px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid color-mix(in srgb, var(--pill) 38%, var(--lt-border));
+  background: color-mix(in srgb, var(--pill) 10%, transparent);
+  color: var(--lt-text-2);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--lt-dur-fast) var(--lt-ease),
+    background-color var(--lt-dur-fast) var(--lt-ease);
+}
+
+.pill[data-static='1'] {
+  cursor: default;
+}
+
+.pill:not([data-static='1']):hover {
+  border-color: color-mix(in srgb, var(--pill) 70%, var(--lt-border));
+  background: color-mix(in srgb, var(--pill) 16%, transparent);
+}
+
+.pill:focus-visible {
+  outline: none;
+  box-shadow: var(--lt-ring);
+}
+
+.pill[data-tone='online'] {
+  --pill: var(--lt-success);
+}
+
+.pill[data-tone='busy'],
+.pill[data-tone='checking'] {
+  --pill: var(--lt-warning);
+}
+
+.pillDot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pill);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pill) 22%, transparent);
+}
+
+.pill[data-tone='checking'] .pillDot {
+  animation: tcPulse 1.2s var(--lt-ease) infinite;
+}
+
+.pillLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes tcPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill[data-tone='checking'] .pillDot {
+    animation: none;
+  }
+}
+
 /* Чип мозга + «Использовать мозг на этом компьютере» (мозг на сервере не найден). */
 .brainGroup {
   display: inline-flex;

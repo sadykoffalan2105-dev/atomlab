@@ -30,6 +30,7 @@ import {
 import {
   addToGallery,
   askAboutImageText,
+  canFreeText,
   cleanFormulaInput,
   drawAvailability,
   DRAW_STAGES,
@@ -37,6 +38,7 @@ import {
   galleryItems,
   gradeNum,
   nearestPreset,
+  presetEmoji,
   presetsForGrade,
   stageIndex,
   stageOf,
@@ -163,7 +165,10 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
   const info = useImageInfo()
   const role = useImageRole()
   const avail = drawAvailability(info, role)
-  const canFree = role !== 'student'
+  /** Ключ учителя / владельца на устройстве: все темы, формула без фильтра, «Забыть ключ». */
+  const hasKey = role !== 'student'
+  /** Свой текст: учитель всегда, ученик — когда сервер разрешил (/health → image.studentFreeText). */
+  const canFree = canFreeText(info, role)
   const uid = useId()
   const abortRef = useRef<AbortController | null>(null)
   const goRef = useRef<HTMLButtonElement>(null)
@@ -200,37 +205,42 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
   const gradeN = gradeNum(gradeId)
   const pool = useMemo(() => {
     if (!presets) return []
-    if (!canFree) return presetsForGrade(presets, gradeId)
+    if (!hasKey) return presetsForGrade(presets, gradeId)
     // учитель: все темы, свой класс ±1 — первыми
     const near = new Set(presetsForGrade(presets, gradeId).map((p) => p.id))
     return [...presets].sort((a, b) => Number(near.has(b.id)) - Number(near.has(a.id)))
-  }, [presets, canFree, gradeId])
+  }, [presets, hasKey, gradeId])
   const visible = useMemo(() => filterPresets(pool, search), [pool, search])
   const selected = pool.find((p) => p.id === presetId) ?? null
 
-  // «нарисуй …» из режима «Вопрос»: учителю — текст запроса (и сразу рисуем), ученику — ближайшая тема класса
+  // «нарисуй …» из режима «Вопрос»: со своим текстом — запрос в поле (и сразу рисуем), иначе — ближайшая тема класса.
+  // Обработка — после коммита (таймер с отменой): состояние меняется не в теле эффекта, повторный запуск эффекта
+  // до срабатывания таймера просто переносит обработку (nonce помечается внутри).
   const handledNonce = useRef<number | null>(null)
   const startRef = useRef<(seed?: number) => void>(() => undefined)
   useEffect(() => {
     if (!request || handledNonce.current === request.nonce) return
-    if (canFree) {
+    if (!canFree && !presets) return // темы ещё грузятся — вернёмся, когда придут
+    const id = window.setTimeout(() => {
+      if (handledNonce.current === request.nonce) return
       handledNonce.current = request.nonce
-      setPrompt(request.subject.slice(0, 500))
-      setPresetId(null)
-      if (avail.canDraw) window.setTimeout(() => startRef.current(), 0)
-      return
-    }
-    if (!presets) return // темы ещё грузятся — вернёмся, когда придут
-    handledNonce.current = request.nonce
-    const best = nearestPreset(request.subject, pool)
-    if (best) {
-      setPresetId(best.id)
-      setSearch('')
-      setHint(t('learn.drawMode.nearest', { subject: request.subject.slice(0, 60) }))
-      window.setTimeout(() => goRef.current?.focus(), 0)
-    } else {
-      setHint(t('learn.drawMode.nearestNone', { subject: request.subject.slice(0, 60) }))
-    }
+      if (canFree) {
+        setPrompt(request.subject.slice(0, 500))
+        setPresetId(null)
+        if (avail.canDraw) window.setTimeout(() => startRef.current(), 0)
+        return
+      }
+      const best = nearestPreset(request.subject, pool)
+      if (best) {
+        setPresetId(best.id)
+        setSearch('')
+        setHint(t('learn.drawMode.nearest', { subject: request.subject.slice(0, 60) }))
+        window.setTimeout(() => goRef.current?.focus(), 0)
+      } else {
+        setHint(t('learn.drawMode.nearestNone', { subject: request.subject.slice(0, 60) }))
+      }
+    }, 0)
+    return () => window.clearTimeout(id)
   }, [request, canFree, presets, pool, avail.canDraw, t])
 
   // секунды «рисую… N с»
@@ -258,7 +268,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
         setHint(t('learn.drawMode.needPrompt'))
         return
       }
-      const f = again ? again.formula : canFree ? formula.trim().slice(0, 80) : cleanFormulaInput(formula).trim()
+      const f = again ? again.formula : hasKey ? formula.trim().slice(0, 80) : cleanFormulaInput(formula).trim()
       abortRef.current?.abort()
       const ctrl = new AbortController()
       abortRef.current = ctrl
@@ -320,9 +330,11 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
         setRun(err.code === 'aborted' ? { kind: 'idle' } : { kind: 'error', err })
       }
     },
-    [canFree, formula, gradeId, lang, pool, presetId, presets, prompt, sectionTitle, selected, t],
+    [canFree, formula, gradeId, hasKey, lang, pool, presetId, presets, prompt, sectionTitle, selected, t],
   )
-  startRef.current = (seed?: number) => void start(seed)
+  useEffect(() => {
+    startRef.current = (seed?: number) => void start(seed)
+  }, [start])
 
   const cancel = () => {
     abortRef.current?.abort()
@@ -412,7 +424,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
         return t('learn.drawMode.st.gpu')
       case 'draw':
         return withSeconds
-          ? t('learn.drawMode.st.draw', { s: Math.max(0, Math.round((now - (st.drawAt ?? now)) / 1000)) })
+          ? t('learn.drawMode.st.draw', { pct: Math.round(Math.max(0, Math.min(100, st.pct))), s: Math.max(0, Math.round((now - (st.drawAt ?? now)) / 1000)) })
           : t('learn.drawMode.short.draw')
       case 'check':
         return t('learn.drawMode.st.check')
@@ -429,8 +441,9 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
     <div className={s.wrap} data-draw-mode={role}>
       {current ? (
         <section className={s.card} aria-labelledby={`${uid}-res`} data-draw-result={current.id}>
-          <h3 id={`${uid}-res`} className={s.srOnly}>
-            {altOf(current)}
+          <h3 id={`${uid}-res`} className={s.cardTitle}>
+            <span aria-hidden>✅</span> {t('learn.drawMode.resultTitle')}
+            <span className={s.srOnly}>: {altOf(current)}</span>
           </h3>
           <figure className={s.figure}>
             <div
@@ -444,22 +457,22 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
           </figure>
           <div className={s.actions}>
             <button type="button" className={s.btnPrimary} onClick={() => void savePng(current)} disabled={saving} data-draw-save="">
-              {t('learn.drawMode.save')}
+              <span aria-hidden>⬇️</span> {t('learn.drawMode.save')}
             </button>
             <button type="button" className={s.btn} onClick={() => insert(current)} disabled={inserted.has(current.id)} data-draw-insert="">
-              {inserted.has(current.id) ? t('learn.drawMode.inserted') : t('learn.drawMode.insert')}
+              <span aria-hidden>{inserted.has(current.id) ? '✓' : '📌'}</span> {inserted.has(current.id) ? t('learn.drawMode.inserted') : t('learn.drawMode.insert')}
             </button>
             <button type="button" className={s.btn} onClick={() => ask(current)} data-draw-ask="">
-              {t('learn.drawMode.askTeacher')}
+              <span aria-hidden>💬</span> {t('learn.drawMode.askTeacher')}
             </button>
             <button type="button" className={s.btn} onClick={() => void start(randomSeed(), current)} disabled={running || !avail.canDraw} data-draw-again="">
-              {t('learn.drawMode.again')}
+              <span aria-hidden>🔁</span> {t('learn.drawMode.again')}
             </button>
           </div>
         </section>
       ) : null}
 
-      {/* галерея вкладки: от двух картинок — или одна, если карточка закрыта (возврат из режима «Вопрос») */}
+      {/* галерея вкладки — тонкая лента: от двух картинок, или одна, если карточка закрыта (возврат из режима «Вопрос») */}
       {gallery.length > 1 || (gallery.length === 1 && !current) ? (
         <div className={s.gallery} role="group" aria-label={t('learn.drawMode.gallery')} data-draw-gallery="">
           <span className={s.small}>{t('learn.drawMode.gallery')}</span>
@@ -537,6 +550,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
                 rows={2}
                 maxLength={500}
                 placeholder={t('learn.drawMode.promptPh')}
+                aria-describedby={`${uid}-phint`}
                 onChange={(e) => {
                   setPrompt(e.target.value)
                   if (e.target.value.trim()) setPresetId(null)
@@ -549,6 +563,9 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
                 }}
                 data-draw-prompt=""
               />
+              <span id={`${uid}-phint`} className={s.small}>
+                {t('learn.drawMode.freeHint')}
+              </span>
             </>
           ) : null}
 
@@ -568,7 +585,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
               if (canFree) setPrompt('')
             }}
             gradeN={gradeN}
-            collapsible={canFree}
+            collapsible={hasKey}
           />
 
           <div className={s.formulaRow}>
@@ -580,7 +597,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
               className={s.input}
               value={formula}
               maxLength={80}
-              onChange={(e) => setFormula(canFree ? e.target.value : cleanFormulaInput(e.target.value))}
+              onChange={(e) => setFormula(hasKey ? e.target.value : cleanFormulaInput(e.target.value))}
               placeholder={t('learn.drawMode.formulaPh')}
               aria-describedby={`${uid}-fhint`}
               spellCheck={false}
@@ -595,7 +612,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
       ) : null}
 
       {/* ключ учителя / владельца: ученик может ввести, учитель — забыть */}
-      {canFree ? (
+      {hasKey ? (
         <div className={s.keyRow}>
           <span className={s.small}>{role === 'owner' ? t('learn.drawMode.roleOwner') : t('learn.drawMode.roleTeacher')}</span>
           <button type="button" className={s.linkBtn} onClick={forgetKey}>
@@ -609,7 +626,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
           </button>
         </div>
       )}
-      {!canFree && keyOpen ? (
+      {!hasKey && keyOpen ? (
         <div id={`${uid}-key`} className={s.keyBox}>
           <label className={s.label} htmlFor={`${uid}-keyin`}>
             {t('learn.drawMode.key')}
@@ -702,7 +719,7 @@ function TopicPicker({ title, hintText, loading, empty, items, total, selectedId
       ) : null}
       {loading ? (
         <div className={s.chips} aria-busy="true">
-          {[0, 1, 2].map((i) => (
+          {[0, 1, 2, 3].map((i) => (
             <span key={i} className={`${s.chip} ${s.chipSkeleton}`} />
           ))}
         </div>
@@ -715,6 +732,7 @@ function TopicPicker({ title, hintText, loading, empty, items, total, selectedId
           {items.map((p, i) => {
             const on = p.id === selectedId
             const near = gradeN > 0 && p.grades.some((g) => Math.abs(gradeNum(g) - gradeN) <= 1)
+            const grades = p.grades.map(gradeNum).filter(Boolean)
             return (
               <button
                 key={p.id}
@@ -726,8 +744,17 @@ function TopicPicker({ title, hintText, loading, empty, items, total, selectedId
                 onClick={() => onPick(p)}
                 data-preset={p.id}
                 data-near={near ? '1' : undefined}
+                title={p.title}
               >
-                {p.title}
+                <span className={s.chipEmoji} aria-hidden>
+                  {presetEmoji(p)}
+                </span>
+                <span className={s.chipText}>
+                  <span className={s.chipTitle}>{p.title}</span>
+                  {grades.length ? (
+                    <span className={s.chipGrade}>{t('learn.drawMode.gradeTag', { g: grades.length > 1 ? `${Math.min(...grades)}–${Math.max(...grades)}` : grades[0]! })}</span>
+                  ) : null}
+                </span>
               </button>
             )
           })}
@@ -735,11 +762,12 @@ function TopicPicker({ title, hintText, loading, empty, items, total, selectedId
       )}
     </>
   )
+  const count = total ? <span className={s.count}>{t('learn.drawMode.topicsCount', { n: total })}</span> : null
   if (!collapsible) {
     return (
       <div className={s.topics}>
         <span id={labelId} className={s.label}>
-          {title}
+          {title} {count}
         </span>
         {body}
       </div>
@@ -748,7 +776,7 @@ function TopicPicker({ title, hintText, loading, empty, items, total, selectedId
   return (
     <div className={s.topics}>
       <button type="button" className={s.linkBtn} aria-expanded={open} onClick={() => setOpen((v) => !v)} id={labelId}>
-        {open ? '▾' : '▸'} {title}
+        {open ? '▾' : '▸'} {title} {count}
       </button>
       {open ? body : null}
     </div>

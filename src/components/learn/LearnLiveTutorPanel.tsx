@@ -943,7 +943,16 @@ export function LiveDialogButton({
   className,
   icon,
   disabled = false,
-}: Props & { className?: string; icon?: ReactNode }) {
+  title,
+  describedBy,
+}: Props & {
+  className?: string
+  icon?: ReactNode
+  /** Своя подсказка (например, с состоянием микрофона) вместо «Онлайн-урок с ИИ-учителем». */
+  title?: string
+  /** id скрытого пояснения для экранного диктора. */
+  describedBy?: string
+}) {
   const { t } = useT()
   const [active, setActive] = useState(false)
 
@@ -953,8 +962,9 @@ export function LiveDialogButton({
         type="button"
         className={className}
         onClick={() => setActive(true)}
-        title={t('learn.teacherUi.liveTitle')}
+        title={title ?? t('learn.teacherUi.liveTitle')}
         aria-label={t('learn.teacherExam.liveStart')}
+        aria-describedby={describedBy}
         disabled={disabled}
         aria-haspopup="dialog"
       >
