@@ -17,6 +17,7 @@ import { jaccard } from './hybrid.ts'
 import type { Lang } from './normalize.ts'
 import { ensureToolNumbers, scrubR3, splitSentences, trimToWords, wordCount } from './postcheck.ts'
 import { balanceEquation, extractEquation, type ToolResult } from './tools.ts'
+import { reconcileCalcAnswer } from '../calc/reconcile.ts'
 
 const SUBS = '₀₁₂₃₄₅₆₇₈₉'
 /** «2H2O» → «2H₂O»: индексы — цифры после буквы/скобки, коэффициент впереди остаётся. */
@@ -65,6 +66,8 @@ export function selfCheck(
     fixes.push('tool_numbers')
     text = withNums
   }
+  // (1а) школьный калькулятор: переврано итоговое число — строка «Ответ» из расчёта (brain/calc/reconcile.ts)
+  const rc = reconcileCalcAnswer(text, a.tools, a.lang); if (rc !== text) { fixes.push('calc_answer'); text = rc }
   // (2) уравнения с несходящимися коэффициентами
   const toolEqs = a.tools.filter((t) => t.tool === 'balance' || t.tool === 'obtain').flatMap((t) => t.text.split('\n'))
   for (const s of splitSentences(text)) {
