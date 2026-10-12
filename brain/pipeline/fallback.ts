@@ -12,7 +12,7 @@
  * «пример» — уравнение с сущностью из qaBank; «а у натрия?» — факты новой сущности первыми.
  */
 import { ELEMENT_DISCOVERY_YEARS } from '../../src/data/elementDiscoveryYears.ts'
-import { sectionAnswer, termFrameUzEn, termOfQuestion } from '../curriculum/answer.ts'
+import { sectionAnswer, termFrameUzEn, termOfQuestion, termTerms } from '../curriculum/answer.ts'
 import { analogyFor } from '../persona/analogies.ts'
 import type { AnswerPlan, StandaloneQuery } from './dialogTypes.ts'
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
@@ -126,9 +126,11 @@ const MICRO: Record<QType | 'calc', Record<Lang, string[]>> = {
  * Лучшее предложение текста единицы (§) о термине вопроса: больше стемов вопроса, «… называется / — это …» выше,
  * короткое и раннее выше. Нет предложения хотя бы с половиной стемов вопроса — null.
  */
-function unitSentence(kb: Knowledge, unit: Unit, qTerms: Set<string>): string | null {
+function unitSentence(kb: Knowledge, unit: Unit, allTerms: Set<string>): string | null {
+  const qTerms = termTerms(allTerms)
   if (!qTerms.size) return null
-  const need = Math.max(1, Math.ceil(qTerms.size / 2))
+  // «амфотерные оксиды» — нужны оба стема (предложение про «оксид алюминия» — не ответ); длинный вопрос — две трети
+  const need = qTerms.size <= 2 ? qTerms.size : Math.ceil((qTerms.size * 2) / 3)
   let best: string | null = null
   let bestScore = -Infinity
   const chunks = kb.engine.paragraphChunks(unit.grade, unit.kp, ['definition', 'summary', 'textbook'])

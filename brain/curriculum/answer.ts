@@ -58,7 +58,9 @@ export function definitionFor(map: CurriculumMap, allTerms: Set<string>, grade: 
       if (!hit) return
       const termCov = hit / tt.length
       const qCov = hit / terms.size
-      if (termCov < 0.5 || qCov < 0.5) return
+      // термин целиком в вопросе (и вопрос не шире вдвое) или вопрос целиком в чуть более длинном термине;
+      // «водородная связь» ≠ «химическая связь» (по половине с каждой стороны — другое понятие)
+      if (!((termCov === 1 && qCov >= 0.5) || (qCov === 1 && termCov >= 0.66))) return
       const inGrade = grade == null || u.grade === grade
       let key = termCov + qCov + (termCov === 1 && qCov === 1 ? 1 : 0)
       key += inGrade ? 2 : -0.1 * Math.abs(u.grade - (grade ?? u.grade))
