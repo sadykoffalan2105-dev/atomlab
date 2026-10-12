@@ -17,11 +17,12 @@
  *  h  заглушка mode=down → путь не server / баннер «сервер недоступен», текстовый ввод работает;
  *  i  заглушка mode=rate → реплика доходит после Retry-After;
  *  j  экран #/voice-check: запись → текст и путь, «Скопировать отчёт» даёт JSON;
- *  k  --live: Edge/Chrome с настоящим Web Speech и мозгом из public/brain.json (ручной режим, не обязан проходить).
+ *  k  --live: Edge/Chrome с настоящим Web Speech (ручной режим: Web Speech слушает настоящий микрофон ПК, фразу говорит
+ *     человек; мозг — заглушка, --live-brain — public/brain.json); не обязан проходить.
  * Если на странице нет элементов контракта (сайт без site-voice) — сценарий «ждёт слияния» (не провал; --strict → провал).
  *
  * Запуск: npm run e2e:voice [-- --only=a,b,f] [--base=http://127.0.0.1:5173] [--port=5197] [--lead=6] [--headed]
- *         [--strict] [--live[=msedge,chrome]] [--keep]
+ *         [--strict] [--live[=msedge,chrome]] [--live-brain] [--keep]
  * Отчёт: .tmp/e2e-voice/report.json + скриншоты .tmp/e2e-voice/<сценарий>.png; exit 1 при провале.
  */
 import { chromium } from 'playwright'
@@ -560,32 +561,43 @@ async function scenarioVoiceCheck() {
   }
 }
 
-/** --live: настоящий браузер (Edge/Chrome), настоящий Web Speech и мозг из public/brain.json; только отчёт. */
+/**
+ * --live: настоящий браузер (Edge/Chrome) и настоящий Web Speech; только отчёт, на код выхода не влияет.
+ * ВАЖНО (замер 12.10): Web Speech в Chrome и Edge берёт звук с НАСТОЯЩЕГО микрофона ПК по умолчанию — флаг
+ * --use-file-for-fake-audio-capture на него не действует (фейковый файл получает только getUserMedia).
+ * Поэтому живой режим ручной и окно видимое: человек сам говорит LIVE_PHRASE в микрофон. Звук комнаты уходит
+ * в облачное распознавание браузера — запускать только у себя и только по своей воле.
+ */
+const LIVE_PHRASE = 'молярная масса воды восемнадцать грамм на моль'
 async function scenarioLive(channel) {
   const id = `k-${channel}`
-  const title = `живой режим ${channel}: Web Speech + мозг из brain.json (ручной, не обязан проходить)`
-  const mic = buildMic(`k-${channel}`, ['ru-03'])
+  // по умолчанию мозг — заглушка (сервер друга не трогаем); --live-brain — мозг из public/brain.json (только владелец)
+  const realBrain = args['live-brain'] === '1'
+  const title = `живой режим ${channel}: настоящий Web Speech + ${realBrain ? 'мозг из brain.json' : 'заглушка мозга'} (ручной, не обязан проходить)`
+  mock.reset()
   let browser
   try {
-    browser = await launch(mic.file, channel)
+    browser = await chromium.launch({ headless: false, channel, args: ['--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] })
   } catch (e) {
     return record(id, title, 'skip', `браузер ${channel} не запустился: ${String(e.message || e).split('\n')[0]}`)
   }
   try {
-    const { page } = await openPage(browser, { brain: false, query: 'stt=auto&debugVoice=1' })
+    const { page } = await openPage(browser, { brain: !realBrain, query: realBrain ? 'stt=auto&debugVoice=1' : 'stt=web&debugVoice=1' })
     if (!(await startLive(page))) return record(id, title, 'skip', 'не открылся онлайн-диалог урока')
-    const v = await waitYou(page, 1, mic.totalMs + 15_000)
+    await page.waitForTimeout(LEAD_S * 1000)
+    console.log(`  >>> ${channel}: скажите в микрофон «${LIVE_PHRASE}» (ждём 20 с)`)
+    const tAsk = Date.now()
+    const v = await waitYou(page, 1, 20_000)
     await page.waitForTimeout(4000)
     const v2 = await ve(page)
     await shot(page, id)
-    const you = v2.you.filter((x) => x.text)
+    const you = v2.you.filter((x) => x.text && x.t >= tAsk)
     const got = you.map((x) => x.text).join(' ')
-    const w = you.length ? wer(mic.segments.map((s) => s.text).join(' '), got, 'ru').wer : 1
-    const lag = you.length && v.micAt ? you[0].t - (v.micAt + mic.speechEndMs) : null
-    record(id, title, 'skip', you.length ? `«${got}» WER ${(w * 100).toFixed(0)} %, +${lag} мс, путь ${JSON.stringify(v2.path)}, учитель: ${v2.teacher.length ? 'ответил' : 'нет'}` : `реплики нет; путь ${JSON.stringify(v2.path)}`, {
+    const w = you.length ? wer(LIVE_PHRASE, got, 'ru').wer : 1
+    record(id, title, 'skip', you.length ? `«${got}» WER ${(w * 100).toFixed(0)} %, путь ${JSON.stringify(v2.path)}, учитель: ${v2.teacher.length > 1 ? 'ответил' : 'нет'}` : `реплики нет; путь ${JSON.stringify(v2.path)}`, {
       live: true,
       wer: w,
-      lagMs: lag,
+      micAt: v.micAt,
     })
   } finally {
     await browser.close()
