@@ -128,6 +128,8 @@ export interface MicFrame {
   at: number
 }
 
+const round4 = (x: number) => Math.round(x * 10_000) / 10_000
+
 const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
 /** Ошибка getUserMedia → код для UI. */
@@ -167,6 +169,7 @@ export class MicCapture implements CaptureSource {
   private stopped = false
   private frames = 0
   private lastDiagAt = 0
+  private peakRms = 0
   readonly vad: AdaptiveVad
   private onDeviceChange: (() => void) | null = null
 
@@ -176,8 +179,14 @@ export class MicCapture implements CaptureSource {
     if (handle) handle.claimed = true
     this.ringMs = options.ringMs ?? 1_000
     this.vad = new AdaptiveVad({
-      onSpeechStart: () => this.listeners.forEach((l) => l.speechStart?.(now())),
-      onSpeechEnd: (d) => this.listeners.forEach((l) => l.speechEnd?.(d, now())),
+      onSpeechStart: () => {
+        voiceLog('vad', { on: 1, floor: round4(this.vad.noise.floor), start: round4(this.vad.noise.startThreshold) })
+        this.listeners.forEach((l) => l.speechStart?.(now()))
+      },
+      onSpeechEnd: (d) => {
+        voiceLog('vad', { on: 0, ms: Math.round(d) })
+        this.listeners.forEach((l) => l.speechEnd?.(d, now()))
+      },
     })
   }
 
@@ -331,9 +340,11 @@ export class MicCapture implements CaptureSource {
     this.vad.process(rms, FRAME_MS, at)
     this.listeners.forEach((l) => l.frame?.(pcm, rms, at))
     if (this.vad.isSpeaking()) patchVoiceDiag({ lastHeardAt: Date.now() }, true)
+    if (rms > this.peakRms) this.peakRms = rms
     if (at - this.lastDiagAt > 500) {
       this.lastDiagAt = at
-      patchVoiceDiag({ vadFloor: this.vad.noise.floor, vadStart: this.vad.noise.startThreshold }, true)
+      patchVoiceDiag({ vadFloor: this.vad.noise.floor, vadStart: this.vad.noise.startThreshold, peakRms: this.peakRms, frames: this.frames }, true)
+      this.peakRms = 0
     }
   }
 

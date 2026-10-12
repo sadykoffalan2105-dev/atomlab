@@ -108,6 +108,10 @@ export interface VoiceDiag {
   lang: string | null
   vadFloor: number
   vadStart: number
+  /** Пик RMS захвата за последние ~0,5 с (диагностика уровня). */
+  peakRms: number
+  /** Сколько кадров пришло от захвата. */
+  frames: number
   errors: string[]
 }
 
@@ -126,10 +130,18 @@ const DIAG_INITIAL: VoiceDiag = {
   lang: null,
   vadFloor: 0,
   vadStart: 0,
+  peakRms: 0,
+  frames: 0,
   errors: [],
 }
 
 let diag: VoiceDiag = { ...DIAG_INITIAL }
+
+// ?debugVoice=1: диагностика доступна снаружи (e2e, консоль) — window.__atomlabVoiceDiag()
+if (typeof window !== 'undefined' && /[?&]debugVoice=1\b/.test(`${window.location?.search ?? ''}&${window.location?.hash ?? ''}`)) {
+  ;(window as unknown as { __atomlabVoiceDiag?: () => VoiceDiag }).__atomlabVoiceDiag = () => diag
+}
+
 const diagListeners = new Set<() => void>()
 
 export function getVoiceDiag(): VoiceDiag {

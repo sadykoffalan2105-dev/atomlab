@@ -18,7 +18,7 @@
 import type { LearnSpeechLocale } from '../../learnSpeech'
 import type { AssistantLang } from '../brainTypes'
 import { realScheduler, type TimingScheduler } from './conversationTiming'
-import type { RecognitionLike, SttUpdateInfo } from './duplexVoiceSession'
+import type { RecognitionLike, SessionHooks, SttUpdateInfo } from './duplexVoiceSession'
 import { ServerRecognition, type CaptureSource, type SttPoster } from './serverRecognition'
 import { postStt, SttHealthCache, type FetchLike } from '../speech/serverStt'
 import { patchVoiceDiag, setVoiceStatus, voiceLog, noteVoiceError, type SttPath } from '../speech/voiceStatus'
@@ -94,7 +94,7 @@ export class SttEngine implements RecognitionLike {
   private paused = false
   private aiSpeaking = false
   private speaking = false
-  private sessionHooks: { setVadAvailable(on: boolean): void } | null = null
+  private sessionHooks: SessionHooks | null = null
   private recheckTimer: unknown = null
   private framesTimer: unknown = null
   private pendingSwitch: { path: SttPath; reason: string } | null = null
@@ -213,8 +213,19 @@ export class SttEngine implements RecognitionLike {
     return this.impl?.hold?.(on)
   }
 
-  bindSession(hooks: { setVadAvailable(on: boolean): void }): void {
+  bindSession(hooks: SessionHooks): void {
     this.sessionHooks = hooks
+    hooks.setPathListenMode?.(this.pathListenMode())
+  }
+
+  /**
+   * Серверный путь слушает и во время речи учителя (барджин): захват getUserMedia идёт с AEC, эхо
+   * отсекает текстовый фильтр, а реплика ученика поверх приветствия не теряется (раньше в Chrome
+   * жёсткая пауза выбрасывала её целиком). Android (громкая связь телефона) и браузерный путь — по
+   * профилю браузера (Chrome: жёсткая пауза).
+   */
+  private pathListenMode(): 'soft_echo_filter' | null {
+    return this.path === 'server' && !this.o.releaseMicForWebSpeech ? 'soft_echo_filter' : null
   }
 
   /* ------------------------------------------------------------------- пути */
@@ -246,9 +257,16 @@ export class SttEngine implements RecognitionLike {
         args.onUpdate(full, interim, info ?? { path: path === 'server' ? 'server' : 'web_speech' })
       }, (code, fatal) => {
         noteVoiceError(code)
-        if (fatal && path === 'web_speech' && this.server && this.inputs().brainOnline) {
+        // Сервер только что признан недоступным — обратно не прыгаем (иначе «пинг-понг» server ↔ web).
+        if (fatal && path === 'web_speech' && this.server && this.inputs().brainOnline && this.health.peek() !== false) {
           // Браузер запретил распознавание — пробуем сервер, если он есть.
           this.requestSwitch('server', `web_${code}`, true)
+          return
+        }
+        if (fatal && path === 'web_speech' && this.path === 'web_speech') {
+          // Браузерный путь умер, сервер недоступен — только текст до повторной проверки сервера.
+          this.requestSwitch('none', `web_${code}`, true)
+          args.onError?.(code, fatal)
           return
         }
         args.onError?.(code, fatal)
@@ -259,6 +277,7 @@ export class SttEngine implements RecognitionLike {
       if (!ok) this.path = 'none'
     }
     patchVoiceDiag({ path: this.path, sttBusy: Boolean(this.impl) })
+    this.sessionHooks?.setPathListenMode?.(this.pathListenMode())
     if (prev !== this.path || reason === 'start') {
       voiceLog('path_switch', { from: prev, to: this.path, reason })
       this.o.onPathChange?.(this.path, reason)

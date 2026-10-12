@@ -36,6 +36,9 @@ const DEFAULTS: Required<NoiseFloorOptions> = {
   maxFloor: 0.06,
 }
 
+/** Вес кадра тише текущего шума (быстрый спуск: 0.06 → 0.0005 примерно за 0,3 с). */
+const FAST_DOWN_ALPHA = 0.3
+
 /** Начальная оценка шума до калибровки (типичный ноутбук с шумоподавлением). */
 const INITIAL_FLOOR = 0.004
 
@@ -80,6 +83,12 @@ export class NoiseFloor {
       return
     }
     if (speaking) return
+    // Тише текущего шума — быстро вниз: шум не может быть громче тихих кадров (калибровка пришлась на речь —
+    // ученик заговорил сразу при открытии микрофона — и порог взлетел до 0.18; без этого VAD «глох» надолго).
+    if (rms < this.value) {
+      this.value = Math.max(0, this.value * (1 - FAST_DOWN_ALPHA) + rms * FAST_DOWN_ALPHA)
+      return
+    }
     // В тишине — медленно следим за шумом (вентилятор включили/выключили).
     if (rms < this.startThreshold) {
       const a = this.o.emaAlpha

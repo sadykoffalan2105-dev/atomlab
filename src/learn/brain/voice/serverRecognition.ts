@@ -141,6 +141,7 @@ export class ServerRecognition implements RecognitionLike {
   }
 
   pause(): void {
+    if (!this.paused) voiceLog('stt_pause', { seg: this.seg?.id ?? null })
     this.paused = true
     // Сегмент, который идёт сейчас, — во время речи учителя: не отправляем (эхо).
     if (this.seg && !this.seg.hold) this.seg.drop = true
@@ -148,6 +149,7 @@ export class ServerRecognition implements RecognitionLike {
 
   resume(delayMs: number): void {
     if (!this.paused) return
+    voiceLog('stt_resume', { seg: this.seg?.id ?? null })
     this.paused = false
     this.cutUntil = this.s.now() + Math.min(Math.max(0, delayMs), this.o.resumeCutMs)
     // Ученик уже говорит (ответил, не дожидаясь конца фразы): сегмент начинается заново после отреза.
@@ -256,6 +258,7 @@ export class ServerRecognition implements RecognitionLike {
     this.partialCtrl?.abort()
     this.partialCtrl = null
     if (seg.drop || seg.samples < MIN_SEGMENT_SAMPLES) {
+      voiceLog('stt_skip', { seg: seg.id, drop: seg.drop ? 1 : 0, ms: Math.round((seg.samples / STT_SAMPLE_RATE) * 1000) })
       // Нечего отправлять, но interim прошлых partial надо снять.
       if (seg.partialSent && this.active) this.onUpdate?.(this.session.committed.trim(), '')
       return
@@ -272,7 +275,11 @@ export class ServerRecognition implements RecognitionLike {
     })
   }
 
-  private async sendFinal(wav: Uint8Array, segId: number, retried = false): Promise<void> {
+  /**
+   * retries — сколько повторов уже было. 429 rate → один повтор после Retry-After; 429 busy (наш же
+   * partial ещё распознаётся на сервере) → до 3 повторов: это не лимит, а очередь — слова не теряем.
+   */
+  private async sendFinal(wav: Uint8Array, segId: number, retries = 0): Promise<void> {
     if (!this.active) return
     const t0 = this.s.now()
     const ctrl = new AbortController()
@@ -296,12 +303,13 @@ export class ServerRecognition implements RecognitionLike {
       this.onUpdate?.(this.session.committed.trim(), '', { lang: res.lang, path: 'server', serverMs: res.ms?.total ?? null })
     } catch (e) {
       const err = e instanceof SttHttpError ? e : new SttHttpError(0, 'network', String(e), null)
-      voiceLog('stt_error', { partial: 0, status: err.status, code: err.code })
-      if (err.status === 429 && !retried) {
-        // Лимит: ждём Retry-After и повторяем тот же сегмент один раз — слова не теряются.
+      voiceLog('stt_error', { partial: 0, status: err.status, code: err.code, ...(err.status === 0 ? { detail: err.message.slice(0, 80) } : {}) })
+      const maxRetries = err.code === 'busy' ? 3 : 1
+      if (err.status === 429 && retries < maxRetries) {
+        // Лимит/занято: ждём Retry-After и повторяем тот же сегмент — слова не теряются.
         const wait = err.retryAfterMs ?? 5_000
         await new Promise<void>((r) => this.s.setTimeout(r, wait))
-        return this.sendFinal(wav, segId, true)
+        return this.sendFinal(wav, segId, retries + 1)
       }
       this.onError?.(`stt_${err.code}`, false)
       if (err.unavailable) this.noteFailure(err)
@@ -309,7 +317,8 @@ export class ServerRecognition implements RecognitionLike {
   }
 
   private sendPartial(seg: Segment, speechMs: number): void {
-    if (this.partialCtrl || this.s.now() < this.partialBlockedUntil) return
+    // Финал важнее: пока он в полёте, partial не шлём (сервер держит один запрос сессии — второй = 429 busy).
+    if (this.partialCtrl || this.finalsInFlight > 0 || this.s.now() < this.partialBlockedUntil) return
     seg.lastPartialAtMs = speechMs
     seg.partialSent = true
     const wav = encodeWavPcm16(concatPcm16(seg.frames))
@@ -333,7 +342,7 @@ export class ServerRecognition implements RecognitionLike {
         if (this.partialCtrl === ctrl) this.partialCtrl = null
         if (ctrl.signal.aborted) return
         const err = e instanceof SttHttpError ? e : new SttHttpError(0, 'network', String(e), null)
-        voiceLog('stt_error', { partial: 1, status: err.status, code: err.code })
+        voiceLog('stt_error', { partial: 1, status: err.status, code: err.code, ...(err.status === 0 ? { detail: err.message.slice(0, 80) } : {}) })
         if (err.status === 429) this.partialBlockedUntil = this.s.now() + (err.retryAfterMs ?? 5_000)
         else if (err.unavailable) this.noteFailure(err)
       })

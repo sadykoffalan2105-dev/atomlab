@@ -118,7 +118,12 @@ export function alignOffsetMs(clip: Float32Array, seg: Float32Array, rate = 1600
   return bestOff * FR
 }
 
-/** Текст фраз клипа, попавших в окно [from, to] мс; partial — последняя фраза обрезается по доле прозвучавшего. */
+/**
+ * Текст фраз клипа, попавших в окно [from, to] мс; partial — последняя фраза обрезается по доле прозвучавшего.
+ * Финал, накрывший фразу лишь частично (сегментатор разрезал фразу на два сегмента), получает только «свои» слова —
+ * по положению окна внутри фразы, как настоящий распознаватель. Раньше каждая половинка получала фразу целиком,
+ * и реплика задваивалась. Края ±15 % — допуск выравнивания огибающих.
+ */
 export function textForWindow(clip: MockClip, fromMs: number, toMs: number, partial: boolean): string {
   const out: string[] = []
   for (const s of clip.segments) {
@@ -126,12 +131,23 @@ export function textForWindow(clip: MockClip, fromMs: number, toMs: number, part
     const ov = Math.min(toMs, s.endMs) - Math.max(fromMs, s.startMs)
     const f = ov / len
     if (f <= 0) continue
-    if (f >= 0.6) out.push(s.text)
-    else if (partial) {
-      const words = s.text.split(/\s+/)
+    if (f >= 0.6 && (partial || f >= 0.85)) {
+      out.push(s.text)
+      continue
+    }
+    const words = s.text.split(/\s+/)
+    if (partial) {
       const k = Math.floor(words.length * f)
       if (k > 0) out.push(words.slice(0, k).join(' '))
-    } else if (f >= 0.35) out.push(s.text)
+      continue
+    }
+    let a = (Math.max(fromMs, s.startMs) - s.startMs) / len
+    let b = (Math.min(toMs, s.endMs) - s.startMs) / len
+    if (a < 0.15) a = 0
+    if (b > 0.85) b = 1
+    const i0 = Math.round(words.length * a)
+    const i1 = Math.round(words.length * b)
+    if (i1 > i0) out.push(words.slice(i0, i1).join(' '))
   }
   return out.join(' ').trim()
 }

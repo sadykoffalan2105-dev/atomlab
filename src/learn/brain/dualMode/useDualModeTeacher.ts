@@ -189,6 +189,16 @@ const INITIAL: DualModeTeacherState = {
   voiceMode: 'hands_free',
 }
 
+/**
+ * Микрофон не открылся: запрет → 'not-allowed' (баннер «Разрешите… Повторить»),
+ * нет устройства → 'audio-capture' (баннер «Микрофон не найден… Повторить»). Остальное — без кода.
+ */
+function micFailurePatch(code: ReturnType<typeof micErrorCode>): { sttError?: string } {
+  if (code === 'not_allowed') return { sttError: 'not-allowed' }
+  if (code === 'not_found') return { sttError: 'audio-capture' }
+  return {}
+}
+
 const FUSED_THROTTLE_MS = 280
 const STUDENT_ID_KEY = 'atomlab-live-student-id'
 
@@ -428,7 +438,7 @@ export function useDualModeTeacher(options: UseDualModeTeacherOptions) {
       patch(
         ok
           ? { micActive: true }
-          : { micActive: false, ...(micErrorCode(capture.getError()) === 'not_allowed' ? { sttError: 'not-allowed' } : {}) },
+          : { micActive: false, ...micFailurePatch(micErrorCode(capture.getError())) },
       )
     }
     await teacher.start(opts.videoEl ?? null, mic)
