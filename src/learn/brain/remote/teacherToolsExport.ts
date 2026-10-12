@@ -48,6 +48,8 @@ export const escapeHtml = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+/** Метка порядка байтов: Word и Excel по ней узнают UTF-8 (кириллица и узбекская ʻ без «кракозябр»). */
+const BOM = String.fromCharCode(0xfeff)
 const pts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 /** Ссылка сайта (#/vr-lab) → полный адрес, чтобы она работала из Word; внешние http(s) — как есть; прочее — без ссылки. */
 export function absoluteHref(href: string, origin: string): string | null {
@@ -157,7 +159,7 @@ h1{font-size:16pt;margin:0 0 8pt}h2{font-size:13pt;margin:12pt 0 4pt}
 
 /** Документ Word: HTML с пространствами имён Office — Word открывает его как обычный документ (.doc). */
 export function wordDocument(title: string, bodyHtml: string, L: ExportLabels): string {
-  return `﻿<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40" lang="${L.lang}">
+  return `${BOM}<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40" lang="${L.lang}">
 <head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
 <style>@page{size:A4;margin:2cm 1.5cm 2cm 2cm}${DOC_CSS}</style></head>
@@ -191,7 +193,7 @@ export function testCsv(t: TeacherTest, L: ExportLabels): string {
   const head = [L.no, L.type, L.question, L.options, L.answer, L.points, L.unit]
   const rows = t.items.map((it, i) => [i + 1, L.typeNames[it.type] ?? it.type, it.q, optionsText(it.options), it.answer, pts(it.points), it.unit])
   rows.push(['', '', L.total, '', '', pts(t.totalPoints), ''])
-  return '﻿' + [head, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n') + '\r\n'
+  return BOM + [head, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n') + '\r\n'
 }
 
 /** Excel-книга: «Тест» (вопросы + ключи), «Шкала» (+ разбаловка для СОР/СОЧ), «Журнал» на 30 учеников с формулами. */
@@ -242,6 +244,7 @@ export function testXlsx(t: TeacherTest, L: ExportLabels, students = 30): Uint8A
 export function safeFileName(s: string): string {
   return (
     s
+      // eslint-disable-next-line no-control-regex
       .replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()

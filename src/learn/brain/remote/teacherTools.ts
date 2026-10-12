@@ -171,7 +171,8 @@ const clampInt = (v: unknown, min: number, max: number, d: number): number => {
   return Math.min(max, Math.max(min, n))
 }
 const normLang = (l: unknown): TeacherLang => (l === 'uz' || l === 'en' ? l : 'ru')
-const UNIT_RE = /^g(7|8|9|10|11):\d+(\.\d+)?$/
+/** «g8:12», «g10:3.15», а также «g8:lab» (лабораторные работы книги). */
+const UNIT_RE = /^g(7|8|9|10|11):(\d+(\.\d+)?|lab)$/
 
 export function isUnitId(v: unknown): v is string {
   return typeof v === 'string' && UNIT_RE.test(v)
