@@ -35,7 +35,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-size: 1rem;
+  font-size: 16px;
   color: var(--lab-muted);
   background: linear-gradient(180deg, #f3f6f9, #e3e9ef);
   z-index: 30;
@@ -84,6 +84,7 @@
   -webkit-backdrop-filter: blur(14px) saturate(1.3);
   border: 1px solid var(--lab-border);
   box-shadow: 0 8px 30px rgba(30, 50, 80, 0.14);
+  line-height: 1.3;
 }
 
 .chip,
@@ -94,7 +95,7 @@
   border-radius: 999px;
   border: 0;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   color: #23303e;
@@ -138,6 +139,8 @@
   border: 1px solid var(--lab-border);
   box-shadow: 0 14px 40px rgba(30, 50, 80, 0.16);
   overflow: hidden;
+  /* Корень сайта задаёт line-height 145 % от мелкого шрифта (~13 px, наследуется числом) — свой, без наложения строк. */
+  line-height: 1.35;
 }
 
 .panelClosed {
@@ -168,7 +171,7 @@
 }
 
 .kicker {
-  font-size: 0.72rem;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -176,7 +179,7 @@
 }
 
 .headTitle {
-  font-size: 1.02rem;
+  font-size: 16.5px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -184,7 +187,7 @@
 }
 
 .toggle {
-  font-size: 1.1rem;
+  font-size: 17.5px;
   color: var(--lab-muted);
 }
 
@@ -213,7 +216,7 @@
 
 .lead {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 14px;
   color: var(--lab-muted);
   line-height: 1.4;
 }
@@ -255,7 +258,7 @@
 }
 
 .badge {
-  font-size: 0.7rem;
+  font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
@@ -292,13 +295,13 @@
 }
 
 .cardTitle {
-  font-size: 0.86rem;
+  font-size: 14px;
   font-weight: 650;
   line-height: 1.25;
 }
 
 .eq {
-  font-size: 0.74rem;
+  font-size: 12px;
   color: var(--lab-muted);
   line-height: 1.3;
 }
@@ -314,7 +317,7 @@
 }
 
 .stepCount {
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--lab-accent);
   text-transform: uppercase;
@@ -337,13 +340,13 @@
 
 .instruction {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 15px;
   line-height: 1.45;
 }
 
 .observation {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 14px;
   line-height: 1.4;
   color: #1d5f3a;
   background: #eaf7ef;
@@ -362,7 +365,7 @@
   min-height: 44px;
   border-radius: 12px;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 14.5px;
   font-weight: 600;
   cursor: pointer;
   touch-action: manipulation;
@@ -388,13 +391,13 @@
 
 .hint {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   color: var(--lab-muted);
   line-height: 1.35;
 }
 
 .classic {
-  font-size: 0.8rem;
+  font-size: 13px;
   color: var(--lab-accent);
   text-decoration: none;
 }
@@ -426,7 +429,7 @@
   .chipActive {
     padding: 0 14px;
     /* корень сайта на телефоне мельче — подписи видов не мельче 12 px */
-    font-size: max(12px, 0.86rem);
+    font-size: 14px;
   }
 
   .boardNav {
@@ -447,7 +450,7 @@
   .chip,
   .chipActive {
     padding: 0 11px;
-    font-size: max(12px, 0.86rem);
+    font-size: 14px;
   }
 
   .cards {
@@ -521,7 +524,7 @@
   border-radius: 999px;
   border: 0;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   color: #fff;
