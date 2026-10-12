@@ -74,6 +74,7 @@
     "brain:calc-mine": "tsx scripts/brain/mine-textbook-problems.mts",
     "brain:server-selftest": "tsx scripts/brain/server.selftest.mts && tsx scripts/brain/photo.selftest.mts",
     "brain:image-selftest": "tsx scripts/brain/image.selftest.mts",
+    "brain:teacher-selftest": "tsx scripts/brain/teacher.selftest.mts",
     "brain:stt-selftest": "tsx scripts/brain/stt.selftest.mts",
     "brain:stt-sidecar-test": "python -I brain/stt/sidecar/test_sidecar.py",
     "brain:image-live": "tsx scripts/brain/image.live.mts",
