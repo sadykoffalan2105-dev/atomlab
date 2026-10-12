@@ -577,8 +577,14 @@ async function scenarioVoiceCheck() {
   try {
     const { page } = await openPage(browser, { clipId: mic.id, hash: '#/voice-check' })
     const rec = page.locator('[data-testid="voice-check-record"]').first()
+    // Экран сначала просит «Разрешить микрофон» (getUserMedia только по жесту) — кнопка записи появляется после.
+    // Фейковый микрофон начинает звучать с открытия, поэтому «Записать» жмём сразу (пре-ролл 400 мс + 3 с записи).
+    const allow = page.locator('[data-testid="voice-check-allow"]').first()
     try {
-      await rec.waitFor({ state: 'visible', timeout: 30_000 })
+      await Promise.race([allow.waitFor({ state: 'visible', timeout: 30_000 }), rec.waitFor({ state: 'visible', timeout: 30_000 })])
+      if (await allow.isVisible().catch(() => false)) await allow.click()
+      await rec.waitFor({ state: 'visible', timeout: 15_000 })
+      await page.waitForFunction(() => !document.querySelector('[data-testid="voice-check-record"]')?.disabled, null, { timeout: 5_000 })
     } catch {
       await shot(page, id)
       return record(id, title, 'pending', 'нет экрана #/voice-check (ждёт слияния site-voice)')

@@ -153,6 +153,15 @@ function toSpeechLocale(lang: AssistantLang): LearnSpeechLocale {
 
 /** Сколько мс после речи учителя ещё считаем возможным «хвост эха». */
 const ECHO_TAIL_MS = 1_600
+
+/** Хвост текста барджина после уже отданного финала (пусто — весь текст и есть финал). */
+export function bargeTail(text: string, fresh: string): string {
+  const t = text.replace(/\s+/g, ' ').trim()
+  const f = fresh.replace(/\s+/g, ' ').trim()
+  if (!f) return t
+  if (t.toLowerCase().startsWith(f.toLowerCase())) return t.slice(f.length).trim()
+  return sameUtterance(t, f) ? '' : t
+}
 /** Текст, распознанный после барджина, но уже закоммиченный из interim, — окно дедупликации. */
 const INTERIM_SKIP_MS = 3_000
 /** Короче — щелчок, а не речь. */
@@ -202,6 +211,8 @@ export class DuplexVoiceSession {
   private noResultFired = false
   /** «Нажми и говори»: кнопка зажата — конец реплики не наступает, пока её не отпустят. */
   private holdActive = false
+  /** VAD сейчас слышит речь (в том числе во время речи учителя — события сессии там не обрабатываются). */
+  private vadSpeaking = false
   private holdFlushTimer: unknown = null
   /** Микрофон был выключен и включён только на время удержания — после коммита выключить снова. */
   private holdUnmuted = false
@@ -259,8 +270,14 @@ export class DuplexVoiceSession {
       return false
     }
     const handlers = {
-      onSpeechStart: () => this.onVadSpeechStart(),
-      onSpeechEnd: (durationMs: number) => this.onVadSpeechEnd(durationMs),
+      onSpeechStart: () => {
+        this.vadSpeaking = true
+        this.onVadSpeechStart()
+      },
+      onSpeechEnd: (durationMs: number) => {
+        this.vadSpeaking = false
+        this.onVadSpeechEnd(durationMs)
+      },
       onLevel: (rms: number) => {
         this.cfg.onLevel?.(rms)
         if (this.aiSpeaking && !this.muted) this.bargeIn.level(rms)
@@ -702,7 +719,13 @@ export class DuplexVoiceSession {
       const fresh = this.freshFinal(this.sttSession.committed)
       if (fresh && !this.isEcho(fresh)) this.turnEnd.final(fresh)
       else if (fresh) this.consumedLen = this.sttSession.committed.length
-      if (this.lastInterim || text) this.turnEnd.interim(this.lastInterim || text)
+      // Текст барджина = финал + interim: финал уже отдан детектору — в interim только хвост,
+      // иначе реплика задваивается («kislorod qanday olinadi kislorod qanday olinadi»).
+      const tail = this.lastInterim || bargeTail(text, fresh)
+      if (tail) this.turnEnd.interim(tail)
+      // Серверный путь: барджин по тексту часто приходит, когда ученик уже договорил (финал /stt) —
+      // VAD тишину уже видел, и ждать страховочные 2,5 с незачем: конец реплики считаем сразу.
+      if (this.vadOk && !this.vadSpeaking) this.turnEnd.speechEnd()
       // Если VAD не увидит конца речи (тихо договорил) — страховка по тишине.
       this.s.setTimeout(() => {
         if (this.turnEnd.isSpeaking() && !this.aiSpeaking) this.turnEnd.speechEnd()
