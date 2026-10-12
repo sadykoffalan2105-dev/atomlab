@@ -66,8 +66,9 @@ export async function probe(url: string, timeoutMs = 15_000): Promise<Probe> {
     const status: Status = llm && !j.loading ? 'up' : 'degraded'
     return { ts, status, ms, http: res.status, llm, model: j.llm?.chatModel ?? null, image: j.image?.enabled ? j.image.ready === true : undefined, stt: j.stt?.available === true, version: j.version ?? null, ...(status === 'degraded' ? { error: j.loading ? 'загрузка базы' : 'LLM недоступна' } : {}) }
   } catch (e) {
-    const err = e as Error & { cause?: { code?: string } }
-    return { ts, status: 'down', ms: Math.round(performance.now() - t0), http: null, error: err.name === 'TimeoutError' ? `нет ответа за ${Math.round(timeoutMs / 1000)} с` : (err.cause?.code ?? err.message).slice(0, 120) }
+    const err = e as Error & { cause?: { code?: string; message?: string; errors?: { code?: string }[] } }
+    const why = err.cause?.code ?? err.cause?.errors?.[0]?.code ?? err.cause?.message ?? err.message
+    return { ts, status: 'down', ms: Math.round(performance.now() - t0), http: null, error: err.name === 'TimeoutError' ? `нет ответа за ${Math.round(timeoutMs / 1000)} с` : String(why).slice(0, 120) }
   }
 }
 
@@ -250,7 +251,7 @@ async function main(): Promise<number> {
     const { state, change } = step(readState(stateFile), p, failAfter, remindMs)
     fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(stateFile, JSON.stringify(state, null, 1) + '\n')
-    const line = `${p.ts.slice(0, 19).replace('T', ' ')} ${p.status.padEnd(8)} ${String(p.ms).padStart(6)} мс${p.error ? ' · ' + p.error : ''}${state.pending ? ` · подозрение ${state.pending.status} ${state.pending.count}/${failAfter}` : ''}`
+    const line = `${new Date(p.ts).toLocaleString('ru-RU')} ${p.status.padEnd(8)} ${String(p.ms).padStart(6)} мс${p.error ? ' · ' + p.error : ''}${state.pending ? ` · подозрение ${state.pending.status} ${state.pending.count}/${failAfter}` : ''}`
     console.log(line)
     if (change) {
       const text = message(change, p, url)
