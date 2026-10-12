@@ -17,7 +17,7 @@ Say ''
 Say '  ATOMLAB — удаление сервера ИИ-учителя' 'White'
 
 Step '1. Задачи планировщика'
-foreach ($t in 'ATOMLAB Update', 'ATOMLAB Brain', 'ATOMLAB Ollama') {
+foreach ($t in 'ATOMLAB Update', 'ATOMLAB Brain', 'ATOMLAB Comfy', 'ATOMLAB Ollama') {
   if (Get-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue) {
     Act "остановить и удалить «$t»" {
       Stop-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue
@@ -26,7 +26,7 @@ foreach ($t in 'ATOMLAB Update', 'ATOMLAB Brain', 'ATOMLAB Ollama') {
   } else { Say "    нет задачи «$t»" }
 }
 Step '2. Процессы'
-foreach ($f in 'brain.pid', 'ollama.pid') {
+foreach ($f in 'brain.pid', 'comfy.pid', 'ollama.pid') {
   $pf = Join-Path $paths.Run $f
   if (Test-Path -LiteralPath $pf) {
     $procId = [int](Get-Content -LiteralPath $pf -Raw)
@@ -36,6 +36,10 @@ foreach ($f in 'brain.pid', 'ollama.pid') {
 $ollamaExe = Join-Path $paths.Ollama 'ollama.exe'
 Get-Process -Name 'ollama' -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $ollamaExe } | ForEach-Object {
   Act "остановить ollama ($($_.Id))" { Stop-Process -Id $_.Id -Force }
+}
+# python.exe из ComfyUI portable (на случай, если pid-файл устарел)
+Get-Process -Name 'python' -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($paths.ComfyRoot, [StringComparison]::OrdinalIgnoreCase) } | ForEach-Object {
+  Act "остановить ComfyUI python ($($_.Id))" { Stop-Process -Id $_.Id -Force }
 }
 
 Step '3. Tailscale'
@@ -61,6 +65,14 @@ if (Test-Path -LiteralPath $paths.Models) {
     Act "удалить $($paths.Models)" { Remove-Item -LiteralPath $paths.Models -Recurse -Force }
   }
 }
+# картинки: ComfyUI с моделями (~20 ГБ), его вывод и temp
+$comfyDirs = @($paths.Comfy, $paths.ComfyOut, $paths.ComfyTmp) | Where-Object { Test-Path -LiteralPath $_ }
+if ($comfyDirs.Count) {
+  $gb = [Math]::Round(((Get-ChildItem -LiteralPath $comfyDirs -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum) / 1GB, 1)
+  if (Ask "Удалить картинки: ComfyUI и его модели ($gb ГБ в $($paths.Comfy), а также comfy-out и comfy-tmp)?") {
+    foreach ($d in $comfyDirs) { Act "удалить $d" { Remove-Item -LiteralPath $d -Recurse -Force } }
+  }
+} else { Say "    картинок (ComfyUI) нет: $($paths.Comfy)" }
 if (Test-Path -LiteralPath $paths.Root) {
   if (Ask "Удалить ВСЮ папку $($paths.Root) (код, база знаний этого сервера, журналы)? Восстановить будет нельзя") {
     Act "удалить $($paths.Root)" { Remove-Item -LiteralPath $paths.Root -Recurse -Force }
