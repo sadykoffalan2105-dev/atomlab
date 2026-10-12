@@ -399,7 +399,9 @@ export class OllamaClient implements LlmClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: ac.signal,
-        body: JSON.stringify({ model, input: texts, keep_alive: this.cfg.keepAlive }),
+        // профиль gpu: эмбеддинги (bge-m3, короткие запросы) — на процессоре: видеопамять остаётся Gemma, распознаванию
+        // речи и картинкам; иначе Ollama выгружала Gemma ради bge-m3 и обратно на каждом вопросе (+5–7 с до первого слова)
+        body: JSON.stringify({ model, input: texts, keep_alive: this.cfg.keepAlive, ...(this.cfg.profile === 'gpu' ? { options: { num_gpu: 0 } } : {}) }),
       })
       if (!res.ok) return null
       const j = (await res.json()) as { embeddings?: number[][] }
