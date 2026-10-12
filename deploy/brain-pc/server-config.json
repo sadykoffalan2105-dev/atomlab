@@ -43,7 +43,15 @@
   "selfTest": {
     "sample": 20
   },
-  "sparse": ["brain", "src", "scripts/brain", "deploy"],
+  "sparse": [
+    "brain",
+    "src",
+    "scripts/brain",
+    "deploy"
+  ],
   "minDiskGB": 60,
-  "minDriver": 572.16
+  "minDriver": 572.16,
+  "removeModels": [
+    "qwen2.5:14b-instruct"
+  ]
 }

@@ -112,6 +112,22 @@ try {
     $pending = $true
   }
 
+  # --- удаление старых моделей с диска (server-config.json → removeModels), необязательный шаг ---
+  # владелец решил, что откат на них не нужен: ollama rm освобождает диск и гарантирует, что модель не займёт видеопамять
+  try {
+    $rm = @($cfg.removeModels | Where-Object { $_ -and ($_ -ne $cfg.models.chat) -and ($_ -ne $cfg.models.fast) -and ($_ -ne $cfg.models.embed) })
+    if ($rm.Count) {
+      $ollamaRm = Join-Path $paths.Ollama 'ollama.exe'
+      if (-not (Test-Path -LiteralPath $ollamaRm)) { $ollamaRm = Find-Exe 'ollama.exe' }
+      $have = (Invoke-Exe $ollamaRm list | Out-String)
+      foreach ($m in $rm) {
+        if ($have -match ('(?m)^' + [regex]::Escape($m) + '\s')) {
+          Act "ollama rm $m (старая модель, removeModels)" { Invoke-Exe $ollamaRm stop $m | Out-Null; Invoke-Exe $ollamaRm rm $m | Out-Null }
+        }
+      }
+    }
+  } catch { Warn ('удаление старых моделей пропущено: ' + $_.Exception.Message) }
+
   # --- шаг C: новые данные учебников/карты Kimyo → дописать журнал базы и векторы (append-only), см. rebuild-corpus.ps1 ---
   # необязательный шаг: сбой — предупреждение, git pull и перезапуск мозга идут дальше
   try {
