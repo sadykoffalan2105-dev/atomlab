@@ -93,6 +93,19 @@ export function isReaderGradeId(id: string | null | undefined): id is ReaderGrad
   return id != null && (READER_GRADE_IDS as readonly string[]).includes(id)
 }
 
+/**
+ * Число реакций учебника по классам — для счётчиков каталога до ленивой загрузки JSON
+ * (иначе «школьных реакций» висело «…» или считало только открытый класс).
+ * Сверяется с equations-gN.json в scripts/test-catalog-textbook-substances.mts.
+ */
+export const READER_GRADE_REACTION_TOTALS: Readonly<Record<ReaderGradeId, number>> = {
+  g7: 185,
+  g8: 298,
+  g9: 482,
+  g10: 312,
+  g11: 171,
+}
+
 type JsonModule = { default: unknown }
 
 const IMPORTERS: Record<ReaderGradeId, () => Promise<JsonModule>> = {
