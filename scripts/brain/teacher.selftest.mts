@@ -88,7 +88,7 @@ ok(isBalanced('2H₂ + O₂ → 2H₂O') && !isBalanced('H₂ + O₂ → H₂O')
 
 // ——— 1) все единицы × ru/uz
 console.log(`1) все ${map.units.length} единиц × ru/uz: план и тест СОР без LLM`)
-const stats = { plans: 0, tests: 0, problems: 0, eqs: 0, calcItems: 0, slowest: 0, slowestId: '' }
+const stats = { plans: 0, tests: 0, problems: 0, eqs: 0, calcItems: 0, lessons: 0, links3d: 0, slowest: 0, slowestId: '' }
 const fails: string[] = []
 const fail = (s: string) => {
   if (fails.length < 40) fails.push(s)
@@ -115,6 +115,10 @@ function checkUnit(id: string, lang: Lang) {
   if (sum !== 45) fail(`${id} ${lang}: этапы ${sum} мин ≠ 45`)
   if (plan.problems.length < 2 || plan.problems.length > 3) fail(`${id} ${lang}: задач ${plan.problems.length}`)
   if (!plan.objectives.length || !plan.keyQuestions.length || !plan.links.length) fail(`${id} ${lang}: пустые цели/вопросы/ссылки`)
+  // ссылки — только пути приложения (не чужие сайты); урок раздела — по appSections карты
+  for (const l of plan.links) if (!/^\/(?![/\\])[^\s"'<>\\]*$/.test(l.href)) fail(`${id} ${lang}: ссылка не путь приложения: ${l.href}`)
+  if (plan.links.some((l) => l.kind === 'lesson')) stats.lessons++
+  if (plan.links.filter((l) => l.kind !== 'book').length) stats.links3d++
   for (const p of plan.problems) {
     stats.problems++
     if (!sameAsCalc(p.statement, p.answers, lang)) fail(`${id} ${lang}: числа задачи ≠ калькулятор: ${p.statement.slice(0, 60)}`)
@@ -148,6 +152,8 @@ function checkUnit(id: string, lang: Lang) {
 }
 for (const u of map.units) for (const lang of ['ru', 'uz'] as const) checkUnit(u.id, lang)
 ok(fails.length === 0, `планы ${stats.plans}, тесты ${stats.tests}; задач ${stats.problems}, уравнений ${stats.eqs}, расчётных заданий ${stats.calcItems}; самый долгий ${Math.round(stats.slowest)} мс (${stats.slowestId})`, fails.length ? `\n    ${fails.join('\n    ')}` : '')
+// ссылки ATOMLAB сверх учебника (урок раздела / 3D-реактор / органика) — почти у всех единиц
+ok(stats.links3d >= stats.plans * 0.9, `ссылки ATOMLAB сверх учебника: ${stats.links3d}/${stats.plans} планов, урок раздела — ${stats.lessons}`)
 
 // ——— 2) en, форматы, варианты
 console.log('2) en на 30 единицах; quiz/soch; варианты')

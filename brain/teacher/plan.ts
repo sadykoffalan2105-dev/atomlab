@@ -86,7 +86,9 @@ export function planFor(u: Unit, lang: Lang, minutesIn: number, kb: Knowledge, u
   const defs = lang === 'ru' ? unitDefinitions(u) : []
   const eqs = unitEquations(u)
   const links = unitLinks(u, eqs, lang)
-  const reactorLinks = links.filter((l) => l.kind !== 'book')
+  const reactorLinks = links.filter((l) => l.kind === 'reactor')
+  const hasLesson = links.some((l) => l.kind === 'lesson')
+  const hasOrganic = links.some((l) => l.kind === 'organic')
   const nProblems = u.kind === 'tasks' || u.kind === 'review' ? 3 : 2
   const problems = problemsForUnit(u, lang, kb, nProblems)
   const typeName = (id: string) => taskTypes.find((x) => x.id === id)?.name[lang]
@@ -154,7 +156,12 @@ export function planFor(u: Unit, lang: Lang, minutesIn: number, kb: Knowledge, u
           L3(lang, `Ход работы — по учебнику (${label}); наблюдения записывать в таблицу.`, `Ish tartibi — darslik boʻyicha (${label}); kuzatishlarni jadvalga yozish.`, `Procedure as in the textbook (${label}); record observations in a table.`),
           ...reactorLinks.slice(0, 2).map((l) => L3(lang, `Перед опытом — показ в 3D: ${l.title.replace(/^3D-реактор: /, '')}.`, `Tajribadan oldin 3D koʻrsatish: ${l.title.replace(/^3D-reaktor: /, '')}.`, `Before the experiment, show it in 3D: ${l.title.replace(/^3D reactor: /, '')}.`)),
         ]
-      : reactorLinks.slice(0, 2).map((l) => L3(lang, `Показ в 3D-реакторе ATOMLAB: ${l.title.replace(/^3D-реактор: /, '')}; ученики называют признаки реакции.`, `ATOMLAB 3D-reaktorida koʻrsatish: ${l.title.replace(/^3D-reaktor: /, '')}; oʻquvchilar reaksiya belgilarini aytadi.`, `Show in the ATOMLAB 3D reactor: ${l.title.replace(/^3D reactor: /, '')}; students name the signs of the reaction.`)),
+      : [
+          ...reactorLinks.slice(0, 2).map((l) => L3(lang, `Показ в 3D-реакторе ATOMLAB: ${l.title.replace(/^3D-реактор: /, '')}; ученики называют признаки реакции.`, `ATOMLAB 3D-reaktorida koʻrsatish: ${l.title.replace(/^3D-reaktor: /, '')}; oʻquvchilar reaksiya belgilarini aytadi.`, `Show in the ATOMLAB 3D reactor: ${l.title.replace(/^3D reactor: /, '')}; students name the signs of the reaction.`)),
+          // нет реакций карты — интерактивный урок раздела (модели и вопросы) или 3D-модели молекул органики
+          ...(!reactorLinks.length && hasOrganic ? [L3(lang, 'Модели молекул темы в 3D (ATOMLAB, раздел «Органика»): ученики называют состав и строение.', 'Mavzu molekulalarining 3D modellari (ATOMLAB, Organika boʻlimi): oʻquvchilar tarkib va tuzilishni aytadi.', 'Molecule models of the topic in 3D (ATOMLAB, Organic section): students describe composition and structure.')] : []),
+          ...(!reactorLinks.length && !hasOrganic && hasLesson ? [L3(lang, `Интерактивный урок ATOMLAB по разделу (${label}): модели и вопросы на экране, ученики отвечают вслух.`, `ATOMLAB interaktiv darsi (${label}): ekrandagi modellar va savollar, oʻquvchilar ovoz chiqarib javob beradi.`, `ATOMLAB interactive lesson (${label}): models and questions on screen, students answer aloud.`)] : []),
+        ],
     practice: problems.map((p, i) =>
       L3(lang, `Задача ${i + 1}${i === 0 ? ' (у доски)' : ' (самостоятельно)'}: ${p.statement}`, `${i + 1}-masala${i === 0 ? ' (doskada)' : ' (mustaqil)'}: ${p.statement}`, `Problem ${i + 1}${i === 0 ? ' (at the board)' : ' (individually)'}: ${p.statement}`),
     ),

@@ -94,10 +94,18 @@ function fixedEquation(r: UnitReaction): string | null {
   }
 }
 
-export type LinkItem = { kind: 'book' | 'reactor' | 'organic'; title: string; href: string }
+export type LinkItem = { kind: 'book' | 'lesson' | 'reactor' | 'organic'; title: string; href: string }
 
-/** Ссылки ATOMLAB: учебник на странице §, 3D-реактор по реакциям карты, органика для органических тем. */
-export function unitLinks(u: Unit, eqs: EqItem[], lang: Lang, max = 4): LinkItem[] {
+const APP_SECTION_RE = /^(c\d{1,2})-(s\d{1,3})$/
+
+/** Интерактивный урок ATOMLAB по разделу приложения карты («c2-s10» → /learn/g/g8/c/c2/s/s10); кривой id — null. */
+export function lessonHref(u: Unit): string | null {
+  const m = u.appSections[0]?.match(APP_SECTION_RE)
+  return m ? `/learn/g/g${u.grade}/c/${m[1]}/s/${m[2]}` : null
+}
+
+/** Ссылки ATOMLAB: учебник на странице §, интерактивный урок раздела, 3D-реактор по реакциям карты, органика для органических тем. */
+export function unitLinks(u: Unit, eqs: EqItem[], lang: Lang, max = 5): LinkItem[] {
   const out: LinkItem[] = []
   const g = `g${u.grade}`
   // ссылка в учебник — из src реакции карты (там номер страницы и id единицы читалки), иначе по странице §
@@ -114,6 +122,8 @@ export function unitLinks(u: Unit, eqs: EqItem[], lang: Lang, max = 4): LinkItem
     break
   }
   out.push({ kind: 'book', title: L3(lang, `Учебник: ${u.label.ru}`, `Darslik: ${u.label.uz}`, `Textbook: ${u.label.en}`), href: book })
+  const lesson = lessonHref(u)
+  if (lesson) out.push({ kind: 'lesson', title: L3(lang, `Интерактивный урок ATOMLAB: ${u.label.ru}`, `ATOMLAB interaktiv darsi: ${u.label.uz}`, `ATOMLAB interactive lesson: ${u.label.en}`), href: lesson })
   for (const e of eqs) {
     if (out.length >= max) break
     if (e.labHref) out.push({ kind: 'reactor', title: L3(lang, `3D-реактор: ${e.eq}`, `3D-reaktor: ${e.eq}`, `3D reactor: ${e.eq}`), href: e.labHref })
