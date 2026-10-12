@@ -33,7 +33,8 @@
     "comfyPort": 8188,
     "reserveVramGB": 1.5,
     "comfyRelease": "v0.39.0",
-    "studentsFreeText": true
+    "studentsFreeText": true,
+    "unlimited": true
   },
   "update": {
     "branch": "main",

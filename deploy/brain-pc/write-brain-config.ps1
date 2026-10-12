@@ -79,6 +79,29 @@ if ($cfg.image) {
   Set-StateValue $st 'enabled' ([bool]($ic.students -eq $true))   # ученики — только по решению владельца (ЗРУ-444)
   Set-StateValue $st 'presetsOnly' $true   # ученикам — только готовые темы (мозг проверяет и сам, roles.ts)
   Set-StateValue $st 'freeText' ([bool]($ic.studentsFreeText -eq $true))   # свой текст всем без ключа: проверка Gemma + фильтры + строгий порог (решение владельца 12.10)
+  # без лимита картинок (server-config.json → image.unlimited; решение владельца 12.10): 0 = без ограничения.
+  # Остаются только «одна картинка за раз на ученика» и длина очереди видеокарты — это не лимит, а порядок.
+  if ($ic.unlimited -eq $true) {
+    Set-StateValue $st 'perHour' 0
+    Set-StateValue $st 'perDay' 0
+    $rt = $img.rate
+    if (-not (Test-JsonObject $rt)) { $rt = New-Object PSObject }
+    Set-StateValue $rt 'perMin' 0
+    Set-StateValue $rt 'perDay' 0
+    Set-StateValue $rt 'globalPerMin' 0
+    Set-StateValue $img 'rate' $rt
+    $srv = $conf.server
+    if (-not (Test-JsonObject $srv)) { $srv = New-Object PSObject }
+    $sr = $srv.rate
+    if (-not (Test-JsonObject $sr)) { $sr = New-Object PSObject }
+    $pi = $sr.perIp
+    if (-not (Test-JsonObject $pi)) { $pi = New-Object PSObject }
+    Set-StateValue $pi 'imagePerMin' 0
+    Set-StateValue $pi 'imagePerDay' 0
+    Set-StateValue $sr 'perIp' $pi
+    Set-StateValue $srv 'rate' $sr
+    Set-StateValue $conf 'server' $srv
+  }
   Set-StateValue $img 'students' $st
   $tokens = @()
   if (Test-Path -LiteralPath $teachFile) {

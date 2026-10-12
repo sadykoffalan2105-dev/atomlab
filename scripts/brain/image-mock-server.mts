@@ -5,7 +5,7 @@
  *   GET  /image/presets   — 48 тем из brain/image/presets.ts (как настоящий сервер: класс ±1, заголовок на языке);
  *   POST /image           — SSE по контракту image v1: accepted → progress checking → queue 2 → queue 1 →
  *                           waiting_gpu → switching → loading → sampling… → decoding → safety → encoding → done
- *                           (PNG рисуется здесь же, ~7 с); ученик со своим текстом → error bad_request (как roles.ts);
+ *                           (PNG рисуется здесь же, ~7 с); ученик со своим текстом — можно (как сервер с studentsFreeText);
  *   POST /chat            — короткий ответ учителя (meta → delta → done), чтобы проверить «Спросить учителя».
  *
  *   npx tsx scripts/brain/image-mock-server.mts [--port=8797] [--vite=4837] [--students=0] [--fast]
@@ -139,7 +139,7 @@ const server = http.createServer(async (req, res) => {
       llm: { available: true, chatModel: 'mock', fastModel: null, embedModel: null, vision: false },
       kb: { docs: 0, journalLines: 0, embedded: 0 },
       uptimeMs: Math.round(process.uptime() * 1000),
-      image: { enabled: imageState !== 'off', ready: imageState === 'on', engine: 'z-image-turbo', students: STUDENTS, queue: { running: 0, waiting: 0, paused: false }, lastMs: 7000 },
+      image: { enabled: imageState !== 'off', ready: imageState === 'on', engine: 'z-image-turbo', students: STUDENTS, studentFreeText: STUDENTS, queue: { running: 0, waiting: 0, paused: false }, lastMs: 7000 },
     })
   }
   if (req.method === 'GET' && url.pathname === '/__mock/image') {
@@ -173,7 +173,7 @@ const server = http.createServer(async (req, res) => {
       send('error', { code: imageState === 'off' ? 'disabled' : 'not_ready', message: 'Рисование сейчас недоступно.' })
       return res.end()
     }
-    if (role === 'student' && (b.prompt || !preset || !STUDENTS)) {
+    if (role === 'student' && (!STUDENTS || (!b.prompt && !preset))) {
       send('error', { code: STUDENTS ? 'bad_request' : 'forbidden', message: 'Выберите тему из списка — ученикам доступны готовые темы своего класса.' })
       return res.end()
     }

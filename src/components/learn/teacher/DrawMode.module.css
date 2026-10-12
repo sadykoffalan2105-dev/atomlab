@@ -575,3 +575,83 @@
     transition: none;
   }
 }
+
+/* ---------------------------------------------------------------- одно поле «опишите картинку» */
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px 4px 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--lt-border-strong, rgba(148, 170, 230, 0.28));
+  background: var(--lt-surface-2, transparent);
+}
+
+.composer:focus-within {
+  border-color: var(--lt-primary, #5b8cff);
+}
+
+.composerInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 38px;
+  max-height: 120px;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  color: var(--lt-text, inherit);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.35;
+  resize: none;
+  field-sizing: content;
+}
+
+.composerInput:focus {
+  outline: none;
+}
+
+.fx,
+.send {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  height: 38px;
+  border-radius: 12px;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.fx {
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 650;
+  background: transparent;
+  color: var(--lt-text-3, var(--lt-text-mute, #9aa6c9));
+}
+
+.fxOn {
+  color: var(--lt-primary, #5b8cff);
+  background: var(--lt-surface-3, rgba(91, 140, 255, 0.12));
+}
+
+.send {
+  width: 42px;
+  font-size: 18px;
+  color: #fff;
+  background: var(--lt-grad-primary, linear-gradient(135deg, #4169dc 0%, #7c4ddf 55%, #b935c9 100%));
+}
+
+.send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.fx:focus-visible,
+.send:focus-visible {
+  outline: 2px solid var(--lt-ring, var(--lt-primary, #5b8cff));
+  outline-offset: 2px;
+}

@@ -188,6 +188,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
   const [inserted, setInserted] = useState<ReadonlySet<string>>(() => new Set())
   const [saving, setSaving] = useState(false)
   const [keyOpen, setKeyOpen] = useState(false)
+  const [fxOpen, setFxOpen] = useState(false)
   const [keyInput, setKeyInput] = useState('')
   const [keyOwner, setKeyOwner] = useState(false)
   const [now, setNow] = useState(() => Date.now())
@@ -196,6 +197,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
 
   // все 48 тем (ученику показываем свой класс ±1: сервер чужой класс всё равно не примет)
   useEffect(() => {
+    if (canFree) return // своё описание — темы не нужны (запасной режим, когда сервер его не даёт)
     let alive = true
     void fetchPresets('', lang).then((list) => {
       if (alive) setPresets(list)
@@ -203,7 +205,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
     return () => {
       alive = false
     }
-  }, [lang])
+  }, [lang, canFree])
 
   const gradeN = gradeNum(gradeId)
   const pool = useMemo(() => {
@@ -538,7 +540,75 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
       {avail.studentsOff ? <p className={s.note}>{t('learn.drawMode.studentsOff')}</p> : null}
       {avail.reason && !running ? <p className={s.note}>{t(`learn.drawMode.off.${avail.reason}` as MessageKey)}</p> : null}
 
-      {showForm ? (
+      {/* одно поле «опишите картинку» + кнопка: без тем, подписей и подвала */}
+      {showForm && canFree ? (
+        <>
+          <form
+            className={s.composer}
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (!running && prompt.trim()) void start()
+            }}
+          >
+            <textarea
+              ref={promptRef}
+              className={s.composerInput}
+              value={prompt}
+              rows={1}
+              maxLength={500}
+              placeholder={t('learn.drawMode.promptShort')}
+              aria-label={t('learn.drawMode.prompt')}
+              title={t('learn.drawMode.safety')}
+              onChange={(e) => {
+                setPrompt(e.target.value)
+                setPresetId(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault()
+                  if (!running && prompt.trim()) void start()
+                }
+              }}
+              data-draw-prompt=""
+            />
+            <button
+              type="button"
+              className={fxOpen || formula ? `${s.fx} ${s.fxOn}` : s.fx}
+              aria-pressed={fxOpen}
+              aria-label={t('learn.drawMode.formula')}
+              title={t('learn.drawMode.formula')}
+              onClick={() => setFxOpen((v) => !v)}
+            >
+              H₂O
+            </button>
+            {running ? (
+              <button type="button" className={s.send} onClick={cancel} aria-label={t('learn.drawMode.cancel')} title={t('learn.drawMode.cancel')} data-draw-cancel="">
+                ■
+              </button>
+            ) : (
+              <button ref={goRef} type="submit" className={s.send} disabled={!prompt.trim()} aria-label={t('learn.drawMode.go')} title={t('learn.drawMode.go')} data-draw-go="">
+                <span aria-hidden>🎨</span>
+              </button>
+            )}
+          </form>
+          {fxOpen ? (
+            <input
+              className={s.input}
+              value={formula}
+              maxLength={80}
+              onChange={(e) => setFormula(hasKey ? e.target.value : cleanFormulaInput(e.target.value))}
+              placeholder={`${t('learn.drawMode.formula')}: ${t('learn.drawMode.formulaPh')}`}
+              aria-label={t('learn.drawMode.formula')}
+              title={t('learn.drawMode.formulaHint')}
+              spellCheck={false}
+              autoComplete="off"
+              data-draw-formula=""
+            />
+          ) : null}
+        </>
+      ) : null}
+
+      {showForm && !canFree ? (
         <div className={s.form}>
           {canFree ? (
             <>
@@ -662,6 +732,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
         </div>
       ) : null}
 
+      {canFree ? null : (
       <div className={s.foot}>
         <span className={s.small}>{t('learn.drawMode.safety')}</span>
         {running ? (
@@ -674,6 +745,7 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
           </button>
         ) : null}
       </div>
+      )}
     </div>
   )
 }
