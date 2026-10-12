@@ -844,7 +844,9 @@ export const ATOMIC_DATA: Readonly<Record<ElementSymbol, AtomicDatum>> = {
     z: 79,
     atomicMassU: 196.97,
     nameRu: 'золото',
-    atomicRadiusPm: 135,
+    // Атомный радиус золота — металлический (144 пм, как в школьных таблицах): эмпирический Slater 135 пм
+    // занижен релятивистским сжатием 6s и делал Au⁺ (Shannon 137) БОЛЬШЕ атома — сцена врала о переносе e⁻.
+    atomicRadiusPm: 144,
     covalentRadiusPm: 136,
     metallicRadiusPm: 144,
     vdwRadiusPm: 166,

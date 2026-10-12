@@ -39,7 +39,7 @@ function mockRoot(visible = true) {
   const root = mockRoot(true)
   const previewRootRef = { current: root as never }
 
-  // Synth + painted: hide OK.
+  // Synth + painted (без ownsScreen): Bohr НЕ гасим — иначе пустой центр (d40f324c, productPainted устарел).
   guard.tick({
     reactorViewOpen: true,
     synthLive: true,
@@ -51,7 +51,21 @@ function mockRoot(visible = true) {
     previewRootRef,
     invalidate: () => {},
   })
-  assert.equal(root.visible, false, 'synth after paint may hide Bohr')
+  assert.equal(root.visible, true, 'painted alone must not hide Bohr')
+
+  // Молекула full-scale на экране (productOwnsScreen) — единственный сигнал hide Bohr.
+  guard.tick({
+    reactorViewOpen: true,
+    synthLive: true,
+    previewMounted: true,
+    previewVisible: false,
+    previewAtomCount: 8,
+    productPrewarm: false,
+    productOwnsScreen: true,
+    previewRootRef,
+    invalidate: () => {},
+  })
+  assert.equal(root.visible, false, 'product owns screen → hide Bohr')
 }
 
 console.log('test-reactor-preview-continuity-guard: all passed')
