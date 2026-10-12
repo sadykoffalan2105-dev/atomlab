@@ -210,6 +210,14 @@ export function hasImageKey(kind?: 'owner' | 'teacher'): boolean {
   return kind ? !!readKey(kind) : !!readKey('owner') || !!readKey('teacher')
 }
 
+/**
+ * Хук для инструментов учителя (teacherTools.ts: /teacher/plan|test|grade): те же ключи, что у «Нарисовать»,
+ * чтобы учитель вводил ключ один раз. Значения только для заголовка/тела запроса — нигде не выводить.
+ */
+export function readBrainKeys(): { owner: string; teacher: string } {
+  return { owner: readKey('owner'), teacher: readKey('teacher') }
+}
+
 /** Роль по сохранённым ключам: владелец важнее учителя. */
 export function role(): ImageRole {
   if (readKey('owner')) return 'owner'
