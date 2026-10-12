@@ -50,6 +50,7 @@ import {
   isReaderGradeId,
   loadReaderGrade,
   READER_GRADE_IDS,
+  READER_GRADE_REACTION_TOTALS,
   type ReaderGrade,
   type ReaderGradeId,
   type ReaderReaction,
@@ -972,8 +973,10 @@ export function CatalogPage() {
   const reactionGradeCounts = useMemo(() => {
     const m: Partial<Record<SchoolGrade | 'all', number>> = {}
     for (const g of SCHOOL_GRADES) {
-      const rg = readerGrades[gradeToReaderId(g)]
-      if (rg) m[g] = gradeReactionStats(rg).total
+      const id = gradeToReaderId(g)
+      const rg = readerGrades[id]
+      // класс ещё не загружен — число из сверенной таблицы, а не «…» и не сумма одного класса
+      m[g] = rg ? gradeReactionStats(rg).total : READER_GRADE_REACTION_TOTALS[id]
     }
     return m
   }, [readerGrades])
