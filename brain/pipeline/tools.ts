@@ -431,7 +431,7 @@ function balanceTool(text: string, _cmp: string, lang: Lang, kb: Knowledge, grad
       const picked: { eq: string; row: (typeof rows)[number] }[] = []
       for (const row of rows) {
         if (picked.length >= 2 || (picked.length && row.unit.grade !== picked[0]!.row.unit.grade)) break
-        const b = balanceEquation(row.reaction.ascii.replace(/<->/g, '⇄'))
+        const b = balanceEquation(row.reaction.ascii.replace(/<=>|<->/g, '⇄'))
         const eq = b && typeof b === 'object' ? b.eq : row.reaction.eq
         if (seen.has(eqKey(eq))) continue
         seen.add(eqKey(eq))

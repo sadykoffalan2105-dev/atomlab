@@ -10,7 +10,8 @@
  *   --file=путь.jsonl       — другой набор (напр. brain/eval/curriculum/sample-live.jsonl для живой модели)
  *   --grade=g8 --unit=g8:12 --sub=definition --lang=uz --sample=N — фильтры (sample — класс × подтип × язык)
  *   --merged=A,B            — считать строителей слитыми (иначе флаги из brain/eval/curriculum/pending.json)
- *   --baseline=report.json  — напечатать дельты к прошлому отчёту;  --fails — напечатать провалы;  --json=путь
+ *   --baseline=report.json  — дельты к прошлому отчёту (в консоль и «Было → стало» в отчёт; --baseline-label=подпись);
+ *                             --fails — напечатать провалы;  --json=путь
  *   --report                — записать отчёт и при фильтрах (без фильтров отчёт пишется всегда, кроме --no-report):
  *                             docs/plans/curriculum-coverage.md + brain/eval/curriculum/report.json (живой — report-live.json)
  *
@@ -32,6 +33,8 @@ const THRESHOLDS_LIVE: Record<string, number> = { all: 0.85, calc: 1, test: 0.85
 /** Цитата нужного § среди школьных случаев (после слияния A), язык ответа = языку вопроса, Википедия/R3/CJK. */
 const CITATION_HIT_MIN = 0.85
 const LANG_OK_MIN = 0.98
+/** без живой модели язык ответа ≥ 99 % (12.10, nextBuild #3 — приёмка «язык ≥ 99 %»; живой порог прежний) */
+const LANG_OK_MIN_OFFLINE = 0.99
 const WIKI_LEAK_MAX = 0
 const R3_MAX = 0
 const CJK_MAX = 0
@@ -159,7 +162,8 @@ const MAPF = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'kb', 'cu
 const MUNITS = Object.values(MAPF.grades).flatMap((g) => g.units)
 const MBYID = new Map(MUNITS.map((u) => [u.id, u]))
 const rxSpecies = (ascii: string) => {
-  const [l, r] = ascii.split(/\s*(?:->|=|⇄|<->)\s*/)
+  // «<=>» — обратимые реакции карты («CO2 + H2 <=> CO + H2O»): раньше делились по «=» (12.10)
+  const [l, r] = ascii.split(/\s*(?:<=>|->|=|⇄|<->)\s*/)
   const side = (s = '') => s.split(/\s\+\s/).map((x) => x.trim().replace(/^\d+\s*/, '').replace(/[↑↓]/g, '').trim()).filter(Boolean).sort().join('+')
   return `${side(l)}>${side(r)}`
 }
@@ -203,16 +207,25 @@ type MDef = { term: { ru?: string; uz?: string; en?: string } }
 const MDEFS = new Map(MUNITS.map((u) => [u.id, (u as unknown as { definitions?: MDef[] }).definitions ?? []]))
 const foldTerm = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[ʻʼ‘’`´']/g, "'").replace(/[«»"“”▪•·]/g, ' ').replace(/\s+/g, ' ').trim()
 const stemKey = (s: string) => [...new Set(analyzeTerms(s))].sort().join(' ')
+// uz/en (12.10, nextBuild #3): тот же термин — и в ед./мн. числе («Alkin» ≡ «Alkinlar», «Alkyne» ≡ «Alkynes»), и одна из частей
+// перевода по частям («Murakkab uglevodlar, polisaxaridlar» ∋ «Polisaxaridlar»; «X va Y» ≡ «X, Y») — как у мозга
+// (brain/curriculum/answer.ts → definitionByTerm)
+const foldName = (s: string, lang: 'uz' | 'en') => {
+  const plural = lang === 'uz' ? /(\p{L}{3,})(?:lar|ler)$/u : /(\p{L}{3,}?)(?:es|s)$/u
+  const whole = foldTerm(s).replace(/\s+(?:va|and)\s+/g, ', ').split(/\s*,\s*/).map((p) => p.replace(plural, '$1')).join(', ')
+  const parts = whole.split(', ')
+  return parts.length > 1 ? [whole, ...parts] : [whole]
+}
 function defFairUnits(q: CQuestion): string[] {
   const own = MBYID.get(q.unit)
   const term = termKey(q.q)
   if (!own || !term) return [q.unit]
   const lang = q.lang as 'ru' | 'uz' | 'en'
-  const k = lang === 'ru' ? stemKey(term) : foldTerm(term)
+  const k = lang === 'ru' ? stemKey(term) : foldName(term, lang)[0]!
   if (!k) return [q.unit]
   const same = (d: MDef) => {
     const t = d.term[lang]
-    return !!t && (lang === 'ru' ? stemKey(t) === k : foldTerm(t) === k)
+    return !!t && (lang === 'ru' ? stemKey(t) === k : foldName(t, lang).includes(k))
   }
   const ok = new Set([own.id])
   for (const u of MUNITS) if (u.grade === own.grade && (MDEFS.get(u.id) ?? []).some(same)) ok.add(u.id)
@@ -301,6 +314,7 @@ const byGrade = aggregate((r) => gradeOf(r.q))
 const byGradeSub = aggregate((r) => `${gradeOf(r.q)}/${r.q.sub}`)
 const byUnit = aggregate((r) => r.q.unit)
 const byLang = aggregate((r) => r.q.lang)
+const byLangSub = aggregate((r) => `${r.q.lang}/${r.q.sub}`)
 
 console.log('\nподтип        всего  прошло   доля   в пороге  прошло   доля   цитата §')
 for (const [k, a] of bySub)
@@ -338,7 +352,8 @@ for (const [sub, min] of Object.entries(th)) {
 }
 if (!pending.A && metrics.schoolCases && metrics.citationHit / metrics.schoolCases < CITATION_HIT_MIN) fails.push(`citationHit ${fmtP(metrics.citationHit, metrics.schoolCases)} < ${CITATION_HIT_MIN * 100} %`)
 if (live && metrics.calc && metrics.numberOk < rows.filter((r) => r.q.sub === 'calc' && !r.waits.length).length) fails.push(`numberOk ${metrics.numberOk}/${metrics.calc} (нужно 100 %)`)
-if (metrics.langCases && metrics.langOk / metrics.langCases < LANG_OK_MIN) fails.push(`язык ${fmtP(metrics.langOk, metrics.langCases)} < ${LANG_OK_MIN * 100} %`)
+const langMin = live ? LANG_OK_MIN : LANG_OK_MIN_OFFLINE
+if (metrics.langCases && metrics.langOk / metrics.langCases < langMin) fails.push(`язык ${fmtP(metrics.langOk, metrics.langCases)} < ${langMin * 100} %`)
 if (metrics.wikiLeak > WIKI_LEAK_MAX) fails.push(`wikiLeak ${metrics.wikiLeak}`)
 if (metrics.r3 > R3_MAX) fails.push(`R3 ${metrics.r3}`)
 if (metrics.cjk > CJK_MAX) fails.push(`CJK ${metrics.cjk}`)
@@ -358,18 +373,21 @@ const report = {
   mapSource: index.mapSource ?? '—',
   filters: filtered ? { file, ...filters, sample: arg('sample') } : null,
   metrics,
-  thresholds: { offline: THRESHOLDS_OFFLINE, live: THRESHOLDS_LIVE, citationHit: CITATION_HIT_MIN, langOk: LANG_OK_MIN },
+  thresholds: { offline: THRESHOLDS_OFFLINE, live: THRESHOLDS_LIVE, citationHit: CITATION_HIT_MIN, langOk: LANG_OK_MIN, langOkOffline: LANG_OK_MIN_OFFLINE },
   bySub: Object.fromEntries(bySub),
   byGrade: Object.fromEntries(byGrade),
   byGradeSub: Object.fromEntries(byGradeSub),
   byLang: Object.fromEntries(byLang),
+  byLangSub: Object.fromEntries(byLangSub),
   worstUnits: worst,
   passed: !fails.length,
   fails,
 }
 const baseline = arg('baseline')
-if (baseline && fs.existsSync(baseline)) {
-  const b = JSON.parse(fs.readFileSync(baseline, 'utf8')) as typeof report
+/** прошлый отчёт (--baseline): «было → стало» по подтипам и языкам — в консоль и в отчёт */
+const base = baseline && fs.existsSync(baseline) ? (JSON.parse(fs.readFileSync(baseline, 'utf8')) as Partial<typeof report> & Pick<typeof report, 'metrics' | 'bySub'>) : null
+if (base) {
+  const b = base
   const d = (x: Agg | undefined, y: Agg | undefined) => (x && y && x.n && y.n ? `${((x.ok / x.n - y.ok / y.n) * 100).toFixed(1)} п.п.` : '—')
   console.log(`\nдельты к ${baseline}: всего ${(pct(metrics.passAll, metrics.cases) - pct(b.metrics.passAll, b.metrics.cases)).toFixed(1)} п.п. · ${[...bySub].map(([k, a]) => `${k} ${d(a, (b.bySub as Record<string, Agg>)[k])}`).join(' · ')}`)
 }
@@ -404,9 +422,36 @@ function markdown(): string {
   L.push(`|---|---|${subs.map(() => '---').join('|')}|---|`)
   for (const [g, a] of byGrade) L.push(`| ${g} | ${fmtP(a.ok, a.n)} (${a.n}) | ${subs.map((s) => { const x = byGradeSub.get(`${g}/${s}`); return x ? `${fmtP(x.ok, x.n)} (${x.n})` : '—' }).join(' | ')} | ${fmtP(a.cite, a.n)} |`)
   L.push('')
-  L.push('Пороги без LLM: ' + Object.entries(THRESHOLDS_OFFLINE).map(([k, v]) => `${k} ≥ ${v * 100} %`).join(', ') + `; citationHit ≥ ${CITATION_HIT_MIN * 100} % (после A); wikiLeak = 0, R3 = 0, CJK = 0, язык ≥ ${LANG_OK_MIN * 100} %.`)
+  L.push('Пороги без LLM: ' + Object.entries(THRESHOLDS_OFFLINE).map(([k, v]) => `${k} ≥ ${v * 100} %`).join(', ') + `; citationHit ≥ ${CITATION_HIT_MIN * 100} % (после A); wikiLeak = 0, R3 = 0, CJK = 0, язык ≥ ${LANG_OK_MIN_OFFLINE * 100} % (с живой моделью ≥ ${LANG_OK_MIN * 100} %).`)
   L.push('Живая модель (sample-live.jsonl, 100 случаев): ' + Object.entries(THRESHOLDS_LIVE).map(([k, v]) => `${k} ≥ ${v * 100} %`).join(', ') + ', numberOk 100 %.')
   L.push('')
+  // по языкам (12.10, nextBuild #3: uz ≥ 90 % в пороге): доля в пороге, в скобках — число случаев в пороге
+  L.push('## По языкам и подтипам (в пороге; в скобках — число случаев)')
+  L.push('')
+  L.push(`| язык | всего | ${subs.join(' | ')} | цитата § |`)
+  L.push(`|---|---|${subs.map(() => '---').join('|')}|---|`)
+  for (const [lg, a] of byLang) L.push(`| ${lg} | ${fmtP(a.gatedOk, a.gated)} (${a.gated}) | ${subs.map((s) => { const x = byLangSub.get(`${lg}/${s}`); return x ? `${fmtP(x.gatedOk, x.gated)} (${x.gated})` : '—' }).join(' | ')} | ${fmtP(a.cite, a.n)} |`)
+  L.push('')
+  if (base) {
+    const bAgg = (m: Record<string, Agg> | undefined, k: string) => m?.[k]
+    const row = (name: string, now: Agg | undefined, was: Agg | undefined) => {
+      const p = (x: Agg | undefined) => (x && x.gated ? (x.gatedOk / x.gated) * 100 : null)
+      const [n, w] = [p(now), p(was)]
+      return `| ${name} | ${was ? `${w!.toFixed(1)} % (${was.gatedOk}/${was.gated})` : '—'} | ${now ? `${n!.toFixed(1)} % (${now.gatedOk}/${now.gated})` : '—'} | ${n != null && w != null ? `${n - w >= 0 ? '+' : ''}${(n - w).toFixed(1)} п.п.` : '—'} |`
+    }
+    L.push(`## Было → стало (к ${arg('baseline-label') ?? path.relative(ROOT, path.resolve(baseline!)).replace(/\\/g, '/')}; в пороге)`)
+    L.push('')
+    L.push('| срез | было | стало | Δ |')
+    L.push('|---|---|---|---|')
+    L.push(row('всего', { n: metrics.cases, ok: metrics.passAll, gated: metrics.gated, gatedOk: metrics.pass, cite: 0 }, { n: base.metrics.cases, ok: base.metrics.passAll, gated: base.metrics.gated, gatedOk: base.metrics.pass, cite: 0 }))
+    for (const s of subs) L.push(row(s, bySub.get(s), bAgg(base.bySub as Record<string, Agg>, s)))
+    for (const [lg, a] of byLang) L.push(row(`язык ${lg}`, a, bAgg(base.byLang as Record<string, Agg> | undefined, lg)))
+    if (base.byLangSub) for (const lg of byLang.keys()) for (const s of ['definition']) L.push(row(`${lg} / ${s}`, byLangSub.get(`${lg}/${s}`), bAgg(base.byLangSub as Record<string, Agg> | undefined, `${lg}/${s}`)))
+    L.push(`| язык ответа = языку вопроса | ${fmtP(base.metrics.langOk, base.metrics.langCases)} | ${fmtP(metrics.langOk, metrics.langCases)} | — |`)
+    L.push(`| citationHit | ${fmtP(base.metrics.citationHit, base.metrics.schoolCases)} | ${fmtP(metrics.citationHit, metrics.schoolCases)} | — |`)
+    L.push(`| не в пороге (артефакты вопросов) | ${base.metrics.unfair ?? '—'} | ${metrics.unfair} | — |`)
+    L.push('')
+  }
   L.push('## Худшие 10 единиц')
   L.push('')
   L.push('| единица | прошло | причины | пример провала |')
@@ -418,7 +463,7 @@ function markdown(): string {
   L.push('- «Почему»: один шаблон прикреплён к нескольким (до 3) единицам класса с той же темой, а ученик того же класса получает один ответ — «точный §» засчитывается для любого § своего класса с темой шаблона (topics карты), а не одного случайного.')
   L.push('- Определение: тот же термин того же класса встречается в нескольких единицах или определениях (и разными шаблонами вопроса) — ответ засчитывается, если проходит проверку любой из них (её цитату и её определение).')
   L.push('- Определение, цитата § (второй круг 12.10): засчитывается § класса, в определениях которого (карта, definitions[].term) стоит тот же термин — те же стемы (ru) или та же запись (uz/en): «Горизонтальные ряды называются периодами» напечатано и в гл. 3, теме 1, и в теме 3. «Изучаемые понятия»-заголовки («получение», «строение атома») так не засчитываются; ожидаемый факт проверяется как прежде.')
-  L.push(`- uz-определение без узбекского термина (генератор подставил русскую словоформу: «синтезом» nima?) — артефакт генератора, не в пороге и не в метрике языка, печатается: ${metrics.unfair} случаев.`)
+  L.push(`- uz-определение (12.10, nextBuild #3): генератор задаёт его только с узбекским термином карты (definitions[].term.uz, concepts[].uz — перевод по brain/persona/uzGlossary.ts), ««синтезом» nima?» на русскую словоформу больше не создаётся (было 280 таких случаев); оставшиеся артефакты — не в пороге и не в метрике языка: ${metrics.unfair}.`)
   L.push('- Пороги не снижались; мозг отвечает определением § класса, «о чём §» — содержанием §, цитата § — первой.')
   L.push('')
   L.push('## Пробелы книги (не «дотягиваются» — показываются честно)')

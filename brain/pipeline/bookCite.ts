@@ -30,7 +30,8 @@ function index(map: CurriculumMap) {
   map.units.forEach((unit, order) => {
     for (const reaction of unit.reactions) {
       if (reaction.isGeneral) continue
-      const [l, r] = reaction.ascii.split(/\s*(?:->|=|⇄|<->)\s*/)
+      // «<=>» — обратимые реакции карты («CO2 + H2 <=> CO + H2O»; раньше делились по «=» — § не находился, 12.10)
+      const [l, r] = reaction.ascii.split(/\s*(?:<=>|->|=|⇄|<->)\s*/)
       if (!l || !r) continue
       const row = { unit, reaction, left: speciesOf(l), right: speciesOf(r), order }
       rows.push(row)

@@ -218,6 +218,81 @@ export function questionTerm(text: string, lang: Lang): string | null {
 }
 
 const foldName = (s: string) => norm(s).replace(/[ʻʼ‘’`´']/g, "'").replace(/\s+/g, ' ').trim()
+
+/** Термин для сравнения: регистр, апострофы, кавычки; «X va Y» / «X and Y» ≡ «X, Y»; мн. число последнего слова (-lar, -s). */
+function foldTermName(s: string, lang: Lang): string {
+  const t = foldName(s.replace(/[«»“”"]/g, ' ')).replace(/\s+(?:va|and)\s+/g, ', ')
+  const plural = lang === 'uz' ? /(\p{L}{3,})(?:lar|ler)$/u : /(\p{L}{3,}?)(?:es|s)$/u
+  return t
+    .split(/\s*,\s*/)
+    .map((p) => p.replace(plural, '$1'))
+    .join(', ')
+}
+/** Буква подуровня в начале термина: «s-электроны», «P электронами», «S-орбиталью» (кириллическая «р» = p). */
+const SUBLEVEL_RE = /^([spdfр])(?:\s*[-‐–]\s*|\s+)(?=\p{L}{3})/iu
+const sublevelOf = (s: string): { letter: string; stems: string } | null => {
+  const t = s.trim()
+  const m = SUBLEVEL_RE.exec(t)
+  if (!m) return null
+  const rest = t.slice(m[0].length).split(/\s*[,;]\s*|\s+и\s+/u)[0]!
+  const stems = [...new Set(analyzeTerms(rest))].sort().join(' ')
+  return stems ? { letter: m[1]!.toLowerCase().replace('р', 'p'), stems } : null
+}
+/**
+ * ru: «Что такое s-электроны?» — стемы букву подуровня не видят («s-электроны» ≡ «электрон»), и вопрос уходил к
+ * определению электрона (§7) вместо «Электроны на этом уровне называются s электронами» (§10, 12.10). Термин с буквой
+ * подуровня — определение класса с той же буквой и теми же стемами; иначе null (работает поиск по стемам).
+ */
+function definitionBySublevel(map: CurriculumMap, text: string, grade: number): DefHit | null {
+  const term = questionTerm(text, 'ru')
+  const q = term ? sublevelOf(term) : null
+  if (!q) return null
+  for (const u of map.byGrade.get(grade) ?? []) {
+    if (u.kind === 'review') continue
+    const index = u.definitions.findIndex((d) => {
+      const s = sublevelOf(d.term.ru)
+      return !!s && s.letter === q.letter && s.stems === q.stems
+    })
+    if (index >= 0) return { unit: u, def: u.definitions[index]!, index, termCov: 1, qCov: 1, inGrade: true }
+  }
+  return null
+}
+const termNames = new WeakMap<UnitDefinition, { uz: string[]; en: string[] }>()
+function namesOf(d: UnitDefinition): { uz: string[]; en: string[] } {
+  let n = termNames.get(d)
+  if (!n) {
+    const of = (x: string | undefined, lang: 'uz' | 'en') => {
+      if (!x || /[а-яё]/iu.test(x)) return []
+      const whole = foldTermName(x, lang)
+      const parts = whole.split(', ')
+      return parts.length > 1 ? [whole, ...parts] : [whole]
+    }
+    termNames.set(d, (n = { uz: of(d.term.uz, 'uz'), en: of(d.term.en, 'en') }))
+  }
+  return n
+}
+
+/**
+ * uz/en: определение § по термину вопроса на его языке («Sintez nima?», «Vinil radikali deb nimaga aytiladi?») —
+ * термин совпал с узбекским/английским термином определения карты (definitions[].term.uz/en: перевод учебного термина
+ * по brain/persona/uzGlossary.ts). Русские стемы перевода («vinil radikali» → «винильный радикал» → «радика») не всегда
+ * совпадают со стемами термина, как он напечатан в книге («винильным радикалом» → «радикал»), и вопрос уходил к чужому §.
+ * Только класс ученика (раньше в книге — первым); иначе null — работает поиск по русским стемам (definitionFor).
+ */
+export function definitionByTerm(map: CurriculumMap, text: string, lang: Lang, grade: number | null): DefHit | null {
+  if (grade == null) return null
+  if (lang === 'ru') return definitionBySublevel(map, text, grade)
+  const term = termOfQuestion(text, lang)
+  if (!term) return null
+  const k = foldTermName(term, lang)
+  if (!k) return null
+  for (const u of map.byGrade.get(grade) ?? []) {
+    if (u.kind === 'review') continue
+    const index = u.definitions.findIndex((d) => namesOf(d)[lang].includes(k))
+    if (index >= 0) return { unit: u, def: u.definitions[index]!, index, termCov: 1, qCov: 1, inGrade: true }
+  }
+  return null
+}
 /**
  * Понятие § по названию на языке вопроса: термин вопроса совпадает с понятием карты (у понятий есть uz/en-названия:
  * «kimyo tarixi», «history of chemistry») или с названием единицы — § класса ученика, раньше в книге первым.

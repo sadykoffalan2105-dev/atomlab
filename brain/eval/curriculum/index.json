@@ -12,24 +12,24 @@
     "tasks": 12,
     "lab": 2
   },
-  "cases": 4227,
+  "cases": 4095,
   "bytes": {
-    "g7": 605587,
-    "g8": 414312,
-    "g9": 478707,
-    "g10": 400886,
-    "g11": 217749
+    "g7": 596388,
+    "g8": 413097,
+    "g9": 468653,
+    "g10": 371376,
+    "g11": 212680
   },
   "byGrade": {
-    "g7": 1123,
+    "g7": 1104,
     "g8": 876,
-    "g9": 942,
-    "g10": 824,
-    "g11": 462
+    "g9": 917,
+    "g10": 748,
+    "g11": 450
   },
   "bySub": {
     "calc": 201,
-    "definition": 1459,
+    "definition": 1327,
     "obtain": 29,
     "reaction": 721,
     "section": 542,
@@ -37,13 +37,13 @@
     "why": 390
   },
   "byLang": {
-    "en": 381,
-    "ru": 2017,
-    "uz": 1829
+    "en": 447,
+    "ru": 1962,
+    "uz": 1686
   },
   "byGradeSub": {
     "g7/calc": 28,
-    "g7/definition": 392,
+    "g7/definition": 373,
     "g7/reaction": 75,
     "g7/section": 136,
     "g7/test": 453,
@@ -56,26 +56,26 @@
     "g8/test": 186,
     "g8/why": 81,
     "g9/calc": 40,
-    "g9/definition": 261,
+    "g9/definition": 236,
     "g9/obtain": 17,
     "g9/reaction": 186,
     "g9/section": 94,
     "g9/test": 246,
     "g9/why": 98,
     "g10/calc": 14,
-    "g10/definition": 375,
+    "g10/definition": 299,
     "g10/reaction": 193,
     "g10/section": 142,
     "g10/why": 100,
     "g11/calc": 60,
-    "g11/definition": 143,
+    "g11/definition": 131,
     "g11/obtain": 2,
     "g11/reaction": 109,
     "g11/section": 76,
     "g11/why": 72
   },
   "needs": {
-    "A": 4227,
+    "A": 4095,
     "B": 34
   },
   "paragraphUnitsUnder5": [

@@ -12,7 +12,8 @@ import type { CurriculumMap } from '../curriculum/map.ts'
 import type { Unit, UnitReaction } from '../curriculum/types.ts'
 
 const SUB: Record<string, string> = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9' }
-const ARROW_RE = /\s*(?:→|->|⟶|⇄|⇌|<->|=)\s*(?:\([^)]{0,24}\)\s*)?/
+// «<=>» — обратимые реакции карты в ASCII («CO2 + H2 <=> CO + H2O»): раньше делились по «=» и не находились (12.10)
+const ARROW_RE = /\s*(?:→|->|⟶|⇄|⇌|<=>|<->|=)\s*(?:\([^)]{0,24}\)\s*)?/
 
 /** Формула вещества без коэффициента, ↑↓, пометок «(конц.)», «(р-р)», «(aq)» — ASCII. */
 export function speciesAscii(s: string): string {
