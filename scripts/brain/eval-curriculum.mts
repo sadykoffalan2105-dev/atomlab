@@ -203,16 +203,25 @@ type MDef = { term: { ru?: string; uz?: string; en?: string } }
 const MDEFS = new Map(MUNITS.map((u) => [u.id, (u as unknown as { definitions?: MDef[] }).definitions ?? []]))
 const foldTerm = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/[ʻʼ‘’`´']/g, "'").replace(/[«»"“”▪•·]/g, ' ').replace(/\s+/g, ' ').trim()
 const stemKey = (s: string) => [...new Set(analyzeTerms(s))].sort().join(' ')
+// uz/en (12.10, nextBuild #3): тот же термин — и в ед./мн. числе («Alkin» ≡ «Alkinlar», «Alkyne» ≡ «Alkynes»), и одна из частей
+// перевода по частям («Murakkab uglevodlar, polisaxaridlar» ∋ «Polisaxaridlar»; «X va Y» ≡ «X, Y») — как у мозга
+// (brain/curriculum/answer.ts → definitionByTerm)
+const foldName = (s: string, lang: 'uz' | 'en') => {
+  const plural = lang === 'uz' ? /(\p{L}{3,})(?:lar|ler)$/u : /(\p{L}{3,}?)(?:es|s)$/u
+  const whole = foldTerm(s).replace(/\s+(?:va|and)\s+/g, ', ').split(/\s*,\s*/).map((p) => p.replace(plural, '$1')).join(', ')
+  const parts = whole.split(', ')
+  return parts.length > 1 ? [whole, ...parts] : [whole]
+}
 function defFairUnits(q: CQuestion): string[] {
   const own = MBYID.get(q.unit)
   const term = termKey(q.q)
   if (!own || !term) return [q.unit]
   const lang = q.lang as 'ru' | 'uz' | 'en'
-  const k = lang === 'ru' ? stemKey(term) : foldTerm(term)
+  const k = lang === 'ru' ? stemKey(term) : foldName(term, lang)[0]!
   if (!k) return [q.unit]
   const same = (d: MDef) => {
     const t = d.term[lang]
-    return !!t && (lang === 'ru' ? stemKey(t) === k : foldTerm(t) === k)
+    return !!t && (lang === 'ru' ? stemKey(t) === k : foldName(t, lang).includes(k))
   }
   const ok = new Set([own.id])
   for (const u of MUNITS) if (u.grade === own.grade && (MDEFS.get(u.id) ?? []).some(same)) ok.add(u.id)

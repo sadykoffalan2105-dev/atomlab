@@ -298,6 +298,27 @@ const fixtures: { grade: number; kp: string; statement: string; expect: { value:
 
 const glossUz = (ru: string) => kb.glossaryRu.get(ru.toLowerCase())?.uz[0] ?? null
 const glossEn = (ru: string) => kb.glossaryRu.get(ru.toLowerCase())?.en[0] ?? null
+/**
+ * Узбекский термин для вопроса: нет термина или в нём кириллица — null (вопроса нет). Перевод по частям из карты:
+ * «Фосфориты и апатиты» → «Fosforitlar, apatitlar» → «Fosforitlar va apatitlar»; уточнение в скобках или через запятую
+ * («Сложные углеводы (полисахариды, полиозы)», «Молярной массой (г/моль)») — главный термин, первая часть.
+ */
+function uzQuestionTerm(t: string | null | undefined, ru: string): string | null {
+  const s = t?.replace(/[«»"“”]/g, '').trim()
+  if (!s || /[а-яё]/iu.test(s)) return null
+  const parts = [...new Set(s.split(/\s*,\s*/).filter(Boolean))]
+  return parts.length === 2 && /\sи\s/u.test(ru) && !/[(]/.test(ru) ? `${parts[0]} va ${parts[1]!.toLowerCase()}` : parts[0]!
+}
+/**
+ * «Изучаемые понятия»-заголовки § (не термин): «получение», «применение», «общая формула» стоят почти в каждом § класса —
+ * вопрос «Что такое получение?» / «olinishi nima?» не называет ни вещество, ни §, честного «верного §» у него нет.
+ * Заголовок — понятие из списка ниже или понятие, которое стоит в 3+ единицах того же класса (карта).
+ */
+const HEADING_RE = /^(?:получение|применение|использование|свойства|физические свойства|химические свойства|нахождение в природе|распространение в природе|в природе|строение|строение молекулы|состав|общая формула|определения|реакции|значение|биологическое значение)$/u
+const conceptKey = (s: string) => s.toLowerCase().replace(/ё/g, 'е').replace(/^[▪•·\s]+/u, '').trim()
+const conceptUnits = new Map<string, number>()
+for (const u of units) for (const k of new Set(u.concepts.map((c) => `${u.grade}|${conceptKey(c.ru)}`))) conceptUnits.set(k, (conceptUnits.get(k) ?? 0) + 1)
+const headingConcept = (grade: number, ru: string) => HEADING_RE.test(conceptKey(ru)) || (conceptUnits.get(`${grade}|${conceptKey(ru)}`) ?? 0) >= 3
 const lowerTerm = (t: string) => (/^[А-ЯЁ][а-яё]/u.test(t) ? t[0]!.toLowerCase() + t.slice(1) : t)
 /** корень слова для regex: ≥ 4 букв, «е» ≈ «ё» */
 const stemRe = (w: string) => reEsc(w.length > 6 ? w.slice(0, w.length - 2) : w).replace(/е/g, '[её]')
@@ -497,10 +518,11 @@ for (const u of units) {
       if (!top.length) return
       const ruQ = pick(rd, [`Что такое ${term}?`, `Дай определение: ${term}`, `Что означает термин «${term}»?`])
       push(u, 'definition', i + 1, 'ru', ruQ, { kind: 'definition', mustMatch: [twoOfThree(top)] })
-      const uzT = d.term.uz ?? glossUz(d.term.ru)
+      // uz — только с узбекским термином карты (definitions[].term.uz, перевод по brain/persona/uzGlossary.ts) или
+      // глоссария базы; без него вопроса нет: «синтезом» nima? (русская словоформа) ученик не задаст (12.10, nextBuild #3)
+      const uzT = uzQuestionTerm(d.term.uz ?? glossUz(d.term.ru), d.term.ru)
       const termStem = (t: string) => stemRe(t.split(/\s+/)[0]!.toLowerCase())
-      const uzQ = uzT ? pick(rd, [`${uzT} nima?`, `${uzT} deb nimaga aytiladi?`]) : `«${term}» nima?`
-      push(u, 'definition', i + 1, 'uz', uzQ, { kind: 'definition', mustMatch: [uzT ? termStem(uzT) : termStem(term)] })
+      if (uzT) push(u, 'definition', i + 1, 'uz', pick(rd, [`${uzT} nima?`, `${uzT} deb nimaga aytiladi?`]), { kind: 'definition', mustMatch: [termStem(uzT)] })
       const enT = d.term.en ?? glossEn(d.term.ru)
       if (withEn && enT) push(u, 'definition', i + 1, 'en', pick(rd, [`What is ${enT}?`, `Define ${enT}.`]), { kind: 'definition', mustMatch: [termStem(enT)] })
     })
@@ -623,14 +645,14 @@ for (const u of units) {
     const room = Math.max(MAX.def - u.definitions.length, 5 - (cases.length - before), 2)
     const defTerms = new Set(u.definitions.map((d) => d.term.ru.toLowerCase()))
     u.concepts
-      .filter((c) => !defTerms.has(c.ru.toLowerCase()) && goodTerm(c.ru))
+      .filter((c) => !defTerms.has(c.ru.toLowerCase()) && goodTerm(c.ru) && !headingConcept(u.grade, c.ru))
       .slice(0, Math.max(0, room))
       .forEach((c, i) => {
         const t = lowerTerm(c.ru)
         const w = analyzeTerms(t).sort((a, b) => b.length - a.length)[0]
         if (!w || w.length < 4) return
         push(u, 'definition', 50 + i, 'ru', `Что такое ${t}?`, { mustMatch: [stemRe(w)] })
-        const uzT = c.uz ?? glossUz(c.ru)
+        const uzT = uzQuestionTerm(c.uz ?? glossUz(c.ru), c.ru)
         if (uzT) push(u, 'definition', 50 + i, 'uz', `${uzT} nima?`, { mustMatch: [stemRe(uzT.split(/\s+/)[0]!.toLowerCase())] })
       })
   }

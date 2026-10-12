@@ -14,7 +14,7 @@
  *   лучшего совпадения, coverage — доля понятий вопроса в top-3); школьный вопрос без учебника — не выше «medium».
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
-import { conceptUnitByName, conceptUnitFor, definitionFor, termOfQuestion, unitForTopic } from '../curriculum/answer.ts'
+import { conceptUnitByName, conceptUnitFor, definitionByTerm, definitionFor, termOfQuestion, unitForTopic } from '../curriculum/answer.ts'
 import { whyRuleFor, whyUnitFor } from '../curriculum/why.ts'
 import { termToRu } from '../persona/uzGlossary.ts'
 import { unitCard } from '../curriculum/card.ts'
@@ -548,7 +548,10 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     // («Valentlik deb nimaga aytiladi?» → «валентность» → § с определением валентности); перевод analyzeQuery шире
     // (синонимы, слова вопроса) и уводил к соседнему §. Нет полного перевода — как раньше, по queryTerms.
     const defTerms = wantsDef && lang !== 'ru' ? termStemsRu(sq.text, lang) : null
-    const defAny = wantsDef && sq.kind === 'definition' ? ((defTerms && definitionFor(cur, defTerms, g)) || definitionFor(cur, queryTerms, g)) : null
+    // uz/en: термин вопроса = узбекский/английский термин определения карты класса — это определение (12.10, nextBuild #3;
+    // brain/curriculum/answer.ts → definitionByTerm); иначе — по русским стемам перевода, как раньше
+    const defByName = wantsDef && sq.kind === 'definition' && lang !== 'ru' ? definitionByTerm(cur, sq.text, lang, g) : null
+    const defAny = defByName ?? (wantsDef && sq.kind === 'definition' ? ((defTerms && definitionFor(cur, defTerms, g)) || definitionFor(cur, queryTerms, g)) : null)
     const exactDef = !!defAny && defAny.inGrade && defAny.termCov === 1 && defAny.qCov === 1
     // понятие § (без определения в карте) точнее частичного совпадения определения: «общая формула» ≠ «развёрнутые формулы»
     // понятие § по названию на языке вопроса (у понятий карты есть uz/en-названия) — и для «что такое история химии?»,
