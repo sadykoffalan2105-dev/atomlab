@@ -57,7 +57,11 @@ export {
   useDualModeTeacher,
   prewarmLiveTeacher,
   resolveStableStudentId,
+  loadVoiceMode,
+  saveVoiceMode,
+  VOICE_MODE_KEY,
   type UseDualModeTeacherOptions,
   type DualModeTeacherState,
   type LiveMessage,
+  type VoiceMode,
 } from './useDualModeTeacher'

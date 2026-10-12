@@ -1962,3 +1962,86 @@ html[data-app-theme='light'] .micBtn[data-state='muted'] {
     transform: none;
   }
 }
+
+/* ——— Голос: лампы «микрофон слышит» / «распознаю», режим микрофона (VoiceLamps.tsx) ——— */
+.voiceLamps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lt-gap-xs) var(--lt-gap-sm);
+  margin-top: var(--lt-gap-xs);
+  font-size: var(--lt-fs-xs);
+  color: var(--lt-text-3);
+}
+
+.voiceLamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--lt-radius-pill);
+  border: 1px solid var(--lt-border);
+  background: var(--lt-surface);
+}
+
+.voiceLampDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lt-text-mute);
+  transition:
+    background var(--lt-dur-fast) var(--lt-ease),
+    box-shadow var(--lt-dur-fast) var(--lt-ease);
+}
+
+.voiceLamp[data-state='on'] {
+  color: var(--lt-text);
+}
+
+.voiceLamp[data-state='on'] .voiceLampDot {
+  background: var(--lt-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lt-success) 25%, transparent);
+}
+
+.voiceLamp[data-state='warn'] .voiceLampDot {
+  background: var(--lt-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lt-warning) 25%, transparent);
+}
+
+.voiceLamp[data-state='lost'] {
+  color: var(--lt-danger);
+}
+
+.voiceLamp[data-state='lost'] .voiceLampDot {
+  background: var(--lt-danger);
+}
+
+.voiceStall {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--lt-gap-xs);
+  color: var(--lt-warning);
+}
+
+.voiceModes {
+  margin-top: var(--lt-gap-xs);
+}
+
+.voiceCheckLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lt-text-3);
+  font-size: var(--lt-fs-small);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.voiceCheckLink:hover {
+  color: var(--lt-text);
+}
