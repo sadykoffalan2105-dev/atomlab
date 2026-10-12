@@ -611,8 +611,8 @@ export function DrawComposer({ gradeId, sectionTitle, request, onInsert, onAsk }
         </div>
       ) : null}
 
-      {/* ключ учителя / владельца: ученик может ввести, учитель — забыть */}
-      {hasKey ? (
+      {/* ключ учителя / владельца: показываем, только если сервер без ключа свой текст не даёт (studentFreeText=false) */}
+      {info?.studentFreeText && !hasKey ? null : hasKey ? (
         <div className={s.keyRow}>
           <span className={s.small}>{role === 'owner' ? t('learn.drawMode.roleOwner') : t('learn.drawMode.roleTeacher')}</span>
           <button type="button" className={s.linkBtn} onClick={forgetKey}>
