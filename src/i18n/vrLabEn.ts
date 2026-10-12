@@ -45,6 +45,8 @@ export const vrLabEn: Record<keyof typeof vrLabRu, string> = {
   'vrLab.action.empty': 'Reset all',
 
   'vrLab.result.title': 'Result',
+  'vrLab.canvas.loading': 'Loading the lab…',
+  'vrLab.canvas.error': 'The 3D scene is unavailable. Reload the page or open it in a browser with WebGL support.',
   'vrLab.result.equation': 'Equation',
   'vrLab.result.none': 'Pour two different reagents into the vat using filled flasks.',
 

@@ -189,11 +189,9 @@ export function VrLabPage() {
         {canvasState !== 'ready' ? (
           <div className={styles.canvasOverlay} aria-live="polite">
             {canvasState === 'error' ? (
-              <p className={styles.canvasError}>
-                3D-сцена недоступна. Обновите страницу или откройте в другом браузере с поддержкой WebGL.
-              </p>
+              <p className={styles.canvasError}>{t('vrLab.canvas.error')}</p>
             ) : (
-              <p className={styles.canvasLoader}>Загрузка лаборатории…</p>
+              <p className={styles.canvasLoader}>{t('vrLab.canvas.loading')}</p>
             )}
           </div>
         ) : null}

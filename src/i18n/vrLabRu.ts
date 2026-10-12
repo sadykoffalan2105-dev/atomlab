@@ -44,6 +44,8 @@ export const vrLabRu = {
   'vrLab.action.empty': 'Сбросить всё',
 
   'vrLab.result.title': 'Результат',
+  'vrLab.canvas.loading': 'Загрузка лаборатории…',
+  'vrLab.canvas.error': '3D-сцена недоступна. Обновите страницу или откройте в другом браузере с поддержкой WebGL.',
   'vrLab.result.equation': 'Уравнение',
   'vrLab.result.none': 'Налейте два разных реагента в чан — выберите колбу и нажмите «Влить в чан».',
 

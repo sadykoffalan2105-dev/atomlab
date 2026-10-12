@@ -336,6 +336,13 @@
   border-top: 1px solid rgba(168, 85, 247, 0.18);
 }
 
+/* Заголовок «Результат» наследовал корневые 9px (--ui-scale 0.5) — задаём явно. */
+.result > strong {
+  display: block;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+}
+
 .resultEq {
   font-family: ui-monospace, monospace;
   font-size: 13.5px;
