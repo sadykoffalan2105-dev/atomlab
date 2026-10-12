@@ -313,7 +313,9 @@ function solveReaction(ctx: Ctx): Solution | null {
     const kE = lim === r1 ? k2 : k1
     steps.push((l) => `${fnum(n1, l)}/${k1} ${n1 / k1 <= n2 / k2 ? '<' : '>'} ${fnum(n2, l)}/${k2} → ${exc.sp.pretty} ${L(l, 'в избытке, считаем по', 'ortiqcha, hisob', 'is in excess, calculate by')} ${lim.sp.pretty}${L(l, '', ' boʻyicha', '')}`)
     nT = (nL * kT) / kL
-    steps.push((l) => `n(${target.pretty}) = ${fnum(nL, l)} · ${kT}/${kL} = ${fnum(nT, l)} ${unitLabel('mol', l)}`)
+    // шаг — значение на этот момент (nT дальше умножается на выход η; замыкание показало бы уже практическое)
+    const nStep = nT
+    steps.push((l) => `n(${target.pretty}) = ${fnum(nL, l)} · ${kT}/${kL} = ${fnum(nStep, l)} ${unitLabel('mol', l)}`)
     answers.push({ label: L(ctx.lang, 'в избытке', 'ortiqcha', 'in excess'), value: 0, unit: 'none', text: exc.sp.pretty })
     if (/(остан|осталось|избыт\p{L}* масс|ortib qol|ortiqcha qism|left over|remain)/iu.test(ctx.cmp)) {
       const left = nE - (nL * kE) / kL
@@ -338,7 +340,9 @@ function solveReaction(ctx: Ctx): Solution | null {
       type = 'yield'
     }
     nT = (nn * kT) / kG
-    steps.push((l) => `n(${target.pretty}) = n(${r.sp.pretty}) · ${kT}/${kG} = ${fnum(nT, l)} ${unitLabel('mol', l)}`)
+    // шаг — значение на этот момент (см. выше: nT дальше умножается на η)
+    const nStep = nT
+    steps.push((l) => `n(${target.pretty}) = n(${r.sp.pretty}) · ${kT}/${kG} = ${fnum(nStep, l)} ${unitLabel('mol', l)}`)
   }
   if (yieldPct != null && type !== 'yield') {
     const nTh = nT

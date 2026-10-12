@@ -261,7 +261,8 @@ ru/uz/en (термины uz — по `brain/persona/uzGlossary.ts`), тема, �
 - `POST /teacher/plan {unit:'g8:12', lang:'ru'|'uz'|'en', minutes?:20–90, polish?}` → `{ok, plan, polished, ms}`: цели,
   этапы с минутами (сумма = minutes; практические работы — инструктаж/выполнение/отчёт), ключевые вопросы (определения
   учебника — только ru), мини-тест из банка карты, 2–3 задачи с решением калькулятора `brain/calc`, уравнения (только
-  уравненные `balanceEquation`), ссылки на учебник (`/learn/g/g8/book?page=…`) и 3D-реактор (`labHref` карты).
+  уравненные `balanceEquation`), ссылки на учебник (`/learn/g/g8/book?page=…`), интерактивный урок раздела
+  (`/learn/g/g8/c/c2/s/s10` по `appSections` карты), 3D-реактор (`labHref` карты) и органику в 3D (`/organic`).
 - `POST /teacher/test {units:[…≤12], lang, n?:3–40, format:'sor'|'soch'|'quiz', variant?:1–9}` → `{ok, test, ms}`: задания
   (выбор — тесты карты, «расставьте коэффициенты», определения (ru), задачи калькулятора), ключ, критерии, разбаловка
   `razbalovka: "1; 1; 1+1; 1+1+1+1"` и `structure.tasks` — формат «Отчётов СОР/СОЧ» (`parseStructure`), шкала «5/4/3/2»

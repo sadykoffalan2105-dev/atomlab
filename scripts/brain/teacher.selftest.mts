@@ -27,6 +27,7 @@ const { valueNum } = await import('../../brain/calc/format.ts')
 const { cmpForm, matchesLang } = await import('../../brain/pipeline/normalize.ts')
 const { CJK_RE, hasR3, isPlanLeak, splitSentences } = await import('../../brain/pipeline/postcheck.ts')
 const { isBalanced } = await import('../../brain/teacher/content.ts')
+const { solveProblem } = await import('../../brain/teacher/problems.ts')
 const { planFor, splitMinutes } = await import('../../brain/teacher/plan.ts')
 const { testFor, stripCoefficients } = await import('../../brain/teacher/test.ts')
 const { gradeWork, parseRubric, parseGradeReply } = await import('../../brain/teacher/grade.ts')
@@ -85,6 +86,11 @@ for (const total of [20, 30, 40, 45, 80, 90]) {
 }
 ok(stripCoefficients('2Al + 3O₂ → 2Al₂O₃') === 'Al + O₂ → Al₂O₃', 'stripCoefficients: «2Al + 3O₂ → 2Al₂O₃» → «Al + O₂ → Al₂O₃»')
 ok(isBalanced('2H₂ + O₂ → 2H₂O') && !isBalanced('H₂ + O₂ → H₂O') && isBalanced('C + O₂ → CO₂'), 'isBalanced: уравнено / нет / без коэффициентов')
+{
+  // шаг «n(CaO) = n(CaCO₃) · 1/1» — теоретическое 0,79, не уже умноженное на выход (замыкание шага на изменяемом nT)
+  const p = solveProblem('79 g CaCO3 parchalanganda unum 60 % boʻlsa, necha gramm CaO olinadi?', 'uz', kb)
+  ok(!!p && /n\(CaO\) = n\(CaCO₃\) · 1\/1 = 0,79 mol/.test(p.solution) && /0,79 · 0,6 = 0,474/.test(p.solution), 'выход: шаг по уравнению — теоретическое количество, потом · η', p?.solution.split('\n').slice(4, 7).join(' | '))
+}
 
 // ——— 1) все единицы × ru/uz
 console.log(`1) все ${map.units.length} единиц × ru/uz: план и тест СОР без LLM`)
