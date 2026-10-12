@@ -3,7 +3,7 @@
  *   1) сервер на свободном порту, отдельная временная папка данных; /health за ≤ 5 с, пока знания догружаются;
  *   2) CORS: OPTIONS с Origin GitHub Pages → 204, чужой Origin → 403;
  *   3) /chat SSE без LLM: химия, беседа, мат (R2 дословно), правило орг/неорг (R1 дословно), 400 на пустой запрос;
- *   4) /kb/append (дубликат → kind:dup), /kb/stats;
+ *   4) /kb/append (дубликат → kind:dup), /kb/stats, /kb/feedback (публично, kind 'feedback');
  *   5) появляется «Ollama» (поддельная, на этом же процессе) → без перезапуска ответы идут через llm;
  *   6) brain:embed против поддельной Ollama: векторы считаются и повторный запуск ничего не пересчитывает;
  *   7) обрыв клиента → сервер прерывает генерацию.
@@ -152,6 +152,11 @@ const s1 = await (await fetch(`${base}/kb/stats`)).json()
 ok(a1.ok && /^j-[0-9A-Z]{26}$/.test(a1.id) && a2.ok && a2.dup === true && s1.journalLines === s0.journalLines + 2, '/kb/append: запись + дубликат (kind:dup), журнал +2 строки', `${s0.journalLines} → ${s1.journalLines}`)
 const bad = await fetch(`${base}/kb/append`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'delete', text: 'x' }) })
 ok(bad.status === 400, 'неизвестный kind → 400 (удаления нет)')
+// «Сообщить об ошибке» (brain/http/feedback.ts): публичный путь, запись kind 'feedback' без адреса и сессии
+const f1 = await fetch(`${base}/kb/feedback`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: ORIGIN }, body: JSON.stringify({ question: 'Что такое моль?', answer: 'Моль — единица количества вещества.', comment: 'smoke', lang: 'ru' }) })
+const fj = await f1.json()
+const s2 = await (await fetch(`${base}/kb/stats`)).json()
+ok(f1.status === 200 && fj.stored === true && (s2.byKind?.feedback ?? 0) >= 1 && f1.headers.get('access-control-allow-origin') === ORIGIN, "/kb/feedback: 200, запись kind 'feedback', CORS сайта")
 
 console.log('5) появилась Ollama — без перезапуска')
 await listen(fakeOllama, ollamaPort)

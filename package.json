@@ -83,6 +83,7 @@
     "brain:curriculum-eval": "tsx scripts/brain/build-curriculum-eval.mts",
     "brain:eval:curriculum": "tsx scripts/brain/eval-curriculum.mts",
     "brain:package": "tsx scripts/brain/package.mts",
+    "brain:logs-retention": "tsx scripts/brain/logs-retention.mts",
     "teacher:qa-bank": "tsx scripts/teacher-ml/build-qa-bank.mts",
     "test:teacher-qa": "tsx scripts/test-teacher-qa.mts",
     "kb:eval:old": "tsx scripts/kb/eval-old.mts",
