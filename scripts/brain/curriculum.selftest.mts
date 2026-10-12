@@ -6,11 +6,12 @@
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
 import { createBrain } from '../../brain/server.ts'
 import { citationOf, retrieveV2 } from '../../brain/pipeline/retrieve.ts'
-import { normalizeInput } from '../../brain/pipeline/normalize.ts'
+import { detectLang, matchesLang, normalizeInput } from '../../brain/pipeline/normalize.ts'
 import type { StandaloneQuery } from '../../brain/pipeline/dialogTypes.ts'
 import { loadCurriculumMap } from '../../brain/curriculum/map.ts'
 import { parseSectionRef } from '../../brain/curriculum/sectionRef.ts'
 import { unitCard } from '../../brain/curriculum/card.ts'
+import { conceptUnitFor, definitionFor, sectionAnswer, termOfQuestion } from '../../brain/curriculum/answer.ts'
 
 let pass = 0
 let fail = 0
@@ -204,6 +205,31 @@ ok(loadMs <= 150, `загрузка карты ≤ 150 мс`, `${loadMs.toFixed(
   for (let i = 0; i < 200; i++) map.unitsForQuery(terms, 8)
   const ms = (performance.now() - t1) / 200
   ok(ms <= 2, 'unitsForQuery ≤ 2 мс', `${ms.toFixed(3)} мс`)
+}
+
+// ——— §-путь (brain/curriculum/answer.ts): определение § класса, понятие §, «о чём §», язык и ссылка «тема 1.»
+{
+  const r = parseSectionRef('Расскажи кратко, что в Kimyo 7, гл. 1, тема 1.')
+  ok(r?.kp === '1.1', 'sectionRef: «тема 1.» в конце фразы', JSON.stringify(r))
+  ok(detectLang('О чём Kimyo 8, §44?') === 'ru', 'язык: «О чём Kimyo 8, §44?» — ru', detectLang('О чём Kimyo 8, §44?'))
+  ok(termOfQuestion('Valentlik deb nimaga aytiladi?', 'uz') === 'Valentlik' && termOfQuestion('What is molar mass?', 'en') === 'molar mass', 'termOfQuestion uz/en')
+  if (map) {
+    const d = definitionFor(map, new Set(analyzeTerms('Что такое ковалентная связь?', { query: true })), 8)
+    ok(!!d && d.unit.grade === 8 && /ковалент/iu.test(d.def.term.ru), 'definitionFor: ковалентная связь → § 8 кл.', d ? `${d.unit.id}: ${d.def.term.ru}` : 'null')
+    const w = definitionFor(map, new Set(analyzeTerms('Что такое водородная связь?', { query: true })), 9)
+    ok(!w || /водород/iu.test(w.def.term.ru), 'definitionFor: «водородная связь» не берёт «химическую связь»', w ? `${w.unit.id}: ${w.def.term.ru}` : 'null')
+    const t = definitionFor(map, new Set(analyzeTerms('Что означает термин «валентность»?', { query: true })), 7)
+    ok(!!t && /валентн/iu.test(t.def.term.ru), 'definitionFor: «термин» — не часть термина', t ? `${t.unit.id}: ${t.def.term.ru}` : 'null')
+    const c = conceptUnitFor(map, new Set(analyzeTerms('Что такое очистка воды?', { query: true })), 7)
+    ok(!!c && c.concepts.some((x) => /очистк/iu.test(x.ru)), 'conceptUnitFor: очистка воды → § 7 кл. с этим понятием', c?.id ?? 'null')
+    const u = map.unitFor(8, '12')
+    if (u) {
+      const ru = sectionAnswer(u, 'ru')
+      const uz = sectionAnswer(u, 'uz')
+      ok(ru.startsWith('Kimyo 8, §12') && matchesLang(ru, 'ru'), 'sectionAnswer ru', ru.slice(0, 90))
+      ok(uz.length >= 40 && matchesLang(uz, 'uz'), 'sectionAnswer uz — по-узбекски', uz.slice(0, 90))
+    }
+  }
 }
 
 console.log(`\n${fail ? 'ЕСТЬ ПРОВАЛЫ' : 'всё ok'}: ${pass} ok, ${fail} fail`)
