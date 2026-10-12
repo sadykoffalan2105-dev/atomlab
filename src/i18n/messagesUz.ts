@@ -1137,6 +1137,7 @@ export const messagesUz: Record<MessageKey, string> = {
   'learn.voice.modePtt': 'Bosib gapiring',
   'learn.voice.noRecognition': 'Nutqni tanish mavjud emas: saytni Edge/Chrome’da oching yoki ATOMLAB serverini yoqing',
   'learn.voice.privacyServer': 'Nutq ATOMLAB serverida tanib olinadi va saqlanmaydi',
+  'learn.voice.permMicServer': 'O‘qituvchi bilan gaplashish uchun. Nutqni ATOMLAB serveri taniydi; yozuvlar saqlanmaydi.',
   'learn.voice.check.title': 'Mikrofonni tekshirish',
   'learn.voice.check.lead': 'Mikrofonga ruxsat bering, so‘z ayting va o‘qituvchi nimani eshitganini ko‘ring. Hisobotni nusxalab yuborish mumkin.',
   'learn.voice.check.allow': 'Mikrofonga ruxsat berish',

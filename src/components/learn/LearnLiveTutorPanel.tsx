@@ -10,7 +10,7 @@ import {
 import { createPortal } from 'react-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import { getActiveStudent } from '../../learn/learnClassRosterStorage'
-import { checkHealth, useBrainStatus } from '../../learn/brain/remote/brainClient'
+import { checkHealth, getBrainUrl, useBrainStatus } from '../../learn/brain/remote/brainClient'
 import { useOralExamMedia } from '../../learn/useOralExamMedia'
 import { isSpeechRecognitionSupported } from '../../learn/learnSpeech'
 import {
@@ -21,6 +21,7 @@ import {
   voiceStatusMessageKey,
 } from '../../learn/brain/speech/voiceStatus'
 import { hasGetUserMedia, openMicOnGesture, type MicHandle } from '../../learn/brain/voice/micCapture'
+import { sharedSttHealth } from '../../learn/brain/voice/sttEngine'
 import { resetRecognitionContext, setRecognitionTopic } from '../../learn/brain/speech/chemTranscript'
 import { utteranceHold } from '../../learn/brain/speech/endOfUtterance'
 import { useDualModeTeacher } from '../../learn/brain'
@@ -430,6 +431,7 @@ function LiveTutorSession({
               <>
                 <VoiceLamps
                   muted={state.micMuted && !holding}
+                  aiSpeaking={state.aiSpeaking}
                   onCheck={openVoiceCheck}
                   onPushToTalk={() => setVoiceMode('push_to_talk')}
                   onType={() => inputRef.current?.focus()}
@@ -787,6 +789,23 @@ function LiveTutorOverlay({
   const webSpeech = useMemo(() => isSpeechRecognitionSupported(), [])
   const brainStatus = useBrainStatus()
   const [mic, setMic] = useState<MicHandle | null>(null)
+  // Сервер распознавания ATOMLAB доступен — лобби говорит честно, кто распознаёт речь.
+  const [serverStt, setServerStt] = useState(false)
+  useEffect(() => {
+    if (brainStatus !== 'online') {
+      setServerStt(false)
+      return
+    }
+    let alive = true
+    void sharedSttHealth(getBrainUrl)
+      .check()
+      .then((ok) => {
+        if (alive) setServerStt(ok)
+      })
+    return () => {
+      alive = false
+    }
+  }, [brainStatus])
   const sectionTitle = t(section.titleKey)
 
   useEffect(() => {
@@ -860,6 +879,7 @@ function LiveTutorOverlay({
             onCameraChange={setCameraOn}
             speechSupported={speechSupported}
             noRecognition={!webSpeech && brainStatus === 'offline'}
+            serverStt={serverStt}
             online={online}
             onVoiceCheck={openVoiceCheck}
             onStart={(voice) => {

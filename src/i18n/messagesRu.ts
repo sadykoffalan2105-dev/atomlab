@@ -1135,6 +1135,7 @@ export const messagesRu = {
   'learn.voice.modePtt': 'Нажми и говори',
   'learn.voice.noRecognition': 'Распознавание речи недоступно: откройте сайт в Edge/Chrome или включите сервер ATOMLAB',
   'learn.voice.privacyServer': 'Речь распознаётся на сервере ATOMLAB и не сохраняется',
+  'learn.voice.permMicServer': 'Чтобы разговаривать с учителем. Речь распознаёт сервер ATOMLAB; записи не сохраняются.',
   'learn.voice.check.title': 'Проверка микрофона',
   'learn.voice.check.lead': 'Разрешите микрофон, скажите слово и посмотрите, что услышал учитель. Отчёт можно скопировать и отправить.',
   'learn.voice.check.allow': 'Разрешить микрофон',

@@ -39,11 +39,14 @@ export function lampStates(
 
 export function VoiceLamps({
   muted,
+  aiSpeaking = false,
   onCheck,
   onPushToTalk,
   onType,
 }: {
   muted: boolean
+  /** Учитель говорит: громкость — его эхо или речь поверх (в hard_pause не распознаётся) — не «молчание распознавания». */
+  aiSpeaking?: boolean
   onCheck: () => void
   onPushToTalk: () => void
   onType: () => void
@@ -57,9 +60,11 @@ export function VoiceLamps({
     unanswered: null,
   }))
   const mutedRef = useRef(muted)
+  const aiRef = useRef(aiSpeaking)
   useEffect(() => {
     mutedRef.current = muted
-  }, [muted])
+    aiRef.current = aiSpeaking
+  }, [muted, aiSpeaking])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -68,7 +73,7 @@ export function VoiceLamps({
       setTick((prev) => {
         let unanswered = prev.unanswered
         // Текст пришёл после последней речи (или микрофон на паузе) — счётчик «без текста» сбрасываем.
-        if (mutedRef.current || d.lastTextAt >= d.lastHeardAt - 1_500) unanswered = null
+        if (mutedRef.current || aiRef.current || d.lastTextAt >= d.lastHeardAt - 1_500) unanswered = null
         else if (unanswered === null && d.lastHeardAt > 0 && now - d.lastHeardAt < 1_000) unanswered = now
         return { now, d, unanswered }
       })

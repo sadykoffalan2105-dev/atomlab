@@ -24,6 +24,7 @@ export function LiveTutorLobby({
   onCameraChange,
   speechSupported,
   noRecognition = false,
+  serverStt = false,
   online,
   onStart,
   onVoiceCheck,
@@ -37,6 +38,8 @@ export function LiveTutorLobby({
   speechSupported: boolean
   /** Нет ни Web Speech, ни сервера распознавания — честно предупреждаем. */
   noRecognition?: boolean
+  /** Речь распознаёт сервер ATOMLAB (/stt/health → available). */
+  serverStt?: boolean
   online: boolean
   onStart: (withVoice: boolean) => void
   /** Открыть экран «Проверить микрофон». */
@@ -91,7 +94,7 @@ export function LiveTutorLobby({
             </span>
             <div className={styles.permText}>
               <strong>{t('learn.teacherUi.permMicTitle')}</strong>
-              <span>{t('learn.teacherUi.permMicText')}</span>
+              <span>{serverStt ? t('learn.voice.permMicServer') : t('learn.teacherUi.permMicText')}</span>
             </div>
           </li>
           <li className={styles.permRow}>

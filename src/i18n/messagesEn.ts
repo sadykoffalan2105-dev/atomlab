@@ -1137,6 +1137,7 @@ export const messagesEn: Record<MessageKey, string> = {
   'learn.voice.modePtt': 'Push to talk',
   'learn.voice.noRecognition': 'Speech recognition is unavailable: open the site in Edge/Chrome or start the ATOMLAB server',
   'learn.voice.privacyServer': 'Speech is recognised on the ATOMLAB server and is not stored',
+  'learn.voice.permMicServer': 'To talk with the teacher. Speech is recognised by the ATOMLAB server; recordings are not stored.',
   'learn.voice.check.title': 'Microphone check',
   'learn.voice.check.lead': 'Allow the microphone, say a word and see what the teacher heard. You can copy the report and send it.',
   'learn.voice.check.allow': 'Allow microphone',
