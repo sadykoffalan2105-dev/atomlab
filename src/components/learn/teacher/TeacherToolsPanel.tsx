@@ -64,6 +64,7 @@ const TOOLS: { id: TeacherToolKind; key: TTKey }[] = [
   { id: 'grade', key: 'tabGrade' },
 ]
 const GRADES = [7, 8, 9, 10, 11] as const
+const ALL_CHAPTERS = -1
 const LANGS: AppLocale[] = ['ru', 'uz', 'en']
 const LANG_NAME: Record<AppLocale, string> = { ru: 'Русский', uz: 'O‘zbekcha', en: 'English' }
 const FORMATS: { id: TestFormat; key: TTKey }[] = [
@@ -104,7 +105,8 @@ function groupByChapter(list: UnitRow[]): { n: number; title: string; units: Uni
     if (!map.has(n)) map.set(n, { n, title: '', units: [] })
     map.get(n)!.units.push(u)
   }
-  return [...map.values()].sort((a, b) => a.n - b.n)
+  // глава 0 («Практические занятия») — в конце списка
+  return [...map.values()].sort((a, b) => (a.n || 999) - (b.n || 999))
 }
 
 export function TeacherToolsPanel() {
@@ -122,7 +124,8 @@ export function TeacherToolsPanel() {
   const [planUnit, setPlanUnit] = useState('')
   const [minutes, setMinutes] = useState<number>(PLAN_MINUTES.def)
   // тест
-  const [chapter, setChapter] = useState<number>(0)
+  // -1 = все главы (0 — глава «Практические занятия» в карте программы)
+  const [chapter, setChapter] = useState<number>(ALL_CHAPTERS)
   const [picked, setPicked] = useState<string[]>([])
   const [format, setFormat] = useState<TestFormat>('sor')
   const [nItems, setNItems] = useState<number>(TEST_N_DEFAULT.sor)
@@ -162,11 +165,11 @@ export function TeacherToolsPanel() {
   const gradeUnits = useMemo(() => units.filter((u) => u.g === gradeNum), [units, gradeNum])
   const chapters = useMemo(() => {
     const out = groupByChapter(gradeUnits)
-    for (const c of out) c.title = c.units[0]?.ch ? `${c.n}. ${c.units[0].ch.t[locale] || c.units[0].ch.t.ru}` : ''
+    for (const c of out) c.title = c.units[0]?.ch ? `${c.n ? `${c.n}. ` : ''}${c.units[0].ch.t[locale] || c.units[0].ch.t.ru}` : ''
     return out
   }, [gradeUnits, locale])
   const unitById = useMemo(() => new Map(units.map((u) => [u.id, u])), [units])
-  const testList = useMemo(() => (chapter ? gradeUnits.filter((u) => (u.ch?.n ?? 0) === chapter) : gradeUnits), [gradeUnits, chapter])
+  const testList = useMemo(() => (chapter !== ALL_CHAPTERS ? gradeUnits.filter((u) => (u.ch?.n ?? 0) === chapter) : gradeUnits), [gradeUnits, chapter])
 
   // § плана: выбранный, если он из текущего класса, иначе первый в классе (без эффекта — выводим из состояния)
   const planUnitEff = gradeUnits.some((u) => u.id === planUnit) ? planUnit : (gradeUnits[0]?.id ?? '')
@@ -174,7 +177,7 @@ export function TeacherToolsPanel() {
     setGradeNum(g)
     setGradeUnit('')
     setPicked([])
-    setChapter(0)
+    setChapter(ALL_CHAPTERS)
   }
 
   const titleOf = (id: string) => {
@@ -521,7 +524,7 @@ export function TeacherToolsPanel() {
               <div className={s.field}>
                 <label htmlFor={`${uid}-ch`}>{tt('chapter')}</label>
                 <select id={`${uid}-ch`} className={s.input} value={chapter} onChange={(e) => setChapter(Number(e.target.value))}>
-                  <option value={0}>{tt('chapterAll')}</option>
+                  <option value={ALL_CHAPTERS}>{tt('chapterAll')}</option>
                   {chapters.map((c) => (
                     <option key={c.n} value={c.n}>
                       {c.title}
