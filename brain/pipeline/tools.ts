@@ -16,8 +16,11 @@ import { findElements, findFormulas, findSubstances, pretty, substanceFromText, 
 import type { Lang } from './normalize.ts'
 import { eqKey, obtainTool } from './obtain.ts'
 import { runSchoolCalc } from '../calc/index.ts'
+import { textbookTaskRefs } from '../calc/textbookTasks.ts'
 import { eqUnits, gradeOf, reactionUnits, taskTypeUnit, unitCite } from './bookCite.ts'
 import { testChoiceTool } from './testChoice.ts'
+import type { CurriculumMap } from '../curriculum/map.ts'
+import type { Unit } from '../curriculum/types.ts'
 
 export type ToolResult = {
   tool: string
@@ -890,6 +893,43 @@ const OLD_TOOL_TYPE: Record<string, string> = {
   oxidation: 'oxidation_state',
 }
 
+/** Условие задачи без регистра, индексов и знаков: «As₂S₃, 40 г?» → «as2s340г». */
+const taskKey = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[₀-₉]/g, (c) => String(c.charCodeAt(0) - 0x2080))
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\d]+/gu, '')
+const TASK_ROWS = new WeakMap<CurriculumMap, { key: string; unit: Unit; page?: number }[]>()
+
+/**
+ * Задача напечатана в учебнике (пример или упражнение § карты) — подпись этого § (класс ученика первым): ученик
+ * спросил «Рассчитайте … в 1 л воды при 4 °C» из Kimyo 8 §25 — цитата §25, а не § «где тип задачи введён».
+ */
+export function textbookTaskUnit(map: CurriculumMap, text: string, grade: number | null): { unit: Unit; page?: number } | null {
+  const q = taskKey(text)
+  if (q.length < 25) return null
+  let rows = TASK_ROWS.get(map)
+  if (!rows) {
+    rows = []
+    for (const unit of map.units) {
+      for (const e of unit.tasks?.examples ?? []) rows.push({ key: taskKey(e.statement), unit, page: e.page })
+      for (const x of unit.tasks?.exercises ?? []) rows.push({ key: taskKey(x.text), unit })
+    }
+    // задачи, выписанные из книг для калькулятора (brain/calc/fixtures/textbook.jsonl): условие → § книги
+    for (const t of textbookTaskRefs()) {
+      const unit = map.byId.get(t.unitId)
+      if (unit) rows.push({ key: taskKey(t.statement), unit, page: t.page })
+    }
+    TASK_ROWS.set(map, rows)
+  }
+  const head = q.slice(0, 60)
+  const hits = rows.filter((r) => r.key.length >= 25 && (r.key.startsWith(head) || q.startsWith(r.key.slice(0, 60))))
+  if (!hits.length) return null
+  hits.sort((a, b) => (grade != null ? Number(b.unit.grade === grade) - Number(a.unit.grade === grade) : 0))
+  return hits[0]!
+}
+
 export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge, opts: ToolOpts = {}): ToolResult[] {
   const grade = gradeOf(opts.gradeId)
   const out: ToolResult[] = []
@@ -902,7 +942,9 @@ export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge, o
   // школьный калькулятор Kimyo 7–11 (brain/calc) — первым; задача распознана уверенно → только его расчёт
   const sc = runSchoolCalc(text, cmp, lang, kb)
   if (sc) {
-    // подпись — § книги класса ученика, где решают задачи этого типа
+    // подпись — § учебника, где напечатана эта задача; иначе § книги класса ученика, где решают задачи этого типа
+    const book = kb.curriculum ? textbookTaskUnit(kb.curriculum, text, grade) : null
+    if (book) return [{ ...sc, cite: `[ATOMLAB: расчёт по ${unitCite(book.unit, book.page).slice(1, -1)}]` }]
     const unit = kb.curriculum ? taskTypeUnit(kb.curriculum, sc.tool.replace(/^calc:/, ''), grade) : null
     return [unit ? { ...sc, cite: `[ATOMLAB: расчёт по ${unit.cite.slice(1, -1)}]` } : sc]
   }

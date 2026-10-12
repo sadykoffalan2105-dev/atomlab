@@ -108,7 +108,8 @@ const gasDensity: Solver = {
   id: 'gas_density',
   priority: 35,
   solve(ctx) {
-    const wantsD = /(плотност\p{L}*|density|zichlig\p{L}*)/iu.test(ctx.ask.text)
+    // узбекский глагол-вопрос в конце («… zichligini hisoblang») — смотрим всё предложение вопроса
+    const wantsD = /(плотност\p{L}*|density|zichlig\p{L}*)/iu.test(ctx.ask.sentence)
     const rel = relDensity(ctx.text, ctx.lang)
     if (ctx.qs.some((q) => q.unit === 'pct')) return null // формула по ω % — formula_from_fractions
     if (rel) {
@@ -139,7 +140,7 @@ const gasDensity: Solver = {
     if (M == null) return null
     const steps: Line[] = [molarMassLine(gas.pretty, gas.counts)]
     const answers: CalcValue[] = []
-    const a = ctx.ask.text
+    const a = ctx.ask.sentence
     if (/(водород|hydrogen|vodorod)/iu.test(a)) {
       steps.push((l) => `D(H₂) = M / 2 = ${fnum(M, l, 'M')} / 2 = ${fnum(M / 2, l)}`)
       answers.push({ label: `D(H₂)`, value: M / 2, unit: 'none' })
@@ -301,7 +302,16 @@ const atomicStructure: Solver = {
         A = Number(m[2])
       }
     }
-    const els = findElements(t, ctx.kb)
+    // «с массовым числом 39», «massa soni 31 boʻlgan», «mass number 27»
+    const massNo = t.match(/(?:массов\p{L}*\s+числ\p{L}*|massa\s+soni|mass\s+number)\D{0,12}?(\d{1,3})(?!\d)/iu)
+    if (massNo) A = Number(massNo[1])
+    // узбекское «bor» («…nechta neytron bor?») — «есть», а не бор
+    const els = findElements(t, ctx.kb).filter((e) => !(e.item.s === 'B' && /^bor\s*([?.!,]|$)/u.test(t.slice(e.index))))
+    if (!sym && els.length !== 1) {
+      // символ элемента отдельным словом: «… P atomi …», «атома K с …»
+      const syms = [...new Set([...t.matchAll(/(?<![\p{L}\d])([A-Z][a-z]?)(?![\p{L}\d₀-₉⁰-⁹⁺⁻])/gu)].map((m) => m[1]!).filter((s) => ctx.kb.elementBySymbol.has(s)))]
+      if (syms.length === 1) sym = syms[0]!
+    }
     if (!sym && els.length === 1) {
       sym = els[0]!.item.s
       const after = t.slice(els[0]!.index).match(/^\p{L}+\s*-\s*(\d{1,3})/u)

@@ -94,6 +94,9 @@ const CALC_RE = [
   /степен\p{L}* окислени/u, /процент|массов\p{L}* дол|объемн\p{L}* дол/u, /концентрац|молярност/u, /\bph\b|\bрн\b|водородн\p{L}* показател/u,
   /разбав/u, /энтальп|тепловой эффект|δh|теплот\p{L}* образовани/u, /н\.\s?у\.|нормальных услови/u, /вычисли|рассчитай|рассчитать|посчитай|найди (массу|объем|количество|число)/u,
   /pv\s*=\s*nrt|уравнени\p{L}* (менделеева|клапейрона)|идеальн\p{L}* газ/u,
+  // строение атома и задачи учебника без «вычисли»: «сколько нейтронов…», «nechta neytron», «температурный коэффициент … определите»
+  /сколько\s+(протон|нейтрон|электрон)|nechta\s+(proton|neytron|elektron)|how many (protons|neutrons|electrons)|температурн\p{L}* коэффициент|harorat koeffitsienti|temperature coefficient/u,
+  /определи(те)?\s+(массу|объем|скорость|количество|число|выход|формулу|молярн|плотност|концентрац|массов|константу|состав)/u,
   /molyar|necha (gramm|mol|litr)|tenglashtir|koeffitsient|oksidlanish darajasi|massa ulushi|konsentratsiya|hisobla|toping|qancha/u,
   /molar mass|how many (grams|g|moles|mol|liters|litres|atoms|molecules)|balance|coefficient|oxidation (state|number)|mass (fraction|percent)|percent(age)? by mass|concentration|molarity|ph of|dilut|enthalpy|ideal gas|calculate|compute/u,
   /\bm\s*\(\s*[a-z]/i, /[→=⇄]|->/,

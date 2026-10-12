@@ -137,7 +137,7 @@ const ALIASES: [RegExp, string][] = [
 ]
 
 /** Вещества с позициями: формулы, названия веществ, элементы (элемент → простое вещество). */
-export function findSpecies(raw: string, kb: Knowledge): Species[] {
+export function findSpecies(raw: string, kb: Knowledge, lang: Lang = 'ru'): Species[] {
   // «Mr(CO2)», «m(Zn)», «V(H₂)» — обозначение величины, внутри — формула (длина текста сохраняется)
   const text = raw.replace(/(?<![A-Za-z])(Mr|Mэ|M|m|n|V|N|C|ρ)\s*\(([^()]{1,20})\)/g, (all: string, _p: string, inner: string) => ' '.repeat(all.length - inner.length - 1) + inner + ' ')
   const out: Species[] = []
@@ -155,11 +155,16 @@ export function findSpecies(raw: string, kb: Knowledge): Species[] {
   // повторы той же формулы («BaCl₂ + … → …. Из 86 г BaCl₂ …»): findFormulas отдаёт только первое вхождение,
   // а роль величины («86 г» → BaCl₂) решает ближайшее; вхождение внутри другой формулы (H₂ в H₂O) — не повтор
   for (const f of formulas) {
-    if (f.raw.length < 2 || /^\d/.test(f.raw)) continue
+    if (/^\d/.test(f.raw)) continue
+    // однобуквенная формула («из 54 г S», «76 g C dan») — только отдельным словом и не обозначение величины / единица
+    // («V = 5 л», «P(…)», «300 K», «25 °C»), «I»/«A» в английском — местоимение/артикль
+    const single = f.raw.length < 2
+    if (single && (lang === 'en' && /^[IA]$/.test(f.raw))) continue
     for (let i = text.indexOf(f.raw, f.index + f.raw.length); i >= 0; i = text.indexOf(f.raw, i + f.raw.length)) {
       const before = text[i - 1] ?? ' '
       const after = text[i + f.raw.length] ?? ' '
       if (/\p{L}/u.test(before) || /[A-Za-z0-9₀-₉(⁺⁻]/.test(after)) continue
+      if (single && (/\p{L}|[\d₀-₉]/u.test(after) || /^\s*[=(:]/.test(text.slice(i + 1)) || /(?:\d\s*|°\s*)$/.test(text.slice(Math.max(0, i - 3), i)))) continue
       add(f.ascii, i, i + f.raw.length, f.counts, f.charge)
     }
   }
@@ -258,7 +263,7 @@ export type Ctx = {
 export function buildCtx(rawText: string, cmp: string, lang: Lang, kb: Knowledge): Ctx {
   const text = stripStudentAnswer(rawText).replace(/(?<=[A-Za-z0-9)])\.(\d*H2O)(?![a-z])/g, '·$1')
   const qs = extractQuantities(text)
-  const species = findSpecies(text, kb)
+  const species = findSpecies(text, kb, lang)
   const a = askClause(text)
   const bare = a.sentence.replace(/\d+(?:[.,]\d+)?(?:\s*[·x×*]\s*10\S*)?\s*[^\s,.;:!?()]+/gu, ' ')
   return { text, cmp, lang, kb, qs, species, ask: { ...a, kinds: askKinds(bare) } }
