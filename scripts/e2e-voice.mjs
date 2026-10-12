@@ -23,7 +23,10 @@
  *
  * Запуск: npm run e2e:voice [-- --only=a,b,f] [--base=http://127.0.0.1:5173] [--port=5197] [--lead=6] [--headed]
  *         [--strict] [--live[=msedge,chrome]] [--live-brain] [--keep]
- * Отчёт: .tmp/e2e-voice/report.json + скриншоты .tmp/e2e-voice/<сценарий>.png; exit 1 при провале.
+ *         [--no-warm] [--warm-timeout=300] [--goto-timeout=60] [--scenario-limit=150]
+ * Перед сценариями — прогрев (холодный vite собирает урок 1–3 мин; это не время сайта).
+ * Отчёт: .tmp/e2e-voice/report.json + скриншоты .tmp/e2e-voice/<сценарий>.png + журнал консоли страницы
+ * .tmp/e2e-voice/<сценарий>.log ([voice]-события, снимки диагностики раз в секунду); exit 1 при провале.
  */
 import { chromium } from 'playwright'
 import { spawn, spawnSync } from 'node:child_process'
