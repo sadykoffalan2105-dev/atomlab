@@ -5,16 +5,19 @@
   grid-template-areas:
     'header header'
     'canvas side';
-  gap: 0.85rem;
+  gap: 13.5px;
   flex: 1;
   min-height: 0;
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-  padding: 0.65rem 0.85rem 0.85rem;
+  padding: 10.5px 13.5px 13.5px;
   /* Ночной остров на всю страницу: днём красит себя сам, ночью прозрачен (как было). */
   background: var(--lt-night-backdrop, transparent);
   color: var(--app-shell-text);
+  /* Размеры в px: корень сайта намеренно мелкий (--ui-scale 0.5), в rem текст был 5–7 px.
+     line-height корня наследуется числом (~13 px) — задаём свой, иначе строки заголовков наползают. */
+  line-height: 1.4;
 }
 
 @media (max-width: 960px) {
@@ -34,36 +37,36 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.65rem;
+  gap: 10.5px;
 }
 
 .h {
   margin: 0;
-  font-size: clamp(1.15rem, 2.8vw, 1.55rem);
+  font-size: clamp(18.5px, 2.8vw, 25px);
   font-weight: 800;
   color: #f0f4ff;
   text-shadow: 0 0 24px rgba(168, 85, 247, 0.35);
 }
 
 .lead {
-  margin: 0.25rem 0 0;
-  font-size: 0.88rem;
+  margin: 4px 0 0;
+  font-size: 14px;
   line-height: 1.5;
   color: #b8a8e8;
-  max-width: 52rem;
+  max-width: 832px;
 }
 
 .meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 6.5px;
   align-items: center;
 }
 
 .chip {
-  font-size: 0.68rem;
+  font-size: 11px;
   font-weight: 700;
-  padding: 0.28rem 0.55rem;
+  padding: 4.5px 9px;
   border-radius: 999px;
   border: 1px solid rgba(168, 85, 247, 0.45);
   color: #c4b5fd;
@@ -76,7 +79,7 @@
   }
 
   .meta {
-    margin-top: 0.15rem;
+    margin-top: 2.5px;
   }
 }
 
@@ -123,17 +126,17 @@
 
 .practiceBanner {
   position: absolute;
-  top: 0.65rem;
+  top: 10.5px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 3;
-  max-width: min(92%, 36rem);
-  padding: 0.45rem 0.85rem;
+  max-width: min(92%, 576px);
+  padding: 7px 13.5px;
   border-radius: 10px;
   border: 1px solid rgba(34, 211, 238, 0.45);
   background: rgba(8, 12, 28, 0.82);
   color: #a5f3fc;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
   line-height: 1.45;
   text-align: center;
@@ -143,7 +146,7 @@
 
 .canvasLoader {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 14.5px;
   font-weight: 700;
   color: #c4b5fd;
   animation: vrPulse 1.4s ease-in-out infinite;
@@ -151,10 +154,10 @@
 
 .canvasError {
   margin: 0;
-  padding: 0 1.5rem;
-  max-width: 28rem;
+  padding: 0 24px;
+  max-width: 448px;
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 13.5px;
   line-height: 1.5;
   color: #e8d5ff;
 }
@@ -173,13 +176,13 @@
   grid-area: side;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 10.5px;
   min-height: 0;
   max-height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding-right: 0.15rem;
+  padding-right: 2.5px;
   scrollbar-width: thin;
 }
 
@@ -187,13 +190,13 @@
   border-radius: 14px;
   border: 1px solid rgba(168, 85, 247, 0.28);
   background: rgba(10, 6, 24, 0.94);
-  padding: 0.75rem 0.85rem;
+  padding: 12px 13.5px;
   box-shadow: 0 0 20px rgba(168, 85, 247, 0.08);
 }
 
 .controlsTitle {
-  margin: 0 0 0.35rem;
-  font-size: 0.72rem;
+  margin: 0 0 5.5px;
+  font-size: 11.5px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -201,30 +204,30 @@
 }
 
 .controlsHint {
-  margin: 0 0 0.35rem;
-  font-size: 0.7rem;
+  margin: 0 0 5.5px;
+  font-size: 11px;
   line-height: 1.45;
   font-weight: 600;
   color: rgba(0, 229, 255, 0.82);
 }
 
 .dragHint {
-  margin: 0 0 0.5rem;
-  font-size: 0.68rem;
+  margin: 0 0 8px;
+  font-size: 11px;
   line-height: 1.4;
   color: rgba(180, 160, 220, 0.72);
 }
 
 .vatHint {
-  margin: 0 0 0.45rem;
-  font-size: 0.72rem;
+  margin: 0 0 7px;
+  font-size: 11.5px;
   line-height: 1.4;
   color: rgba(255, 110, 180, 0.75);
 }
 
 .sectionLabel {
-  margin: 0 0 0.3rem;
-  font-size: 0.62rem;
+  margin: 0 0 5px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -234,22 +237,22 @@
 .shelfRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.28rem;
-  margin-bottom: 0.55rem;
+  gap: 4.5px;
+  margin-bottom: 9px;
 }
 
 .shelfBtn,
 .shelfBtnOn {
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 11px;
   font-weight: 700;
   border-radius: 8px;
-  padding: 0.28rem 0.45rem;
+  padding: 4.5px 7px;
   cursor: pointer;
   border: 1px solid rgba(0, 229, 255, 0.22);
   background: rgba(255, 255, 255, 0.03);
   color: #b8e8ff;
-  min-width: 2rem;
+  min-width: 32px;
 }
 
 .shelfBtnOn {
@@ -262,17 +265,17 @@
 .tubeRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: 0.55rem;
+  gap: 5.5px;
+  margin-bottom: 9px;
 }
 
 .tubeBtn,
 .tubeBtnOn {
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
   border-radius: 999px;
-  padding: 0.35rem 0.65rem;
+  padding: 5.5px 10.5px;
   cursor: pointer;
   border: 1px solid rgba(168, 85, 247, 0.3);
   background: rgba(255, 255, 255, 0.04);
@@ -289,16 +292,16 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 7px;
 }
 
 .btn,
 .btnPrimary {
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 700;
   border-radius: 10px;
-  padding: 0.5rem 0.85rem;
+  padding: 8px 13.5px;
   cursor: pointer;
   border: 1px solid rgba(168, 85, 247, 0.3);
   background: rgba(255, 255, 255, 0.04);
@@ -328,23 +331,23 @@
 }
 
 .result {
-  margin-top: 0.65rem;
-  padding-top: 0.55rem;
+  margin-top: 10.5px;
+  padding-top: 9px;
   border-top: 1px solid rgba(168, 85, 247, 0.18);
 }
 
 .resultEq {
   font-family: ui-monospace, monospace;
-  font-size: 0.85rem;
+  font-size: 13.5px;
   font-weight: 700;
   color: #c084fc;
-  margin: 0.25rem 0 0;
+  margin: 4px 0 0;
   text-shadow: 0 0 8px rgba(192, 132, 252, 0.4);
 }
 
 .resultMsg {
-  margin: 0.35rem 0 0;
-  font-size: 0.82rem;
+  margin: 5.5px 0 0;
+  font-size: 13px;
   color: #dce6f8;
   line-height: 1.45;
 }
@@ -356,17 +359,17 @@
 
 .interactionBanner {
   position: absolute;
-  bottom: 0.65rem;
+  bottom: 10.5px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 4;
-  max-width: min(92%, 28rem);
-  padding: 0.45rem 0.85rem;
+  max-width: min(92%, 448px);
+  padding: 7px 13.5px;
   border-radius: 10px;
   border: 1px solid rgba(34, 211, 238, 0.45);
   background: rgba(8, 12, 28, 0.88);
   color: #a5f3fc;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.45;
   text-align: center;
@@ -378,19 +381,19 @@
   border-radius: 14px;
   border: 1px solid rgba(168, 85, 247, 0.28);
   background: rgba(10, 6, 24, 0.94);
-  padding: 0.65rem 0.75rem;
+  padding: 10.5px 12px;
   flex-shrink: 0;
   max-height: min(36vh, 360px);
   overflow: auto;
 }
 
 .lessonHeader {
-  margin-bottom: 0.5rem;
+  margin-bottom: 8px;
 }
 
 .lessonKicker {
   margin: 0;
-  font-size: 0.62rem;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -398,8 +401,8 @@
 }
 
 .lessonTitle {
-  margin: 0.2rem 0 0.35rem;
-  font-size: 0.95rem;
+  margin: 3px 0 5.5px;
+  font-size: 15px;
   font-weight: 800;
   color: #f0f4ff;
 }
@@ -407,8 +410,8 @@
 .lessonSelect {
   width: 100%;
   font: inherit;
-  font-size: 0.75rem;
-  padding: 0.35rem 0.5rem;
+  font-size: 12px;
+  padding: 5.5px 8px;
   border-radius: 8px;
   border: 1px solid rgba(168, 85, 247, 0.35);
   background: rgba(255, 255, 255, 0.04);
@@ -417,17 +420,17 @@
 
 .lessonTabs {
   display: flex;
-  gap: 0.28rem;
-  margin-bottom: 0.5rem;
+  gap: 4.5px;
+  margin-bottom: 8px;
 }
 
 .lessonTab,
 .lessonTabOn {
   flex: 1;
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 11px;
   font-weight: 700;
-  padding: 0.32rem 0.4rem;
+  padding: 5px 6.5px;
   border-radius: 8px;
   cursor: pointer;
   border: 1px solid rgba(168, 85, 247, 0.25);
@@ -449,78 +452,78 @@
 .lessonBody {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 7px;
 }
 
 .lessonPara {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   line-height: 1.5;
   color: #dce6f8;
 }
 
 .lessonSafety {
   margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.72rem;
+  padding-left: 17.5px;
+  font-size: 11.5px;
   line-height: 1.45;
   color: rgba(255, 110, 180, 0.85);
 }
 
 .quizBlock {
   margin: 0;
-  padding: 0.45rem 0.55rem;
+  padding: 7px 9px;
   border: 1px solid rgba(168, 85, 247, 0.2);
   border-radius: 10px;
 }
 
 .quizBlock legend {
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 700;
   color: #c4b5fd;
-  padding: 0 0.25rem;
+  padding: 0 4px;
 }
 
 .quizOption {
   display: flex;
   align-items: flex-start;
-  gap: 0.35rem;
-  font-size: 0.72rem;
+  gap: 5.5px;
+  font-size: 11.5px;
   color: #dce6f8;
-  margin-top: 0.28rem;
+  margin-top: 4.5px;
   cursor: pointer;
 }
 
 .quizExp {
-  margin: 0.35rem 0 0;
-  font-size: 0.68rem;
+  margin: 5.5px 0 0;
+  font-size: 11px;
   color: rgba(0, 229, 255, 0.75);
 }
 
 .quizScore {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
   color: #c084fc;
 }
 
 .practiceChecklist {
   margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.72rem;
+  padding-left: 17.5px;
+  font-size: 11.5px;
   line-height: 1.45;
   color: #b8e8ff;
 }
 
 .lessonComplete {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 12.5px;
   font-weight: 700;
   color: #4ade80;
 }
 
 .backLink {
-  font-size: 0.82rem;
+  font-size: 13px;
   font-weight: 700;
   color: #c084fc;
   text-decoration: none;
@@ -532,8 +535,8 @@
 }
 
 .reactionCatalog {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
+  margin-top: 12px;
+  padding: 12px;
   border-radius: 12px;
   border: 1px solid rgba(34, 211, 238, 0.25);
   background: rgba(8, 12, 28, 0.55);
@@ -541,7 +544,7 @@
 
 .catalogKicker {
   margin: 0;
-  font-size: 0.62rem;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -549,26 +552,26 @@
 }
 
 .catalogTitle {
-  margin: 0.25rem 0 0;
-  font-size: 0.92rem;
+  margin: 4px 0 0;
+  font-size: 14.5px;
   font-weight: 800;
   color: #e9f5ff;
 }
 
 .catalogLead {
-  margin: 0.35rem 0 0.65rem;
-  font-size: 0.72rem;
+  margin: 5.5px 0 10.5px;
+  font-size: 11.5px;
   line-height: 1.45;
   color: #9ecfe8;
 }
 
 .catalogSection {
-  margin-top: 0.55rem;
+  margin-top: 9px;
 }
 
 .catalogSectionTitle {
-  margin: 0 0 0.35rem;
-  font-size: 0.78rem;
+  margin: 0 0 5.5px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #c4b5fd;
 }
@@ -579,11 +582,11 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 7px;
 }
 
 .catalogItem {
-  padding: 0.5rem 0.55rem;
+  padding: 8px 9px;
   border-radius: 8px;
   border: 1px solid rgba(168, 85, 247, 0.22);
   background: rgba(255, 255, 255, 0.03);
@@ -593,19 +596,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.35rem;
+  gap: 5.5px;
 }
 
 .catalogFormula {
-  font-size: 0.76rem;
+  font-size: 12px;
   font-weight: 800;
   color: #f0f4ff;
 }
 
 .catalogBadge {
-  font-size: 0.58rem;
+  font-size: 9.5px;
   font-weight: 800;
-  padding: 0.15rem 0.4rem;
+  padding: 2.5px 6.5px;
   border-radius: 999px;
   background: rgba(74, 222, 128, 0.15);
   color: #4ade80;
@@ -614,34 +617,34 @@
 }
 
 .catalogObs {
-  margin: 0.25rem 0 0.4rem;
-  font-size: 0.68rem;
+  margin: 4px 0 6.5px;
+  font-size: 11px;
   line-height: 1.4;
   color: #9fb8d8;
 }
 
 .catalogFormulaSub {
-  margin: 0.15rem 0 0;
-  font-size: 0.65rem;
+  margin: 2.5px 0 0;
+  font-size: 10.5px;
   font-weight: 700;
   color: rgba(196, 181, 253, 0.85);
 }
 
 .reactionProgressList {
-  margin: 0.5rem 0 0;
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
 }
 
 .reactionProgressItem,
 .reactionProgressFocus,
 .reactionProgressDone {
-  font-size: 0.66rem;
+  font-size: 10.5px;
   line-height: 1.35;
-  padding: 0.28rem 0.45rem;
+  padding: 4.5px 7px;
   border-radius: 6px;
   border: 1px solid rgba(168, 85, 247, 0.2);
   color: #b8c8e8;
@@ -660,11 +663,11 @@
 }
 
 .reactionFocusHint {
-  margin: 0.45rem 0 0;
-  font-size: 0.68rem;
+  margin: 7px 0 0;
+  font-size: 11px;
   line-height: 1.45;
   color: #9ecfe8;
-  padding: 0.35rem 0.5rem;
+  padding: 5.5px 8px;
   border-radius: 8px;
   border: 1px solid rgba(34, 211, 238, 0.25);
   background: rgba(8, 18, 32, 0.5);
