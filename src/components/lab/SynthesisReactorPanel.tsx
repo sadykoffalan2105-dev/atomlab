@@ -45,6 +45,14 @@ const RouteFormationModal = lazy(() => import('./formation/routes/RouteFormation
 
 const COEFF_MAX = REACTOR_COEFF_MAX
 
+/** Рецепт содержит то же уравнение, что пришло ссылкой eq= (без пробелов, ↑↓ и скобок — условия над стрелкой и группы
+ * снимаются одинаково с обеих сторон). */
+function recipeMentionsEquation(recipe: string, equation: string): boolean {
+  const norm = (x: string) => x.replace(/\s+/g, '').replace(/[↑↓]/g, '').replace(/\([^)]*\)/g, '')
+  const eq = norm(equation)
+  return eq.length > 0 && norm(recipe).includes(eq)
+}
+
 function termSymbolDisplay(t: ReactorEquationTerm): string {
   if (t.compoundId) {
     const c = compoundById[t.compoundId]
@@ -843,9 +851,10 @@ export function SynthesisReactorPanel({
   const activeSection: ReactorSection | null =
     openSection === 'steps' && !hasObtainingSteps ? null : openSection
 
-  const linkedReactionId = useMemo(() => {
+  const { linkedReactionId, linkedEquation } = useMemo(() => {
     const query = location.search || (window.location.hash.includes('?') ? window.location.hash.slice(window.location.hash.indexOf('?')) : '')
-    return new URLSearchParams(query.startsWith('?') ? query.slice(1) : query).get('reaction')
+    const params = new URLSearchParams(query.startsWith('?') ? query.slice(1) : query)
+    return { linkedReactionId: params.get('reaction'), linkedEquation: params.get('eq')?.trim() || null }
   }, [location.search])
   const labNeeds = mainReaction
     ? mainReactionLabNeeds(mainReaction)
@@ -882,12 +891,17 @@ export function SynthesisReactorPanel({
     ? passportForReaction(linkedReaction).reversibility === 'reversible' || /[⇄⇌]/.test(linkedReaction.equationRu)
     : false
   // Реакция «шарами»: «эталон» получения главного продукта (H₂O из 2H₂ + O₂ при CH₄ + 2O₂) сбил бы с толку.
+  // Ссылка eq= (шаг «Этапов получения»: 2MnO₂ + 4KOH + O₂ → 2K₂MnO₄ + 2H₂O) — в реакторе уже своё уравнение;
+  // рецепт продукта (2KMnO₄ → K₂MnO₄ + …) показываем, только если в нём та же реакция, иначе это «эталон» другой.
+  const productRecipe = productCompound ? (productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu) : null
   const recipeText = productCompound && !runUnavailableHint && !mainReaction
     ? linkedReaction
       ? linkedReaction.productId === productCompound.id
         ? (locale === 'ru' ? linkedReaction.equationRu : linkedReaction.equationEn || linkedReaction.equationRu)
         : null
-      : (productStrings?.laboratoryRecipe ?? productCompound.laboratoryRecipeRu)
+      : linkedEquation && productRecipe && !recipeMentionsEquation(productRecipe, linkedEquation)
+        ? null
+        : productRecipe
     : null
 
   const sectionToggle = (id: ReactorSection, icon: ReactNode, label: string, title?: string) => (
