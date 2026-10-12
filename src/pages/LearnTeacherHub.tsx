@@ -130,6 +130,7 @@ export function LearnTeacherHub() {
             value={className}
             onChange={(e) => setClassName(e.target.value)}
             placeholder={t('learn.teacher.className')}
+            aria-label={t('learn.teacher.className')}
           />
           <select
             className={styles.teacherInput}
