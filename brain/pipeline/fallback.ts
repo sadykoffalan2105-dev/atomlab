@@ -344,6 +344,9 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
     parts.push(tools.map((t) => t.text).join('\n'))
     for (const t of tools) cite(t.cite ?? '[ATOMLAB: расчёт]')
     confidence = Math.max(confidence, 0.95)
+    // тест с вариантами (testChoice.ts): буква первой + одна строка обоснования, без пересказа учебника
+    const test = tools.find((t) => t.tool === 'test')
+    if (test) return { text: test.text, citations, confidence }
     // «как получить X»: только проверенные уравнения + микровопрос. Предложения учебника рядом со словом «получение» —
     // чаще подписи к рисункам и условия задач («Прибор для получения…», «При прокаливании 60 г…»): в запасной ответ не берём
     const obtain = tools.find((t) => t.tool === 'obtain')

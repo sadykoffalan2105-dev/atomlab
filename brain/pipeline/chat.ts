@@ -384,8 +384,8 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   if (template && intent === 'offtopic' && (state.topic || state.lastStandalone)) intent = 'chemistry'
 
   // 5) инструменты: по самодостаточному вопросу; числа задачи могли быть только в оригинале
-  let tools = intent === 'offtopic' || intent === 'smalltalk' ? [] : runTools(workText, workCmp, lang, kb)
-  if (!tools.length && !template && sq.text !== text && intent !== 'offtopic' && intent !== 'smalltalk') tools = runTools(text, cmp, lang, kb)
+  let tools = intent === 'offtopic' || intent === 'smalltalk' ? [] : runTools(workText, workCmp, lang, kb, { gradeId: req.context.gradeId })
+  if (!tools.length && !template && sq.text !== text && intent !== 'offtopic' && intent !== 'smalltalk') tools = runTools(text, cmp, lang, kb, { gradeId: req.context.gradeId })
 
   // 4d) тип и охват вопроса (классификаторы SOURCES)
   // шаблоны («проще», «пример», «повтори», «да») сохраняют тип из правил (прежний вопрос / confirm / repeat)

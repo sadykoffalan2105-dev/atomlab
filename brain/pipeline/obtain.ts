@@ -294,6 +294,7 @@ export function obtainTool(text: string, cmp: string, lang: Lang, kb: Knowledge)
     // уравнения — справка, а не «числа»: модель может пересказать их своими словами, точный текст уже в подсказке
     numbers: [],
     cite: '[ATOMLAB: способы получения]',
+    eqs: all,
   }
 }
 

@@ -14,8 +14,10 @@ import { convertUnitsQuery } from '../../src/learn/brain/human/unitConvert.ts'
 import type { Knowledge } from '../kb/shards.ts'
 import { findElements, findFormulas, findSubstances, pretty, substanceFromText, toAsciiFormula } from './entities.ts'
 import type { Lang } from './normalize.ts'
-import { obtainTool } from './obtain.ts'
+import { eqKey, obtainTool } from './obtain.ts'
 import { runSchoolCalc } from '../calc/index.ts'
+import { eqUnits, gradeOf, reactionUnits, taskTypeUnit, unitCite } from './bookCite.ts'
+import { testChoiceTool } from './testChoice.ts'
 
 export type ToolResult = {
   tool: string
@@ -29,7 +31,12 @@ export type ToolResult = {
   good?: number
   /** метка источника для ответа (по умолчанию «[ATOMLAB: расчёт]») */
   cite?: string
+  /** уравнения ответа (Unicode) — по ним runTools ищет § учебника для подписи (способы получения) */
+  eqs?: string[]
 }
+
+/** Контекст запроса для инструментов: класс ученика — какой книгой подписывать уравнения и задачи. */
+export type ToolOpts = { gradeId?: string }
 
 const L = (lang: Lang, ru: string, uz: string, en: string) => (lang === 'ru' ? ru : lang === 'uz' ? uz : en)
 
@@ -398,13 +405,47 @@ function knownReactions(reactants: string[], kb: Knowledge): string[] {
   return out
 }
 
-function balanceTool(text: string, _cmp: string, lang: Lang, kb: Knowledge): ToolResult | null {
+/** Условия реакции учебника одной строкой (коротко: «t°», «катализатор Pt»); длинные пояснения — без них. */
+function condLine(cond: string | undefined, lang: Lang): string {
+  if (!cond || cond.length > 60 || lang !== 'ru') return ''
+  return `\nУсловия: ${cond}.`
+}
+
+function balanceTool(text: string, _cmp: string, lang: Lang, kb: Knowledge, grade: number | null = null): ToolResult | null {
   const eqText = extractEquation(text)
   if (!eqText) return null
   const res = balanceEquation(eqText)
   if (res === null) return null
+  const map = kb.curriculum
   if (res === 'noproducts' || res === 'unbalanceable') {
-    const left = eqText.split(/→|⇄|⇌/)[0]!.split('+').map((x) => toAsciiFormula(x.trim())).filter(Boolean)
+    const left = eqText.split(/→|⇄|⇌/)[0]!.split('+').map((x) => toAsciiFormula(x.trim().replace(/^\d+\s*/, ''))).filter(Boolean)
+    // «Закончи уравнение»: сначала реакции учебника класса ученика с ровно этими исходными веществами (§ — в подписи)
+    if (res === 'noproducts' && map) {
+      const rows = reactionUnits(map, left, null, grade)
+      const seen = new Set<string>()
+      const picked: { eq: string; row: (typeof rows)[number] }[] = []
+      for (const row of rows) {
+        if (picked.length >= 2 || (picked.length && row.unit.grade !== picked[0]!.row.unit.grade)) break
+        const b = balanceEquation(row.reaction.ascii.replace(/<->/g, '⇄'))
+        const eq = b && typeof b === 'object' ? b.eq : row.reaction.eq
+        if (seen.has(eqKey(eq))) continue
+        seen.add(eqKey(eq))
+        picked.push({ eq, row })
+      }
+      if (picked.length) {
+        const label = picked[0]!.row.unit.label[lang] ?? picked[0]!.row.unit.label.ru
+        const eqs = picked.map((p) => p.eq).join('; ')
+        return {
+          tool: 'balance',
+          text:
+            L(lang, `Продукты не указаны. В учебнике (${label}) для этих веществ: ${eqs}.`, `Mahsulotlar koʻrsatilmagan. Darslikda (${label}) bu moddalar uchun: ${eqs}.`, `No products were given. The textbook (${label}) has: ${eqs}.`) +
+            condLine(picked[0]!.row.reaction.conditions, lang),
+          facts: `${L(lang, 'реакция из учебника', 'darslikdagi reaksiya', 'textbook reaction')}: ${eqs}`,
+          numbers: picked.map((p) => p.eq),
+          cite: unitCite(picked[0]!.row.unit, picked[0]!.row.reaction.page),
+        }
+      }
+    }
     const known = knownReactions(left, kb)
     if (res === 'noproducts') {
       if (known.length) {
@@ -451,13 +492,16 @@ function balanceTool(text: string, _cmp: string, lang: Lang, kb: Knowledge): Too
     good = 1
     note = L(lang, ' Ваши коэффициенты верны.', ' Sizning koeffitsiyentlaringiz toʻgʻri.', ' Your coefficients are correct.')
   }
+  // § учебника, где напечатана эта реакция (класс ученика первым) — подпись и условия
+  const book = map ? reactionUnits(map, res.reactants.map((s) => s.formula), res.products.map((s) => s.formula), grade)[0] : undefined
   return {
     tool: 'balance',
-    text: `${L(lang, 'Уравненное уравнение', 'Tenglashtirilgan tenglama', 'Balanced equation')}: ${res.eq}\n${L(lang, 'Проверка по атомам', 'Atomlar boʻyicha tekshiruv', 'Atom check')}: ${res.check}.${note}`,
+    text: `${L(lang, 'Уравненное уравнение', 'Tenglashtirilgan tenglama', 'Balanced equation')}: ${res.eq}\n${L(lang, 'Проверка по атомам', 'Atomlar boʻyicha tekshiruv', 'Atom check')}: ${res.check}.${note}${condLine(book?.reaction.conditions, lang)}`,
     facts: `${res.eq} (${res.check})`,
     numbers: [res.eq],
     errorTags: tags,
     good,
+    ...(book ? { cite: unitCite(book.unit, book.reaction.page) } : {}),
   }
 }
 
@@ -831,17 +875,25 @@ function arithmeticTool(text: string, lang: Lang): ToolResult | null {
 
 // ---------------------------------------------------------------- запуск
 
-export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge): ToolResult[] {
+export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge, opts: ToolOpts = {}): ToolResult[] {
+  const grade = gradeOf(opts.gradeId)
   const out: ToolResult[] = []
   const push = (r: ToolResult | null) => {
     if (r && out.length < 2 && !out.some((x) => x.tool === r.tool)) out.push(r)
   }
+  // тест с вариантами ответа (а) б) в) …) из банка тестов учебника — буква + обоснование, раньше калькулятора
+  const tc = testChoiceTool(text, lang, kb, grade)
+  if (tc) return [tc]
   // школьный калькулятор Kimyo 7–11 (brain/calc) — первым; задача распознана уверенно → только его расчёт
   const sc = runSchoolCalc(text, cmp, lang, kb)
-  if (sc) return [sc]
+  if (sc) {
+    // подпись — § книги класса ученика, где решают задачи этого типа
+    const unit = kb.curriculum ? taskTypeUnit(kb.curriculum, sc.tool.replace(/^calc:/, ''), grade) : null
+    return [unit ? { ...sc, cite: `[ATOMLAB: расчёт по ${unit.cite.slice(1, -1)}]` } : sc]
+  }
   const thermo = thermoTool(text, cmp, lang)
   push(thermo)
-  if (!thermo) push(balanceTool(text, cmp, lang, kb))
+  if (!thermo) push(balanceTool(text, cmp, lang, kb, grade))
   push(oxidationTool(text, cmp, lang, kb))
   push(phTool(text, cmp, lang))
   push(gasTool(text, cmp, lang))
@@ -858,7 +910,12 @@ export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge): 
   if (!out.length) push(elementGuardTool(cmp, lang, kb))
   if (!out.length) push(unitsTool(text, lang))
   if (!out.length) push(arithmeticTool(text, lang))
-  return out
+  // способы получения: подпись — § учебника (класс ученика первым), где напечатано одно из уравнений
+  return out.map((r) => {
+    if (r.tool !== 'obtain' || !r.eqs?.length || !kb.curriculum) return r
+    const row = eqUnits(kb.curriculum, r.eqs, grade)[0]
+    return row ? { ...r, cite: unitCite(row.unit, row.reaction.page) } : r
+  })
 }
 
 /** Проверка ДЗ: число ученика рядом с «=» / «ответ» против точного расчёта. */
