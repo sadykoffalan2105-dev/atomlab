@@ -1,5 +1,5 @@
 {
   "_help": "Флаги для npm run brain:eval:curriculum: true — часть строителя ещё НЕ слита, её проверки «ждут» (печатаются, но не входят в пороги). A — карта Kimyo и точный § в поиске/цитатах (citationMatch, citationHit, подтип section). B — школьный калькулятор brain/calc (случаи с needs B: избыток, выход, примеси, D(H₂), p/n/e, задачи учебника). После слияния поставить false (или запускать с --merged=A,B) и пересобрать вопросы: npm run brain:curriculum-eval.",
-  "A": true,
-  "B": true
+  "A": false,
+  "B": false
 }
