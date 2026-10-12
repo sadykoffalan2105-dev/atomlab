@@ -466,9 +466,19 @@ async function scenarioEcho() {
       await shot(page, id)
       return record(id, title, 'pending', 'нет data-testid контракта (ждёт слияния site-voice)')
     }
-    await page.waitForTimeout(Math.max(0, LEAD_S * 1000 - 1500))
-    await typeQuestion(page, 'Молярная масса воды равна восемнадцати граммам на моль. Объясни подробно, почему так.')
-    await page.waitForTimeout(mic.totalMs - LEAD_S * 1000 + 6000)
+    // Эхо — это голос учителя из колонок, значит, оно должно звучать ВО ВРЕМЯ его озвучки. Раньше вопрос
+    // набирался через фиксированные 4,5 с после старта, и второй повтор фразы звучал уже после конца ответа
+    // (2–5 с тишины колонок) — это не эхо, а голос в комнате. Теперь вопрос набирается от момента открытия
+    // микрофона так, чтобы ответ учителя (заглушка повторяет вопрос, озвучка ~15 с) начался за ~2,5 с до эха.
+    const v0 = await ve(page)
+    const micAt = v0.micAt || Date.now()
+    const typeAt = micAt + mic.segments[0].startMs - 2500
+    await page.waitForTimeout(Math.max(0, typeAt - Date.now()))
+    await typeQuestion(
+      page,
+      'Молярная масса воды равна восемнадцати граммам на моль. Объясни подробно, почему так, и посчитай молярную массу углекислого газа и серной кислоты.',
+    )
+    await page.waitForTimeout(Math.max(0, micAt + mic.totalMs + 6000 - Date.now()))
     const v = await ve(page)
     await shot(page, id)
     const echoStart = v.micAt + mic.segments[0].startMs
