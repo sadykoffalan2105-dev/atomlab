@@ -33,6 +33,8 @@ export type ToolResult = {
   cite?: string
   /** уравнения ответа (Unicode) — по ним runTools ищет § учебника для подписи (способы получения) */
   eqs?: string[]
+  /** дополнительные подписи (другие § тех же уравнений) — после cite */
+  cites?: string[]
 }
 
 /** Контекст запроса для инструментов: класс ученика — какой книгой подписывать уравнения и задачи. */
@@ -913,8 +915,15 @@ export function runTools(text: string, cmp: string, lang: Lang, kb: Knowledge, o
   // способы получения: подпись — § учебника (класс ученика первым), где напечатано одно из уравнений
   return out.map((r) => {
     if (r.tool !== 'obtain' || !r.eqs?.length || !kb.curriculum) return r
-    const row = eqUnits(kb.curriculum, r.eqs, grade)[0]
-    return row ? { ...r, cite: unitCite(row.unit, row.reaction.page) } : r
+    // у каждого уравнения свой §: до трёх разных единиц (класс ученика первым)
+    const units: string[] = []
+    const cites: string[] = []
+    for (const row of eqUnits(kb.curriculum, r.eqs, grade)) {
+      if (units.includes(row.unit.id) || units.length >= 3) continue
+      units.push(row.unit.id)
+      cites.push(unitCite(row.unit, row.reaction.page))
+    }
+    return cites.length ? { ...r, cite: cites[0], cites: cites.slice(1) } : r
   })
 }
 

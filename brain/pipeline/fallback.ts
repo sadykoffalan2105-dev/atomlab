@@ -342,7 +342,7 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   // 0) точные инструменты
   if (tools.length) {
     parts.push(tools.map((t) => t.text).join('\n'))
-    for (const t of tools) cite(t.cite ?? '[ATOMLAB: расчёт]')
+    for (const t of tools) for (const c of [t.cite ?? '[ATOMLAB: расчёт]', ...(t.cites ?? [])]) cite(c)
     confidence = Math.max(confidence, 0.95)
     // тест с вариантами (testChoice.ts): буква первой + одна строка обоснования, без пересказа учебника
     const test = tools.find((t) => t.tool === 'test')

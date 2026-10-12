@@ -106,10 +106,65 @@ function looseCite(unit: string): RegExp {
   return new RegExp(`Kimyo ${n}, (?:§${esc}${m ? `|гл\\. ${m[1]}, тема ${m[2]}` : ''})(?![\\d.])`, 'u')
 }
 
+// ——— честная цитата § для reaction / obtain / calc / test.
+// Вопрос «Уравняй: H₂ + Cl₂ → HCl» (класс 8) не называет §: одна и та же реакция, тест или тип задачи напечатаны в
+// нескольких § книги класса, и мозг честно цитирует первый из них. Поэтому засчитываем цитату любого § книги класса
+// ученика, где напечатано то же самое: та же реакция (тот же регекс уравнения или те же вещества слева и справа),
+// тот же тест (вопрос и варианты дословно), тот же тип задачи (в оглавлении § или «введён в»). Единица-источник
+// случая засчитывается всегда. Пороги не меняются — меняется только «какой § верный».
+type MUnit = { id: string; grade: number; cite: string; reactions: { eq: string; ascii: string; isGeneral?: boolean }[]; tests: { q: Record<string, string | undefined>; choices?: Record<string, string[] | undefined>; correct?: number }[]; tasks: { types: string[] } }
+const MAPF = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'data', 'kb', 'curriculum', 'kimyo-map.json'), 'utf8')) as { taskTypes: { id: string; introducedIn: string[] }[]; grades: Record<string, { units: MUnit[] }> }
+const MUNITS = Object.values(MAPF.grades).flatMap((g) => g.units)
+const MBYID = new Map(MUNITS.map((u) => [u.id, u]))
+const rxSpecies = (ascii: string) => {
+  const [l, r] = ascii.split(/\s*(?:->|=|⇄|<->)\s*/)
+  const side = (s = '') => s.split(/\s\+\s/).map((x) => x.trim().replace(/^\d+\s*/, '').replace(/[↑↓]/g, '').trim()).filter(Boolean).sort().join('+')
+  return `${side(l)}>${side(r)}`
+}
+const TEST_HEAD: Record<string, string> = { ru: 'Выбери правильный ответ:', uz: 'Toʻgʻri javobni tanlang:', en: 'Choose the correct answer:' }
+const TEST_PREFIX = /^(По § «[^»]+»|§ [“«"][^”»"]+[”»"][^:]{0,30}|According to § [“«"][^”»"]+[”»"]):\s*/u
+function testText(t: MUnit['tests'][number], lang: string): string | null {
+  const qq = t.q[lang]?.replace(TEST_PREFIX, '')
+  const ch = t.choices?.[lang]
+  if (!qq || !ch) return null
+  const letters = lang === 'ru' ? ['а', 'б', 'в', 'г', 'д', 'е'] : ['a', 'b', 'c', 'd', 'e', 'f']
+  return `${TEST_HEAD[lang]} ${qq}\n${ch.map((c, k) => `${letters[k]}) ${c}`).join('\n')}`
+}
+function fairUnits(q: CQuestion): string[] {
+  const own = MBYID.get(q.unit)
+  if (!own) return [q.unit]
+  const grade = MUNITS.filter((u) => u.grade === own.grade)
+  const ok = new Set([own.id])
+  if (q.sub === 'reaction' || q.sub === 'obtain') {
+    const re = q.expect.mustMatch?.[0] ? new RegExp(q.expect.mustMatch[0], 'iu') : null
+    if (!re) return [...ok]
+    const keys = new Set(own.reactions.filter((r) => !r.isGeneral && re.test(r.eq)).map((r) => rxSpecies(r.ascii)))
+    for (const u of grade) if (u.reactions.some((r) => !r.isGeneral && (re.test(r.eq) || (q.sub === 'reaction' && keys.has(rxSpecies(r.ascii)))))) ok.add(u.id)
+  } else if (q.sub === 'test') {
+    for (const u of grade) if (u.tests.some((t) => testText(t, q.lang) === q.q)) ok.add(u.id)
+  } else if (q.sub === 'calc' && q.calcType && q.calcType !== 'textbook') {
+    const type = q.calcType.split(' ')[0]!
+    const inGrade = grade.filter((u) => u.tasks.types.includes(type))
+    const intro = (MAPF.taskTypes.find((t) => t.id === type)?.introducedIn ?? []).filter((id) => MBYID.has(id))
+    for (const id of inGrade.length ? inGrade.map((u) => u.id) : intro) ok.add(id)
+    for (const id of intro) if (MBYID.get(id)!.grade === own.grade) ok.add(id)
+  }
+  return [...ok]
+}
+const escRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+function fairCitation(q: CQuestion): CQuestion {
+  if (!q.expect.citationMatch || !['reaction', 'obtain', 'calc', 'test'].includes(q.sub)) return q
+  const ids = fairUnits(q)
+  if (ids.length < 2) return q
+  const alts = ids.map((id) => escRe(MBYID.get(id)!.cite.slice(1, -1)))
+  return { ...q, expect: { ...q.expect, citationMatch: `(?:${alts.join('|')})(?![\\d.])` } }
+}
+
 const rows: Row[] = []
 const t0 = performance.now()
-for (const [i, q] of set.entries()) {
+for (const [i, q0] of set.entries()) {
   if (i && pauseMs) await new Promise((r) => setTimeout(r, pauseMs))
+  const q = fairCitation(q0)
   const a = await runner.ask(q)
   // ждёт: B — случаи калькулятора; A — только подтип section (ссылка на §); цитату § до A просто не проверяем в случае
   const waits = (q.needs ?? []).filter((n) => pending[n] && (n === 'B' || q.sub === 'section'))
