@@ -155,6 +155,10 @@ export function formatDensity(
   const isGas = state === 'gas'
   const locale = opts?.locale ?? 'ru'
 
+  // Единицы — на языке интерфейса: в русском учебнике «г/см³», в узбекском «g/sm³» (было «g/cm³» везде).
+  const perCm3 = locale === 'en' ? 'g/cm³' : locale === 'uz' ? 'g/sm³' : 'г/см³'
+  const perL = locale === 'en' ? 'g/L' : locale === 'uz' ? 'g/l' : 'г/л'
+
   // Газы при н. у.: в справочнике плотность в g/cm³ очень мала (≈10⁻⁴–10⁻³).
   if (d < 0.01) {
     const gPerL = d * 1000
@@ -163,18 +167,22 @@ export function formatDensity(
         ? isGas
           ? ' (gas, STP)'
           : ' (STP)'
-        : isGas
-          ? ' (газ, н. у.)'
-          : ' (н. у.)'
-    return `${formatGramsPerLiter(gPerL)} g/L${note}`
+        : locale === 'uz'
+          ? isGas
+            ? ' (gaz, n. sh.)'
+            : ' (n. sh.)'
+          : isGas
+            ? ' (газ, н. у.)'
+            : ' (н. у.)'
+    return `${formatGramsPerLiter(gPerL)} ${perL}${note}`
   }
 
   if (d < 1) {
     const trimmed = d.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')
-    return `${trimmed} g/cm³`
+    return `${trimmed} ${perCm3}`
   }
 
-  return `${d.toFixed(d < 10 ? 2 : 1)} g/cm³`
+  return `${d.toFixed(d < 10 ? 2 : 1)} ${perCm3}`
 }
 
 export function formatElectronegativity(v: number | null | undefined): string {
