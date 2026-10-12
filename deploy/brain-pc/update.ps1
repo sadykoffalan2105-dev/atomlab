@@ -15,6 +15,8 @@ $script:LogFile = Join-Path $paths.Logs 'update.log'
 $lock = Join-Path $paths.Run 'update.lock'
 if ((Test-Path -LiteralPath $lock) -and ((Get-Date) - (Get-Item -LiteralPath $lock).LastWriteTime).TotalMinutes -lt 60) { exit 0 }
 Set-Content -LiteralPath $lock -Value $PID
+# замок «свежий» 60 мин; долгие шаги (докачка картинок до 45 мин) его освежают, чтобы следующий запуск не пошёл параллельно
+function Update-Lock { try { Set-Content -LiteralPath $lock -Value $PID -ErrorAction SilentlyContinue } catch { } }
 
 try {
   Update-PathFromRegistry
@@ -119,7 +121,7 @@ try {
 
   # --- картинки (ComfyUI) ---
   # Ключ картинок (движок|вариант|выпуск ComfyUI|версия манифеста|вкл, + ученики/ключи/порт/резерв) изменился или пришли
-  # правки deploy/brain-pc/comfy/** → comfy\image-install.ps1 (докачка ≤ 50 мин за запуск, код 3 — продолжит в следующий раз),
+  # правки deploy/brain-pc/comfy/** → comfy\image-install.ps1 (докачка ≤ 45 мин за запуск, код 3 — продолжит в следующий раз),
   # затем перезапуск ComfyUI, когда его очередь пуста, config.json мозга и перезапуск мозга по общим правилам ниже.
   # Подпапку bin\comfy синхронизируем здесь (старый update.ps1 копировал только верхний уровень deploy\brain-pc).
   # Необязательный шаг: ЛЮБОЙ сбой внутри (нет файла, битый manifest.json, ошибка задачи планировщика…) — только
@@ -138,7 +140,8 @@ try {
       if (-not $needImg -and (Test-ImageEnabled $cfg) -and -not (Test-Path -LiteralPath (Join-Path $paths.ComfyRoot 'python_embeded\python.exe'))) { $needImg = $true }
       if ($needImg) {
         Say "картинки: $($state.imageKey) → $ikey"
-        $imgArgs = @{ Root = $Root; BudgetMinutes = 50; Quiet = $true }
+        # 45 мин докачки + сверка SHA-256 + ожидание очереди ComfyUI укладываются в 60 мин свежести замка (освежаем до и после)
+        $imgArgs = @{ Root = $Root; BudgetMinutes = 45; Quiet = $true }
         if ($script:AtomDry) { $imgArgs['DryRun'] = $true }
         $imgCode = 1
         # сбой картинок не должен останавливать обновление мозга — только предупреждение
@@ -146,7 +149,9 @@ try {
           if ((Test-ImageEnabled $cfg) -and -not (Get-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue)) {
             Register-AtomTask 'ATOMLAB Comfy' 'comfy\run-comfy.ps1'   # серверы, поставленные до картинок: задачу добавляет Update
           }
+          Update-Lock
           if (Test-Path -LiteralPath $imgScript) { & $imgScript @imgArgs; $imgCode = $LASTEXITCODE } else { Warn "нет $imgScript" }
+          Update-Lock
         } catch { Warn ("картинки: " + $_.Exception.Message) }
         $script:AtomDry = [bool]$DryRun
         # image-install сам пишет state.json (verified, comfyTag) — переносим, чтобы наш $state их не затёр
