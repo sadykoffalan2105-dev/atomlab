@@ -13,21 +13,21 @@
     "gated": 3947,
     "waiting": 0,
     "unfair": 280,
-    "pass": 3698,
-    "passAll": 3699,
-    "citationHit": 3794,
-    "citationHitLoose": 2919,
-    "schoolCases": 3942,
+    "pass": 3711,
+    "passAll": 3712,
+    "citationHit": 3787,
+    "citationHitLoose": 2914,
+    "schoolCases": 3933,
     "schoolTop1": 4101,
-    "wikiLeak": 0,
+    "wikiLeak": 1,
     "r3": 0,
     "cjk": 0,
-    "langOk": 3907,
+    "langOk": 3911,
     "langCases": 3947,
     "calc": 201,
-    "numberOk": 187,
-    "msP50": 19,
-    "msP95": 41
+    "numberOk": 201,
+    "msP50": 47,
+    "msP95": 119
   },
   "thresholds": {
     "offline": {
@@ -51,17 +51,17 @@
   "bySub": {
     "calc": {
       "n": 201,
-      "ok": 171,
+      "ok": 201,
       "gated": 201,
-      "gatedOk": 171,
-      "cite": 194
+      "gatedOk": 201,
+      "cite": 201
     },
     "definition": {
       "n": 1459,
-      "ok": 1053,
+      "ok": 1045,
       "gated": 1179,
-      "gatedOk": 1052,
-      "cite": 1360
+      "gatedOk": 1044,
+      "cite": 1354
     },
     "obtain": {
       "n": 29,
@@ -86,9 +86,9 @@
     },
     "test": {
       "n": 885,
-      "ok": 867,
+      "ok": 858,
       "gated": 885,
-      "gatedOk": 867,
+      "gatedOk": 858,
       "cite": 879
     },
     "why": {
@@ -102,46 +102,46 @@
   "byGrade": {
     "g7": {
       "n": 1123,
-      "ok": 1012,
+      "ok": 1006,
       "gated": 1048,
-      "gatedOk": 1012,
+      "gatedOk": 1006,
       "cite": 1101
     },
     "g8": {
       "n": 876,
-      "ok": 775,
+      "ok": 788,
       "gated": 827,
-      "gatedOk": 775,
-      "cite": 852
+      "gatedOk": 788,
+      "cite": 855
     },
     "g9": {
       "n": 942,
-      "ok": 846,
+      "ok": 850,
       "gated": 897,
-      "gatedOk": 846,
-      "cite": 910
+      "gatedOk": 850,
+      "cite": 913
     },
     "g10": {
       "n": 824,
-      "ok": 676,
+      "ok": 668,
       "gated": 748,
-      "gatedOk": 676,
-      "cite": 771
+      "gatedOk": 668,
+      "cite": 764
     },
     "g11": {
       "n": 462,
-      "ok": 390,
+      "ok": 400,
       "gated": 427,
-      "gatedOk": 389,
-      "cite": 432
+      "gatedOk": 399,
+      "cite": 434
     }
   },
   "byGradeSub": {
     "g7/calc": {
       "n": 28,
-      "ok": 25,
+      "ok": 28,
       "gated": 28,
-      "gatedOk": 25,
+      "gatedOk": 28,
       "cite": 28
     },
     "g7/definition": {
@@ -167,9 +167,9 @@
     },
     "g7/test": {
       "n": 453,
-      "ok": 449,
+      "ok": 440,
       "gated": 453,
-      "gatedOk": 449,
+      "gatedOk": 440,
       "cite": 450
     },
     "g7/why": {
@@ -181,17 +181,17 @@
     },
     "g8/calc": {
       "n": 59,
-      "ok": 47,
+      "ok": 59,
       "gated": 59,
-      "gatedOk": 47,
-      "cite": 57
+      "gatedOk": 59,
+      "cite": 59
     },
     "g8/definition": {
       "n": 288,
-      "ok": 213,
+      "ok": 214,
       "gated": 239,
-      "gatedOk": 213,
-      "cite": 273
+      "gatedOk": 214,
+      "cite": 274
     },
     "g8/obtain": {
       "n": 10,
@@ -230,17 +230,17 @@
     },
     "g9/calc": {
       "n": 40,
-      "ok": 37,
+      "ok": 40,
       "gated": 40,
-      "gatedOk": 37,
-      "cite": 38
+      "gatedOk": 40,
+      "cite": 40
     },
     "g9/definition": {
       "n": 261,
-      "ok": 186,
+      "ok": 187,
       "gated": 216,
-      "gatedOk": 186,
-      "cite": 235
+      "gatedOk": 187,
+      "cite": 236
     },
     "g9/obtain": {
       "n": 17,
@@ -279,17 +279,17 @@
     },
     "g10/calc": {
       "n": 14,
-      "ok": 12,
+      "ok": 14,
       "gated": 14,
-      "gatedOk": 12,
-      "cite": 13
+      "gatedOk": 14,
+      "cite": 14
     },
     "g10/definition": {
       "n": 375,
-      "ok": 257,
+      "ok": 247,
       "gated": 299,
-      "gatedOk": 257,
-      "cite": 338
+      "gatedOk": 247,
+      "cite": 330
     },
     "g10/reaction": {
       "n": 193,
@@ -314,10 +314,10 @@
     },
     "g11/calc": {
       "n": 60,
-      "ok": 50,
+      "ok": 60,
       "gated": 60,
-      "gatedOk": 50,
-      "cite": 58
+      "gatedOk": 60,
+      "cite": 60
     },
     "g11/definition": {
       "n": 143,
@@ -358,24 +358,24 @@
   "byLang": {
     "en": {
       "n": 381,
-      "ok": 369,
+      "ok": 367,
       "gated": 381,
-      "gatedOk": 369,
+      "gatedOk": 367,
       "cite": 370
     },
     "ru": {
       "n": 2017,
-      "ok": 1875,
+      "ok": 1893,
       "gated": 2017,
-      "gatedOk": 1875,
-      "cite": 1941
+      "gatedOk": 1893,
+      "cite": 1946
     },
     "uz": {
       "n": 1829,
-      "ok": 1455,
+      "ok": 1452,
       "gated": 1549,
-      "gatedOk": 1454,
-      "cite": 1755
+      "gatedOk": 1451,
+      "cite": 1751
     }
   },
   "worstUnits": [
@@ -398,6 +398,28 @@
           "q": "Уравняй: CO₂ + H₂ → CO + H₂O",
           "why": "цитаты без /Kimyo 11, §26(?![\\d.])/: [ATOMLAB: расчёт]",
           "answer": "Уравненное уравнение: CO₂ + H₂ → CO + H₂O Проверка по атомам: C: 1 = 1, O: 2 = 2, H: 2 = 2. Хотите похожую задачу для тренировки?"
+        }
+      ]
+    },
+    {
+      "unit": "g10:3.7",
+      "share": 0.5,
+      "n": 12,
+      "ok": 6,
+      "reasons": [
+        "язык ответа ×3",
+        "нет цитаты § ×3"
+      ],
+      "examples": [
+        {
+          "q": "Уравняй: C₆H₅CH₂Cl + H₂O → HCl + C₆H₅CH₂OH",
+          "why": "язык ≠ ru",
+          "answer": "Balanced equation: C₆H₅CH₂Cl + H₂O → HCl + C₆H₅CH₂OH Atom check: C: 7 = 7, H: 9 = 9, Cl: 1 = 1, O: 1 = 1. Can you check the answer another w"
+        },
+        {
+          "q": "Уравняй: C₆H₅SO₃H + NaOH → C₆H₅SO₃Na + H₂O",
+          "why": "язык ≠ ru",
+          "answer": "Balanced equation: C₆H₅SO₃H + NaOH → C₆H₅SO₃Na + H₂O Atom check: C: 6 = 6, H: 7 = 7, S: 1 = 1, O: 4 = 4, Na: 1 = 1. Would you like a similar"
         }
       ]
     },
@@ -443,51 +465,6 @@
           "q": "«инвертным сахаром» nima?",
           "why": "язык ≠ uz",
           "answer": "Сахароза гидролизуется с образованием смеси равных количеств глюкозы и фруктозы, которая называется инвертным сахаром. Как бы вы объяснили э"
-        }
-      ]
-    },
-    {
-      "unit": "g11:1",
-      "share": 0.5714285714285714,
-      "n": 7,
-      "ok": 4,
-      "reasons": [
-        "intent chemistry ≠ calc|homework ×2",
-        "язык ответа ×1",
-        "[поле] kind ×1"
-      ],
-      "examples": [
-        {
-          "q": "«атомной орбиталью» nima?",
-          "why": "язык ≠ uz",
-          "answer": "Пространство вокруг ядра, в котором вероятность пребывания электрона наибольшая (свыше 90%), называется атомной орбиталью. Логика от законов"
-        },
-        {
-          "q": "Сколько нейтронов в ядре атома Mg с массовым числом 24?",
-          "why": "intent chemistry ≠ calc|homework",
-          "answer": "Дано: A = 24. Найти: p, n, e — ? Решение: 1) порядковый номер Z(Mg) = 12 → p = 12 2) n = A − Z = 24 − 12 = 12 3) e = Z = 12 Ответ: p = 12; n"
-        }
-      ]
-    },
-    {
-      "unit": "g10:3.7",
-      "share": 0.5833333333333334,
-      "n": 12,
-      "ok": 7,
-      "reasons": [
-        "язык ответа ×3",
-        "нет цитаты § ×2"
-      ],
-      "examples": [
-        {
-          "q": "Уравняй: C₆H₅CH₂Cl + H₂O → HCl + C₆H₅CH₂OH",
-          "why": "язык ≠ ru",
-          "answer": "Balanced equation: C₆H₅CH₂Cl + H₂O → HCl + C₆H₅CH₂OH Atom check: C: 7 = 7, H: 9 = 9, Cl: 1 = 1, O: 1 = 1. Can you check the answer another w"
-        },
-        {
-          "q": "Уравняй: C₆H₅SO₃H + NaOH → C₆H₅SO₃Na + H₂O",
-          "why": "язык ≠ ru",
-          "answer": "Balanced equation: C₆H₅SO₃H + NaOH → C₆H₅SO₃Na + H₂O Atom check: C: 6 = 6, H: 7 = 7, S: 1 = 1, O: 4 = 4, Na: 1 = 1. Would you like a similar"
         }
       ]
     },
@@ -600,11 +577,33 @@
           "answer": "Asoslar — metall kationi va gidroksid-ionlari OH⁻ dan iborat murakkab moddalar (NaOH, Ca(OH)₂); eriydigan asoslar ishqorlar deyiladi; Brenst"
         }
       ]
+    },
+    {
+      "unit": "g10:3.16",
+      "share": 0.6428571428571429,
+      "n": 14,
+      "ok": 9,
+      "reasons": [
+        "язык ответа ×3",
+        "нет цитаты § ×2"
+      ],
+      "examples": [
+        {
+          "q": "«природные жиры» nima?",
+          "why": "язык ≠ uz",
+          "answer": "Природные жиры – это не отдельное вещество, а смесь различных триглицеридов. Логика от законов: щелочной гидролиз жиров (омыление) даёт глиц"
+        },
+        {
+          "q": "«маслом» nima?",
+          "why": "язык ≠ uz",
+          "answer": "Растительное масло является жидким и называется маслом. Сможете привести свой пример?"
+        }
+      ]
     }
   ],
   "passed": false,
   "fails": [
-    "definition 89.2 % < 90 %",
-    "calc 85.1 % < 100 %"
+    "definition 88.5 % < 90 %",
+    "wikiLeak 1"
   ]
 }
