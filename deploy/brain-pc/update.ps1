@@ -211,6 +211,14 @@ try {
   # автообновление и перезапуск мозга идут дальше (мозг без сайдкара отвечает /stt 503, сайт — на Web Speech)
   if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'stt.ps1')) { try { & (Join-Path $PSScriptRoot 'stt.ps1') -Root $Root -FromUpdate -DryRun:$script:AtomDry | Out-Null } catch { Warn ("STT пропущен: " + $_.Exception.Message) } }
 
+  # ночной живой прогон качества (nightly-eval.ps1, задача «ATOMLAB Nightly» в 03:00): серверам, поставленным раньше,
+  # задачу добавляет Update — один раз. Необязательный шаг: сбой — только предупреждение, обновление идёт дальше
+  try {
+    if ((Test-Path -LiteralPath (Join-Path $PSScriptRoot 'nightly-eval.ps1')) -and -not (Get-ScheduledTask -TaskName 'ATOMLAB Nightly' -ErrorAction SilentlyContinue)) {
+      Register-AtomTask 'ATOMLAB Nightly' 'nightly-eval.ps1' -DailyAt '03:00'
+    }
+  } catch { Warn ('ночной прогон: задача не зарегистрирована — ' + $_.Exception.Message) }
+
   # --- 3. перезапуск мозга, когда свободен ---
   if ($pending) {
     $runs = 0

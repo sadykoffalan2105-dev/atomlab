@@ -47,6 +47,7 @@
     "brain",
     "src",
     "scripts/brain",
+    "scripts/voice",
     "deploy"
   ],
   "minDiskGB": 60,

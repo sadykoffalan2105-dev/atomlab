@@ -158,6 +158,9 @@ export async function inprocRunner(mock: boolean, profile?: string): Promise<Run
   }
 }
 
+/** Заголовок админа из env BRAIN_ADMIN_TOKEN (ночной живой прогон); без env — пусто, как раньше. */
+const adminHeader = (): Record<string, string> => (process.env.BRAIN_ADMIN_TOKEN?.trim() ? { 'X-Brain-Admin': process.env.BRAIN_ADMIN_TOKEN.trim() } : {})
+
 /** Живой сервер по HTTP (/health, потоковый /chat). Сервер недоступен — выход с кодом 2. */
 export async function httpRunner(base: string, tag = 'brain:eval'): Promise<Runner> {
   let health: { llm?: { available?: boolean; chatModel?: string | null } }
@@ -178,7 +181,8 @@ export async function httpRunner(base: string, tag = 'brain:eval'): Promise<Runn
       let text = ''
       let firstMs: number | undefined
       try {
-        const res = await fetch(`${base}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request(q)), signal: AbortSignal.timeout(180_000) })
+        // env BRAIN_ADMIN_TOKEN (ночной прогон nightly-live.mts на сервере): ключ админа снимает лимит /chat профиля gpu
+        const res = await fetch(`${base}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...adminHeader() }, body: JSON.stringify(request(q)), signal: AbortSignal.timeout(180_000) })
         if (!res.ok || !res.body) return { text: '', meta, done, ms: 0, error: `HTTP ${res.status}` }
         // читаем поток по мере прихода: время первого куска ответа (delta) — то, что видит ученик
         const reader = res.body.getReader()

@@ -187,13 +187,25 @@ function Copy-AtomScripts([string]$src, [string]$dst, [string[]]$topExt = @('.ps
   }
 }
 
-# Задача планировщика от SYSTEM: при старте системы (с перезапуском) или каждые update.everyMinutes.
+# Задача планировщика от SYSTEM: при старте системы (с перезапуском) или каждые update.everyMinutes;
+# -DailyAt 'ЧЧ:ММ' — раз в сутки (ночной прогон качества nightly-eval.ps1): без перезапусков и без «догоняющего»
+# запуска днём, если ПК в это время был выключен (днём видеокарта — ученикам).
 # $file — путь внутри bin (можно с подпапкой: 'comfy\run-comfy.ps1'). Берёт $paths, $Root, $cfg вызывающего скрипта.
-function Register-AtomTask([string]$name, [string]$file, [switch]$Repeat) {
+function Register-AtomTask([string]$name, [string]$file, [switch]$Repeat, [string]$DailyAt = '') {
   $ps = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
   $arg = ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Root "{1}"' -f (Join-Path $paths.Bin $file), $Root)
-  Act "задача планировщика «$name» ($file, $(if ($Repeat) { 'каждые 15 мин' } else { 'при старте системы' }), SYSTEM)" {
+  $when = 'при старте системы'
+  if ($Repeat) { $when = 'каждые 15 мин' }
+  if ($DailyAt) { $when = "ежедневно в $DailyAt" }
+  Act "задача планировщика «$name» ($file, $when, SYSTEM)" {
     $action = New-ScheduledTaskAction -Execute $ps -Argument $arg -WorkingDirectory $paths.Bin
+    if ($DailyAt) {
+      $trigger = New-ScheduledTaskTrigger -Daily -At ([datetime]::Today.Add([TimeSpan]::Parse($DailyAt)))
+      $principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest
+      $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 3) -MultipleInstances IgnoreNew
+      Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'ATOMLAB: ночной живой прогон качества' -Force | Out-Null
+      return
+    }
     if ($Repeat) {
       $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(3) -RepetitionInterval (New-TimeSpan -Minutes ([int]$cfg.update.everyMinutes))
       $limit = New-TimeSpan -Hours 2

@@ -17,7 +17,7 @@ Say ''
 Say '  ATOMLAB — удаление сервера ИИ-учителя' 'White'
 
 Step '1. Задачи планировщика'
-foreach ($t in 'ATOMLAB Update', 'ATOMLAB Brain', 'ATOMLAB Comfy', 'ATOMLAB Ollama', 'ATOMLAB STT', 'ATOMLAB STT Setup') {
+foreach ($t in 'ATOMLAB Update', 'ATOMLAB Nightly', 'ATOMLAB Brain', 'ATOMLAB Comfy', 'ATOMLAB Ollama', 'ATOMLAB STT', 'ATOMLAB STT Setup') {
   if (Get-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue) {
     Act "остановить и удалить «$t»" {
       Stop-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue

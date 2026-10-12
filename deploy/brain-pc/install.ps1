@@ -402,6 +402,8 @@ if (Test-ImageEnabled $cfg) {
 Step '12. Автозапуск и автообновление'
 Register-AtomTask 'ATOMLAB Brain' 'run-brain.ps1'
 Register-AtomTask 'ATOMLAB Update' 'update.ps1' -Repeat
+# ночной живой прогон качества (nightly-eval.ps1, 03:00) — необязательно: сбой только предупреждает
+try { Register-AtomTask 'ATOMLAB Nightly' 'nightly-eval.ps1' -DailyAt '03:00' } catch { Warn ('ночной прогон: задача не зарегистрирована — ' + $_.Exception.Message) }
 Act 'запустить ATOMLAB Brain' { Start-ScheduledTask -TaskName 'ATOMLAB Brain' }
 
 # ---------------------------------------------------------------- 13. питание
