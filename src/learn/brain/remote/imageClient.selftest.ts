@@ -25,6 +25,22 @@ import {
 import { parseDrawRequest } from '../image/drawIntent'
 import { formulaToUnicode, parseFormula, renderOverlaySvg, type FormulaToken } from '../image/formulaSvg'
 import { pngFileName } from '../image/overlayCompose'
+import {
+  addToGallery,
+  askAboutImageText,
+  cleanFormulaInput,
+  clearGallery,
+  drawAvailability,
+  galleryItems,
+  GALLERY_MAX,
+  nearestPreset,
+  presetsForGrade,
+  stageIndex,
+  stageOf,
+  waitLabel,
+  type DrawGalleryItem,
+} from '../image/drawMode'
+import type { ImagePreset } from './imageClient'
 
 /* ------------------------------------------------------------------ счётчик */
 
@@ -437,6 +453,83 @@ console.log('[formula] parseFormula / renderOverlaySvg')
   check('pngFileName', pngFileName('g8-zinc-acid', 4242) === 'atomlab-g8-zinc-acid-4242.png' && pngFileName(null, 1) === 'atomlab-draw-1.png' && pngFileName('../x', 2) === 'atomlab-x-2.png')
   const s = randomSeed()
   check('randomSeed in 0..2^48', Number.isInteger(s) && s >= 0 && s < 2 ** 48)
+}
+
+/* ================================================================== 8. режим «🎨 Картинка» (drawMode.ts) */
+{
+  // доступность режима: всем видно, выбирается только когда сервер рисует и готов
+  const on = { enabled: true, ready: true, students: true, engine: 'z-image-turbo' }
+  check('mode: offline → not selectable (offline)', drawAvailability(null, 'student').selectable === false && drawAvailability(null, 'student').reason === 'offline')
+  check('mode: disabled → not selectable', drawAvailability({ ...on, enabled: false }, 'owner').reason === 'disabled')
+  check('mode: preparing → not selectable', drawAvailability({ ...on, ready: false }, 'teacher').reason === 'preparing' && !drawAvailability({ ...on, ready: false }, 'teacher').selectable)
+  check('mode: student + students on → can draw', drawAvailability(on, 'student').canDraw && drawAvailability(on, 'student').selectable)
+  const off = drawAvailability({ ...on, students: false }, 'student')
+  check('mode: student + students off → selectable (key entry), cannot draw', off.selectable && !off.canDraw && off.studentsOff)
+  check('mode: teacher draws even when students off', drawAvailability({ ...on, students: false }, 'teacher').canDraw)
+
+  // фазы сервера → этапы
+  const map: Array<[ImagePhase | 'queue' | 'done', string]> = [
+    ['checking', 'request'],
+    ['queue', 'queue'],
+    ['waiting_gpu', 'gpu'],
+    ['switching', 'gpu'],
+    ['loading', 'gpu'],
+    ['sampling', 'draw'],
+    ['decoding', 'draw'],
+    ['safety', 'check'],
+    ['encoding', 'check'],
+    ['done', 'done'],
+  ]
+  check('stages: every server phase mapped', map.every(([p, st]) => stageOf(p) === st), map.map(([p]) => `${p}→${stageOf(p)}`).join(','))
+  check('stages: order queue < gpu < draw < check < done', stageIndex('request') < stageIndex('queue') && stageIndex('queue') < stageIndex('gpu') && stageIndex('gpu') < stageIndex('draw') && stageIndex('draw') < stageIndex('check') && stageIndex('check') < stageIndex('done'))
+
+  // темы класса ±1 и ближайшая тема к «нарисуй …»
+  const P = (id: string, grades: string[], title: string): ImagePreset => ({ id, grades, title, topic: '', style: 'illustration', size: 'square' })
+  const list: ImagePreset[] = [
+    P('g7-hydrogen-kipp', ['g7', 'g8'], 'Аппарат Киппа'),
+    P('g7-water-molecule', ['g7', 'g8'], 'Модель молекулы воды'),
+    P('g8-zinc-acid', ['g8'], 'Цинк в соляной кислоте'),
+    P('g9-sodium-water', ['g9'], 'Натрий на воде'),
+    P('g10-methane-model', ['g9', 'g10'], 'Модель молекулы метана'),
+    P('g11-protein-helix', ['g11'], 'Спираль белка'),
+  ]
+  const g7 = presetsForGrade(list, 'g7')
+  check('presets: grade 7 ±1 → 7–8 only', g7.map((p) => p.id).join(',') === 'g7-hydrogen-kipp,g7-water-molecule,g8-zinc-acid', g7.map((p) => p.id).join(','))
+  check('presets: grade 10 ±1 → 9–11', presetsForGrade(list, '10').length === 3, String(presetsForGrade(list, '10').length))
+  check('presets: grade unknown → all', presetsForGrade(list, '').length === list.length)
+  check('nearest: «аппарат Киппа» → kipp', nearestPreset('аппарат Киппа с цинком', g7)?.id === 'g7-hydrogen-kipp')
+  check('nearest: «водород» (ru, not in title) → kipp by id', nearestPreset('получение водорода', g7)?.id === 'g7-hydrogen-kipp')
+  check('nearest: «молекулу воды» → water model', nearestPreset('молекулу воды', g7)?.id === 'g7-water-molecule')
+  check('nearest: uz «suv molekulasi» → water model', nearestPreset('suv molekulasi', g7)?.id === 'g7-water-molecule')
+  check('nearest: «цинк в кислоте» → zinc', nearestPreset('цинк в кислоте', g7)?.id === 'g8-zinc-acid')
+  check('nearest: nothing similar → null', nearestPreset('космический корабль', g7) === null)
+  check('nearest: other grade topic not offered to grade 7', nearestPreset('спираль белка', g7) === null)
+
+  // вопрос учителю — текст (тема, формула, описание), без байтов картинки
+  const qRu = askAboutImageText('ru', { subject: 'Цинк в соляной кислоте', formula: 'Zn + 2HCl → ZnCl₂ + H₂↑' })
+  check('ask ru: subject + formula + explain', qRu.includes('«Цинк в соляной кислоте»') && qRu.includes('ZnCl₂') && /Объясни/.test(qRu) && !qRu.includes('data:'), qRu)
+  const qUz = askAboutImageText('uz', { subject: 'Kipp apparati', description: 'rux va kislota bilan Kipp apparati' })
+  check('ask uz: description included', qUz.includes('Kipp apparati') && qUz.includes('Tavsif') && /tushuntiring/.test(qUz), qUz)
+  const qEn = askAboutImageText('en', { subject: 'Water', description: 'water' })
+  check('ask en: same description not repeated', !qEn.includes('Description') && qEn.includes('“Water”'), qEn)
+  check('ask: subject capped', askAboutImageText('ru', { subject: 'x'.repeat(500) }).length < 400)
+
+  // подпись-формула ученика: только символы формул
+  check('formula: chemistry kept', cleanFormulaInput('Zn + 2HCl -> ZnCl2 + H2↑') === 'Zn + 2HCl -> ZnCl2 + H2↑')
+  check('formula: Cyrillic words and emoji dropped', !/[а-я]/i.test(cleanFormulaInput('H2O дурак \u{1F600}')) && cleanFormulaInput('H2O дурак \u{1F600}').startsWith('H2O'), JSON.stringify(cleanFormulaInput('H2O дурак \u{1F600}')))
+  check('formula: ≤ 80', cleanFormulaInput('H2O'.repeat(50)).length === 80)
+
+  check('wait: seconds / minutes / hours', waitLabel(40, 'ru') === '40 с' && waitLabel(600, 'en') === '10 min' && waitLabel(86400, 'uz') === '24 soat', `${waitLabel(40, 'ru')}|${waitLabel(600, 'en')}|${waitLabel(86400, 'uz')}`)
+
+  // галерея вкладки: новые первыми, без повторов, не больше GALLERY_MAX
+  clearGallery()
+  const item = (i: number): DrawGalleryItem => ({ id: `j${i}`, dataUrl: 'data:image/webp;base64,AA', width: 1024, height: 1024, subject: `s${i}`, presetId: null, seed: i, formula: '', caption: '', description: '', at: i })
+  for (let i = 0; i < GALLERY_MAX + 3; i++) addToGallery(item(i))
+  addToGallery(item(GALLERY_MAX + 2))
+  const gl = galleryItems()
+  check('gallery: newest first, capped, unique', gl.length === GALLERY_MAX && gl[0]!.id === `j${GALLERY_MAX + 2}` && new Set(gl.map((g) => g.id)).size === gl.length)
+  clearGallery()
+  check('gallery: clear', galleryItems().length === 0)
 }
 
 /* ------------------------------------------------------------------ итог */
