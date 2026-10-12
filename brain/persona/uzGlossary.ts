@@ -200,6 +200,51 @@ export function uzToRuTerms(text: string): string[] {
     .filter((x, i, a) => a.indexOf(x) === i)
 }
 
+let SORTED_EN: GlossaryPair[] | null = null
+
+/**
+ * Русские термины из английского текста (для поиска § по русской карте): длинные сочетания первыми, окончания
+ * -s/-es/-ies и -ic/-al не мешают («isotopes» → «изотоп», «oxidation states» → «степень окисления»).
+ */
+export function enToRuTerms(text: string): string[] {
+  SORTED_EN ??= [...UZ_GLOSSARY].sort((a, b) => b.en.length - a.en.length)
+  let t = ` ${text.toLowerCase().replace(/[’']/g, "'").replace(/[^\p{L}\d' -]+/gu, ' ').replace(/\s+/g, ' ')} `
+  const hits: { at: number; ru: string }[] = []
+  for (const p of SORTED_EN) {
+    const words = p.en.toLowerCase().split(/\s+/).filter(Boolean)
+    if (!words.length) continue
+    const re = new RegExp(`(^|[^\\p{L}])${words.map((w) => `${esc(w.replace(/(y|e|s)$/u, ''))}[\\p{L}]{0,4}`).join(' ')}(?![\\p{L}])`, 'u')
+    const m = re.exec(t)
+    if (!m) continue
+    hits.push({ at: m.index, ru: p.ru })
+    t = t.slice(0, m.index) + ' '.repeat(m[0].length) + t.slice(m.index + m[0].length)
+  }
+  return hits
+    .sort((a, b) => a.at - b.at)
+    .map((h) => h.ru)
+    .filter((x, i, a) => a.indexOf(x) === i)
+}
+
+/** Русские термины вопроса на uz/en (для uz — узбекский словарь, для en — английский столбец того же словаря). */
+export function toRuTerms(text: string, lang: 'ru' | 'uz' | 'en'): string[] {
+  return lang === 'uz' ? uzToRuTerms(text) : lang === 'en' ? enToRuTerms(text) : []
+}
+
+/**
+ * Термин вопроса («nisbiy atom massa», «isotopes») целиком через словарь: русские термины, если каждое слово термина
+ * (кроме коротких связок) покрыто найденными словарными формами; иначе null — неполный перевод («atom» из «nisbiy atom
+ * massa») увёл бы к чужому определению.
+ */
+export function termToRu(term: string, lang: 'uz' | 'en'): string[] | null {
+  const ru = toRuTerms(term, lang)
+  if (!ru.length) return null
+  const forms = ru.flatMap((r) => (lang === 'uz' ? ruToUz(r) : ruToEn(r)) ?? '').join(' ')
+  const fw = (lang === 'uz' ? foldUz(forms) : forms.toLowerCase()).split(/[\s-]+/).filter(Boolean)
+  const tw = (lang === 'uz' ? foldUz(term) : term.toLowerCase()).split(/[^\p{L}ʻʼ']+/u).filter((w) => w.length >= 3 && !/^(the|and|of|an?|va|bilan)$/.test(w))
+  const covered = (w: string) => fw.some((f) => f.length >= 3 && (w.startsWith(f.slice(0, Math.max(3, Math.min(f.length, 5)))) || f.startsWith(w)))
+  return tw.length && tw.every(covered) ? ru : null
+}
+
 /** Вещества и элементы словаря — это сущности, а не тема («kislorodning valentligi» → тема «валентность»). */
 const ENTITY_RU = new Set(['водород', 'кислород', 'азот', 'углерод', 'сера', 'фосфор', 'хлор', 'натрий', 'калий', 'кальций', 'железо', 'медь', 'алюминий', 'вода', 'озон', 'аммиак'])
 

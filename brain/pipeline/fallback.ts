@@ -13,6 +13,7 @@
  */
 import { ELEMENT_DISCOVERY_YEARS } from '../../src/data/elementDiscoveryYears.ts'
 import { sectionAnswer, termFrameUzEn, termOfQuestion, termTerms } from '../curriculum/answer.ts'
+import { whyRuleFor } from '../curriculum/why.ts'
 import { analogyFor } from '../persona/analogies.ts'
 import type { AnswerPlan, StandaloneQuery } from './dialogTypes.ts'
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
@@ -463,6 +464,14 @@ export function composeFallback(inp: FallbackInput): FallbackOutput {
   // 0a) мозг v2: ловушка «если катализатор ускоряет, значит смещает равновесие?» — сначала короткая поправка;
   // частый «почему» с выверенным объяснением («почему медь растворяется в азотной») — им и отвечаем
   const fixLine = trapFor(inp.text, lang) ?? explainFor(inp.text, lang)
+  // «почему» с частой школьной причиной (brain/curriculum/why.ts) — причина на языке вопроса через строение и законы,
+  // без чужой карточки вещества и без «логики» постороннего понятия (у uz/en нет русских предложений учебника)
+  const whyRule = !fixLine && !lines.length && (qtype === 'why' || inp.sq?.kind === 'why') ? whyRuleFor(inp.text) : null
+  if (whyRule) {
+    lines.push(whyRule.text[lang])
+    cite('[ATOMLAB: справочник понятий]')
+    confidence = Math.max(confidence, 0.8)
+  }
   if (fixLine) {
     lines.push(fixLine)
     if (primary) {

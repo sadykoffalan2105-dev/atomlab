@@ -14,7 +14,9 @@
  *   лучшего совпадения, coverage — доля понятий вопроса в top-3); школьный вопрос без учебника — не выше «medium».
  */
 import { analyzeTerms } from '../../src/learn/kb/analyzer.ts'
-import { conceptUnitFor, definitionFor, unitForTopic } from '../curriculum/answer.ts'
+import { conceptUnitFor, definitionFor, termOfQuestion, unitForTopic } from '../curriculum/answer.ts'
+import { whyRuleFor, whyUnitFor } from '../curriculum/why.ts'
+import { termToRu } from '../persona/uzGlossary.ts'
 import { unitCard } from '../curriculum/card.ts'
 import { sharedCurriculum } from '../curriculum/map.ts'
 import { parseSectionRef } from '../curriculum/sectionRef.ts'
@@ -542,12 +544,19 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     // (в) вопрос-определение: термин определён в учебнике класса ученика (термин целиком в вопросе) — вопрос школьный,
     //     даже если по словам он «широкий» («Что означает термин «вещество»?»): энциклопедия уходит, §-карточка — первой
     const wantsDef = !curriculum && !sectionRef && g != null && (sq.kind === 'definition' || sq.kind === 'properties') && sq.scope !== 'offtopic'
-    const defAny = wantsDef && sq.kind === 'definition' ? definitionFor(cur, queryTerms, g) : null
+    // uz/en: термин вопроса целиком через словарь ru↔uz/en → русские стемы, как у такого же русского вопроса
+    // («Valentlik deb nimaga aytiladi?» → «валентность» → § с определением валентности); перевод analyzeQuery шире
+    // (синонимы, слова вопроса) и уводил к соседнему §. Нет полного перевода — как раньше, по queryTerms.
+    const defTerms = wantsDef && lang !== 'ru' ? termStemsRu(sq.text, lang) : null
+    const defAny = wantsDef && sq.kind === 'definition' ? ((defTerms && definitionFor(cur, defTerms, g)) || definitionFor(cur, queryTerms, g)) : null
     const exactDef = !!defAny && defAny.inGrade && defAny.termCov === 1 && defAny.qCov === 1
     // понятие § (без определения в карте) точнее частичного совпадения определения: «общая формула» ≠ «развёрнутые формулы»
-    const byConcept = wantsDef && !exactDef ? conceptUnitFor(cur, queryTerms, g) : null
+    const byConcept = wantsDef && !exactDef ? ((defTerms && conceptUnitFor(cur, defTerms, g)) || conceptUnitFor(cur, queryTerms, g)) : null
     const defHit = byConcept ? null : defAny
-    const strongDef = (!!defHit && defHit.inGrade && defHit.termCov === 1) || !!byConcept
+    // «почему» с известной причиной (brain/curriculum/why.ts): § класса с этой темой — вопрос школьный
+    const whyRule = !curriculum && !sectionRef && g != null && sq.kind === 'why' && sq.scope !== 'offtopic' ? whyRuleFor(sq.text) : null
+    const byWhy = whyRule ? whyUnitFor(cur, whyRule, queryTerms, g) : null
+    const strongDef = (!!defHit && defHit.inGrade && defHit.termCov === 1) || !!byConcept || !!byWhy
     if (strongDef && scopeUsed !== 'school') {
       scopeUsed = 'school'
       for (const f of items) if (!isSchoolSource(f)) dropped.push({ c: f, why: 'school_first' })
@@ -564,7 +573,7 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
       // тема «почему» — по вопросу и по понятиям ядра, о которых он (их определение и закон по-русски: «атом электронейтрален»
       // → протоны, электроны → строение атома), — так же, как темы единиц размечены по названию и понятиям
       const whyExtra = sq.kind === 'why' ? [sq.topic ?? '', ...findConcepts(sq.text).slice(0, 2).map((c) => `${c.def.ru} ${c.law.ru}`)].join(' ') : ''
-      const byTopic = !byDef && !byConcept && sq.kind === 'why' ? unitForTopic(cur, sq.text, queryTerms, g, whyExtra) : null
+      const byTopic = !byDef && !byConcept && sq.kind === 'why' ? (byWhy ?? unitForTopic(cur, sq.text, queryTerms, g, whyExtra)) : null
       const unit = byDef ?? byConcept ?? byTopic ?? (byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null)))
       if (unit) {
         const page = byDef ? defHit!.def.page : undefined
@@ -617,6 +626,15 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
     ...(curriculum ? { curriculum } : {}),
     ...(sectionRef ? { sectionRef } : {}),
   }
+}
+
+/** uz/en: русские стемы термина вопроса через словарь (только полный перевод), иначе null. */
+function termStemsRu(text: string, lang: 'uz' | 'en'): Set<string> | null {
+  const term = termOfQuestion(text, lang)
+  const ru = term ? termToRu(term, lang) : null
+  if (!ru) return null
+  const s = new Set(analyzeTerms(ru.join(' ')))
+  return s.size ? s : null
 }
 
 function dotSafe(a: Float32Array, b: Float32Array): number {
