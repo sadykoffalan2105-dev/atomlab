@@ -333,6 +333,25 @@ async function typeQuestion(page, text) {
   await box.press('Enter')
 }
 
+/**
+ * Ответ заглушки на набранный вопрос — ровно один пузырь учителя. Раньше ход иногда «начинался дважды»:
+ * первый кусок потока оставался отдельным пузырём («Понял: что так» + «Понял: что такое валентность»).
+ */
+async function checkSingleReply(page, re, issues) {
+  const t0 = Date.now()
+  let replies = []
+  while (Date.now() - t0 < 8000) {
+    const v = await ve(page)
+    replies = v.teacher.filter((x) => /(Понял|Tushundim|Got it):/.test(x.text))
+    if (replies.some((x) => re.test(x.text))) break
+    await page.waitForTimeout(200)
+  }
+  await page.waitForTimeout(600)
+  replies = (await ve(page)).teacher.filter((x) => /(Понял|Tushundim|Got it):/.test(x.text))
+  if (!replies.some((x) => re.test(x.text))) issues.push('нет ответа учителя на набранный вопрос')
+  else if (replies.length > 1) issues.push(`ответ учителя раздвоился: ${replies.map((x) => `«${x.text}»`).join(' + ')}`)
+}
+
 async function shot(page, name) {
   try {
     await page.screenshot({ path: join(OUT, `${name}.png`) })
@@ -526,6 +545,7 @@ async function scenarioGumError(id, title, gum, bannerRe) {
       await typeQuestion(page, 'что такое валентность')
       const v = await waitYou(page, 1, 8000)
       if (!v.you.some((x) => /валентност/i.test(x.text))) issues.push('набранный вопрос не появился в ленте')
+      await checkSingleReply(page, /валентност/i, issues)
     } catch (e) {
       issues.push(`текстовый ввод: ${String(e.message || e).split('\n')[0]}`)
     }
@@ -562,6 +582,7 @@ async function scenarioDown() {
     await typeQuestion(page, 'что такое валентность')
     const v2 = await waitYou(page, 1, 8000)
     if (!v2.you.some((x) => /валентност/i.test(x.text))) issues.push('набранный вопрос не появился в ленте')
+    await checkSingleReply(page, /валентност/i, issues)
     await shot(page, id)
     record(id, title, issues.length ? 'fail' : 'ok', issues.join('; ') || `путь ${lastPath ?? '—'}${bannerDown ? ', баннер' : ''}, текст работает`, { path: v.path })
   } finally {

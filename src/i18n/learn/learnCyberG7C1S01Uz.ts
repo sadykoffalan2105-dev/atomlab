@@ -108,7 +108,7 @@ export const learnCyberG7C1S01Uz = {
 
   'learn.g7.c1.s01.game.task1.title': `Tuzilma va xossalar`,
   'learn.g7.c1.s01.game.task1.intro':
-    `Besh savol: nima haqida gap ketayotganini aniqlang — molekula, kristall panjarasi yoki fizik xossа.`,
+    `Besh savol: nima haqida gap ketayotganini aniqlang — molekula, kristall panjarasi yoki fizik xossa.`,
   'learn.g7.c1.s01.game.task1.win': `Ajoyib! Modda tuzilmasi va xossalarini farqlaysiz.`,
   'learn.g7.c1.s01.game.task1.q1': `Atomlar bitta H₂O zarrasiga bog'langan — bu…`,
   'learn.g7.c1.s01.game.task1.q2': `NaCl tuzidagi tartibli tugunlar — bu…`,
@@ -117,7 +117,7 @@ export const learnCyberG7C1S01Uz = {
   'learn.g7.c1.s01.game.task1.q5': `Shakarning suvda eruvchanligi — bu…`,
   'learn.g7.c1.s01.game.task1.choice.molecule': `Molekula`,
   'learn.g7.c1.s01.game.task1.choice.lattice': `Kristall panjarasi`,
-  'learn.g7.c1.s01.game.task1.choice.physical': `Fizik xossа`,
+  'learn.g7.c1.s01.game.task1.choice.physical': `Fizik xossa`,
 
   'learn.g7.c1.s01.game.task2.title': `Kosmik sintez`,
   'learn.g7.c1.s01.game.task2.intro': `2 ta H va 1 ta O atomini yig'ing, keyin suv sintezini ishga tushiring.`,
