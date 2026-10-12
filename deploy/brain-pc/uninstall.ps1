@@ -17,7 +17,7 @@ Say ''
 Say '  ATOMLAB — удаление сервера ИИ-учителя' 'White'
 
 Step '1. Задачи планировщика'
-foreach ($t in 'ATOMLAB Update', 'ATOMLAB Brain', 'ATOMLAB Ollama') {
+foreach ($t in 'ATOMLAB Update', 'ATOMLAB Brain', 'ATOMLAB Ollama', 'ATOMLAB STT', 'ATOMLAB STT Setup') {
   if (Get-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue) {
     Act "остановить и удалить «$t»" {
       Stop-ScheduledTask -TaskName $t -ErrorAction SilentlyContinue
@@ -26,7 +26,7 @@ foreach ($t in 'ATOMLAB Update', 'ATOMLAB Brain', 'ATOMLAB Ollama') {
   } else { Say "    нет задачи «$t»" }
 }
 Step '2. Процессы'
-foreach ($f in 'brain.pid', 'ollama.pid') {
+foreach ($f in 'brain.pid', 'ollama.pid', 'stt.pid') {
   $pf = Join-Path $paths.Run $f
   if (Test-Path -LiteralPath $pf) {
     $procId = [int](Get-Content -LiteralPath $pf -Raw)

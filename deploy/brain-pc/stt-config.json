@@ -1,0 +1,25 @@
+{
+  "_comment": "Распознавание речи (сайдкар atomlab-stt, brain/stt/sidecar) — читает stt.ps1. Изменение файла → update.ps1 переустанавливает по нему. enabled=false — выключить STT удалённо (мозг ответит /stt 503, сайт уйдёт на Web Speech).",
+  "enabled": true,
+  "port": 8788,
+  "device": "auto",
+  "whisper": true,
+  "minDiskGB": 12,
+  "python": {
+    "version": "3.12.10",
+    "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe",
+    "signer": "Python Software Foundation",
+    "winget": "Python.Python.3.12"
+  },
+  "torch": {
+    "packages": ["torch==2.8.0", "torchaudio==2.8.0"],
+    "indexUrl": "https://download.pytorch.org/whl/cu128"
+  },
+  "models": {
+    "gigaamRepo": "ai-sage/GigaAM-Multilingual",
+    "gigaamRevs": "large_ctc,ctc",
+    "whisperRepos": "mobiuslabsgmbh/faster-whisper-large-v3-turbo,Systran/faster-whisper-large-v3-turbo"
+  },
+  "hfMirror": "https://hf-mirror.com",
+  "retryHours": 6
+}

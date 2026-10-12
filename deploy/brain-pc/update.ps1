@@ -102,6 +102,10 @@ try {
 
   if (& (Join-Path $PSScriptRoot 'rebuild-corpus.ps1') -Root $Root -DryRun:$script:AtomDry -Force:$Force) { $pending = $true }  # шаг C: новые данные учебников/карты Kimyo → дописать журнал базы и векторы (append-only), см. rebuild-corpus.ps1
 
+  # STT (распознавание речи, stt.ps1 -FromUpdate): секундная проверка, установка — отдельной задачей; любой сбой — строка в журнал,
+  # автообновление и перезапуск мозга идут дальше (мозг без сайдкара отвечает /stt 503, сайт — на Web Speech)
+  if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'stt.ps1')) { try { & (Join-Path $PSScriptRoot 'stt.ps1') -Root $Root -FromUpdate -DryRun:$script:AtomDry | Out-Null } catch { Warn ("STT пропущен: " + $_.Exception.Message) } }
+
   # --- 3. перезапуск мозга, когда свободен ---
   if ($pending) {
     $runs = 0
