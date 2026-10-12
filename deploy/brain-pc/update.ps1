@@ -15,6 +15,8 @@ $script:LogFile = Join-Path $paths.Logs 'update.log'
 $lock = Join-Path $paths.Run 'update.lock'
 if ((Test-Path -LiteralPath $lock) -and ((Get-Date) - (Get-Item -LiteralPath $lock).LastWriteTime).TotalMinutes -lt 60) { exit 0 }
 Set-Content -LiteralPath $lock -Value $PID
+# замок «свежий» 60 мин; долгие шаги (докачка картинок до 45 мин) его освежают, чтобы следующий запуск не пошёл параллельно
+function Update-Lock { try { Set-Content -LiteralPath $lock -Value $PID -ErrorAction SilentlyContinue } catch { } }
 
 try {
   Update-PathFromRegistry
@@ -39,6 +41,15 @@ try {
       Act 'Start-ScheduledTask ATOMLAB Brain' { Start-ScheduledTask -TaskName 'ATOMLAB Brain' -ErrorAction SilentlyContinue }
     }
   }
+  # картинки: ComfyUI установлен, включён, а /system_stats молчит — поднимаем задачу ATOMLAB Comfy (сбой — только предупреждение)
+  try {
+    if ((Test-ImageEnabled $cfg) -and (Test-Path -LiteralPath (Join-Path $paths.ComfyRoot 'python_embeded\python.exe')) -and -not (Test-ComfyUp $cfg 3)) {
+      if (Get-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue) {
+        Warn 'ComfyUI не отвечает — запускаю задачу ATOMLAB Comfy'
+        Act 'Start-ScheduledTask ATOMLAB Comfy' { Start-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue }
+      }
+    }
+  } catch { Warn ('сторож ComfyUI: ' + $_.Exception.Message) }
   $ts = Find-Tailscale
   if ($ts -and $state.funnel -eq 'on') {
     $fs = (Invoke-Exe $ts funnel status | Out-String)
@@ -56,6 +67,7 @@ try {
   $head = (& $git @g rev-parse HEAD).Trim()
   $remote = (& $git @g rev-parse FETCH_HEAD).Trim()
   $pending = ($state.restartPending -eq $true)
+  $changed = @()
   if ($head -ne $remote -or $Force) {
     $changed = @(& $git @g diff --name-only $head $remote)
     Say ("новые коммиты: {0} → {1}, файлов изменено: {2}" -f $head.Substring(0, 8), $remote.Substring(0, 8), $changed.Count)
@@ -100,7 +112,84 @@ try {
     $pending = $true
   }
 
-  if (& (Join-Path $PSScriptRoot 'rebuild-corpus.ps1') -Root $Root -DryRun:$script:AtomDry -Force:$Force) { $pending = $true }  # шаг C: новые данные учебников/карты Kimyo → дописать журнал базы и векторы (append-only), см. rebuild-corpus.ps1
+  # --- шаг C: новые данные учебников/карты Kimyo → дописать журнал базы и векторы (append-only), см. rebuild-corpus.ps1 ---
+  # необязательный шаг: сбой — предупреждение, git pull и перезапуск мозга идут дальше
+  try {
+    if (& (Join-Path $PSScriptRoot 'rebuild-corpus.ps1') -Root $Root -DryRun:$script:AtomDry -Force:$Force) { $pending = $true }
+  } catch { Warn ('шаг C (журнал базы) пропущен: ' + $_.Exception.Message) }
+  $script:AtomDry = [bool]$DryRun
+
+  # --- картинки (ComfyUI) ---
+  # Ключ картинок (движок|вариант|выпуск ComfyUI|версия манифеста|вкл, + ученики/ключи/порт/резерв) изменился или пришли
+  # правки deploy/brain-pc/comfy/** → comfy\image-install.ps1 (докачка ≤ 45 мин за запуск, код 3 — продолжит в следующий раз),
+  # затем перезапуск ComfyUI, когда его очередь пуста, config.json мозга и перезапуск мозга по общим правилам ниже.
+  # Подпапку bin\comfy синхронизируем здесь (старый update.ps1 копировал только верхний уровень deploy\brain-pc).
+  # Необязательный шаг: ЛЮБОЙ сбой внутри (нет файла, битый manifest.json, ошибка задачи планировщика…) — только
+  # предупреждение в update.log; код мозга уже обновлён выше, перезапуск мозга ниже идёт как обычно.
+  if ($cfg.image) {
+    try {
+      $comfyTouched = (@($changed | Where-Object { $_ -like 'deploy/brain-pc/comfy/*' }).Count -gt 0)
+      $imgScript = Join-Path $paths.Bin 'comfy\image-install.ps1'
+      if ($comfyTouched -or $Force -or -not (Test-Path -LiteralPath $imgScript)) {
+        Act 'обновить C:\ATOMLAB\bin (с подпапкой comfy\) из deploy\brain-pc' { Copy-AtomScripts (Join-Path $repo 'deploy\brain-pc') $paths.Bin }
+      }
+      if (-not (Test-Path -LiteralPath $imgScript)) { $imgScript = Join-Path $repo 'deploy\brain-pc\comfy\image-install.ps1' }
+      $imgManifest = Read-Json (Join-Path (Split-Path -Parent $imgScript) 'manifest.json')
+      $ikey = Get-ImageKey $cfg $imgManifest
+      $needImg = ($state.imageKey -ne $ikey) -or $comfyTouched -or $Force
+      if (-not $needImg -and (Test-ImageEnabled $cfg) -and -not (Test-Path -LiteralPath (Join-Path $paths.ComfyRoot 'python_embeded\python.exe'))) { $needImg = $true }
+      if ($needImg) {
+        Say "картинки: $($state.imageKey) → $ikey"
+        # 45 мин докачки + сверка SHA-256 + ожидание очереди ComfyUI укладываются в 60 мин свежести замка (освежаем до и после)
+        $imgArgs = @{ Root = $Root; BudgetMinutes = 45; Quiet = $true }
+        if ($script:AtomDry) { $imgArgs['DryRun'] = $true }
+        $imgCode = 1
+        # сбой картинок не должен останавливать обновление мозга — только предупреждение
+        try {
+          if ((Test-ImageEnabled $cfg) -and -not (Get-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue)) {
+            Register-AtomTask 'ATOMLAB Comfy' 'comfy\run-comfy.ps1'   # серверы, поставленные до картинок: задачу добавляет Update
+          }
+          Update-Lock
+          if (Test-Path -LiteralPath $imgScript) { & $imgScript @imgArgs; $imgCode = $LASTEXITCODE } else { Warn "нет $imgScript" }
+          Update-Lock
+        } catch { Warn ("картинки: " + $_.Exception.Message) }
+        $script:AtomDry = [bool]$DryRun
+        # image-install сам пишет state.json (verified, comfyTag) — переносим, чтобы наш $state их не затёр
+        $fresh = Read-State $paths
+        foreach ($k in 'verified', 'comfyTag') { if ($fresh.PSObject.Properties[$k]) { Set-StateValue $state $k $fresh.$k } }
+        if ($imgCode -eq 0) {
+          $cport = Get-ComfyPort $cfg
+          if (Test-ComfyUp $cfg 3) {
+            # перезапуск ComfyUI, когда в его очереди пусто (окно картинок ≤ 30 с — ждём не дольше idleWaitMinutes)
+            if (-not $script:AtomDry) {
+              $qDeadline = (Get-Date).AddMinutes([int]$cfg.update.idleWaitMinutes)
+              while ((Get-Date) -lt $qDeadline) {
+                $q = Invoke-Http ("http://127.0.0.1:{0}/queue" -f $cport) 3
+                if (-not $q -or (@($q.queue_running).Count -eq 0 -and @($q.queue_pending).Count -eq 0)) { break }
+                Start-Sleep -Seconds 10
+              }
+            }
+            Act 'перезапуск ComfyUI (run\restart-comfy)' { Set-Content -LiteralPath (Join-Path $paths.Run 'restart-comfy') -Value (Get-Date).ToString('s') }
+          } elseif (Test-ImageEnabled $cfg) {
+            Act 'Start-ScheduledTask ATOMLAB Comfy' { Start-ScheduledTask -TaskName 'ATOMLAB Comfy' -ErrorAction SilentlyContinue }
+          }
+          Act 'config.json: картинки' { & (Join-Path $paths.Bin 'write-brain-config.ps1') -Root $Root }
+          Set-StateValue $state 'imageKey' $ikey
+          $pending = $true
+        } elseif ($imgCode -eq 3) {
+          Say 'картинки докачиваются — продолжу в следующий запуск'
+        } else {
+          Warn "картинки: image-install вернул код $imgCode (см. logs\image-install.log) — повторю в следующий запуск"
+        }
+      }
+    } catch { Warn ('картинки: шаг пропущен — ' + $_.Exception.Message + ' (мозг обновляется как обычно, повтор в следующий запуск)') }
+    $script:AtomDry = [bool]$DryRun
+  }
+
+  # ===== STT (распознавание речи, сайдкар 8788): МЕСТО ДЛЯ ШАГА СБОРЩИКА ГОЛОСА =====
+  # Сюда — один блок «stt» по образцу картинок выше: try { … & (Join-Path $PSScriptRoot 'stt.ps1') -Root $Root … }
+  # catch { Warn … }; затем $script:AtomDry = [bool]$DryRun. Сбой STT не должен останавливать git pull и перезапуск мозга.
+  # ===== конец места для STT =====
 
   # --- 3. перезапуск мозга, когда свободен ---
   if ($pending) {
@@ -130,10 +219,22 @@ try {
   Set-StateValue $state 'lastUpdateCheck' (Get-Date).ToString('s')
   if (-not $script:AtomDry) { Write-JsonNoBom $paths.State $state }
 
-  # старые журналы (> 14 дней) — только наши логи в C:\ATOMLAB\logs, папку данных не трогаем
-  Get-ChildItem -LiteralPath $paths.Logs -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-14) } | ForEach-Object {
-    Act "удалить старый лог $($_.Name)" { Remove-Item -LiteralPath $_.FullName -Force }
-  }
+  # обслуживание (сбой — только предупреждение): старые журналы (> 14 дней, и comfy-*.log) — только наши логи
+  # в C:\ATOMLAB\logs, папку данных не трогаем; файл, занятый процессом (журнал работающего ComfyUI), пропускаем
+  try {
+    Get-ChildItem -LiteralPath $paths.Logs -File -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-14) } | ForEach-Object {
+      Act "удалить старый лог $($_.Name)" { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
+    }
+    # картинки: мозг PNG из comfy-out не удаляет — файлы старше часа чистит задача ATOMLAB Comfy (run-comfy.ps1, раз в 10 мин),
+    # а здесь — запасная уборка на случай, если та задача стоит (картинки выключены, ComfyUI не скачан)
+    $edge = (Get-Date).AddHours(-1)
+    $oldImg = @(foreach ($d in @($paths.ComfyOut, $paths.ComfyTmp)) {
+        if ($d -and (Test-Path -LiteralPath $d)) { Get-ChildItem -LiteralPath $d -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -lt $edge } }
+      })
+    if ($oldImg.Count) {
+      Act ("удалить файлы старше часа в comfy-out / comfy-tmp: {0}" -f $oldImg.Count) { $oldImg | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue } }
+    }
+  } catch { Warn ('обслуживание: ' + $_.Exception.Message) }
 } catch {
   Fail ("автообновление: " + $_.Exception.Message)
   exit 1

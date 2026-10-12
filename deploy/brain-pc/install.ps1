@@ -233,13 +233,9 @@ if (Test-Path -LiteralPath (Join-Path $paths.Repo '.git')) {
   if (-not $script:AtomDry) { Ok ("код: " + ((& $git @gsafe -C $paths.Repo log -1 --format='%h %s') -join '')) }
 }
 
-# служебные скрипты → C:\ATOMLAB\bin (оттуда их запускает планировщик; автообновление обновляет их из репозитория)
-Act "скрипты обслуживания → $($paths.Bin)" {
-  Get-ChildItem -LiteralPath $Pkg -File | Where-Object { $_.Extension -in '.ps1', '.json', '.mts' } | ForEach-Object {
-    Copy-Item -LiteralPath $_.FullName -Destination $paths.Bin -Force
-    Unblock-File -LiteralPath (Join-Path $paths.Bin $_.Name) -ErrorAction SilentlyContinue
-  }
-}
+# служебные скрипты → C:\ATOMLAB\bin (оттуда их запускает планировщик; автообновление обновляет их из репозитория);
+# вместе с подпапкой comfy\ (картинки: установщик, run-comfy, манифест, узел безопасности)
+Act "скрипты обслуживания → $($paths.Bin) (с подпапкой comfy\)" { Copy-AtomScripts $Pkg $paths.Bin }
 
 # ---------------------------------------------------------------- 7. зависимости
 Step '7. Зависимости (tsx)'
@@ -317,24 +313,7 @@ if (-not $full) {
 }
 
 # ---------------------------------------------------------------- 10. Ollama-служба и модели
-function Register-AtomTask([string]$name, [string]$file, [switch]$Repeat) {
-  $ps = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-  $arg = ('-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "{0}" -Root "{1}"' -f (Join-Path $paths.Bin $file), $Root)
-  Act "задача планировщика «$name» ($file, $(if ($Repeat) { 'каждые 15 мин' } else { 'при старте системы' }), SYSTEM)" {
-    $action = New-ScheduledTaskAction -Execute $ps -Argument $arg -WorkingDirectory $paths.Bin
-    if ($Repeat) {
-      $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(3) -RepetitionInterval (New-TimeSpan -Minutes ([int]$cfg.update.everyMinutes))
-      $limit = New-TimeSpan -Hours 2
-    } else {
-      $trigger = New-ScheduledTaskTrigger -AtStartup
-      $limit = [TimeSpan]::Zero
-    }
-    $principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit $limit -MultipleInstances IgnoreNew
-    Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'ATOMLAB: сервер ИИ-учителя' -Force | Out-Null
-  }
-}
-
+# (Register-AtomTask — в common.ps1: задачу ATOMLAB Comfy регистрирует и update.ps1 на уже установленных серверах)
 Step '10. Ollama (служба) и модели'
 $env:OLLAMA_HOST = $cfg.ollama.host
 Register-AtomTask 'ATOMLAB Ollama' 'run-ollama.ps1'
@@ -364,6 +343,55 @@ $loader = Get-TsxLoader $paths
 Act 'scripts/brain/embed.mts — досчитать недостающие векторы' {
   Push-Location $paths.Repo
   try { & (Find-Node) --import $loader scripts/brain/embed.mts --batch=64 } finally { Pop-Location }
+}
+
+# ---------------------------------------------------------------- 11b. картинки
+# ComfyUI + модель картинок + классификатор безопасности (~14 ГБ). Любой сбой — только предупреждение:
+# мозг работает и без картинок, а задача ATOMLAB Update докачает недостающее сама.
+Step '11b. Картинки (ComfyUI)'
+$imageState = 'выключены (image.enabled = false в server-config.json)'
+if (Test-ImageEnabled $cfg) {
+  $imageState = 'не готовы'
+  try {
+    $imgArgs = @{ Root = $Root }
+    if ($script:AtomDry) { $imgArgs['DryRun'] = $true }
+    & (Join-Path $Pkg 'comfy\image-install.ps1') @imgArgs
+    $imgCode = $LASTEXITCODE
+    $script:AtomDry = [bool]$DryRun
+    if ($imgCode -eq 3) { Warn 'картинки скачаны не все — ATOMLAB Update докачает (каждые 15 мин)'; $imageState = 'докачиваются (Update)' }
+    elseif ($imgCode -eq 2) { Warn 'для картинок мало места на диске — мозг работает без них'; $imageState = 'мало места на диске' }
+    elseif ($imgCode -ne 0) { Warn "установка картинок завершилась с кодом $imgCode — см. C:\ATOMLAB\logs\image-install.log" }
+    Register-AtomTask 'ATOMLAB Comfy' 'comfy\run-comfy.ps1'
+    Act 'запустить ATOMLAB Comfy' { Start-ScheduledTask -TaskName 'ATOMLAB Comfy' }
+    $comfyBase = 'http://127.0.0.1:{0}' -f (Get-ComfyPort $cfg)
+    if ($script:AtomDry) {
+      Say "    [DRY] ждать $comfyBase/system_stats (≤ 3 мин) и непустой $comfyBase/object_info/ATOMLABSafetyCheck" 'DarkCyan'
+    } elseif ($imgCode -eq 0) {
+      # Update не должен через 15 мин повторять установку и перезапускать мозг: ключ картинок уже актуален
+      $st = Read-State $paths
+      Set-StateValue $st 'imageKey' (Get-ImageKey $cfg (Read-Json (Join-Path $Pkg 'comfy\manifest.json')))
+      Write-JsonNoBom $paths.State $st
+      # первый старт ComfyUI под SYSTEM собирает кеши CUDA — до минуты-двух
+      $upUntil = (Get-Date).AddMinutes(3)
+      while ((Get-Date) -lt $upUntil -and -not (Test-ComfyUp $cfg 2)) { Start-Sleep -Seconds 3 }
+      if (-not (Test-ComfyUp $cfg 2)) { Warn 'ComfyUI не ответил за 3 мин — см. C:\ATOMLAB\logs\comfy-*.log'; $imageState = 'ComfyUI не отвечает' }
+      else {
+        $oi = Invoke-Http "$comfyBase/object_info/ATOMLABSafetyCheck" 10
+        if ($oi -and $oi.PSObject.Properties['ATOMLABSafetyCheck']) { Ok 'ComfyUI отвечает, узел ATOMLABSafetyCheck загружен'; $imageState = 'ComfyUI готов' }
+        else { Warn 'ComfyUI отвечает, но узла ATOMLABSafetyCheck нет — см. C:\ATOMLAB\logs\comfy-*.log'; $imageState = 'нет узла безопасности' }
+      }
+    }
+  } catch {
+    $script:AtomDry = [bool]$DryRun
+    Warn ("картинки: " + $_.Exception.Message + ' — мозг работает без них')
+  }
+} else {
+  Say "    $imageState"
+  if (-not $script:AtomDry) {
+    $st = Read-State $paths
+    Set-StateValue $st 'imageKey' (Get-ImageKey $cfg (Read-Json (Join-Path $Pkg 'comfy\manifest.json')))
+    Write-JsonNoBom $paths.State $st
+  }
 }
 
 # ---------------------------------------------------------------- 12. задачи
@@ -450,6 +478,8 @@ if ($Ssh -eq 'yes') {
 Step '16. Самопроверка'
 if ($script:AtomDry) {
   Say '    [DRY] /health локально и через Funnel, 20 живых вопросов (scripts/brain/eval.mts --sample=20), отчёт.txt на рабочий стол' 'DarkCyan'
+  if (Test-ImageEnabled $cfg) { Say ("    [DRY] граф картинок: GET http://127.0.0.1:{0}/admin/image/verify (сверка с /object_info ComfyUI)" -f $BrainPort) 'DarkCyan' }
+  if (Test-ImageEnabled $cfg) { Say ("    [DRY] картинка: POST http://127.0.0.1:{0}/admin/image/test (X-Brain-Admin из secrets\admin-token.txt, ≤ 240 с) → logs\image-selftest.webp" -f $BrainPort) 'DarkCyan' }
   Say ''
   Say ("  ПРОБНЫЙ ПРОГОН ЗАВЕРШЁН за {0:N0} с — ничего не установлено и не изменено." -f ((Get-Date) - $t0).TotalSeconds) 'Green'
   exit 0
@@ -504,6 +534,63 @@ if ($publicUrl) {
     $report['Через интернет'] = 'не ответил при установке (проверьте позже)'
   }
 }
+# картинка: POST /admin/image/test (только админ) — весь путь: пауза текста, выгрузка Gemma, рисование, узел безопасности
+if (Test-ImageEnabled $cfg) {
+  $imgLine = "не проверены: $imageState"
+  if ($imageState -eq 'ComfyUI готов') {
+    $hi = $null
+    for ($i = 0; $i -lt 36; $i++) {   # мозг опрашивает ComfyUI сам (раз в минуту) — ждём image.ready до 3 мин
+      $hi = Get-BrainHealth $BrainPort
+      if ($hi -and $hi.image -and $hi.image.ready) { break }
+      Start-Sleep -Seconds 5
+    }
+    $tok = ''
+    try { $tok = (Get-Content -LiteralPath (Join-Path $paths.Secrets 'admin-token.txt') -Raw).Trim() } catch { }
+    # граф мозга ↔ живой ComfyUI: GET /admin/image/verify сверяет каждый узел графа с /object_info (расхождение = провал)
+    $verifyLine = ''
+    try {
+      $vr = Invoke-RestMethod -UseBasicParsing -Method Get -Uri ("http://127.0.0.1:{0}/admin/image/verify" -f $BrainPort) -Headers @{ 'X-Brain-Admin' = $tok } -TimeoutSec 60
+      $vbad = @($vr.checks | Where-Object { -not $_.ok })
+      if ($vr.ok) { Ok ("граф картинок сверен с ComfyUI: {0}/{1}, проверок {2}" -f $vr.engine, $vr.variant, @($vr.checks).Count) }
+      else {
+        $verifyLine = "; граф не сошёлся: " + ((@($vbad | Select-Object -First 3 | ForEach-Object { ($_ | ConvertTo-Json -Compress -Depth 3) }) -join ' ') -replace '\s+', ' ')
+        Warn ("/admin/image/verify" + $verifyLine)
+      }
+    } catch {
+      $verifyLine = "; /admin/image/verify: " + ($_.Exception.Message -replace '\s+', ' ')
+      Warn ("граф картинок не проверен" + $verifyLine)
+    }
+    try {
+      if (-not $tok) { throw 'нет secrets\admin-token.txt' }
+      Say '    проверочная картинка (до 4 мин)…'
+      $ir = Invoke-RestMethod -UseBasicParsing -Method Post -Uri ("http://127.0.0.1:{0}/admin/image/test" -f $BrainPort) -Headers @{ 'X-Brain-Admin' = $tok } -ContentType 'application/json' -Body '{}' -TimeoutSec 240
+      if ($ir.ok -eq $false -or -not $ir.dataUrl) {
+        $em = $ir.error
+        if ($em -and $em.message) { $em = "$($em.code): $($em.message)" }
+        throw ("мозг ответил: " + $(if ($em) { $em } else { 'нет картинки в ответе' }))
+      }
+      $b64 = ([string]$ir.dataUrl).Substring(([string]$ir.dataUrl).IndexOf(',') + 1)
+      [IO.File]::WriteAllBytes((Join-Path $paths.Logs 'image-selftest.webp'), [Convert]::FromBase64String($b64))
+      $size = $(if ($ir.width -eq $ir.height) { "$($ir.width)²" } else { "$($ir.width)×$($ir.height)" })
+      $gen = 0
+      if ($ir.timings -and $ir.timings.genMs) { $gen = [double]$ir.timings.genMs }
+      $nsfw = 0.0
+      if ($ir.safety) { $nsfw = [double]$ir.safety.nsfw }
+      $imgLine = ("ok, {0}, первая {1:N1} с (из них рисование {2:N1} с), nsfw {3:N3}" -f $size, ([double]$ir.ms / 1000), ($gen / 1000), $nsfw)
+      Ok ("картинка: " + $imgLine + " → logs\image-selftest.webp")
+    } catch {
+      $msg = $_.Exception.Message
+      if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $msg = $_.ErrorDetails.Message }
+      $imgLine = "не удалось — " + ($msg -replace '\s+', ' ')
+      Warn ("картинка: " + $imgLine)
+    }
+    $imgLine += $verifyLine
+  }
+  $report['Картинки'] = $imgLine
+} else {
+  $report['Картинки'] = 'выключены (image.enabled = false)'
+}
+$report['Ключ учителя'] = (Join-Path $paths.Secrets 'teacher-tokens.txt')
 $report['Публичный адрес'] = $(if ($publicUrl) { $publicUrl } else { 'не настроен' })
 $report['Папка'] = $paths.Root
 $report['Токен администратора'] = (Join-Path $paths.Secrets 'admin-token.txt')
