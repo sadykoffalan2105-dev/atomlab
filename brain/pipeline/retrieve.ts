@@ -27,7 +27,7 @@ import type { Knowledge } from '../kb/shards.ts'
 import { normForHash } from '../kb/storage.ts'
 import type { LlmClient } from '../llm/ollama.ts'
 import type { GradeId, RankedFragment, RetrievalResultV2, RetrieveOptions, Scope, SourceKind, StandaloneQuery } from './dialogTypes.ts'
-import { findFormulas } from './entities.ts'
+import { findConcepts, findFormulas } from './entities.ts'
 import { hybridScore, mmrSelect, type Candidate } from './hybrid.ts'
 import { applyRelevance, isPersonCandidate } from './relevance.ts'
 import { cmpForm, type Lang } from './normalize.ts'
@@ -561,7 +561,10 @@ export async function retrieveV2(opts: RetrieveOptions, deps: RetrieveDeps, sign
       // определение — единица, где термин определён; «почему» — § класса по теме вопроса;
       // иначе: тема целиком в названии единицы → она; иначе единица лучшего фрагмента учебника класса; иначе по понятиям
       const byDef = defHit?.inGrade ? defHit.unit : null
-      const byTopic = !byDef && !byConcept && sq.kind === 'why' ? unitForTopic(cur, sq.text, queryTerms, g) : null
+      // тема «почему» — по вопросу и по понятиям ядра, о которых он (их определение и закон по-русски: «атом электронейтрален»
+      // → протоны, электроны → строение атома), — так же, как темы единиц размечены по названию и понятиям
+      const whyExtra = sq.kind === 'why' ? [sq.topic ?? '', ...findConcepts(sq.text).slice(0, 2).map((c) => `${c.def.ru} ${c.law.ru}`)].join(' ') : ''
+      const byTopic = !byDef && !byConcept && sq.kind === 'why' ? unitForTopic(cur, sq.text, queryTerms, g, whyExtra) : null
       const unit = byDef ?? byConcept ?? byTopic ?? (byQuery && byQuery.score >= 0.999 ? byQuery.unit : (byFragment ?? (byQuery && byQuery.score >= 0.5 ? byQuery.unit : null)))
       if (unit) {
         const page = byDef ? defHit!.def.page : undefined

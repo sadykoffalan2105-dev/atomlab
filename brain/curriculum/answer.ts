@@ -38,7 +38,15 @@ const stemsOf = (d: UnitDefinition) => {
  * Лучшее: термин определения целиком в вопросе и вопрос целиком о термине; класс ученика — первым, затем ближайший класс.
  * null — нет определения, покрывающего хотя бы половину термина и половину вопроса.
  */
-export function definitionFor(map: CurriculumMap, terms: Set<string>, grade: number | null): DefHit | null {
+/** Слова самого вопроса-определения («Что означает термин …», «понятие …») — не термин. */
+const Q_NOISE = new Set(['термин', 'определен', 'определ', 'означа', 'понят', 'понятие', 'смысл', 'значен'])
+export const termTerms = (terms: Set<string>): Set<string> => {
+  const out = new Set([...terms].filter((t) => !Q_NOISE.has(t)))
+  return out.size ? out : terms
+}
+
+export function definitionFor(map: CurriculumMap, allTerms: Set<string>, grade: number | null): DefHit | null {
+  const terms = termTerms(allTerms)
   if (!terms.size) return null
   let best: DefHit | null = null
   let bestKey = -Infinity
@@ -76,7 +84,8 @@ const cStemsOf = (c: Unit['concepts'][number]) => {
  * Единица класса ученика, где понятие вопроса стоит в «Изучаемых понятиях» (все стемы понятия — в вопросе и понятие
  * покрывает не меньше половины вопроса); точное совпадение — первым, затем раньше в книге. Нет класса — null.
  */
-export function conceptUnitFor(map: CurriculumMap, terms: Set<string>, grade: number | null): Unit | null {
+export function conceptUnitFor(map: CurriculumMap, allTerms: Set<string>, grade: number | null): Unit | null {
+  const terms = termTerms(allTerms)
   if (grade == null || !terms.size) return null
   let best: Unit | null = null
   let bestKey = -Infinity
@@ -108,16 +117,18 @@ export function topicsOf(text: string): string[] {
  * § класса ученика по теме вопроса («почему металлы проводят ток» → § о металлах этого класса): совпавшие темы карты
  * (topics единицы) + доля термов вопроса в названии/понятиях. null — в классе нет единицы ни по теме, ни по понятиям.
  */
-export function unitForTopic(map: CurriculumMap, text: string, terms: Set<string>, grade: number | null): Unit | null {
+export function unitForTopic(map: CurriculumMap, text: string, terms: Set<string>, grade: number | null, extra = ''): Unit | null {
   if (grade == null) return null
   const units = map.byGrade.get(grade) ?? []
-  const topics = new Set(topicsOf(text))
+  // темы самого вопроса весят вдвое больше тем из пояснения понятий (extra)
+  const own = new Set(topicsOf(text))
+  const topics = new Set([...own, ...topicsOf(extra)])
   const byQuery = new Map(map.unitsForQuery(terms, grade).map((x) => [x.unit.id, x.score]))
   let best: Unit | null = null
   let bestKey = 0
   for (const u of units) {
     if (u.kind === 'review') continue
-    const tHit = u.topics.filter((t) => topics.has(t)).length
+    const tHit = u.topics.filter((t) => topics.has(t)).length + u.topics.filter((t) => own.has(t)).length
     const q = byQuery.get(u.id) ?? 0
     const key = (tHit ? 1 + 0.2 * tHit : 0) + q - orderOf(map, u) * 1e-5
     if ((tHit || q >= 0.5) && key > bestKey) {

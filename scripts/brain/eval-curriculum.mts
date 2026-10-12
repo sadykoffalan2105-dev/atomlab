@@ -92,8 +92,8 @@ const pending: Record<Need, boolean> = { A: pendingFile.A && !merged.has('A'), B
 // ——— честность проверок (аудит 12.10, подтипы definition / why — см. docs/plans/curriculum-coverage.md, «Аудит проверок»)
 // 1) «почему»: один и тот же шаблон вопроса прикреплён к нескольким единицам класса с той же темой (до 3), а ученик с тем же
 //    классом получает один ответ — «точный §» здесь любой § своего класса с этой темой (topics карты), а не случайный из трёх.
-// 2) определение: тот же вопрос в том же классе встречается в нескольких единицах (термин повторяется в §) — ответ засчитывается,
-//    если проходит проверку любой из этих единиц (её цитату и её определение).
+// 2) определение: тот же термин в том же классе встречается в нескольких единицах или определениях (термин повторяется в §,
+//    вопрос задан разными шаблонами) — ответ засчитывается, если проходит проверку любой из них (её цитату и её определение).
 // 3) uz-определение без узбекского термина: генератор подставил русскую словоформу из учебника («синтезом» nima?) — такой
 //    вопрос ученик не задаст, а «ответ по-узбекски, содержащий русскую словоформу» проверить честно нельзя: не в пороге, печатается.
 const reEscape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -112,12 +112,20 @@ function whyCiteRe(q: CQuestion): string | undefined {
   const units = tpl ? mapUnits.filter((u) => u.grade === g && u.topics.includes(tpl.topic)) : []
   return units.length ? `(?:${units.map((u) => citeRe(u.cite)).join('|')})` : undefined
 }
-/** соседи: тот же вопрос того же класса и языка в другой единице (по загруженному набору) */
+/** термин вопроса-определения без шаблона генератора: «Дай определение: изомерами» ≡ «Что такое изомерами?» */
+const termKey = (q: string) =>
+  q
+    .toLowerCase()
+    .replace(/^(что такое|дай определение:|что означает термин|what is|define)\s*/u, '')
+    .replace(/\s*(deb nimaga aytiladi|nima)?\s*[?.]*\s*$/u, '')
+    .replace(/[«»"“”]/g, '')
+    .trim()
+const sibKey = (q: CQuestion) => `${gradeOf(q)}|${q.lang}|${termKey(q.q)}`
+/** соседи: тот же термин того же класса и языка — в другой единице или другим шаблоном (по загруженному набору) */
 const siblings = new Map<string, CQuestion[]>()
 for (const q of all) {
   if (q.sub !== 'definition') continue
-  const k = `${gradeOf(q)}|${q.lang}|${q.q}`
-  siblings.set(k, [...(siblings.get(k) ?? []), q])
+  siblings.set(sibKey(q), [...(siblings.get(sibKey(q)) ?? []), q])
 }
 const unfairOf = (q: CQuestion): string | undefined =>
   q.sub === 'definition' && q.lang === 'uz' && /^«[^»]*[а-яё]/iu.test(q.q) ? 'uz-вопрос с русской словоформой (нет узбекского термина)' : undefined
@@ -151,7 +159,7 @@ for (const [i, q] of set.entries()) {
   const qq: CQuestion = pending.A ? { ...fair, expect: { ...fair.expect, citationMatch: undefined } } : fair
   let why = check(qq, a, true)
   // определение: проходит проверку любой единицы класса с тем же вопросом — засчитано
-  const sibs = q.sub === 'definition' ? (siblings.get(`${gradeOf(q)}|${q.lang}|${q.q}`) ?? []).filter((s) => s !== q && s.id !== q.id) : []
+  const sibs = q.sub === 'definition' ? (siblings.get(sibKey(q)) ?? []).filter((s) => s !== q && s.id !== q.id) : []
   let sibHit: CQuestion | undefined
   if (why.length) for (const s of sibs) if (!check(pending.A ? { ...q, expect: { ...s.expect, citationMatch: undefined } } : { ...q, expect: s.expect }, a, true).length) ((why = []), (sibHit = s))
   const cites = (a.done?.citations ?? []).join(' ')
