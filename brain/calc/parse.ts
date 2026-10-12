@@ -146,10 +146,22 @@ export function findSpecies(raw: string, kb: Knowledge): Species[] {
     if (out.some((x) => index >= x.index && index < x.end)) return
     out.push({ ascii, pretty: pretty(ascii), counts, index, end, charge })
   }
-  for (const f of findFormulas(text, true)) {
+  const formulas = findFormulas(text, true)
+  for (const f of formulas) {
     // «25 °C», «300 K» — единицы, а не углерод/калий
     if (/^(C|K|F)$/.test(f.ascii) && /°\s*$/.test(text.slice(Math.max(0, f.index - 2), f.index))) continue
     add(f.ascii, f.index, f.index + f.raw.length, f.counts, f.charge)
+  }
+  // повторы той же формулы («BaCl₂ + … → …. Из 86 г BaCl₂ …»): findFormulas отдаёт только первое вхождение,
+  // а роль величины («86 г» → BaCl₂) решает ближайшее; вхождение внутри другой формулы (H₂ в H₂O) — не повтор
+  for (const f of formulas) {
+    if (f.raw.length < 2 || /^\d/.test(f.raw)) continue
+    for (let i = text.indexOf(f.raw, f.index + f.raw.length); i >= 0; i = text.indexOf(f.raw, i + f.raw.length)) {
+      const before = text[i - 1] ?? ' '
+      const after = text[i + f.raw.length] ?? ' '
+      if (/\p{L}/u.test(before) || /[A-Za-z0-9₀-₉(⁺⁻]/.test(after)) continue
+      add(f.ascii, i, i + f.raw.length, f.counts, f.charge)
+    }
   }
   const wordEnd = (index: number, nWords: number) => {
     const m = text.slice(index).match(new RegExp(String.raw`^\S+(?:\s+\S+){${Math.max(0, nWords - 1)}}`, 'u'))
@@ -166,6 +178,8 @@ export function findSpecies(raw: string, kb: Knowledge): Species[] {
     }
   }
   for (const e of findElements(text, kb)) {
+    // узбекское «bor» («…nechta neytron bor?») — «есть», а не бор
+    if (e.item.s === 'B' && /^bor\s*([?.!,]|$)/u.test(text.slice(e.index))) continue
     const ascii = DIATOMIC.has(e.item.s) ? `${e.item.s}2` : e.item.s
     add(ascii, e.index, wordEnd(e.index, 1), DIATOMIC.has(e.item.s) ? { [e.item.s]: 2 } : { [e.item.s]: 1 })
   }

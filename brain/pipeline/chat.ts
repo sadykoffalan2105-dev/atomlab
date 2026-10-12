@@ -384,13 +384,13 @@ export async function runChat(req: ChatRequest, deps: BrainDeps, sink: ChatSink,
   if (template && intent === 'offtopic' && (state.topic || state.lastStandalone)) intent = 'chemistry'
 
   // 5) инструменты: по самодостаточному вопросу; числа задачи могли быть только в оригинале
-  let tools = intent === 'offtopic' || intent === 'smalltalk' ? [] : runTools(workText, workCmp, lang, kb)
-  if (!tools.length && !template && sq.text !== text && intent !== 'offtopic' && intent !== 'smalltalk') tools = runTools(text, cmp, lang, kb)
+  let tools = intent === 'offtopic' || intent === 'smalltalk' ? [] : runTools(workText, workCmp, lang, kb, { gradeId: req.context.gradeId })
+  if (!tools.length && !template && sq.text !== text && intent !== 'offtopic' && intent !== 'smalltalk') tools = runTools(text, cmp, lang, kb, { gradeId: req.context.gradeId })
 
   // 4d) тип и охват вопроса (классификаторы SOURCES)
   // шаблоны («проще», «пример», «повтори», «да») сохраняют тип из правил (прежний вопрос / confirm / repeat)
   if (sq.followUp === 'why') sq.kind = 'why'
-  else if (!template && sq.followUp !== 'repeat') sq.kind = questionKindOf(sqCmp, sq.text, intent, tools.length > 0)
+  else if (!template && sq.followUp !== 'repeat') sq.kind = questionKindOf(sqCmp, sq.text, intent, tools.some((t) => t.tool !== 'test'))
   sq.scope = intent === 'offtopic' ? 'offtopic' : classifyScope(sq.text, sqCmp, lang, kb).scope
   if (template && sq.scope === 'offtopic') sq.scope = 'school'
   sqInfo = sq
