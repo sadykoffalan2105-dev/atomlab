@@ -55,4 +55,6 @@ powershell -ExecutionPolicy Bypass -File deploy\brain-pc\comfy\image-install.ps1
 powershell -ExecutionPolicy Bypass -File deploy\brain-pc\comfy\image-install.ps1 -DryRun -Root $env:TEMP\atomlab-dry
 powershell -ExecutionPolicy Bypass -File deploy\brain-pc\comfy\image-install.ps1 -DryRun -Root $env:TEMP\atomlab-dry -Engine flux2-klein-4b -Variant fp8
 python -m py_compile deploy\brain-pc\comfy\custom_nodes\atomlab_safety\__init__.py
+# всё вместе (разбор .ps1, манифест, update/install/uninstall -DryRun с поломками в шаге картинок):
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\brain\deploy-check.ps1
 ```

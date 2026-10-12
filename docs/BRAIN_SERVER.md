@@ -71,6 +71,12 @@ CORS мозга уже пускает `https://sadykoffalan2105-dev.github.io`.
 | удалить | `УДАЛИТЬ.bat` (задачи, Funnel, logout; модели Ollama, ComfyUI с моделями и `C:\ATOMLAB` — каждое после отдельного «да») |
 
 Проверка установщика без установки: `powershell -ExecutionPolicy Bypass -File deploy\brain-pc\install.ps1 -DryRun`.
+**Любая правка `deploy/brain-pc/**` — перед push:** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\brain\deploy-check.ps1`
+(разбор всех .ps1 парсером PowerShell 5.1 и BOM, `manifest.json`, `update.ps1 -DryRun` на временном корне — в том числе с поломками в шаге
+картинок: мозг всё равно обновляется, — `install.ps1`/`uninstall.ps1 -DryRun`; ~3 мин, без админа, порт 8787 не трогает).
+Сломанный `update.ps1` на ПК друга больше не обновится сам — удалённо его не починить. Новый необязательный шаг в
+`update.ps1` (ComfyUI, STT) — только внутри `try { … } catch { Warn … }`: его сбой не должен останавливать git pull и
+перезапуск мозга. Место для шага STT в `update.ps1` помечено «МЕСТО ДЛЯ ШАГА СБОРЩИКА ГОЛОСА».
 Проверка кода и данных на любом ПК (без админа, в свою папку и на свой порт):
 `install.ps1 -Only code-data -Root $env:TEMP\atomlab-install-test -RepoSource <путь к репо> -Branch <ветка> -BrainPort 8792 -ChatModel qwen2.5:3b-instruct`.
 
