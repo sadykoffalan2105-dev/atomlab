@@ -1,0 +1,159 @@
+{
+ "version": 3,
+ "note": "Короткие клипы Edge Neural TTS (16 кГц PCM16 моно) для e2e-voice без сети; пересборка: npm run voice:audio -- --fixtures",
+ "entries": [
+  {
+   "id": "ru-01-clean",
+   "phrase": "ru-01",
+   "lang": "ru",
+   "text": "что такое валентность",
+   "voice": "ru-RU-DmitryNeural",
+   "cat": "question",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 2.45,
+   "file16": "ru-01.wav",
+   "sha1": "22349e9678c29d9c1d338b2e3ad589ada9e3820c",
+   "speech": {
+    "startMs": 250,
+    "endMs": 1580
+   }
+  },
+  {
+   "id": "ru-03-clean",
+   "phrase": "ru-03",
+   "lang": "ru",
+   "text": "молярная масса воды восемнадцать грамм на моль",
+   "voice": "ru-RU-DmitryNeural",
+   "cat": "question",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 3.62,
+   "file16": "ru-03.wav",
+   "sha1": "6418535774fb7081283ef2d71f27655e54106a4d",
+   "speech": {
+    "startMs": 240,
+    "endMs": 2660
+   }
+  },
+  {
+   "id": "ru-26-clean",
+   "phrase": "ru-26",
+   "lang": "ru",
+   "text": "здравствуйте, я готов к уроку",
+   "voice": "ru-RU-SvetlanaNeural",
+   "cat": "everyday",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 3.1,
+   "file16": "ru-26.wav",
+   "sha1": "3279bb0e7af2bc272019041266bfd5a3002164c8",
+   "speech": {
+    "startMs": 250,
+    "endMs": 2230
+   }
+  },
+  {
+   "id": "uz-01-clean",
+   "phrase": "uz-01",
+   "lang": "uz",
+   "text": "kislorod qanday olinadi",
+   "voice": "uz-UZ-SardorNeural",
+   "cat": "question",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 2.42,
+   "file16": "uz-01.wav",
+   "sha1": "58991500710cd70e1398d73c0ef7c29d04ffabe0",
+   "speech": {
+    "startMs": 240,
+    "endMs": 1580
+   }
+  },
+  {
+   "id": "uz-04-clean",
+   "phrase": "uz-04",
+   "lang": "uz",
+   "text": "suvning molyar massasi oʻn sakkiz gramm",
+   "voice": "uz-UZ-MadinaNeural",
+   "cat": "question",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 3.43,
+   "file16": "uz-04.wav",
+   "sha1": "63abcabe12c74289e3cd4c13b0e806fbd34de4ff",
+   "speech": {
+    "startMs": 210,
+    "endMs": 2510
+   }
+  },
+  {
+   "id": "en-01-clean",
+   "phrase": "en-01",
+   "lang": "en",
+   "text": "what is the valence of oxygen",
+   "voice": "en-US-GuyNeural",
+   "cat": "question",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 2.74,
+   "file16": "en-01.wav",
+   "sha1": "13f4edb35ff8596c7e3733e5e31afcf8db35108a",
+   "speech": {
+    "startMs": 210,
+    "endMs": 1880
+   }
+  },
+  {
+   "id": "en-04-clean",
+   "phrase": "en-04",
+   "lang": "en",
+   "text": "the molar mass of water is eighteen grams per mole",
+   "voice": "en-US-AriaNeural",
+   "cat": "question",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 3.74,
+   "file16": "en-04.wav",
+   "sha1": "713cc2e9f955f75cf7794b7c133d88be43603d1a",
+   "speech": {
+    "startMs": 190,
+    "endMs": 2890
+   }
+  },
+  {
+   "id": "echo-02-clean",
+   "phrase": "echo-02",
+   "lang": "ru",
+   "text": "Молярная масса воды равна восемнадцати граммам на моль.",
+   "voice": "ru-RU-DmitryNeural",
+   "cat": "teacher",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 4.13,
+   "file16": "echo-02.wav",
+   "sha1": "aa2af0a1debf2a4d53b1a0cb3d4410f4e87529f3",
+   "speech": {
+    "startMs": 250,
+    "endMs": 3160
+   }
+  },
+  {
+   "id": "check-kislorod-clean",
+   "phrase": "check-kislorod",
+   "lang": "ru",
+   "text": "кислород",
+   "voice": "ru-RU-SvetlanaNeural",
+   "cat": "check",
+   "variant": "clean",
+   "snr": null,
+   "seconds": 1.87,
+   "file16": "check-kislorod.wav",
+   "sha1": "5d27f890ff41292d76ea21b4f9946c6fef40772f",
+   "speech": {
+    "startMs": 240,
+    "endMs": 910
+   }
+  }
+ ]
+}
