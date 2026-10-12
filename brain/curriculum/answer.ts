@@ -244,7 +244,12 @@ export function termFrameUzEn(term: string, u: Unit, lang: 'uz' | 'en'): string 
   const title = titleOf(u, lang)
   const near = conceptsOf(u, lang, 5).filter((c) => norm(c) !== norm(term))
   // факты § на языке вопроса: законы (uz/en-название из карты), вещества с узбекским названием и формулой, реакция §
-  const laws = u.laws.map((l) => l.name[lang]).filter((x): x is string => !!x && !/[а-яё]/iu.test(x)).filter((x, i, a) => a.indexOf(x) === i).slice(0, 2)
+  // «Avogadro's law» → «Avogadro law»: апостроф после o/g проверка языка читает как узбекский (oʻ, gʻ)
+  const laws = u.laws
+    .map((l) => l.name[lang]?.replace(/(\p{L})['’]s\b/gu, '$1'))
+    .filter((x): x is string => !!x && !/[а-яё]/iu.test(x))
+    .filter((x, i, a) => a.indexOf(x) === i)
+    .slice(0, 2)
   const subs = lang === 'uz' ? u.substances.filter((x) => x.role === 'studied' && x.nameUz && !/[а-яё]/iu.test(x.nameUz)).slice(0, 3).map((x) => `${x.nameUz} (${x.formula})`) : []
   const rx = u.reactions.find((r) => !r.isGeneral)?.eq
   if (lang === 'uz') {
