@@ -10,6 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { DEFAULT_TEACHER_CONFIG, type TeacherConfig } from './teacher/config.ts' // блок TEACHER (brain/teacher/**)
+import type { FeedbackConfig } from './http/feedback.ts'
 
 export const SERVICE = 'atomlab-brain'
 export const VERSION = '1.0.0'
@@ -119,8 +120,19 @@ export type BrainConfig = {
       exemptLocal: boolean
       perIp: RatePerIp
     }
-    /** Журнал диалогов: 'all' — все; 'local' — только с этого ПК (ученики из интернета не пишутся); 'off' — никакие. */
+    /**
+     * Журнал диалогов: 'all' — все; 'local' — только с этого ПК (ученики из интернета не пишутся); 'off' — никакие.
+     * Умолчание — 'local' (с configVersion 4, docs/COMPLIANCE.md: тексты учеников из интернета не хранятся без решения школы).
+     */
     dialogLog: 'all' | 'local' | 'off'
+    /** «Сообщить об ошибке» (POST /kb/feedback, brain/http/feedback.ts): лимиты и длины; нет блока — FEEDBACK_DEFAULTS. */
+    feedback?: Partial<FeedbackConfig>
+    /**
+     * Сроки хранения (brain/kb/retention.ts): dialogDays — записи из диалогов (события учеников, записи журнала с
+     * пометкой диалога) старше N дней не участвуют в поиске и модели ученика; rotateLogs — журналы dialogs.jsonl и
+     * images.jsonl раз в месяц переименовываются в journal/archive/ (журнал знаний kb-journal.jsonl — никогда).
+     */
+    retention?: { dialogDays?: number; rotateLogs?: boolean }
     /**
      * «Сфотографируй задачу» (brain/http/photo.ts): maxImages — фото в одном сообщении; maxImageBytes — одно фото
      * после декодирования base64; bodyLimitBytes — лимит тела ТОЛЬКО для запросов с фото (без фото — bodyLimitBytes выше);
@@ -243,7 +255,7 @@ export type DialogConfig = {
 }
 
 export const DEFAULT_CONFIG: BrainConfig = {
-  configVersion: 3,
+  configVersion: 4,
   ollamaUrl: 'http://127.0.0.1:11434',
   chatModels: ['qwen2.5:7b-instruct', 'qwen2.5:7b', 'qwen2.5:14b-instruct', 'qwen2.5:3b-instruct'],
   fastModels: ['qwen2.5:3b-instruct', 'qwen2.5:3b', 'qwen2.5:1.5b-instruct'],
@@ -288,7 +300,9 @@ export const DEFAULT_CONFIG: BrainConfig = {
       exemptLocal: true,
       perIp: { chatPerMin: 240, chatPerDay: 4000, chatStreams: 60, photoPerMin: 60, photoPerDay: 900, imagePerMin: 20, imagePerDay: 400, healthPerMin: 1200, otherPerMin: 600, preflightPerMin: 600 },
     },
-    dialogLog: 'all',
+    // 'local' — ученики из интернета в журнал диалогов не пишутся (ЗРУ-547, ЗРУ-444; docs/COMPLIANCE.md)
+    dialogLog: 'local',
+    retention: { dialogDays: 90, rotateLogs: true },
     // фото сжимает сайт (≤ 1280 px, JPEG 0,8 — обычно 150–400 КБ); 1,5 МБ — запас на чужие клиенты
     photo: { maxImages: 2, maxImageBytes: 1_572_864, bodyLimitBytes: 4 * 1024 * 1024, perMin: 3, perDay: 30 },
   },
@@ -368,6 +382,9 @@ export const CONFIG_MIGRATIONS: { version: number; path: string; old: unknown }[
   { version: 2, path: 'numCtx', old: 8192 },
   { version: 2, path: 'temperature.chat', old: 0.3 },
   { version: 3, path: 'prompt.chatChars', old: 750 },
+  // v4: журнал диалогов по умолчанию 'local' (соответствие, docs/COMPLIANCE.md). Владелец, которому нужен 'all',
+  // пишет в config.json "configVersion": 4 и "server": { "dialogLog": "all" } — явная правка после v4 не мигрирует.
+  { version: 4, path: 'server.dialogLog', old: 'all' },
 ]
 
 function getPath(o: unknown, p: string): unknown {
@@ -485,6 +502,6 @@ export function applyProfile(cfg: BrainConfig): BrainConfig {
   if (process.env.BRAIN_ADMIN_TOKEN) res.adminToken = process.env.BRAIN_ADMIN_TOKEN
   if (typeof res.adminToken !== 'string') res.adminToken = ''
   const dl = res.server?.dialogLog
-  res.server = { ...DEFAULT_CONFIG.server, ...res.server, dialogLog: dl === 'local' || dl === 'off' ? dl : 'all' }
+  res.server = { ...DEFAULT_CONFIG.server, ...res.server, dialogLog: dl === 'all' || dl === 'off' ? dl : 'local' }
   return res
 }

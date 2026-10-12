@@ -10,6 +10,7 @@ import fs from 'node:fs'
 import { ANALYZER_VERSION, analyzeTerms } from '../../src/learn/kb/analyzer.ts'
 import { FILES } from '../config.ts'
 import { Bm25, type Bm25Json, type WeightedTerm } from './bm25.ts'
+import { retentionCutoff, withinRetention } from './retention.ts'
 import { appendLine, appendLines, readJsonl, textHash, ulid, writeDerived } from './storage.ts'
 
 export const APPEND_KINDS = ['fact', 'qa', 'correction', 'feedback', 'dialog', 'note'] as const
@@ -89,6 +90,11 @@ export class Journal {
   readonly bySrcId = new Map<string, string>()
   bm25 = new Bm25()
   indexReady = false
+  /**
+   * Срок хранения записей из диалогов, дней (brain/kb/retention.ts; createBrain* ставит config.server.retention.dialogDays).
+   * Старше — не находятся поиском (BM25 и векторы); в файле журнала они остаются (append-only). 0 — без отсечки.
+   */
+  dialogRetentionDays = 0
   private saveTimer: NodeJS.Timeout | null = null
 
   constructor(file = FILES.kbJournal) {
@@ -245,7 +251,17 @@ export class Journal {
 
   search(query: readonly WeightedTerm[], limit = 30): { rec: JournalRecord; score: number }[] {
     if (!this.indexReady) return []
-    return this.bm25.search(query, limit).map(({ doc, score }) => ({ rec: this.get(this.bm25.ids[doc]!)!, score })).filter((x) => x.rec)
+    const cutoff = retentionCutoff(this.dialogRetentionDays)
+    return this.bm25
+      .search(query, cutoff ? limit * 2 : limit)
+      .map(({ doc, score }) => ({ rec: this.get(this.bm25.ids[doc]!)!, score }))
+      .filter((x) => x.rec && withinRetention(x.rec, cutoff))
+      .slice(0, limit)
+  }
+
+  /** Участвует ли запись в поиске сейчас: вид записи + срок хранения записей из диалогов. */
+  searchable(r: JournalRecord): boolean {
+    return searchableKind(r.kind) && withinRetention(r, retentionCutoff(this.dialogRetentionDays))
   }
 
   stats(): { journalLines: number; bytes: number; byKind: Record<string, number>; lastAt: string | null } {

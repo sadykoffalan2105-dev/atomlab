@@ -36,6 +36,7 @@ const LearnRefCapturePage = lazy(() =>
   import('./pages/LearnRefCapturePage').then((m) => ({ default: m.LearnRefCapturePage })),
 )
 const VoiceCheckPage = lazy(() => import('./components/learn/teacher/VoiceCheck'))
+const AboutAiPage = lazy(() => import('./pages/AboutAiPage').then((m) => ({ default: m.AboutAiPage }))) // «Об ИИ-учителе» (docs/COMPLIANCE.md)
 
 function PageFallback() {
   return (
@@ -84,6 +85,7 @@ export default function App() {
               <Route path="learn/research/:mode" element={<LearnResearchLab />} />
               <Route path="learn/ref/:sceneId" element={<LearnRefCapturePage />} />
               <Route path="voice-check" element={<VoiceCheckPage />} />
+              <Route path="about-ai" element={<AboutAiPage />} />
               <Route path="learn/tasks" element={<LearnPage />} />
               <Route path="learn/tasks/:lessonId" element={<LearnPage />} />
               <Route path="learn/g/:gradeId/book" element={<LearnPage />} />

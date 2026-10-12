@@ -76,6 +76,7 @@ import {
   IconWifiOff,
 } from './teacher/TeacherIcons'
 import { StreamingReply } from './teacher/StreamingReply'
+import { AiAdvisoryNote, AnswerReport } from './teacher/AnswerReport' // «Сообщить об ошибке» + «ответ ИИ — рекомендация» (docs/COMPLIANCE.md)
 // «Нарисовать»: кнопка в поле ввода, «нарисуй …» открывает диалог, картинка в пузыре (формулы накладывает сайт)
 import { DrawButton, DrawChatImage, type DrawInsert } from './teacher/DrawButton'
 import { onRadioGroupKeyDown } from './teacher/radioGroupKeys'
@@ -1356,6 +1357,15 @@ export function LearnAssistantPanel({
                         </div>
                       </div>
                     ) : null}
+                    {/* «Сообщить об ошибке» → POST /kb/feedback: вопрос, ответ, комментарий — без имени и адреса */}
+                    {!isStreaming && body.trim() ? (
+                      <AnswerReport
+                        question={messages.slice(0, i).reverse().find((x) => x.role === 'user')?.text ?? ''}
+                        answer={body}
+                        gradeId={gradeId}
+                        route={m.source}
+                      />
+                    ) : null}
                   </div>
                 </div>
               )
@@ -1583,6 +1593,7 @@ export function LearnAssistantPanel({
         <p className={styles.disclaimer}>
           <IconInfo className={styles.disclaimerIcon} />
           <span>
+            <AiAdvisoryNote />
             {t('learn.assistant.disclaimer')}
             {voiceError ? (
               <span className={styles.disclaimerError}> · {t('learn.assistant.voiceUnavailable')}</span>
