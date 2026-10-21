@@ -5,7 +5,7 @@
   <meta name="google" content="notranslate" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ATOMLAB — схема · InnoWeek</title>
-  <meta name="description" content="ATOMLAB на одном экране: виртуальная химическая лаборатория и ИИ-учитель для школ Узбекистана. Интерактивная схема, работает без интернета." />
+  <meta name="description" content="ATOMLAB на одном экране: что виртуальная химическая лаборатория и ИИ-учитель дают ученику, учителю, школе и государству. Работает без интернета." />
   <meta name="theme-color" content="#060a18" />
   <link rel="icon" href="../img/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../img/icon-192.png" />
@@ -60,68 +60,9 @@
 
   <canvas id="bg" aria-hidden="true"></canvas>
 
-  <!-- «Паук»: вся платформа на одном экране. Схему строит js/spider.js, карточки веток — js/spider-app.js -->
+  <!-- «Паук»: вся ценность ATOMLAB на одном экране, без нажатий. Схему строит js/spider.js -->
   <section id="map" aria-label="ATOMLAB">
     <div id="mapStage">
-      <article class="sp-panel" id="spPanel" hidden>
-        <header class="spp-head">
-          <span class="ico-wrap" id="sppIco"><svg class="ic"><use href="#i-flask"/></svg></span>
-          <div class="spp-titles"><h2 id="sppTitle"></h2><b id="sppMetric"></b></div>
-          <button type="button" class="spp-close" id="sppClose" data-tt="sp.close"><svg class="ic"><use href="#i-x"/></svg></button>
-        </header>
-        <div class="spp-vis">
-          <div class="sp-vis" data-v="lab"><img class="cover" src="../img/shots/lab3d.webp" alt="" /></div>
-          <div class="sp-vis s-formation" data-v="form">
-            <canvas id="formCanvas"></canvas>
-            <ol class="vis-steps" id="formSteps"><li></li><li></li><li></li><li></li></ol>
-            <div class="seg mini">
-              <button type="button" class="seg-btn on" data-mode="nacl">NaCl</button>
-              <button type="button" class="seg-btn" data-mode="h2o">H₂O</button>
-              <button type="button" class="seg-btn icon" data-mode="replay" data-tt="f.replay"><svg class="ic"><use href="#i-replay"/></svg></button>
-            </div>
-          </div>
-          <div class="sp-vis" data-v="org">
-            <canvas id="molCanvas"></canvas>
-            <div class="mol-label"><b id="molName"></b><span id="molFormula"></span></div>
-            <div class="mol-pick mini" id="molPick"></div>
-          </div>
-          <div class="sp-vis" data-v="pt"><img class="cover" src="../img/shots/periodic.webp" alt="" /></div>
-          <div class="sp-vis" data-v="book"><img class="cover" src="../img/shots/reactor.webp" alt="" /></div>
-          <div class="sp-vis vis-chat" data-v="ai">
-            <div class="chat-body" id="chatBody"></div>
-            <button type="button" class="ghost-btn" id="chatReplay" data-tt="a.replay"><svg class="ic"><use href="#i-replay"/></svg></button>
-          </div>
-          <div class="sp-vis vis-gallery" data-v="art">
-            <img src="../img/ai/classroom.webp" alt="" /><img src="../img/ai/registan.webp" alt="" /><img src="../img/ai/flask.webp" alt="" /><img src="../img/ai/vr.webp" alt="" />
-          </div>
-          <div class="sp-vis" data-v="tools"><img class="cover" src="../img/shots/teacher.webp" alt="" /></div>
-          <div class="sp-vis vis-tech" data-v="tech">
-            <div class="vt-step"><svg class="ic"><use href="#i-search"/></svg><b data-t="n.search"></b><small class="mono">bge-m3</small></div>
-            <div class="vt-step"><svg class="ic"><use href="#i-calc"/></svg><b data-t="n.calc"></b><small data-t="n.calcSub"></small></div>
-            <div class="vt-step hot"><svg class="ic"><use href="#i-cpu"/></svg><b data-t="n.llm"></b><small class="mono">Gemma 4 · 12B</small></div>
-            <div class="vt-step"><svg class="ic"><use href="#i-shield"/></svg><b data-t="n.check"></b><small data-t="n.checkSub"></small></div>
-            <div class="vt-mods">
-              <span><svg class="ic"><use href="#i-mic"/></svg>GigaAM · Whisper</span>
-              <span><svg class="ic"><use href="#i-speaker"/></svg>Neural TTS</span>
-              <span><svg class="ic"><use href="#i-eye"/></svg>Gemma 4 Vision</span>
-              <span><svg class="ic"><use href="#i-brush"/></svg>Z-Image-Turbo</span>
-            </div>
-          </div>
-          <div class="sp-vis vis-cmp" data-v="diff">
-            <div class="cmp" id="cmp">
-              <div class="cmp-row cmp-h"><span></span><b class="us">ATOMLAB</b><b data-t="x.c2"></b><b data-t="x.c3"></b><b data-t="x.c4"></b></div>
-              <div class="cmp-row" data-v="y,n,n,y"><span data-t="x.r1"></span></div>
-              <div class="cmp-row" data-v="y,p,n,n"><span data-t="x.r2"></span></div>
-              <div class="cmp-row" data-v="y,n,y,n"><span data-t="x.r3"></span></div>
-              <div class="cmp-row" data-v="y,p,n,n"><span data-t="x.r4"></span></div>
-              <div class="cmp-row" data-v="y,n,n,n"><span data-t="x.r5"></span></div>
-            </div>
-          </div>
-        </div>
-        <ul class="spp-facts"><li id="sppF1"></li><li id="sppF2"></li><li id="sppF3"></li></ul>
-        <p class="spp-detail" id="sppDetail"></p>
-        <p class="spp-keys" data-t="sp.keys"></p>
-      </article>
     </div>
   </section>
 
@@ -133,19 +74,13 @@
       </div>
     </div>
     <div class="ui-bottom">
-      <button type="button" class="ui-btn" id="bPrev" data-tt="ui.prev"><svg class="ic"><use href="#i-chev-l"/></svg></button>
-      <span class="counter" id="counter"></span>
-      <button type="button" class="ui-btn" id="bNext" data-tt="ui.next"><svg class="ic"><use href="#i-chev-r"/></svg></button>
-      <span class="ui-sp"></span>
       <button type="button" class="ui-btn" id="bFull" data-tt="ui.full"><svg class="ic"><use href="#i-expand"/></svg></button>
     </div>
   </div>
   <div id="black" hidden></div>
 
-  <script>window.ASSET_BASE = '../';</script>
   <script src="../js/i18n.js"></script>
   <script src="../js/spider-i18n.js"></script>
-  <script src="../js/molecules.js"></script>
   <script src="../js/scenes.js"></script>
   <script src="../js/spider.js"></script>
   <script src="../js/spider-app.js"></script>
