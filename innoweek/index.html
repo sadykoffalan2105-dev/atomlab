@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="ru" translate="no" class="notranslate">
+<head>
+  <meta charset="utf-8" />
+  <meta name="google" content="notranslate" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ATOMLAB — презентация · InnoWeek</title>
+  <meta name="description" content="ATOMLAB — виртуальная химическая лаборатория и ИИ-учитель для школ Узбекистана. Интерактивная презентация, работает без интернета." />
+  <meta name="theme-color" content="#060a18" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="img/icon-192.png" />
+  <link rel="stylesheet" href="css/deck.css" />
+</head>
+<body>
+  <!-- иконки (линейные, 24×24) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="gBrand" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset=".5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#ec4899"/></linearGradient>
+    </defs>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L4.6 18.2A1.8 1.8 0 0 0 6.1 21h11.8a1.8 1.8 0 0 0 1.5-2.8L14 9.5V3M7.2 15.5h9.6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.8 19.5h18.4zM12 10v4.5M12 17.2v.3"/></symbol>
+    <symbol id="i-atom" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9.5" cy="8" r="3.5"/><path d="M3 20v-1.2A3.8 3.8 0 0 1 6.8 15h5.4a3.8 3.8 0 0 1 3.8 3.8V20M16 4.6a3.5 3.5 0 0 1 0 6.8M21 20v-1.2a3.8 3.8 0 0 0-2.6-3.6"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v16H5.5A1.5 1.5 0 0 0 4 20.5zM4 20.5A1.5 1.5 0 0 0 5.5 22H20M8.5 7.5h7M8.5 11h5"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M21 15.5 16 10.5 6.5 20"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5v3.5M8.5 18h.01M12 18h.01"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4zM12 12l8-4.6M12 12v9.2M12 12 4 7.4"/></symbol>
+    <symbol id="i-vr" viewBox="0 0 24 24"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h15A1.5 1.5 0 0 1 21 8.5v6a1.5 1.5 0 0 1-1.5 1.5H16l-2-2.5h-4L8 16H4.5A1.5 1.5 0 0 1 3 14.5z"/><circle cx="8" cy="11.3" r="1.5"/><circle cx="16" cy="11.3" r="1.5"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4.5a1.5 1.5 0 0 1 3 0V11M14 10.5V6a1.5 1.5 0 0 1 3 0v7.5c0 4-2.7 7.5-6.5 7.5-2.5 0-4-1.2-5.3-3.3L3.6 14.6a1.4 1.4 0 0 1 2.3-1.6L8 15.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="1.6"/><rect x="3" y="13" width="18" height="7" rx="1.6"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></symbol>
+    <symbol id="i-plan" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4M8.5 10h7M8.5 13.5h7M8.5 17h4"/></symbol>
+    <symbol id="i-test" viewBox="0 0 24 24"><path d="M10 6h10M10 12h10M10 18h10M3.5 6l1.3 1.3L7.5 4.6M3.5 12l1.3 1.3 2.7-2.7M3.5 18l1.3 1.3 2.7-2.7"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.8h18M9 4v16"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4zM15.8 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="i-brush" viewBox="0 0 24 24"><path d="M18.5 3.5a2 2 0 0 1 2.8 2.8l-8.8 8.8-3.4.6.6-3.4zM8 15.5c-2 0-3.5 1.5-3.5 3.5 0 .9-.5 1.6-1.5 2 3 .6 6.6-.4 6.8-3.2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M10 10h4v4h-4zM9 2.5V6M15 2.5V6M9 18v3.5M15 18v3.5M2.5 9H6M2.5 15H6M18 9h3.5M18 15h3.5"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.2"/><path d="M11 18.5h2"/></symbol>
+    <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.3"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.3"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.3"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.3"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/></symbol>
+    <symbol id="i-notes" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M7 8.5h10M7 12h6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></symbol>
+    <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4 4v6h6M4.6 15a8 8 0 1 0 1.9-8.3L4 9.5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+    <symbol id="i-web" viewBox="0 0 24 24"><path d="M12 2.5 20.2 7.25v9.5L12 21.5 3.8 16.75v-9.5zM12 7.2l4 2.3v5l-4 2.3-4-2.3v-5zM12 2.5v19M3.8 7.25l16.4 9.5M20.2 7.25 3.8 16.75"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.3a10 10 0 0 1 14 0M8.5 15.8a5 5 0 0 1 7 0M12 19.5h.01"/></symbol>
+  </svg>
+
+  <canvas id="bg" aria-hidden="true"></canvas>
+
+  <main id="viewport">
+    <div id="stage">
+
+      <!-- 1 · Обложка -->
+      <section class="slide s-cover" data-id="cover">
+        <canvas class="hero-mol no-nav" id="heroMol" aria-hidden="true"></canvas>
+        <div class="cover-text">
+          <div class="kicker rv" style="--i:0" data-t="c.kicker"></div>
+          <h1 class="logo rv" style="--i:1"><span>ATOM</span><span class="grad">LAB</span></h1>
+          <p class="tagline rv" style="--i:2" data-t="tag"></p>
+          <p class="lead rv" style="--i:3" data-t="c.sub"></p>
+          <div class="chips rv" style="--i:4">
+            <span class="chip"><svg class="ic"><use href="#i-book"/></svg>Kimyo 7–11</span>
+            <span class="chip"><svg class="ic"><use href="#i-cube"/></svg>3D · VR</span>
+            <span class="chip"><svg class="ic"><use href="#i-spark"/></svg><span data-t="ai"></span></span>
+            <span class="chip"><svg class="ic"><use href="#i-globe"/></svg>oʻz · рус · eng</span>
+          </div>
+        </div>
+        <div class="cover-hint rv" style="--i:6" data-t="c.hint"></div>
+      </section>
+
+      <!-- 2 · Проблема -->
+      <section class="slide s-problem" data-id="problem">
+        <header class="head">
+          <div class="kicker rv" data-t="p.kicker"></div>
+          <h2 class="title rv" style="--i:1" data-t="p.title"></h2>
+        </header>
+        <div class="cards4">
+          <article class="card prob rv" style="--i:2"><div class="ico-wrap c-rose"><svg class="ic"><use href="#i-flask"/></svg></div><h3 data-t="p.c1t"></h3><p data-t="p.c1d"></p></article>
+          <article class="card prob rv" style="--i:3"><div class="ico-wrap c-amber"><svg class="ic"><use href="#i-alert"/></svg></div><h3 data-t="p.c2t"></h3><p data-t="p.c2d"></p></article>
+          <article class="card prob rv" style="--i:4"><div class="ico-wrap c-violet"><svg class="ic"><use href="#i-atom"/></svg></div><h3 data-t="p.c3t"></h3><p data-t="p.c3d"></p></article>
+          <article class="card prob rv" style="--i:5"><div class="ico-wrap c-blue"><svg class="ic"><use href="#i-users"/></svg></div><h3 data-t="p.c4t"></h3><p data-t="p.c4d"></p></article>
+        </div>
+      </section>
+
+      <!-- 3 · Решение -->
+      <section class="slide s-solution" data-id="solution">
+        <header class="head">
+          <div class="kicker rv" data-t="s.kicker"></div>
+          <h2 class="title rv" style="--i:1" data-t="s.title"></h2>
+        </header>
+        <div class="pillars">
+          <article class="pillar rv" style="--i:2">
+            <div class="shot"><img src="img/shots/lab3d.webp" alt="" loading="eager" /></div>
+            <div class="pillar-body"><div class="ico-wrap c-teal"><svg class="ic"><use href="#i-flask"/></svg></div><div><h3 data-t="s.p1t"></h3><p data-t="s.p1d"></p></div></div>
+          </article>
+          <article class="pillar rv" style="--i:3">
+            <div class="shot"><img src="img/shots/book.webp" alt="" loading="eager" /></div>
+            <div class="pillar-body"><div class="ico-wrap c-blue"><svg class="ic"><use href="#i-book"/></svg></div><div><h3 data-t="s.p2t"></h3><p data-t="s.p2d"></p></div></div>
+          </article>
+          <article class="pillar rv" style="--i:4">
+            <div class="shot"><img src="img/shots/teacher.webp" alt="" loading="eager" /></div>
+            <div class="pillar-body"><div class="ico-wrap c-violet"><svg class="ic"><use href="#i-spark"/></svg></div><div><h3 data-t="s.p3t"></h3><p data-t="s.p3d"></p></div></div>
+          </article>
+        </div>
+        <p class="foot rv" style="--i:5"><svg class="ic"><use href="#i-phone"/></svg><span data-t="s.foot"></span></p>
+      </section>
+
+      <!-- 4 · Программа Kimyo 7–11 -->
+      <section class="slide s-curriculum" data-id="curriculum">
+        <header class="head">
+          <div class="kicker rv" data-t="k.kicker"></div>
+          <h2 class="title rv" style="--i:1" data-t="k.title"></h2>
+        </header>
+        <div class="split">
+          <div class="bars-card card rv" style="--i:2">
+            <p class="muted" data-t="k.lead"></p>
+            <div class="bars" id="gradeBars">
+              <div class="bar-row" data-n="185"><span class="bar-label" data-tn="k.grade" data-n="7"></span><span class="bar"><i></i></span><b>185</b></div>
+              <div class="bar-row" data-n="298"><span class="bar-label" data-tn="k.grade" data-n="8"></span><span class="bar"><i></i></span><b>298</b></div>
+              <div class="bar-row" data-n="482"><span class="bar-label" data-tn="k.grade" data-n="9"></span><span class="bar"><i></i></span><b>482</b></div>
+              <div class="bar-row" data-n="311"><span class="bar-label" data-tn="k.grade" data-n="10"></span><span class="bar"><i></i></span><b>311</b></div>
+              <div class="bar-row" data-n="167"><span class="bar-label" data-tn="k.grade" data-n="11"></span><span class="bar"><i></i></span><b>167</b></div>
+            </div>
+          </div>
+          <div class="stats3">
+            <div class="stat rv" style="--i:3"><b class="big grad" data-t="k.s1n"></b><span data-t="k.s1t"></span></div>
+            <div class="stat rv" style="--i:4"><b class="big grad" data-t="k.s2n"></b><span data-t="k.s2t"></span></div>
+            <div class="stat rv" style="--i:5"><b class="big grad" data-t="k.s3n"></b><span data-t="k.s3t"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 · 3D-лаборатория -->
+      <section class="slide s-lab" data-id="lab">
+        <div class="lab-text">
+          <header class="head">
+            <div class="kicker rv" data-t="l.kicker"></div>
+            <h2 class="title rv" style="--i:1" data-t="l.title"></h2>
+          </header>
+          <ul class="feat">
+            <li class="rv" style="--i:2"><span class="ico-wrap c-amber"><svg class="ic"><use href="#i-flask"/></svg></span><span data-t="l.b1"></span></li>
+            <li class="rv" style="--i:3"><span class="ico-wrap c-teal"><svg class="ic"><use href="#i-calc"/></svg></span><span data-t="l.b2"></span></li>
+            <li class="rv" style="--i:4"><span class="ico-wrap c-violet"><svg class="ic"><use href="#i-vr"/></svg></span><span data-t="l.b3"></span></li>
+            <li class="rv" style="--i:5"><span class="ico-wrap c-blue"><svg class="ic"><use href="#i-hand"/></svg></span><span data-t="l.b4"></span></li>
+          </ul>
+        </div>
+        <div class="lab-media rv" style="--i:2">
+          <figure class="frame big"><img src="img/shots/lab3d.webp" alt="" /></figure>
+          <figure class="frame small"><img src="img/shots/labtask.webp" alt="" /></figure>
+        </div>
+      </section>
+
+      <!-- 6 · Как образуется вещество -->
+      <section class="slide s-formation" data-id="formation">
+        <div class="form-text">
+          <header class="head">
+            <div class="kicker rv" data-t="f.kicker"></div>
+            <h2 class="title rv" style="--i:1" data-t="f.title"></h2>
+            <p class="lead rv" style="--i:2" data-t="f.lead"></p>
+          </header>
+          <ol class="steps rv" style="--i:3" id="formSteps">
+            <li data-k="1"></li><li data-k="2"></li><li data-k="3"></li><li data-k="4"></li>
+          </ol>
+          <div class="chips rv" style="--i:4">
+            <span class="chip soft" data-t="f.chip1"></span><span class="chip soft" data-t="f.chip2"></span><span class="chip soft" data-t="f.chip3"></span>
+          </div>
+        </div>
+        <div class="form-stage rv" style="--i:2">
+          <canvas id="formCanvas" class="no-nav"></canvas>
+          <div class="seg" role="group">
+            <button type="button" class="seg-btn on" data-mode="nacl" data-t="f.ionic"></button>
+            <button type="button" class="seg-btn" data-mode="h2o" data-t="f.cov"></button>
+            <button type="button" class="seg-btn icon" data-mode="replay" data-tt="f.replay"><svg class="ic"><use href="#i-replay"/></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7 · Органика 3D -->
+      <section class="slide s-organic" data-id="organic">
+        <div class="org-text">
+          <header class="head">
+            <div class="kicker rv" data-t="o.kicker"></div>
+            <h2 class="title rv" style="--i:1" data-t="o.title"></h2>
+          </header>
+          <ul class="feat compact">
+            <li class="rv" style="--i:2"><span class="ico-wrap c-teal"><svg class="ic"><use href="#i-cube"/></svg></span><span data-t="o.s1"></span></li>
+            <li class="rv" style="--i:3"><span class="ico-wrap c-violet"><svg class="ic"><use href="#i-atom"/></svg></span><span data-t="o.s2"></span></li>
+            <li class="rv" style="--i:4"><span class="ico-wrap c-amber"><svg class="ic"><use href="#i-hand"/></svg></span><span data-t="o.s3"></span></li>
+          </ul>
+          <div class="mol-pick rv" style="--i:5" id="molPick"></div>
+        </div>
+        <div class="org-stage rv" style="--i:2">
+          <canvas id="molCanvas" class="no-nav"></canvas>
+          <div class="mol-label"><b id="molName"></b><span id="molFormula"></span></div>
+          <div class="mol-hint"><svg class="ic"><use href="#i-hand"/></svg><span data-t="o.hint"></span></div>
+        </div>
+      </section>
+
+      <!-- 8 · Таблица Менделеева -->
+      <section class="slide s-periodic" data-id="periodic">
+        <header class="head row">
+          <div>
+            <div class="kicker rv" data-t="t.kicker"></div>
+            <h2 class="title rv" style="--i:1" data-t="t.title"></h2>
+          </div>
+          <p class="lead rv side" style="--i:2" data-t="t.lead"></p>
+        </header>
+        <div class="ptable rv no-nav" style="--i:3" id="ptable">
+          <div class="pcard" id="pcard"></div>
+        </div>
+        <div class="plegend rv" style="--i:4" id="plegend"></div>
+      </section>
+
+      <!-- 9 · ИИ-учитель -->
+      <section class="slide s-teacher" data-id="teacher">
+        <div class="tch-text">
+          <header class="head">
+            <div class="kicker rv" data-t="a.kicker"></div>
+            <h2 class="title rv" style="--i:1" data-t="a.title"></h2>
+          </header>
+          <ul class="feat compact">
+            <li class="rv" style="--i:2"><span class="ico-wrap c-blue"><svg class="ic"><use href="#i-book"/></svg></span><span data-t="a.f1"></span></li>
+            <li class="rv" style="--i:3"><span class="ico-wrap c-teal"><svg class="ic"><use href="#i-calc"/></svg></span><span data-t="a.f2"></span></li>
+            <li class="rv" style="--i:4"><span class="ico-wrap c-violet"><svg class="ic"><use href="#i-mic"/></svg></span><span data-t="a.f3"></span></li>
+            <li class="rv" style="--i:5"><span class="ico-wrap c-amber"><svg class="ic"><use href="#i-camera"/></svg></span><span data-t="a.f4"></span></li>
+            <li class="rv" style="--i:6"><span class="ico-wrap c-rose"><svg class="ic"><use href="#i-speaker"/></svg></span><span data-t="a.f5"></span></li>
+          </ul>
+        </div>
+        <div class="chat rv no-nav" style="--i:2">
+          <div class="chat-head">
+            <span class="avatar"><svg class="ic"><use href="#i-spark"/></svg></span>
+            <div><b data-t="a.name"></b><small><i class="dot"></i><span data-t="a.status"></span></small></div>
+            <button type="button" class="ghost-btn" id="chatReplay" data-tt="a.replay"><svg class="ic"><use href="#i-replay"/></svg></button>
+          </div>
+          <div class="chat-body" id="chatBody"></div>
+        </div>
+      </section>
+
+      <!-- 10 · ИИ-художник -->
+      <section class="slide s-artist" data-id="artist">
+        <header class="head row">
+          <div>
+            <div class="kicker rv" data-t="g.kicker"></div>
+            <h2 class="title rv" style="--i:1" data-t="g.title"></h2>
+          </div>
+          <p class="lead rv side" style="--i:2" data-t="g.lead"></p>
+        </header>
+        <div class="bento">
+          <figure class="tile t-a rv" style="--i:2"><img src="img/ai/classroom.webp" alt="" /><figcaption data-t="g.classroom"></figcaption></figure>
+          <figure class="tile t-b rv" style="--i:3"><img src="img/ai/registan.webp" alt="" /><figcaption data-t="g.registan"></figcaption></figure>
+          <figure class="tile t-c rv" style="--i:4"><img src="img/ai/flask.webp" alt="" /><figcaption data-t="g.flask"></figcaption></figure>
+          <figure class="tile t-d rv" style="--i:5"><img src="img/ai/vr.webp" alt="" /><figcaption data-t="g.vr"></figcaption></figure>
+        </div>
+        <p class="foot rv" style="--i:6"><svg class="ic"><use href="#i-shield"/></svg><span data-t="g.safe"></span><span class="sep">·</span><span class="mono">Z-Image-Turbo · RTX 5080</span></p>
+      </section>
+
+      <!-- 11 · Как устроено -->
+      <section class="slide s-how" data-id="how">
+        <header class="head">
+          <div class="kicker rv" data-t="h.kicker"></div>
+          <h2 class="title rv" style="--i:1" data-t="h.title"></h2>
+        </header>
+        <div class="arch">
+          <div class="arch-top">
+            <div class="node rv" style="--i:2"><span class="ico-wrap c-blue"><svg class="ic"><use href="#i-phone"/></svg></span><div><b data-t="n.student"></b><small data-t="n.studentSub"></small></div></div>
+            <div class="flow rv" style="--i:3"><i></i></div>
+            <div class="node rv" style="--i:3"><span class="ico-wrap c-teal"><svg class="ic"><use href="#i-globe"/></svg></span><div><b data-t="n.site"></b><small class="mono">React 19 · Three.js · WebXR</small></div></div>
+            <div class="flow rv" style="--i:4"><i></i></div>
+            <div class="node accent rv" style="--i:4"><span class="ico-wrap c-violet"><svg class="ic"><use href="#i-check"/></svg></span><div><b data-t="n.answer"></b><small data-t="n.answerSub"></small></div></div>
+          </div>
+          <div class="server rv" style="--i:5">
+            <div class="server-head"><svg class="ic"><use href="#i-server"/></svg><b data-t="n.server"></b><small data-t="n.serverSub"></small></div>
+            <div class="pipe">
+              <div class="step"><svg class="ic"><use href="#i-search"/></svg><b data-t="n.search"></b><small class="mono">bge-m3</small></div>
+              <div class="pipe-arrow"><i></i></div>
+              <div class="step"><svg class="ic"><use href="#i-calc"/></svg><b data-t="n.calc"></b><small data-t="n.calcSub"></small></div>
+              <div class="pipe-arrow"><i></i></div>
+              <div class="step hot"><svg class="ic"><use href="#i-cpu"/></svg><b data-t="n.llm"></b><small class="mono">Gemma 4 · 12B</small></div>
+              <div class="pipe-arrow"><i></i></div>
+              <div class="step"><svg class="ic"><use href="#i-shield"/></svg><b data-t="n.check"></b><small data-t="n.checkSub"></small></div>
+            </div>
+            <div class="mods">
+              <span class="mod"><svg class="ic"><use href="#i-mic"/></svg><b data-t="n.ear"></b><small class="mono">GigaAM · Whisper</small></span>
+              <span class="mod"><svg class="ic"><use href="#i-speaker"/></svg><b data-t="n.voice"></b><small class="mono">Neural TTS</small></span>
+              <span class="mod"><svg class="ic"><use href="#i-eye"/></svg><b data-t="n.eye"></b><small class="mono">Gemma 4 Vision</small></span>
+              <span class="mod"><svg class="ic"><use href="#i-brush"/></svg><b data-t="n.art"></b><small class="mono">Z-Image-Turbo</small></span>
+            </div>
+          </div>
+          <p class="foot rv" style="--i:6"><svg class="ic"><use href="#i-bolt"/></svg><span data-t="h.foot"></span></p>
+          <p class="stack rv mono" style="--i:7">RDKit · Rapier · GSAP · WebXR · Electron · Ollama · ComfyUI · Supabase · GitHub Pages</p>
+        </div>
+      </section>
+
+      <!-- 12 · Учителю -->
+      <section class="slide s-tools" data-id="teacherTools">
+        <div class="tools-text">
+          <header class="head">
+            <div class="kicker rv" data-t="e.kicker"></div>
+            <h2 class="title rv" style="--i:1" data-t="e.title"></h2>
+          </header>
+          <ul class="feat compact">
+            <li class="rv" style="--i:2"><span class="ico-wrap c-blue"><svg class="ic"><use href="#i-plan"/></svg></span><span data-t="e.i1"></span></li>
+            <li class="rv" style="--i:3"><span class="ico-wrap c-teal"><svg class="ic"><use href="#i-test"/></svg></span><span data-t="e.i2"></span></li>
+            <li class="rv" style="--i:4"><span class="ico-wrap c-violet"><svg class="ic"><use href="#i-camera"/></svg></span><span data-t="e.i3"></span></li>
+            <li class="rv" style="--i:5"><span class="ico-wrap c-amber"><svg class="ic"><use href="#i-users"/></svg></span><span data-t="e.i4"></span></li>
+            <li class="rv" style="--i:6"><span class="ico-wrap c-rose"><svg class="ic"><use href="#i-table"/></svg></span><span data-t="e.i5"></span></li>
+          </ul>
+        </div>
+        <figure class="frame tall rv" style="--i:3"><img src="img/ai/classroom.webp" alt="" /></figure>
+      </section>
+
+      <!-- 13 · Сравнение -->
+      <section class="slide s-compare" data-id="compare">
+        <header class="head">
+          <div class="kicker rv" data-t="x.kicker"></div>
+          <h2 class="title rv" style="--i:1" data-t="x.title"></h2>
+        </header>
+        <div class="cmp rv" style="--i:2" id="cmp">
+          <div class="cmp-row cmp-h"><span></span><b class="us">ATOMLAB</b><b data-t="x.c2"></b><b data-t="x.c3"></b><b data-t="x.c4"></b></div>
+          <div class="cmp-row" data-v="y,n,n,y"><span data-t="x.r1"></span></div>
+          <div class="cmp-row" data-v="y,p,n,n"><span data-t="x.r2"></span></div>
+          <div class="cmp-row" data-v="y,n,y,n"><span data-t="x.r3"></span></div>
+          <div class="cmp-row" data-v="y,p,n,n"><span data-t="x.r4"></span></div>
+          <div class="cmp-row" data-v="y,n,n,n"><span data-t="x.r5"></span></div>
+          <div class="cmp-row" data-v="y,n,n,n"><span data-t="x.r6"></span></div>
+        </div>
+        <p class="note rv" style="--i:4" data-t="x.note"></p>
+      </section>
+
+      <!-- 14 · Цифры -->
+      <section class="slide s-numbers" data-id="numbers">
+        <header class="head">
+          <div class="kicker rv" data-t="nm.kicker"></div>
+          <h2 class="title rv" style="--i:1" data-t="nm.title"></h2>
+        </header>
+        <div class="nums">
+          <div class="num rv" style="--i:2"><b class="count" data-to="1443"></b><span data-t="nm.1"></span></div>
+          <div class="num rv" style="--i:2"><b class="count" data-to="448"></b><span data-t="nm.2"></span></div>
+          <div class="num rv" style="--i:3"><b class="count" data-to="200"></b><span data-t="nm.3"></span></div>
+          <div class="num rv" style="--i:3"><b class="count" data-to="329"></b><span data-t="nm.4"></span></div>
+          <div class="num rv" style="--i:4"><b class="count" data-to="535"></b><span data-t="nm.5"></span></div>
+          <div class="num rv" style="--i:4"><b class="count" data-to="118"></b><span data-t="nm.6"></span></div>
+          <div class="num rv" style="--i:5"><b class="count" data-to="15"></b><span data-t="nm.7"></span></div>
+          <div class="num rv" style="--i:5"><b class="count" data-to="201" data-suffix="/201"></b><span data-t="nm.8"></span></div>
+          <div class="num rv" style="--i:6"><b class="count" data-to="4227"></b><span data-t="nm.9"></span></div>
+          <div class="num rv" style="--i:6"><b class="count" data-to="30098"></b><span data-t="nm.10"></span></div>
+          <div class="num rv" style="--i:7"><b class="count" data-to="3"></b><span data-t="nm.11"></span></div>
+          <div class="num rv" style="--i:7"><b class="count" data-to="15"></b><span data-t="nm.12"></span></div>
+        </div>
+      </section>
+
+      <!-- 15 · Дорожная карта -->
+      <section class="slide s-roadmap" data-id="roadmap">
+        <header class="head">
+          <div class="kicker rv" data-t="r.kicker"></div>
+          <h2 class="title rv" style="--i:1" data-t="r.title"></h2>
+        </header>
+        <div class="road">
+          <div class="road-line rv" style="--i:2"><i></i></div>
+          <div class="road-col done rv" style="--i:2"><span class="road-dot"><svg class="ic"><use href="#i-check"/></svg></span><h3 data-t="r.c0"></h3><ul><li data-t="r.c0a"></li><li data-t="r.c0b"></li><li data-t="r.c0c"></li><li data-t="r.c0d"></li></ul></div>
+          <div class="road-col rv" style="--i:3"><span class="road-dot">1</span><h3 data-t="r.c1"></h3><ul><li data-t="r.c1a"></li><li data-t="r.c1b"></li><li data-t="r.c1c"></li></ul></div>
+          <div class="road-col rv" style="--i:4"><span class="road-dot">2</span><h3 data-t="r.c2"></h3><ul><li data-t="r.c2a"></li><li data-t="r.c2b"></li><li data-t="r.c2c"></li></ul></div>
+          <div class="road-col rv" style="--i:5"><span class="road-dot">3</span><h3 data-t="r.c3"></h3><ul><li data-t="r.c3a"></li><li data-t="r.c3b"></li><li data-t="r.c3c"></li></ul></div>
+        </div>
+      </section>
+
+      <!-- 16 · Финал -->
+      <section class="slide s-final" data-id="final">
+        <div class="final-text">
+          <h1 class="logo small rv"><span>ATOM</span><span class="grad">LAB</span></h1>
+          <h2 class="title rv" style="--i:1" data-t="z.title"></h2>
+          <p class="lead rv" style="--i:2" data-t="z.lead"></p>
+          <p class="url rv mono" style="--i:3">sadykoffalan2105-dev.github.io/atomlab</p>
+          <p class="thanks rv grad" style="--i:4" data-t="z.thanks"></p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Управление (вне сцены, прячется через 2,5 с без движения мыши) -->
+  <div id="ui">
+    <div class="ui-top">
+      <span class="badge-off" id="offBadge" hidden><svg class="ic"><use href="#i-wifi"/></svg><span></span></span>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="uz">oʻz</button><button type="button" data-lang="ru">рус</button><button type="button" data-lang="en">eng</button>
+      </div>
+    </div>
+    <div class="ui-bottom">
+      <button type="button" class="ui-btn" id="bPrev" data-tt="ui.prev"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+      <span class="counter" id="counter">1 / 16</span>
+      <button type="button" class="ui-btn" id="bNext" data-tt="ui.next"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+      <span class="ui-sp"></span>
+      <button type="button" class="ui-btn" id="bGrid" data-tt="ui.grid"><svg class="ic"><use href="#i-grid"/></svg></button>
+      <button type="button" class="ui-btn" id="bPres" data-tt="ui.presenter"><svg class="ic"><use href="#i-notes"/></svg></button>
+      <button type="button" class="ui-btn" id="bHelp" data-tt="ui.help"><svg class="ic"><use href="#i-help"/></svg></button>
+      <button type="button" class="ui-btn" id="bFull" data-tt="ui.full"><svg class="ic"><use href="#i-expand"/></svg></button>
+    </div>
+  </div>
+  <div id="progress"><i></i></div>
+
+  <div id="overview" hidden><div class="ov-grid" id="ovGrid"></div></div>
+  <div id="help" hidden>
+    <div class="help-card">
+      <h3 data-t="help.title"></h3>
+      <p data-t="help.nav"></p><p data-t="help.full"></p><p data-t="help.lang"></p><p data-t="help.pres"></p><p data-t="help.touch"></p>
+      <p class="help-off" id="helpOff"></p>
+    </div>
+  </div>
+  <div id="black" hidden></div>
+
+  <!-- Окно докладчика (?presenter) -->
+  <div id="presenter" hidden>
+    <div class="pr-top">
+      <div><small data-t="pres.now"></small><h2 id="prTitle"></h2></div>
+      <div class="pr-clock"><small data-t="pres.timer"></small><b id="prTimer">00:00</b><button type="button" id="prReset" data-t="pres.reset"></button><span id="prClock"></span></div>
+    </div>
+    <div class="pr-notes" id="prNotes"></div>
+    <div class="pr-bottom">
+      <button type="button" class="pr-btn" id="prPrev"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+      <div class="pr-next"><small data-t="pres.next"></small><b id="prNext"></b></div>
+      <span class="pr-count" id="prCount"></span>
+      <button type="button" class="pr-btn primary" id="prNextBtn"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/molecules.js"></script>
+  <script src="js/elements.js"></script>
+  <script src="js/scenes.js"></script>
+  <script src="js/deck.js"></script>
+</body>
+</html>
