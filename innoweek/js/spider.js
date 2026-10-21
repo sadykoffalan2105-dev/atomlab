@@ -1,21 +1,22 @@
-/* ATOMLAB · InnoWeek — «паук»: вся платформа на одном экране.
- * Ядро-атом в центре, 10 лап-веток (5 слева — что видит ученик, 5 справа — ИИ), по 3 факта на ветке.
- * Наведение — подсветка ветки; клик — карточка ветки прямо на схеме (js/spider-app.js). */
+/* ATOMLAB · InnoWeek — «паук»: вся ценность ATOMLAB на одном экране, ничего не нужно нажимать.
+ * Ядро-атом в центре, 10 лап-веток (слева — людям, справа — государству и почему мы лучше), по 3 пункта на ветке.
+ * Наведение мышью только подсвечивает ветку; клик по ядру — заново «прорастить» схему. */
 (function () {
   'use strict';
 
   var NS = 'http://www.w3.org/2000/svg';
+  // слева — что получают люди, справа — государству и почему мы лучше
   var BR = [
-    { id: 'lab', side: -1, row: 0, c: '#fbbf24', icon: 'i-flask', slide: 'lab' },
-    { id: 'form', side: -1, row: 1, c: '#2dd4bf', icon: 'i-atom', slide: 'formation' },
-    { id: 'org', side: -1, row: 2, c: '#a78bfa', icon: 'i-cube', slide: 'organic' },
-    { id: 'pt', side: -1, row: 3, c: '#60a5fa', icon: 'i-grid', slide: 'periodic' },
-    { id: 'book', side: -1, row: 4, c: '#34d399', icon: 'i-book', slide: 'curriculum' },
-    { id: 'ai', side: 1, row: 0, c: '#ec4899', icon: 'i-spark', slide: 'teacher' },
-    { id: 'art', side: 1, row: 1, c: '#fb7185', icon: 'i-brush', slide: 'artist' },
-    { id: 'tools', side: 1, row: 2, c: '#38bdf8', icon: 'i-plan', slide: 'teacherTools' },
-    { id: 'tech', side: 1, row: 3, c: '#c084fc', icon: 'i-cpu', slide: 'how' },
-    { id: 'diff', side: 1, row: 4, c: '#4ade80', icon: 'i-shield', slide: 'compare' },
+    { id: 'why', side: -1, row: 0, c: '#fbbf24', icon: 'i-spark' },
+    { id: 'student', side: -1, row: 1, c: '#2dd4bf', icon: 'i-users' },
+    { id: 'teacher', side: -1, row: 2, c: '#60a5fa', icon: 'i-plan' },
+    { id: 'school', side: -1, row: 3, c: '#a78bfa', icon: 'i-flask' },
+    { id: 'quality', side: -1, row: 4, c: '#34d399', icon: 'i-book' },
+    { id: 'save', side: 1, row: 0, c: '#4ade80', icon: 'i-calc' },
+    { id: 'state', side: 1, row: 1, c: '#38bdf8', icon: 'i-globe' },
+    { id: 'better', side: 1, row: 2, c: '#ec4899', icon: 'i-check' },
+    { id: 'tech', side: 1, row: 3, c: '#c084fc', icon: 'i-cpu' },
+    { id: 'safety', side: 1, row: 4, c: '#fb7185', icon: 'i-shield' },
   ];
   var HUB = { x: 960, y: 529, r: 160 };
   var ROWS = [205, 367, 529, 691, 853];
@@ -116,14 +117,14 @@
 
   /* ---------------------------------------------------------------- лапы: карточки-ветки и факты */
   BR.forEach(function (b, idx) {
-    var n = el('button', 'sp-node' + (b.side < 0 ? ' l' : ' r'), { type: 'button', 'data-b': b.id });
+    var n = el('div', 'sp-node' + (b.side < 0 ? ' l' : ' r'), { 'data-b': b.id });
     box(n, nodeBox(b));
     n.style.setProperty('--c', b.c);
     n.style.setProperty('--d', (0.75 + idx * 0.07).toFixed(2) + 's');
     n.style.setProperty('--fx', b.side * -60 + 'px');
     n.innerHTML = '<span class="ico-wrap" style="--c:' + b.c + '"><svg class="ic"><use href="#' + b.icon + '"/></svg></span>' +
       '<span class="sp-nt"><b data-t="sp.' + b.id + '.t"></b><small data-t="sp.' + b.id + '.m"></small></span>' +
-      '<span class="sp-go"><svg class="ic"><use href="#i-chev-r"/></svg></span>';
+      '';
     stage.appendChild(n);
     for (var k = 0; k < 3; k++) {
       var lf = el('div', 'sp-leaf' + (b.side < 0 ? ' l' : ' r'), { 'data-b': b.id });
@@ -159,12 +160,12 @@
   }).join('');
   stage.appendChild(road);
 
-  var hint = el('div', 'sp-hint');
-  hint.innerHTML = '<svg class="ic"><use href="#i-hand"/></svg><span data-t="sp.hint"></span>';
-  stage.appendChild(hint);
+  var foot = el('div', 'sp-hint');
+  foot.innerHTML = '<span data-t="sp.foot"></span>';
+  stage.appendChild(foot);
 
 
-  /* ---------------------------------------------------------------- подсветка и клики (карточку открывает spider-app.js) */
+  /* ---------------------------------------------------------------- подсветка при наведении (вся информация и так на экране) */
   var clearT = 0, locked = null;
   var parts = Array.prototype.slice.call(stage.querySelectorAll('[data-b]'));
   function hot(id) {
@@ -187,13 +188,7 @@
     if (to && to.getAttribute('data-b') === t.getAttribute('data-b')) return;
     clearT = setTimeout(function () { hot(null); }, 250);
   });
-  stage.addEventListener('click', function (e) {
-    var t = e.target.closest && e.target.closest('.sp-node, .sp-leaf, .sp-hub, .sp-panel');
-    if (!t) { emit('onBackground'); return; }
-    if (t.classList.contains('sp-panel')) return;
-    if (t.classList.contains('sp-hub')) { emit('onHub'); return; }
-    emit('onOpen', t.getAttribute('data-b'));
-  });
+  hub.addEventListener('click', function () { emit('onHub'); });
 
   window.SPIDER = {
     BR: BR,
