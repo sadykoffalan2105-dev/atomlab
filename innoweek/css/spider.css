@@ -119,3 +119,9 @@
   .vc-img img { animation: none; }
   #map.shown .vc-head, #map.shown .vc-info, #map.shown .vc-hero, #map.shown .vc-card, #map.shown .vc-panel, #map.shown .vc-foot { animation: none; opacity: 1; }
 }
+
+/* карточка с видео из ATOMLAB («Как образуется»): шире кадр, метка «Видео» */
+.vc-card.has-video .vc-img { width: 268px; }
+.vc-img video { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; display: block; }
+.vc-vid { position: absolute; left: 8px; top: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: rgba(4, 7, 20, 0.7); border: 1px solid rgba(45, 212, 191, 0.5); }
+.vc-vid i { width: 7px; height: 7px; border-radius: 50%; background: #f43f5e; box-shadow: 0 0 8px #f43f5e; animation: vcpulse 1.4s ease-in-out infinite; }
