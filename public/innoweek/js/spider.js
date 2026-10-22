@@ -8,7 +8,8 @@
     { id: 'lab', c: '#fbbf24', icon: 'i-flask', img: '../img/shots/lab3d.webp' },
     { id: 'vr', c: '#a78bfa', icon: 'i-vr', img: '../img/ai/vr.webp' },
     { id: 'org', c: '#c084fc', icon: 'i-cube', img: '../img/shots/organic.webp' },
-    { id: 'form', c: '#2dd4bf', icon: 'i-atom', img: '../img/shots/reactor.webp' },
+    // видео из ATOMLAB: BaCl₂ + H₂SO₄ → осадок, ионы Ba²⁺ и SO₄²⁻ собираются в кристалл BaSO₄
+    { id: 'form', c: '#2dd4bf', icon: 'i-atom', video: '../img/video/formation.webm', poster: '../img/video/formation-poster.jpg' },
     { id: 'book', c: '#34d399', icon: 'i-book', img: '../img/shots/book.webp' },
     { id: 'pt', c: '#60a5fa', icon: 'i-grid', img: '../img/shots/periodic.webp' },
   ];
@@ -60,8 +61,11 @@
   var grid = el('div', 'vc-grid');
   grid.appendChild(hero);
   CARDS.forEach(function (c, i) {
-    var card = el('article', 'vc-card',
-      '<div class="vc-img"><img src="' + c.img + '" alt="" /></div>' +
+    var media = c.video
+      ? '<video src="' + c.video + '" poster="' + c.poster + '" autoplay muted loop playsinline preload="auto"></video><span class="vc-vid"><i></i><span data-t="sp.video"></span></span>'
+      : '<img src="' + c.img + '" alt="" />';
+    var card = el('article', 'vc-card' + (c.video ? ' has-video' : ''),
+      '<div class="vc-img">' + media + '</div>' +
       '<div class="vc-body">' +
       '<div class="vc-title"><span class="ico-wrap">' + icon(c.icon) + '</span><b data-t="sp.c.' + c.id + '.t"></b></div>' +
       '<div class="vc-metric" data-t="sp.c.' + c.id + '.m"></div>' +

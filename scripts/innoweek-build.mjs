@@ -107,7 +107,7 @@ self.addEventListener('fetch', (event) => {
       if (hit) return hit;
       try {
         const res = await fetch(req);
-        if (res && res.ok && res.type === 'basic') cache.put(req, res.clone());
+        if (res && res.status === 200 && res.type === 'basic') cache.put(req, res.clone()).catch(() => {});
         return res;
       } catch (e) {
         return new Response('', { status: 504, statusText: 'offline' });

@@ -1,6 +1,6 @@
 /* ATOMLAB · InnoWeek — офлайн-режим. Файл собирает scripts/innoweek-build.mjs — не править руками. */
-const VERSION = "innoweek-47de3720d9ee";
-const ASSETS = ["./","spider/","css/deck.css","css/spider.css","img/ai/classroom.webp","img/ai/flask.webp","img/ai/registan.webp","img/ai/vr.webp","img/el/Ag.webp","img/el/As.webp","img/el/B.webp","img/el/Bk.webp","img/el/C.webp","img/el/Ce.webp","img/el/Cf.webp","img/el/Cl.webp","img/el/Cu.webp","img/el/Es.webp","img/el/F.webp","img/el/Fm.webp","img/el/H.webp","img/el/He.webp","img/el/K.webp","img/el/Li.webp","img/el/N.webp","img/el/Nd.webp","img/el/O.webp","img/el/P.webp","img/el/Pm.webp","img/el/Ra.webp","img/el/S.webp","img/el/Sb.webp","img/el/Sn.webp","img/el/Tc.webp","img/el/Xe.webp","img/el/Yb.webp","img/icon-192.png","img/icon-512.png","img/icon.svg","img/shots/book.webp","img/shots/formation.webp","img/shots/home.webp","img/shots/lab3d.webp","img/shots/labtask.webp","img/shots/organic.webp","img/shots/periodic-table.webp","img/shots/periodic.webp","img/shots/reactor.webp","img/shots/teacher.webp","index.html","js/deck.js","js/elements.js","js/i18n.js","js/molecules.js","js/scenes.js","js/spider-app.js","js/spider-i18n.js","js/spider.js","manifest.webmanifest","spider/index.html"];
+const VERSION = "innoweek-cc18ab956ade";
+const ASSETS = ["./","spider/","css/deck.css","css/spider.css","img/ai/classroom.webp","img/ai/flask.webp","img/ai/registan.webp","img/ai/vr.webp","img/el/Ag.webp","img/el/As.webp","img/el/B.webp","img/el/Bk.webp","img/el/C.webp","img/el/Ce.webp","img/el/Cf.webp","img/el/Cl.webp","img/el/Cu.webp","img/el/Es.webp","img/el/F.webp","img/el/Fm.webp","img/el/H.webp","img/el/He.webp","img/el/K.webp","img/el/Li.webp","img/el/N.webp","img/el/Nd.webp","img/el/O.webp","img/el/P.webp","img/el/Pm.webp","img/el/Ra.webp","img/el/S.webp","img/el/Sb.webp","img/el/Sn.webp","img/el/Tc.webp","img/el/Xe.webp","img/el/Yb.webp","img/icon-192.png","img/icon-512.png","img/icon.svg","img/shots/book.webp","img/shots/formation.webp","img/shots/home.webp","img/shots/lab3d.webp","img/shots/labtask.webp","img/shots/organic.webp","img/shots/periodic-table.webp","img/shots/periodic.webp","img/shots/reactor.webp","img/shots/teacher.webp","img/video/formation-poster.jpg","img/video/formation.webm","index.html","js/deck.js","js/elements.js","js/i18n.js","js/molecules.js","js/scenes.js","js/spider-app.js","js/spider-i18n.js","js/spider.js","manifest.webmanifest","spider/index.html"];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
       if (hit) return hit;
       try {
         const res = await fetch(req);
-        if (res && res.ok && res.type === 'basic') cache.put(req, res.clone());
+        if (res && res.status === 200 && res.type === 'basic') cache.put(req, res.clone()).catch(() => {});
         return res;
       } catch (e) {
         return new Response('', { status: 504, statusText: 'offline' });

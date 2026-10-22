@@ -77,6 +77,7 @@
 
       "sp.foot": "* оценка: свой сервер RTX 5080 — электричество и амортизация",
       "sp.back": "Визитка",
+      "sp.video": "Видео из ATOMLAB",
 
       "vc.chat": [
         { "me": ["Как получить водород в лаборатории?"] },
@@ -163,6 +164,7 @@
 
       "sp.foot": "* baho: RTX 5080 li oʻz serverimiz — elektr va amortizatsiya",
       "sp.back": "Vizitka",
+      "sp.video": "ATOMLAB’dan video",
 
       "vc.chat": [
         { "me": ["Laboratoriyada vodorod qanday olinadi?"] },
@@ -249,6 +251,7 @@
 
       "sp.foot": "* estimate: own RTX 5080 server — electricity and depreciation",
       "sp.back": "Card",
+      "sp.video": "Live from ATOMLAB",
 
       "vc.chat": [
         { "me": ["How do you make hydrogen in the lab?"] },
