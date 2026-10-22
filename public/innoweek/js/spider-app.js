@@ -48,7 +48,7 @@
   var chat = SC.teacher;
   function applyLang() {
     document.documentElement.lang = DECK.lang;
-    document.title = 'ATOMLAB — ' + t('sp.back') + ' · InnoWeek';
+    document.title = 'ATOM LAB — ' + t('sp.back') + ' · InnoWeek';
     each('[data-t]', function (el) { el.textContent = t(el.getAttribute('data-t')); });
     SP.lang(DECK.lang);
     if (chat && chat.enter) { try { chat.enter(); } catch (e) { console.warn('chat', e); } }
@@ -118,18 +118,16 @@
   setLang(DECK.lang, false);
   wake();
 
-  // видео: без звука и по кругу; если браузер не запустил его сам — запускаем ещё раз
+  // видео: без звука; опыты идут по очереди (js/spider.js); если браузер не запустил ролик сам — запускаем ещё раз
   function playVideos() {
     Array.prototype.forEach.call(document.querySelectorAll('video'), function (v) {
       v.muted = true;
-      v.loop = true;
-      if (v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+      if (v.paused && !v.ended) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
     });
   }
   playVideos();
   Array.prototype.forEach.call(document.querySelectorAll('video'), function (v) {
     v.addEventListener('canplay', playVideos);
-    v.addEventListener('ended', function () { v.currentTime = 0; playVideos(); });
   });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) playVideos(); });
   setInterval(playVideos, 5000);

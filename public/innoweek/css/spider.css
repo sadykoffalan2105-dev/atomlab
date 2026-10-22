@@ -142,3 +142,10 @@
 .vc-card[data-id="book"] li { font-size: 17.5px; }
 .vc-band .vc-panel { gap: 7px; padding: 12px 22px; }
 .vc-band .vc-panel li { font-size: 18px; line-height: 1.3; }
+
+/* «ATOM LAB» раздельно; подпись реакции и номер ролика на видео */
+.vc-brand .logo { word-spacing: 0.12em; }
+.vc-vnum { margin-left: 4px; padding-left: 8px; border-left: 1px solid rgba(255, 255, 255, 0.25); font-weight: 700; color: var(--teal); }
+.vc-eq { position: absolute; right: 14px; top: 14px; z-index: 2; padding: 6px 14px; border-radius: 12px; font-size: 20px; font-weight: 700;
+  color: #fff; background: rgba(4, 7, 20, 0.72); border: 1px solid rgba(255, 255, 255, 0.16); letter-spacing: 0.01em; }
+.vc-card[data-id="lab"] .vc-img img, .vc-card[data-id="org"] .vc-img img, .vc-card[data-id="book"] .vc-img img { object-position: center; }
