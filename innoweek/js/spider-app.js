@@ -42,7 +42,6 @@
     document.title = 'ATOMLAB — ' + t('sp.back') + ' · InnoWeek';
     each('[data-t]', function (el) { el.textContent = t(el.getAttribute('data-t')); });
     each('[data-tt]', function (el) { var v = t(el.getAttribute('data-tt')); el.title = v; el.setAttribute('aria-label', v); });
-    each('.lang button', function (b) { b.classList.toggle('on', b.getAttribute('data-lang') === DECK.lang); });
     offlineText();
   }
   function setLang(l) {
@@ -51,7 +50,6 @@
     store('atomlab-innoweek-lang', l);
     applyLang();
   }
-  each('.lang button', function (b) { b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); }); });
 
   /* ---------------------------------------------------------------- полный экран, чёрный экран, клавиши */
   var black = $('black');
@@ -61,7 +59,7 @@
     var rq = el.requestFullscreen || el.webkitRequestFullscreen;
     if (rq) { try { var p = rq.call(el); if (p && p.catch) p.catch(function () {}); } catch (e) { /* нет поддержки */ } }
   }
-  $('bFull').addEventListener('click', fullscreen);
+  document.addEventListener('dblclick', fullscreen); // двойной клик — полный экран
   black.addEventListener('click', function () { black.hidden = true; });
 
   document.addEventListener('keydown', function (e) {
@@ -85,13 +83,8 @@
 
   /* ---------------------------------------------------------------- офлайн: тот же service worker, что у слайдов */
   var offState = '';
-  function offlineText() {
-    var b = $('offBadge');
-    if (!offState) { b.hidden = true; return; }
-    b.hidden = false;
-    b.classList.toggle('wait', offState !== 'ready');
-    b.querySelector('span').textContent = offState === 'ready' ? t('ui.offline') : t('ui.caching');
-  }
+  // надпись про офлайн на визитке не показываем (просьба владельца); service worker работает молча
+  function offlineText() {}
   function askSw(reg, tries) {
     var sw = reg.active || reg.waiting || reg.installing;
     if (!sw || typeof MessageChannel === 'undefined') return;
