@@ -9,7 +9,7 @@
     { id: 'vr', c: '#a78bfa', icon: 'i-vr', img: '../img/ai/vr.webp' },
     { id: 'org', c: '#c084fc', icon: 'i-cube', img: '../img/shots/organic.webp' },
     // видео из ATOMLAB: BaCl₂ + H₂SO₄ → осадок, ионы Ba²⁺ и SO₄²⁻ собираются в кристалл BaSO₄
-    { id: 'form', c: '#2dd4bf', icon: 'i-atom', video: '../img/video/formation.webm', poster: '../img/video/formation-poster.jpg' },
+    { id: 'form', c: '#2dd4bf', icon: 'i-atom', video: '../img/clips/formation.webm', poster: '../img/clips/formation-poster.jpg' },
     { id: 'book', c: '#34d399', icon: 'i-book', img: '../img/shots/book.webp' },
     { id: 'pt', c: '#60a5fa', icon: 'i-grid', img: '../img/shots/periodic.webp' },
   ];
