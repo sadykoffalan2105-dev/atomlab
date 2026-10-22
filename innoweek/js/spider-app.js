@@ -1,5 +1,5 @@
-/* ATOMLAB · InnoWeek — страница «паука» (spider/): вся информация стоит на экране, ничего нажимать не нужно.
- * Здесь только масштаб под экран, языки (L или кнопки), полный экран (F), чёрный экран (B) и офлайн-режим. */
+/* ATOMLAB · InnoWeek — страница «паука» (spider/): экран просто стоит, вся информация видна, ничего нажимать не нужно.
+ * Подсветка сама обходит ветки и ленту экранов. Клавиши (по желанию): F — полный экран, L — язык, B — чёрный экран. */
 (function () {
   'use strict';
 
@@ -118,4 +118,20 @@
   applyLang();
   SP.enter();
   wake();
+
+  /* ---------------------------------------------------------------- «живой» экран: подсветка сама бежит по веткам и по ленте экранов */
+  var bi = -1, si = -1, hoverUntil = 0;
+  var shots = Array.prototype.slice.call(document.querySelectorAll('.sp-shot'));
+  $('mapStage').addEventListener('mousemove', function () { hoverUntil = Date.now() + 6000; });
+  setTimeout(function () {
+    setInterval(function () {
+      if (Date.now() < hoverUntil) return;
+      bi = (bi + 1) % SP.BR.length;
+      SP.hot(SP.BR[bi].id);
+    }, 3500);
+    setInterval(function () {
+      si = (si + 1) % shots.length;
+      shots.forEach(function (x, i) { x.classList.toggle('on', i === si); });
+    }, 2800);
+  }, 2600);
 })();
