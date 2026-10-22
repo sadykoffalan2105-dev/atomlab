@@ -14,7 +14,7 @@
       "sp.ai.t": "ИИ-учитель",
       "sp.ai.sub": "Спросите голосом, текстом или фото — ответит по учебнику",
       "sp.ai.live": "Пример диалога",
-      "sp.ai.f1": "Учебник + ссылка на тему",
+      "sp.ai.f1": "Учебник + ссылка на §",
       "sp.ai.f2": "Расчёты верны: 201/201",
       "sp.ai.f3": "Голос: oʻz · рус · eng",
       "sp.ai.f4": "Фото задачи из тетради",
@@ -269,4 +269,80 @@
     window.I18N[l] = window.I18N[l] || {};
     Object.keys(add[l]).forEach(function (k) { window.I18N[l][k] = add[l][k]; });
   });
+})();
+
+/* Факты визитки (22.10, вечер): учебники Kimyo — 4 пункта, панели — по 4 пункта. */
+(function () {
+  var F = {
+  "ru": {
+    "sp.c.book.m": "1 443 из 1 448 реакций — в 3D",
+    "sp.c.book.1": "448 / 448 веществ — у каждого 3D",
+    "sp.c.book.2": "247 тем программы — на карте ИИ",
+    "sp.c.book.3": "Учебник с панелью уравнений",
+    "sp.c.book.4": "Ссылка на § в каждом ответе ИИ",
+    "sp.p.method.1": "Опыт → расчёт → проверка",
+    "sp.p.method.2": "Тест и конспект по пробелам",
+    "sp.p.method.3": "Ответ на уровне своего класса",
+    "sp.p.method.4": "Живой голосовой урок с ИИ",
+    "sp.p.teacher.1": "План урока по теме — за минуту",
+    "sp.p.teacher.2": "Тест с ключами ответов",
+    "sp.p.teacher.3": "Проверка работ по фото",
+    "sp.p.teacher.4": "СОР/СОЧ из eMaktab — в Excel",
+    "sp.p.state.1": "≈ $0,05 на ученика в месяц*",
+    "sp.p.state.2": "Без закупки реактивов и посуды",
+    "sp.p.state.3": "Свой ИИ — без зарубежных API",
+    "sp.p.state.4": "Можно разместить в ЦОД страны",
+    "sp.p.better.1": "ChatGPT не знает учебники Kimyo",
+    "sp.p.better.2": "Лаборатория + учебник + ИИ",
+    "sp.p.better.3": "Числа сверяет калькулятор: 201/201",
+    "sp.p.better.4": "Узбекский, русский, английский"
+  },
+  "uz": {
+    "sp.c.book.m": "1 448 tadan 1 443 reaksiya — 3D’da",
+    "sp.c.book.1": "448 / 448 modda — har biri 3D’da",
+    "sp.c.book.2": "247 dastur mavzusi — SI xaritasida",
+    "sp.c.book.3": "Tenglamalar paneli bilan darslik",
+    "sp.c.book.4": "SI har javobda § ga havola beradi",
+    "sp.p.method.1": "Tajriba → hisob → tekshiruv",
+    "sp.p.method.2": "Test va boʻshliqlar konspekti",
+    "sp.p.method.3": "Oʻz sinfi darajasida javob",
+    "sp.p.method.4": "SI bilan jonli ovozli dars",
+    "sp.p.teacher.1": "Mavzu boʻyicha reja — bir daqiqada",
+    "sp.p.teacher.2": "Javob kalitli test",
+    "sp.p.teacher.3": "Ishlarni foto orqali tekshirish",
+    "sp.p.teacher.4": "eMaktab’dan BSB/ChSB — Excel’da",
+    "sp.p.state.1": "≈ $0,05 / oʻquvchi / oy*",
+    "sp.p.state.2": "Reaktiv va idish sotib olinmaydi",
+    "sp.p.state.3": "Oʻz SI — xorijiy API’larsiz",
+    "sp.p.state.4": "Mamlakat data-markaziga mos",
+    "sp.p.better.1": "ChatGPT Kimyo darsliklarini bilmaydi",
+    "sp.p.better.2": "Laboratoriya + darslik + SI",
+    "sp.p.better.3": "Kalkulyator tekshiradi: 201/201",
+    "sp.p.better.4": "Oʻzbek, rus va ingliz tillarida"
+  },
+  "en": {
+    "sp.c.book.m": "1,443 of 1,448 reactions in 3D",
+    "sp.c.book.1": "448 / 448 substances, each in 3D",
+    "sp.c.book.2": "247 curriculum topics for the AI",
+    "sp.c.book.3": "Textbook with an equations panel",
+    "sp.c.book.4": "Every AI answer cites the §",
+    "sp.p.method.1": "Experiment → math → check",
+    "sp.p.method.2": "Tests and notes on your gaps",
+    "sp.p.method.3": "Answers at your grade level",
+    "sp.p.method.4": "Live voice lesson with the AI",
+    "sp.p.teacher.1": "A lesson plan in a minute",
+    "sp.p.teacher.2": "Tests with answer keys",
+    "sp.p.teacher.3": "Checks work from a photo",
+    "sp.p.teacher.4": "eMaktab reports → Excel",
+    "sp.p.state.1": "≈ $0.05 per student a month*",
+    "sp.p.state.2": "No reagents or glassware to buy",
+    "sp.p.state.3": "Own AI — no foreign APIs",
+    "sp.p.state.4": "Can run in a local data center",
+    "sp.p.better.1": "ChatGPT doesn’t know Kimyo books",
+    "sp.p.better.2": "Lab + textbook + AI together",
+    "sp.p.better.3": "Calculator-checked: 201/201",
+    "sp.p.better.4": "Uzbek, Russian and English"
+  }
+};
+  Object.keys(F).forEach(function (l) { Object.keys(F[l]).forEach(function (k) { window.I18N[l][k] = F[l][k]; }); });
 })();

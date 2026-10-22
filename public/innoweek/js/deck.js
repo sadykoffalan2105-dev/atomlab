@@ -32,11 +32,18 @@
   /* ---------------------------------------------------------------- масштаб сцены 1920×1080 */
   var stage = document.getElementById('stage');
   function rescale() {
-    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    // окно ещё без размера (фоновая вкладка, восстановление сессии в Edge) — не сжимаем сцену в точку, ждём размер
+    var w = window.innerWidth || document.documentElement.clientWidth;
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    if (!w || !h) { requestAnimationFrame(rescale); return; }
+    var s = Math.min(w / 1920, h / 1080);
     DECK.scale = s;
     stage.style.setProperty('--scale', String(s));
   }
   window.addEventListener('resize', rescale);
+  window.addEventListener('pageshow', rescale);
+  document.addEventListener('visibilitychange', rescale);
+  if (typeof ResizeObserver === 'function') new ResizeObserver(rescale).observe(document.documentElement);
   rescale();
 
   /* ---------------------------------------------------------------- картинки: запасной вариант, если файла нет */

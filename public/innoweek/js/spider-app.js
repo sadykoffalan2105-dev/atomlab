@@ -1,11 +1,10 @@
-/* ATOMLAB · InnoWeek — визитка (spider/): экран просто стоит, вся информация видна, ничего нажимать не нужно.
- * Языки сами сменяются по кругу (oʻzbek → русский → English), диалог ИИ-учителя печатается заново на каждом языке,
- * подсветка сама обходит карточки. Клавиши (по желанию): F или двойной клик — полный экран, L — следующий язык, B — чёрный экран. */
+/* ATOMLAB · InnoWeek — визитка (spider/): экран просто стоит, вся информация видна.
+ * Язык выбираем сами — кнопки oʻzbek / русский / English в шапке (или L), выбор запоминается; сам язык не меняется.
+ * Диалог ИИ-учителя печатается на выбранном языке, подсветка сама обходит карточки. F или двойной клик — полный экран. */
 (function () {
   'use strict';
 
   var LANGS = ['uz', 'ru', 'en'];
-  var CYCLE = 32; // секунд на один язык
   var SC = window.SCENES || {};
   var SP = window.SPIDER;
   var params = new URLSearchParams(location.search);
@@ -31,14 +30,21 @@
 
   /* ---------------------------------------------------------------- масштаб: сцена 1920×1080 целиком на любом экране */
   function rescale() {
-    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    // окно ещё без размера (фоновая вкладка, восстановление сессии в Edge) — не сжимаем сцену в точку, ждём размер
+    var w = window.innerWidth || document.documentElement.clientWidth;
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    if (!w || !h) { requestAnimationFrame(rescale); return; }
+    var s = Math.min(w / 1920, h / 1080);
     DECK.scale = s;
     document.documentElement.style.setProperty('--scale', String(s));
   }
   window.addEventListener('resize', rescale);
+  window.addEventListener('pageshow', rescale);
+  document.addEventListener('visibilitychange', rescale);
+  if (typeof ResizeObserver === 'function') new ResizeObserver(rescale).observe(document.documentElement);
   rescale();
 
-  /* ---------------------------------------------------------------- языки: сами по кругу, плавно */
+  /* ---------------------------------------------------------------- языки: выбираем сами (кнопки в шапке или L), выбор запоминается */
   var chat = SC.teacher;
   function applyLang() {
     document.documentElement.lang = DECK.lang;
@@ -46,22 +52,21 @@
     each('[data-t]', function (el) { el.textContent = t(el.getAttribute('data-t')); });
     SP.lang(DECK.lang);
     if (chat && chat.enter) { try { chat.enter(); } catch (e) { console.warn('chat', e); } }
-    var bar = document.querySelector('.vc-lbar');
-    if (bar) { bar.style.setProperty('--cycle', CYCLE + 's'); bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run'); }
   }
-  var map = $('map'), cycleT = 0;
+  var map = $('map');
   function setLang(l, fade) {
     if (LANGS.indexOf(l) < 0) return;
-    clearTimeout(cycleT);
     var go = function () {
       DECK.lang = l;
       store('atomlab-innoweek-lang', l);
       applyLang();
       map.classList.remove('swapping');
-      cycleT = setTimeout(function () { setLang(LANGS[(LANGS.indexOf(DECK.lang) + 1) % LANGS.length], true); }, CYCLE * 1000);
     };
-    if (fade) { map.classList.add('swapping'); setTimeout(go, 380); } else go();
+    if (fade) { map.classList.add('swapping'); setTimeout(go, 300); } else go();
   }
+  each('.vc-langs button', function (b) {
+    b.addEventListener('click', function () { if (b.getAttribute('data-l') !== DECK.lang) setLang(b.getAttribute('data-l'), true); });
+  });
 
   /* ---------------------------------------------------------------- полный экран, чёрный экран, клавиши */
   var black = $('black');

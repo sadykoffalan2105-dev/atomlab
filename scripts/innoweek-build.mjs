@@ -72,21 +72,43 @@ const sw = `/* ATOMLAB · InnoWeek — офлайн-режим. Файл соб�
 const VERSION = ${JSON.stringify(version)};
 const ASSETS = ${JSON.stringify(['./', 'spider/', ...files], null, 0)};
 
+// Ядро (страницы, стили, скрипты, картинки) — при установке; тяжёлое видео — потом, в фоне:
+// иначе на медленном интернете новая версия ждала бы скачивания видео, а Edge показывал старую.
+const LATER = ASSETS.filter((u) => u.startsWith('img/clips/'));
+const CORE = ASSETS.filter((u) => !LATER.includes(u));
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(VERSION).then((cache) =>
-      Promise.all(ASSETS.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => null))),
+      Promise.all(CORE.map((url) => cache.add(new Request(url, { cache: 'reload' })).catch(() => null))),
     ).then(() => self.skipWaiting()),
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('innoweek-') && k !== VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+    (async () => {
+      const keys = await caches.keys();
+      const old = keys.filter((k) => k.startsWith('innoweek-') && k !== VERSION);
+      await Promise.all(old.map((k) => caches.delete(k)));
+      await self.clients.claim();
+      // была старая версия — открытые вкладки (Edge, Chrome, любые) сами перезагружаются на новую
+      if (old.length) {
+        const wins = await self.clients.matchAll({ type: 'window' });
+        for (const w of wins) { try { w.navigate(w.url).catch(() => {}); } catch (e) { /* вкладка закрылась */ } }
+      }
+    })(),
   );
 });
+
+let laterStarted = false;
+function cacheLater() {
+  if (laterStarted) return Promise.resolve();
+  laterStarted = true;
+  return caches.open(VERSION).then((cache) =>
+    Promise.all(LATER.map((u) => cache.match(u).then((hit) => hit || cache.add(new Request(u, { cache: 'reload' })).catch(() => null)))),
+  );
+}
 
 // Страница, стили и скрипты — сначала из сети (всегда свежая и согласованная версия, пока есть интернет),
 // без сети или если сеть молчит дольше 4 с — из сохранённой копии. Картинки и видео — из сохранённой копии.
@@ -115,6 +137,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
   const spider = url.pathname.includes('/spider');
+  if (!laterStarted) event.waitUntil(cacheLater());
   event.respondWith(
     (async () => {
       const cache = await caches.open(VERSION);
