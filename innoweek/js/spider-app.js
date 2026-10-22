@@ -113,7 +113,23 @@
   setLang(DECK.lang, false);
   wake();
 
-  // подсветка сама обходит карточки
+  // видео: без звука и по кругу; если браузер не запустил его сам — запускаем ещё раз
+  function playVideos() {
+    Array.prototype.forEach.call(document.querySelectorAll('video'), function (v) {
+      v.muted = true;
+      v.loop = true;
+      if (v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+    });
+  }
+  playVideos();
+  Array.prototype.forEach.call(document.querySelectorAll('video'), function (v) {
+    v.addEventListener('canplay', playVideos);
+    v.addEventListener('ended', function () { v.currentTime = 0; playVideos(); });
+  });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) playVideos(); });
+  setInterval(playVideos, 5000);
+
+  // подсветка сама обходит карточки (кроме видео)
   var ci = -1;
   setTimeout(function () {
     setInterval(function () {

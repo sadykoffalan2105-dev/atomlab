@@ -120,8 +120,17 @@
   #map.shown .vc-head, #map.shown .vc-info, #map.shown .vc-hero, #map.shown .vc-card, #map.shown .vc-panel, #map.shown .vc-foot { animation: none; opacity: 1; }
 }
 
-/* карточка с видео из ATOMLAB («Как образуется»): шире кадр, метка «Видео» */
-.vc-card.has-video .vc-img { width: 268px; }
-.vc-img video { width: 100%; height: 100%; object-fit: cover; object-position: center 60%; display: block; }
-.vc-vid { position: absolute; left: 8px; top: 8px; z-index: 1; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #fff; background: rgba(4, 7, 20, 0.7); border: 1px solid rgba(45, 212, 191, 0.5); }
-.vc-vid i { width: 7px; height: 7px; border-radius: 50%; background: #f43f5e; box-shadow: 0 0 8px #f43f5e; animation: vcpulse 1.4s ease-in-out infinite; }
+/* большое видео из ATOMLAB в центре («Как образуется»): видео на всю карточку, текст поверх снизу */
+.vc-card.has-video { grid-column: 2; grid-row: 1 / 3; flex-direction: column; }
+.vc-card[data-id="book"] { grid-column: 2; grid-row: 3; }
+.vc-card[data-id="lab"] { grid-column: 3; grid-row: 1; }
+.vc-card[data-id="vr"] { grid-column: 3; grid-row: 2; }
+.vc-card[data-id="org"] { grid-column: 3; grid-row: 3; }
+.vc-card.has-video .vc-img { position: absolute; inset: 0; width: auto; }
+.vc-card.has-video .vc-img::after { top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 62%; background: linear-gradient(transparent, rgba(8, 12, 30, 0.96) 70%); }
+.vc-card.has-video .vc-body { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 14px 22px 16px; justify-content: flex-end; }
+.vc-card.has-video .vc-title b { font-size: 30px; }
+.vc-card.has-video .vc-metric { font-size: 20px; }
+.vc-img video { width: 100%; height: 100%; object-fit: cover; object-position: center 40%; display: block; background: #0b1020; }
+.vc-vid { position: absolute; left: 14px; top: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; font-size: 15px; font-weight: 700; color: #fff; background: rgba(4, 7, 20, 0.72); border: 1px solid rgba(45, 212, 191, 0.55); }
+.vc-vid i { width: 9px; height: 9px; border-radius: 50%; background: #f43f5e; box-shadow: 0 0 8px #f43f5e; animation: vcpulse 1.4s ease-in-out infinite; }
