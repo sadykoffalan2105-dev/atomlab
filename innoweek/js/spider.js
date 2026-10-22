@@ -10,7 +10,7 @@
     { id: 'lab', c: '#fbbf24', icon: 'i-flask', img: '../img/shots/lab3d.webp' },
     { id: 'vr', c: '#a78bfa', icon: 'i-vr', img: '../img/ai/vr.webp' },
     { id: 'org', c: '#c084fc', icon: 'i-cube', img: '../img/shots/organic.webp' },
-    { id: 'book', c: '#34d399', icon: 'i-book', img: '../img/shots/book.webp' },
+    { id: 'book', c: '#34d399', icon: 'i-book', img: '../img/shots/book.webp', n: 4 },
   ];
   var PANELS = [
     { id: 'method', c: '#38bdf8', icon: 'i-test' },
@@ -41,7 +41,8 @@
     [['i1', 'i-users'], ['i2', 'i-phone'], ['i4', 'i-flask']].map(function (x) {
       return '<span class="vc-chip">' + icon(x[1]) + '<span data-t="sp.' + x[0] + '"></span></span>';
     }).join('') +
-    '<span class="vc-langs">' + icon('i-globe') + '<b data-l="uz">oʻzbek</b><b data-l="ru">русский</b><b data-l="en">English</b><i class="vc-lbar"><i></i></i></span>'));
+    '<span class="vc-langs" role="group" aria-label="Til / Язык / Language">' + icon('i-globe') +
+    '<button type="button" data-l="uz">oʻzbek</button><button type="button" data-l="ru">русский</button><button type="button" data-l="en">English</button></span>'));
 
   // большая карточка ИИ-учителя с живым примером диалога
   var hero = el('article', 'vc-hero',
@@ -68,7 +69,7 @@
       '<div class="vc-body">' +
       '<div class="vc-title"><span class="ico-wrap">' + icon(c.icon) + '</span><b data-t="sp.c.' + c.id + '.t"></b></div>' +
       '<div class="vc-metric" data-t="sp.c.' + c.id + '.m"></div>' +
-      '<ul><li data-t="sp.c.' + c.id + '.1"></li><li data-t="sp.c.' + c.id + '.2"></li><li data-t="sp.c.' + c.id + '.3"></li></ul>' +
+      '<ul>' + [1, 2, 3, 4].slice(0, c.n || 3).map(function (k) { return '<li data-t="sp.c.' + c.id + '.' + k + '"></li>'; }).join('') + '</ul>' +
       '</div>');
     card.setAttribute('data-id', c.id);
     card.style.setProperty('--c', c.c);
@@ -83,7 +84,7 @@
   PANELS.forEach(function (p, i) {
     var panel = el('section', 'vc-panel',
       '<div class="vc-ptitle"><span class="ico-wrap">' + icon(p.icon) + '</span><b data-t="sp.p.' + p.id + '.t"></b></div>' +
-      '<ul><li data-t="sp.p.' + p.id + '.1"></li><li data-t="sp.p.' + p.id + '.2"></li><li data-t="sp.p.' + p.id + '.3"></li></ul>');
+      '<ul>' + [1, 2, 3, 4].map(function (k) { return '<li data-t="sp.p.' + p.id + '.' + k + '"></li>'; }).join('') + '</ul>');
     panel.style.setProperty('--c', p.c);
     panel.style.setProperty('--i', String(i + 7));
     panel.querySelector('.ico-wrap').style.setProperty('--c', p.c);
@@ -97,7 +98,7 @@
   window.SPIDER = {
     cards: cards,
     hot: function (i) { cards.forEach(function (c, k) { c.classList.toggle('hot', k === i); }); },
-    lang: function (l) { Array.prototype.forEach.call(stage.querySelectorAll('.vc-langs b'), function (b) { b.classList.toggle('on', b.getAttribute('data-l') === l); }); },
+    lang: function (l) { Array.prototype.forEach.call(stage.querySelectorAll('.vc-langs button'), function (b) { b.classList.toggle('on', b.getAttribute('data-l') === l); }); },
     enter: function () {
       map.classList.remove('shown');
       void map.offsetWidth; // перезапуск анимации появления

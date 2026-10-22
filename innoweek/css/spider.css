@@ -28,8 +28,9 @@
 .vc-chip .ic { font-size: 22px; color: var(--teal); }
 .vc-langs { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 5px 8px 5px 14px; border-radius: 999px; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(167, 139, 250, 0.45); overflow: hidden; }
 .vc-langs > .ic { font-size: 22px; color: var(--violet); margin-right: 6px; }
-.vc-langs b { padding: 4px 12px; border-radius: 999px; font-size: 17px; font-weight: 700; color: var(--mute); transition: background 0.4s, color 0.4s; }
-.vc-langs b.on { background: var(--grad); color: #fff; }
+.vc-langs button { border: 0; background: transparent; cursor: pointer; font: inherit; padding: 4px 12px; border-radius: 999px; font-size: 17px; font-weight: 700; color: var(--mute); transition: background 0.3s, color 0.3s; }
+.vc-langs button:hover:not(.on) { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.vc-langs button.on { background: var(--grad); color: #fff; }
 .vc-lbar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.06); }
 .vc-lbar i { display: block; height: 100%; width: 0; background: var(--grad); }
 .vc-lbar.run i { animation: vcbar var(--cycle, 30s) linear forwards; }
@@ -38,7 +39,7 @@
 /* ---------------------------------------------------------------- бенто-сетка */
 .vc-grid {
   position: absolute; left: 40px; right: 40px; top: 168px; height: 674px;
-  display: grid; grid-template-columns: 610px 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 18px;
+  display: grid; grid-template-columns: 560px 1.42fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 18px;
 }
 
 /* большая карточка ИИ-учителя */
@@ -134,3 +135,10 @@
 .vc-img video { width: 100%; height: 100%; object-fit: cover; object-position: center 40%; display: block; background: #0b1020; }
 .vc-vid { position: absolute; left: 14px; top: 14px; z-index: 2; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; font-size: 15px; font-weight: 700; color: #fff; background: rgba(4, 7, 20, 0.72); border: 1px solid rgba(45, 212, 191, 0.55); }
 .vc-vid i { width: 9px; height: 9px; border-radius: 50%; background: #f43f5e; box-shadow: 0 0 8px #f43f5e; animation: vcpulse 1.4s ease-in-out infinite; }
+
+/* правая колонка уже — картинка в карточке поуже, текст влезает; учебники под видео — во всю ширину */
+.vc-card[data-id="lab"] .vc-img, .vc-card[data-id="vr"] .vc-img, .vc-card[data-id="org"] .vc-img { width: 176px; }
+.vc-card[data-id="book"] .vc-img { width: 300px; }
+.vc-card[data-id="book"] li { font-size: 17.5px; }
+.vc-band .vc-panel { gap: 7px; padding: 12px 22px; }
+.vc-band .vc-panel li { font-size: 18px; line-height: 1.3; }
