@@ -642,16 +642,18 @@
     function play() {
       var id = ++run;
       body.innerHTML = '';
-      var script = (window.I18N[lang()] || window.I18N.ru).chat;
+      var key = window.CHAT_KEY || 'chat'; // визитка (spider/) показывает свой сценарий vc.chat
+      var script = (window.I18N[lang()] || window.I18N.ru)[key] || window.I18N.ru[key];
       var p = wait(500, id);
       script.forEach(function (st) {
         p = p.then(function () {
           if (st.me) {
             var m = el('div', 'msg me');
             if (st.voice) m.appendChild(el('div', 'voice', '<svg class="ic"><use href="#i-mic"/></svg><i></i><i></i><i></i><i></i><i></i>'));
+            if (st.photo) m.appendChild(el('div', 'photo', '<span class="sheet"><i></i><i></i><i></i><i></i></span><svg class="ic"><use href="#i-camera"/></svg>'));
             m.appendChild(el('div', '', esc(st.me.join(' '))));
             body.appendChild(m); scroll();
-            return wait(st.voice ? 1300 : 800, id);
+            return wait(st.voice || st.photo ? 1300 : 800, id);
           }
           var ty = el('div', 'typing', '<i></i><i></i><i></i>');
           body.appendChild(ty); scroll();

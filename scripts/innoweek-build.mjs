@@ -38,6 +38,21 @@ const manifest = {
 }
 fs.writeFileSync(path.join(ROOT, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2) + '\n')
 
+// версия css/js — в ссылках страниц (?v=…), чтобы после обновления браузер не брал старые копии из своего кэша
+function assetHash() {
+  const h = crypto.createHash('sha256')
+  for (const d of ['css', 'js']) {
+    for (const f of fs.readdirSync(path.join(ROOT, d)).sort()) h.update(f).update(fs.readFileSync(path.join(ROOT, d, f)))
+  }
+  return h.digest('hex').slice(0, 10)
+}
+const av = assetHash()
+for (const page of ['index.html', 'spider/index.html']) {
+  const p = path.join(ROOT, page)
+  const html = fs.readFileSync(p, 'utf8').replace(/((?:\.\.\/)?(?:css|js)\/[\w.-]+\.(?:css|js))(\?v=[\w]+)?"/g, `$1?v=${av}"`)
+  fs.writeFileSync(p, html)
+}
+
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
     const p = path.join(dir, d.name)

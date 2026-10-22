@@ -1,9 +1,11 @@
 /* ATOMLAB · InnoWeek — визитка (spider/): экран просто стоит, вся информация видна, ничего нажимать не нужно.
- * Подсветка сама обходит карточки. Клавиши (по желанию): F — полный экран, L — язык, B — чёрный экран. */
+ * Языки сами сменяются по кругу (oʻzbek → русский → English), диалог ИИ-учителя печатается заново на каждом языке,
+ * подсветка сама обходит карточки. Клавиши (по желанию): F или двойной клик — полный экран, L — следующий язык, B — чёрный экран. */
 (function () {
   'use strict';
 
   var LANGS = ['uz', 'ru', 'en'];
+  var CYCLE = 32; // секунд на один язык
   var SC = window.SCENES || {};
   var SP = window.SPIDER;
   var params = new URLSearchParams(location.search);
@@ -15,7 +17,7 @@
   var DECK = (window.DECK = {
     lang: 'ru',
     scale: 1,
-    current: null,
+    current: 'teacher', // демо-чат ИИ-учителя всегда на экране
     t: function (k) {
       var d = window.I18N[DECK.lang] || window.I18N.ru;
       var v = d[k];
@@ -36,19 +38,29 @@
   window.addEventListener('resize', rescale);
   rescale();
 
-  /* ---------------------------------------------------------------- языки */
+  /* ---------------------------------------------------------------- языки: сами по кругу, плавно */
+  var chat = SC.teacher;
   function applyLang() {
     document.documentElement.lang = DECK.lang;
     document.title = 'ATOMLAB — ' + t('sp.back') + ' · InnoWeek';
     each('[data-t]', function (el) { el.textContent = t(el.getAttribute('data-t')); });
-    each('[data-tt]', function (el) { var v = t(el.getAttribute('data-tt')); el.title = v; el.setAttribute('aria-label', v); });
-    offlineText();
+    SP.lang(DECK.lang);
+    if (chat && chat.enter) { try { chat.enter(); } catch (e) { console.warn('chat', e); } }
+    var bar = document.querySelector('.vc-lbar');
+    if (bar) { bar.style.setProperty('--cycle', CYCLE + 's'); bar.classList.remove('run'); void bar.offsetWidth; bar.classList.add('run'); }
   }
-  function setLang(l) {
+  var map = $('map'), cycleT = 0;
+  function setLang(l, fade) {
     if (LANGS.indexOf(l) < 0) return;
-    DECK.lang = l;
-    store('atomlab-innoweek-lang', l);
-    applyLang();
+    clearTimeout(cycleT);
+    var go = function () {
+      DECK.lang = l;
+      store('atomlab-innoweek-lang', l);
+      applyLang();
+      map.classList.remove('swapping');
+      cycleT = setTimeout(function () { setLang(LANGS[(LANGS.indexOf(DECK.lang) + 1) % LANGS.length], true); }, CYCLE * 1000);
+    };
+    if (fade) { map.classList.add('swapping'); setTimeout(go, 380); } else go();
   }
 
   /* ---------------------------------------------------------------- полный экран, чёрный экран, клавиши */
@@ -59,19 +71,17 @@
     var rq = el.requestFullscreen || el.webkitRequestFullscreen;
     if (rq) { try { var p = rq.call(el); if (p && p.catch) p.catch(function () {}); } catch (e) { /* нет поддержки */ } }
   }
-  document.addEventListener('dblclick', fullscreen); // двойной клик — полный экран
+  document.addEventListener('dblclick', fullscreen);
   black.addEventListener('click', function () { black.hidden = true; });
-
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (!black.hidden) { black.hidden = true; e.preventDefault(); return; }
     if (e.code === 'KeyF') fullscreen();
-    else if (e.code === 'KeyL') setLang(LANGS[(LANGS.indexOf(DECK.lang) + 1) % LANGS.length]);
+    else if (e.code === 'KeyL') setLang(LANGS[(LANGS.indexOf(DECK.lang) + 1) % LANGS.length], true);
     else if (e.code === 'KeyB' || e.key === '.') black.hidden = false;
-    else if (e.key === 'Home' || e.key === 'r' || e.key === 'к') SP.enter();
   });
 
-  // курсор и кнопки прячутся, когда мышь не двигается
+  // курсор прячется, когда мышь не двигается
   var idleT = 0;
   function wake() {
     document.body.classList.remove('idle');
@@ -79,39 +89,22 @@
     idleT = setTimeout(function () { document.body.classList.add('idle'); }, 2600);
   }
   window.addEventListener('mousemove', wake);
-  window.addEventListener('touchstart', wake, { passive: true });
 
-  /* ---------------------------------------------------------------- офлайн: тот же service worker, что у слайдов */
-  var offState = '';
-  // надпись про офлайн на визитке не показываем (просьба владельца); service worker работает молча
-  function offlineText() {}
-  function askSw(reg, tries) {
-    var sw = reg.active || reg.waiting || reg.installing;
-    if (!sw || typeof MessageChannel === 'undefined') return;
-    var mc = new MessageChannel();
-    mc.port1.onmessage = function (e) {
-      offState = e.data && e.data.ready ? 'ready' : 'caching';
-      offlineText();
-      if (offState !== 'ready' && tries < 40) setTimeout(function () { askSw(reg, tries + 1); }, 1500);
-    };
-    try { sw.postMessage({ type: 'status' }, [mc.port2]); } catch (e) { /* старый браузер */ }
-  }
+  /* ---------------------------------------------------------------- офлайн: service worker работает молча (без надписей) */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('../sw.js', { scope: '../' }).then(function () {
-        offState = 'caching'; offlineText();
-        return navigator.serviceWorker.ready;
-      }).then(function (reg) { askSw(reg, 0); }).catch(function (e) { console.warn('sw', e); });
+      navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(function (e) { console.warn('sw', e); });
     });
   }
 
   /* ---------------------------------------------------------------- старт */
   if (SC._bg) { try { SC._bg.init(); } catch (e) { console.warn('bg', e); } }
-  applyLang();
+  if (chat && chat.init) { try { chat.init(); } catch (e) { console.warn('chat', e); } }
   SP.enter();
+  setLang(DECK.lang, false);
   wake();
 
-  /* ---------------------------------------------------------------- «живой» экран: подсветка сама обходит карточки */
+  // подсветка сама обходит карточки
   var ci = -1;
   setTimeout(function () {
     setInterval(function () {
