@@ -2,7 +2,9 @@ import { lazy, Suspense } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import { AppBootSplash } from './components/AppBootSplash'
 import { AppShell } from './AppShell'
-import { LaboratoryPage } from './pages/LaboratoryPage'
+// Лаборатория тянет 3D-сцену, three и rapier (≈ 3 МБ) — грузим только когда её открывают,
+// иначе любая страница (урок, учебник) на медленном интернете минуту стоит чёрной.
+const LaboratoryPage = lazy(() => import('./pages/LaboratoryPage').then((m) => ({ default: m.LaboratoryPage })))
 
 const PeriodicTablePage = lazy(() =>
   import('./pages/PeriodicTablePage').then((m) => ({ default: m.PeriodicTablePage })),

@@ -2,8 +2,6 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { IconVrLab } from './components/vrLab/IconVrLab'
 import { DesktopUpdateBadge } from './components/desktop/DesktopUpdateBadge'
-import { compoundById } from './data/compounds'
-import { warmupLabSynthesisInfra } from './lab/labSynthesisWarmup'
 import { prefetchAppRoutes, prefetchRouteForPath } from './lab/prefetchAppRoutes'
 import { useLocale } from './i18n/useLocale'
 import { useT } from './i18n/useT'
@@ -79,6 +77,15 @@ function IconLearn({ className }: IconProps) {
   )
 }
 
+/** Интернет достаточно быстрый, чтобы грузить вкладки «про запас» (Chrome/Edge сообщают оценку скорости). */
+function isFastNetwork(): boolean {
+  const c = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string; downlink?: number } }).connection
+  if (!c) return true
+  if (c.saveData) return false
+  if (c.effectiveType && c.effectiveType !== '4g') return false
+  return typeof c.downlink !== 'number' || c.downlink >= 3
+}
+
 export function AppShell() {
   const { locale, setLocale } = useLocale()
   const { t } = useT()
@@ -97,16 +104,29 @@ export function AppShell() {
   }, [pathname])
 
   useEffect(() => {
-    warmupLabSynthesisInfra(Object.values(compoundById))
-    // Повторно (на случай если boot уже прошёл) — вкладки открываются с первого клика.
+    // Прогрев лаборатории (каталог веществ, WASM, воркеры, 3D-движки): на её странице — сразу,
+    // на остальных — когда открытая страница уже загрузилась и браузер простаивает.
+    const warmLab = () =>
+      void Promise.all([import('./data/compounds'), import('./lab/labSynthesisWarmup')]).then(([c, w]) =>
+        w.warmupLabSynthesisInfra(Object.values(c.compoundById)),
+      )
+    const onLab = window.location.hash === '' || window.location.hash === '#/' || window.location.hash.startsWith('#/?')
+    if (onLab) warmLab()
     let idleId: number | undefined
     let timeoutId: number | undefined
-    if (typeof requestIdleCallback === 'function') {
-      idleId = requestIdleCallback(() => prefetchAppRoutes(), { timeout: 1800 })
-    } else {
-      timeoutId = window.setTimeout(() => prefetchAppRoutes(), 400)
+    const later = () => {
+      // Вкладки «про запас» — только на быстром интернете; на медленном каждая вкладка грузится при наведении/клике
+      const run = () => {
+        if (!onLab && isFastNetwork()) warmLab()
+        if (isFastNetwork()) prefetchAppRoutes()
+      }
+      if (typeof requestIdleCallback === 'function') idleId = requestIdleCallback(run, { timeout: 6000 })
+      else timeoutId = window.setTimeout(run, 2500)
     }
+    if (document.readyState === 'complete') later()
+    else window.addEventListener('load', later, { once: true })
     return () => {
+      window.removeEventListener('load', later)
       if (idleId != null && typeof cancelIdleCallback === 'function') {
         cancelIdleCallback(idleId)
       }

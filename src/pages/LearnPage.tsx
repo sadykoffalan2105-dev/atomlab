@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useMatch, useParams } from 'react-router-dom'
 import { LearnSectionRunner } from '../components/learn/LearnSectionRunner'
 import { legacyTopicRedirect } from '../data/learnLegacyRedirects'
@@ -16,10 +16,7 @@ import {
   type LearnProgressV3,
 } from '../learn/learnProgressStorage'
 import { useT } from '../i18n/useT'
-import { LearnTaskRunner } from './LearnTaskRunner'
 import { LEARN_TASK_CATEGORY_IDS } from '../data/learnTaskCategories'
-import { LearnTasksHub } from './LearnTasksHub'
-import { LearnTextbookReader } from '../components/learn/LearnTextbookReader'
 import { gradeHasTextbook } from '../data/learnTextbookG7'
 import { prefetchLearnSectionHub, prefetchWasmCore } from '../learn/learnHubPrefetch'
 import { GradeGlyph } from '../components/learn/hub/GradeGlyph'
@@ -49,6 +46,12 @@ import {
   stripLeadingArrow,
 } from '../components/learn/hub/hubTone'
 import styles from './LearnHubs.module.css'
+
+// Читалка учебника (с панелью ИИ-учителя внутри) и задачи — по требованию: иначе урок на медленном интернете
+// ждал ещё ≈ 1 МБ (панель ИИ-учителя + база знаний), которые ему при открытии не нужны.
+const LearnTextbookReader = lazy(() => import('../components/learn/LearnTextbookReader').then((m) => ({ default: m.LearnTextbookReader })))
+const LearnTaskRunner = lazy(() => import('./LearnTaskRunner').then((m) => ({ default: m.LearnTaskRunner })))
+const LearnTasksHub = lazy(() => import('./LearnTasksHub').then((m) => ({ default: m.LearnTasksHub })))
 
 function GradesIndex({ progress }: { progress: LearnProgressV3 }) {
   return (

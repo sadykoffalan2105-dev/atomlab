@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { compoundById } from '../data/compounds'
-import { warmupLabBootReady, type BootWarmupProgress } from '../lab/labSynthesisWarmup'
+import type { BootWarmupProgress } from '../lab/labSynthesisWarmup'
 import styles from './AppBootSplash.module.css'
 
 /** Минимум на экране — пользователь видит бренд; параллельно идёт полный прогрев. */
@@ -11,20 +10,33 @@ const MAX_SPLASH_MS = 8000
  * Boot-splash: WASM, three/drei, stress-симуляция K₂Cr₂O₇ (+/- коэфф.), LabScene.
  * Цель — нулевой hitch при первом +/- и Check на тяжёлых уравнениях.
  */
+/** Главная (#/) — лаборатория: только ей нужен прогрев перед первым кадром. */
+function isLabRoute(): boolean {
+  const h = window.location.hash
+  return h === '' || h === '#' || h === '#/' || h.startsWith('#/?')
+}
+
 export function AppBootSplash({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false)
+  // Урок, учебник, каталог и др. открываются сразу: прогрев лаборатории (WASM, 3D-движки, база веществ ≈ 3 МБ)
+  // на медленном интернете минуту держал любую страницу пустой. Заставка с прогревом — только на главной.
+  const [onLab] = useState(isLabRoute)
+  const [ready, setReady] = useState(!onLab)
   const [hint, setHint] = useState('Загрузка лаборатории…')
 
   useEffect(() => {
+    if (!onLab) return
     let cancelled = false
     const started = performance.now()
     const maxTimer = window.setTimeout(() => {
       if (!cancelled) setReady(true)
     }, MAX_SPLASH_MS)
 
-    void warmupLabBootReady(Object.values(compoundById), (p: BootWarmupProgress) => {
-      if (!cancelled) setHint(p.label)
-    })
+    void Promise.all([import('../data/compounds'), import('../lab/labSynthesisWarmup')])
+      .then(([c, w]) =>
+        w.warmupLabBootReady(Object.values(c.compoundById), (p: BootWarmupProgress) => {
+          if (!cancelled) setHint(p.label)
+        }),
+      )
       .catch(() => undefined)
       .finally(() => {
         const elapsed = performance.now() - started
@@ -41,7 +53,7 @@ export function AppBootSplash({ children }: { children: ReactNode }) {
       cancelled = true
       window.clearTimeout(maxTimer)
     }
-  }, [])
+  }, [onLab])
 
   if (!ready) {
     return (

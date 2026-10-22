@@ -6,14 +6,9 @@ import './theme/appTheme.css'
 import App from './App.tsx'
 import { initAppTheme } from './theme/appTheme'
 import { LocaleProvider } from './i18n/LocaleProvider'
-import { prefetchAtomlabWasm } from './wasm/atomlabWasmShared'
-import { warmupLabSynthesisInfra } from './lab/labSynthesisWarmup'
-import { compoundById } from './data/compounds'
 
-/* Тема — до первого кадра, иначе мигнёт чужой фон. */
+/* Тема — до первого кадра, иначе мигнёт чужой фон. Прогрев лаборатории — в AppShell, после показа страницы. */
 initAppTheme()
-prefetchAtomlabWasm()
-warmupLabSynthesisInfra(Object.values(compoundById))
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

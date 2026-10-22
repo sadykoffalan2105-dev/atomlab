@@ -34,6 +34,38 @@
         "public/innoweek"
       ],
       "port": 4890
+    },
+    {
+      "name": "atomlab-dist-check",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--outDir",
+        ".tmp/dist-speed4",
+        "--base",
+        "/atomlab/",
+        "--port",
+        "4896",
+        "--strictPort"
+      ],
+      "port": 4896
+    },
+    {
+      "name": "atomlab-dist-orig",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--outDir",
+        ".tmp/dist-orig",
+        "--base",
+        "/atomlab/",
+        "--port",
+        "4897",
+        "--strictPort"
+      ],
+      "port": 4897
     }
   ]
 }

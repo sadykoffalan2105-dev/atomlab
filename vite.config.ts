@@ -26,16 +26,24 @@ export default defineConfig(({ mode }) => {
         output: {
           codeSplitting: {
             groups: [
+              // React — отдельно и с приоритетом: иначе группы движков (rapier, three) забирают его себе вместе
+              // со своими зависимостями, и любая страница качала ≈ 1,8 МБ движков (gzip) только ради React.
+              {
+                name: 'react-vendor',
+                test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/,
+                priority: 30,
+              },
+              // three и @react-three/* (кроме rapier) — выше физики: иначе группа rapier забирала three себе,
+              // и любая 3D-сцена тянула ещё ≈ 1 МБ физического движка, нужного только VR-лаборатории.
+              { name: 'three-vendor', test: /node_modules[\\/](three|@react-three[\\/](?!rapier))/, priority: 20 },
               {
                 name: 'rapier-vendor',
-                test: /node_modules[\\/](@react-three\/rapier|@dimforge)/,
+                test: /node_modules[\\/](@react-three[\\/]rapier|@dimforge)/,
+                priority: 10,
               },
-              { name: 'three-vendor', test: /node_modules[\\/](three|@react-three)/ },
-              { name: 'learn-3d', test: /LearnPremiumScene|LearnTopicScene/ },
-              {
-                name: 'lab-scene',
-                test: /components[\\/]lab[\\/](LabScene|ReactorTermsPreview|LabProductHeroSlot|SynthesisOnLabScene)/,
-              },
+              // Сцены (learn-3d, lab-scene) отдельными группами не выделяем: группа забирает к себе и общие мелкие
+              // модули, и тогда старт любой страницы тянул 3D-сцену с three и rapier (≈ 3 МБ). Страницы с 3D и так
+              // грузятся по требованию (lazy) — сборщик сам кладёт сцены в их чанки.
               {
                 name: 'compounds-data',
                 test: /data[\\/]compounds/,
