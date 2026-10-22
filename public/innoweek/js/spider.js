@@ -5,13 +5,12 @@
   'use strict';
 
   var CARDS = [
+    // большое видео из ATOMLAB в центре: BaCl₂ + H₂SO₄ → осадок, ионы Ba²⁺ и SO₄²⁻ собираются в кристалл BaSO₄
+    { id: 'form', c: '#2dd4bf', icon: 'i-atom', video: '../img/clips/formation.webm', poster: '../img/clips/formation-poster.jpg' },
     { id: 'lab', c: '#fbbf24', icon: 'i-flask', img: '../img/shots/lab3d.webp' },
     { id: 'vr', c: '#a78bfa', icon: 'i-vr', img: '../img/ai/vr.webp' },
     { id: 'org', c: '#c084fc', icon: 'i-cube', img: '../img/shots/organic.webp' },
-    // видео из ATOMLAB: BaCl₂ + H₂SO₄ → осадок, ионы Ba²⁺ и SO₄²⁻ собираются в кристалл BaSO₄
-    { id: 'form', c: '#2dd4bf', icon: 'i-atom', video: '../img/clips/formation.webm', poster: '../img/clips/formation-poster.jpg' },
     { id: 'book', c: '#34d399', icon: 'i-book', img: '../img/shots/book.webp' },
-    { id: 'pt', c: '#60a5fa', icon: 'i-grid', img: '../img/shots/periodic.webp' },
   ];
   var PANELS = [
     { id: 'method', c: '#38bdf8', icon: 'i-test' },
@@ -71,6 +70,7 @@
       '<div class="vc-metric" data-t="sp.c.' + c.id + '.m"></div>' +
       '<ul><li data-t="sp.c.' + c.id + '.1"></li><li data-t="sp.c.' + c.id + '.2"></li><li data-t="sp.c.' + c.id + '.3"></li></ul>' +
       '</div>');
+    card.setAttribute('data-id', c.id);
     card.style.setProperty('--c', c.c);
     card.style.setProperty('--i', String(i + 1));
     card.querySelector('.ico-wrap').style.setProperty('--c', c.c);

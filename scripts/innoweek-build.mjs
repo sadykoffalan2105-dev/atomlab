@@ -2,9 +2,9 @@
 /**
  * Презентация ATOMLAB для InnoWeek (public/innoweek): слайды (index.html) и «паук» (spider/index.html).
  * Пересобирает офлайн-часть, общую для обеих страниц.
- *   • sw.js — service worker со списком ВСЕХ файлов презентации и версией по хешу содержимого
- *     (после первого открытия с интернетом презентация работает без сети; новая версия скачивается
- *     целиком в фоне и показывается при следующем открытии — открытая страница не перезагружается);
+ *   • sw.js — service worker со списком ВСЕХ файлов презентации и версией по хешу содержимого:
+ *     с интернетом страница/стили/скрипты берутся свежими из сети (никакой смеси старых и новых файлов),
+ *     без интернета — всё из сохранённой копии; картинки и видео — всегда из копии;
  *   • img/icon-192.png, img/icon-512.png — из img/icon.svg (для установки как приложения);
  *   • manifest.webmanifest.
  * Запуск после любой правки файлов презентации:  node scripts/innoweek-build.mjs
@@ -88,20 +88,45 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Страница, стили и скрипты — сначала из сети (всегда свежая и согласованная версия, пока есть интернет),
+// без сети или если сеть молчит дольше 4 с — из сохранённой копии. Картинки и видео — из сохранённой копии.
+const FRESH = /[.](?:html|css|js|json|webmanifest)$/;
+function fromNetwork(req, cache, key) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('slow')), 4000);
+    fetch(req, { cache: 'no-cache' }).then((res) => {
+      clearTimeout(timer);
+      if (res && res.status === 200 && res.type === 'basic') cache.put(key || req, res.clone()).catch(() => {});
+      resolve(res);
+    }, (e) => { clearTimeout(timer); reject(e); });
+  });
+}
+async function fromCache(cache, req, spider) {
+  if (req.mode === 'navigate') {
+    return (await cache.match(req, { ignoreSearch: true })) ||
+      (await cache.match(spider ? 'spider/' : './', { ignoreSearch: true })) ||
+      (await cache.match(spider ? 'spider/index.html' : 'index.html', { ignoreSearch: true }));
+  }
+  return cache.match(req, { ignoreSearch: true });
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  const spider = url.pathname.includes('/spider');
   event.respondWith(
     (async () => {
       const cache = await caches.open(VERSION);
-      if (req.mode === 'navigate') {
-        // две отдельные страницы: слайды (./) и «паук» (spider/)
-        const spider = new URL(req.url).pathname.includes('/spider');
-        const page =
-          (await cache.match(req, { ignoreSearch: true })) ||
-          (await cache.match(spider ? 'spider/' : './', { ignoreSearch: true })) ||
-          (await cache.match(spider ? 'spider/index.html' : 'index.html', { ignoreSearch: true }));
-        if (page) return page;
+      if (req.mode === 'navigate' || FRESH.test(url.pathname)) {
+        // ключ кэша без ?v=… — чтобы копия нашлась и без интернета
+        const key = req.mode === 'navigate' ? undefined : url.origin + url.pathname;
+        try {
+          return await fromNetwork(req, cache, key);
+        } catch (e) {
+          const hit = await fromCache(cache, req, spider);
+          return hit || new Response('', { status: 504, statusText: 'offline' });
+        }
       }
       const hit = await cache.match(req, { ignoreSearch: true });
       if (hit) return hit;
