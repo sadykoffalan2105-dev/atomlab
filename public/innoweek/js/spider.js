@@ -36,6 +36,10 @@
   stage.appendChild(el('header', 'vc-head',
     '<div class="vc-brand"><span class="logo"><span>ATOM</span><span class="grad">LAB</span></span><span class="vc-tag" data-t="sp.tag"></span></div>' +
     '<div class="vc-what"><div class="kicker" data-t="sp.kicker"></div><h1 data-t="sp.sub"></h1></div>'));
+  // строка «для кого / где / языки / проблема → решение»
+  stage.appendChild(el('div', 'vc-info', [['i1', 'i-users'], ['i2', 'i-phone'], ['i3', 'i-globe'], ['i4', 'i-flask']].map(function (x) {
+    return '<span class="vc-chip">' + icon(x[1]) + '<span data-t="sp.' + x[0] + '"></span></span>';
+  }).join('')));
 
   // 8 карточек с фото
   var grid = el('div', 'vc-grid');
@@ -45,7 +49,7 @@
       '<div class="vc-body">' +
       '<div class="vc-title"><span class="ico-wrap">' + icon(c.icon) + '</span><b data-t="sp.c.' + c.id + '.t"></b></div>' +
       '<div class="vc-metric" data-t="sp.c.' + c.id + '.m"></div>' +
-      '<ul><li data-t="sp.c.' + c.id + '.1"></li><li data-t="sp.c.' + c.id + '.2"></li></ul>' +
+      '<ul><li data-t="sp.c.' + c.id + '.1"></li><li data-t="sp.c.' + c.id + '.2"></li><li data-t="sp.c.' + c.id + '.3"></li></ul>' +
       '</div>');
     card.style.setProperty('--c', c.c);
     card.style.setProperty('--i', String(i));
@@ -59,7 +63,7 @@
   PANELS.forEach(function (p, i) {
     var panel = el('section', 'vc-panel',
       '<div class="vc-ptitle"><span class="ico-wrap">' + icon(p.icon) + '</span><b data-t="sp.p.' + p.id + '.t"></b></div>' +
-      '<ul><li data-t="sp.p.' + p.id + '.1"></li><li data-t="sp.p.' + p.id + '.2"></li><li data-t="sp.p.' + p.id + '.3"></li></ul>');
+      '<ul><li data-t="sp.p.' + p.id + '.1"></li><li data-t="sp.p.' + p.id + '.2"></li><li data-t="sp.p.' + p.id + '.3"></li><li data-t="sp.p.' + p.id + '.4"></li></ul>');
     panel.style.setProperty('--c', p.c);
     panel.style.setProperty('--i', String(i + 8));
     panel.querySelector('.ico-wrap').style.setProperty('--c', p.c);

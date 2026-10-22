@@ -197,3 +197,61 @@
     Object.keys(add[l]).forEach(function (k) { window.I18N[l][k] = add[l][k]; });
   });
 })();
+
+/* Дополнительные пункты визитки: строка «для кого / где / языки», третий пункт карточек, четвёртый — панелей. */
+(function () {
+  var X = {
+  "ru": {
+    "sp.i1": "Для кого: ученики 7–11 классов и учителя",
+    "sp.i2": "Где: компьютер и телефон, без установки",
+    "sp.i3": "Языки: oʻzbek · русский · English",
+    "sp.i4": "Нет реактивов? Опыты — в 3D",
+    "sp.c.ai.3": "Разбирает фото задачи из тетради",
+    "sp.c.lab.3": "15 задач — как настоящий опыт",
+    "sp.c.vr.3": "Шкафы, посуда, перчатки",
+    "sp.c.org.3": "Точные связи и углы молекул",
+    "sp.c.form.3": "Электронные облака и энергия",
+    "sp.c.book.3": "Вся программа 7–11 классов",
+    "sp.c.pt.3": "Масса и электроны в карточке",
+    "sp.c.method.3": "Ответ на уровне своего класса",
+    "sp.p.teacher.4": "Классы, задания и прогресс учеников",
+    "sp.p.state.4": "1 сервер ≈ 1–3 тыс. учеников*",
+    "sp.p.better.4": "Числа не выдумывает — сверяет калькулятор"
+  },
+  "uz": {
+    "sp.i1": "Kimga: 7–11-sinf oʻquvchilari va oʻqituvchilar",
+    "sp.i2": "Qayerda: kompyuter va telefon, oʻrnatishsiz",
+    "sp.i3": "Tillar: oʻzbek · rus · ingliz",
+    "sp.i4": "Reaktiv yoʻqmi? Tajriba — 3D’da",
+    "sp.c.ai.3": "Masala fotosini tahlil qiladi",
+    "sp.c.lab.3": "15 ta masala — haqiqiy tajriba",
+    "sp.c.vr.3": "Shkaflar, idishlar, qoʻlqoplar",
+    "sp.c.org.3": "Aniq bogʻlar va burchaklar",
+    "sp.c.form.3": "Elektron bulutlari va energiya",
+    "sp.c.book.3": "7–11-sinf dasturi toʻliq",
+    "sp.c.pt.3": "Massa va elektronlar kartochkada",
+    "sp.c.method.3": "Oʻz sinfi darajasida javob",
+    "sp.p.teacher.4": "Sinflar, topshiriqlar va natijalar",
+    "sp.p.state.4": "1 server ≈ 1–3 ming oʻquvchi*",
+    "sp.p.better.4": "Raqamlarni kalkulyator tekshiradi"
+  },
+  "en": {
+    "sp.i1": "For: grade 7–11 students and teachers",
+    "sp.i2": "Where: any PC or phone, no install",
+    "sp.i3": "Languages: Uzbek · Russian · English",
+    "sp.i4": "No reagents? Experiments in 3D",
+    "sp.c.ai.3": "Reads a photo of a problem",
+    "sp.c.lab.3": "15 problems as real experiments",
+    "sp.c.vr.3": "Cabinets, glassware, gloves",
+    "sp.c.org.3": "Exact bonds and angles",
+    "sp.c.form.3": "Electron clouds and energy",
+    "sp.c.book.3": "The full grade 7–11 course",
+    "sp.c.pt.3": "Mass and electrons on each card",
+    "sp.c.method.3": "Answers at your grade level",
+    "sp.p.teacher.4": "Classes, assignments, progress",
+    "sp.p.state.4": "1 server ≈ 1–3k students*",
+    "sp.p.better.4": "Numbers checked by a calculator"
+  }
+};
+  Object.keys(X).forEach(function (l) { Object.keys(X[l]).forEach(function (k) { window.I18N[l][k] = X[l][k]; }); });
+})();
