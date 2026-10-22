@@ -346,3 +346,31 @@
 };
   Object.keys(F).forEach(function (l) { Object.keys(F[l]).forEach(function (k) { window.I18N[l][k] = F[l][k]; }); });
 })();
+
+/* 22.10 (ночь): «Государству» — без оценок стоимости (просьба владельца), «ATOM LAB» раздельно. */
+(function () {
+  var X = {
+  "ru": {
+    "sp.p.state.1": "Без закупки реактивов и посуды",
+    "sp.p.state.2": "Опасные опыты — только на экране",
+    "sp.p.state.3": "В каждой школе — прямо в браузере",
+    "sp.p.state.4": "Можно разместить в ЦОД страны",
+    "sp.video": "Видео из ATOM LAB"
+  },
+  "uz": {
+    "sp.p.state.1": "Reaktiv va idish sotib olinmaydi",
+    "sp.p.state.2": "Xavfli tajribalar — faqat ekranda",
+    "sp.p.state.3": "Har bir maktabda — brauzerda",
+    "sp.p.state.4": "Mamlakat data-markaziga mos",
+    "sp.video": "ATOM LAB’dan video"
+  },
+  "en": {
+    "sp.p.state.1": "No reagents or glassware to buy",
+    "sp.p.state.2": "Dangerous experiments stay on screen",
+    "sp.p.state.3": "Every school — right in the browser",
+    "sp.p.state.4": "Can run in a local data center",
+    "sp.video": "Live from ATOM LAB"
+  }
+};
+  Object.keys(X).forEach(function (l) { Object.keys(X[l]).forEach(function (k) { window.I18N[l][k] = X[l][k]; }); });
+})();

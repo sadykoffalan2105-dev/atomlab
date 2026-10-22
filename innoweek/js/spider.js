@@ -1,16 +1,20 @@
-/* ATOMLAB · InnoWeek — визитка на один экран (страница spider/): экран просто стоит, посетители смотрят.
- * Современная «бенто»-сетка: слева большая карточка ИИ-учителя с живым примером диалога, справа 6 карточек
- * с настоящими экранами ATOMLAB, внизу 4 панели. Языки (uz / ru / en) сменяются сами — js/spider-app.js. */
+/* ATOM LAB · InnoWeek — визитка на один экран (страница spider/): экран просто стоит, посетители смотрят.
+ * «Бенто»: слева ИИ-учитель с живым примером диалога, в центре — видео опытов из ATOM LAB (два по очереди),
+ * справа и под видео — карточки с крупными кадрами приложения, внизу 4 панели. Язык выбирают кнопками в шапке. */
 (function () {
   'use strict';
 
   var CARDS = [
-    // большое видео из ATOMLAB в центре: BaCl₂ + H₂SO₄ → осадок, ионы Ba²⁺ и SO₄²⁻ собираются в кристалл BaSO₄
-    { id: 'form', c: '#2dd4bf', icon: 'i-atom', video: '../img/clips/formation.webm', poster: '../img/clips/formation-poster.jpg' },
-    { id: 'lab', c: '#fbbf24', icon: 'i-flask', img: '../img/shots/lab3d.webp' },
+    // большое видео в центре — опыты из ATOM LAB по очереди (записи экрана владельца):
+    // BaCl₂ + H₂SO₄ → осадок BaSO₄; 2Na + Cl₂ → кристалл NaCl
+    { id: 'form', c: '#2dd4bf', icon: 'i-atom', videos: [
+      { src: '../img/clips/formation.webm', poster: '../img/clips/formation-poster.jpg', eq: 'BaCl₂ + H₂SO₄ → BaSO₄↓ + 2HCl' },
+      { src: '../img/clips/nacl.webm', poster: '../img/clips/nacl-poster.jpg', eq: '2Na + Cl₂ → 2NaCl' },
+    ] },
+    { id: 'lab', c: '#fbbf24', icon: 'i-flask', img: '../img/cards/lab.webp' },
     { id: 'vr', c: '#a78bfa', icon: 'i-vr', img: '../img/ai/vr.webp' },
-    { id: 'org', c: '#c084fc', icon: 'i-cube', img: '../img/shots/organic.webp' },
-    { id: 'book', c: '#34d399', icon: 'i-book', img: '../img/shots/book.webp', n: 4 },
+    { id: 'org', c: '#c084fc', icon: 'i-cube', img: '../img/cards/organic.webp' },
+    { id: 'book', c: '#34d399', icon: 'i-book', img: '../img/cards/book.webp', n: 4 },
   ];
   var PANELS = [
     { id: 'method', c: '#38bdf8', icon: 'i-test' },
@@ -33,7 +37,7 @@
 
   // шапка: логотип слева, что это — справа
   stage.appendChild(el('header', 'vc-head',
-    '<div class="vc-brand"><span class="logo"><span>ATOM</span><span class="grad">LAB</span></span><span class="vc-tag" data-t="sp.tag"></span></div>' +
+    '<div class="vc-brand"><span class="logo"><span>ATOM</span> <span class="grad">LAB</span></span><span class="vc-tag" data-t="sp.tag"></span></div>' +
     '<div class="vc-what"><div class="kicker" data-t="sp.kicker"></div><h1 data-t="sp.sub"></h1></div>'));
 
   // строка «для кого / где / нет реактивов» + языки (сменяются сами)
@@ -61,10 +65,13 @@
   var grid = el('div', 'vc-grid');
   grid.appendChild(hero);
   CARDS.forEach(function (c, i) {
-    var media = c.video
-      ? '<video src="' + c.video + '" poster="' + c.poster + '" autoplay muted loop playsinline preload="auto"></video><span class="vc-vid"><i></i><span data-t="sp.video"></span></span>'
+    var v0 = c.videos && c.videos[0];
+    var media = v0
+      ? '<video src="' + v0.src + '" poster="' + v0.poster + '" autoplay muted playsinline preload="auto"></video>' +
+        '<span class="vc-vid"><i></i><span data-t="sp.video"></span><b class="vc-vnum">1 / ' + c.videos.length + '</b></span>' +
+        '<span class="vc-eq">' + v0.eq + '</span>'
       : '<img src="' + c.img + '" alt="" />';
-    var card = el('article', 'vc-card' + (c.video ? ' has-video' : ''),
+    var card = el('article', 'vc-card' + (v0 ? ' has-video' : ''),
       '<div class="vc-img">' + media + '</div>' +
       '<div class="vc-body">' +
       '<div class="vc-title"><span class="ico-wrap">' + icon(c.icon) + '</span><b data-t="sp.c.' + c.id + '.t"></b></div>' +
@@ -92,7 +99,24 @@
   });
   stage.appendChild(band);
 
-  stage.appendChild(el('div', 'vc-foot', '<span data-t="sp.foot"></span>'));
+
+  // опыты в центре идут по очереди: закончился ролик — следующий (подпись реакции и номер меняются)
+  CARDS.forEach(function (c) {
+    if (!c.videos) return;
+    var card = stage.querySelector('.vc-card[data-id="' + c.id + '"]');
+    var v = card && card.querySelector('video');
+    if (!v) return;
+    var k = 0;
+    v.addEventListener('ended', function () {
+      k = (k + 1) % c.videos.length;
+      var it = c.videos[k];
+      v.poster = it.poster;
+      v.src = it.src;
+      card.querySelector('.vc-eq').textContent = it.eq;
+      card.querySelector('.vc-vnum').textContent = k + 1 + ' / ' + c.videos.length;
+      var p = v.play(); if (p && p.catch) p.catch(function () {});
+    });
+  });
 
   var cards = Array.prototype.slice.call(stage.querySelectorAll('.vc-card'));
   window.SPIDER = {
