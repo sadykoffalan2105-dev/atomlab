@@ -1,5 +1,5 @@
-/* ATOMLAB · InnoWeek — страница «паука» (spider/): экран просто стоит, вся информация видна, ничего нажимать не нужно.
- * Подсветка сама обходит ветки и ленту экранов. Клавиши (по желанию): F — полный экран, L — язык, B — чёрный экран. */
+/* ATOMLAB · InnoWeek — визитка (spider/): экран просто стоит, вся информация видна, ничего нажимать не нужно.
+ * Подсветка сама обходит карточки. Клавиши (по желанию): F — полный экран, L — язык, B — чёрный экран. */
 (function () {
   'use strict';
 
@@ -63,7 +63,6 @@
   }
   $('bFull').addEventListener('click', fullscreen);
   black.addEventListener('click', function () { black.hidden = true; });
-  SP.onHub = function () { SP.enter(); };
 
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -119,19 +118,12 @@
   SP.enter();
   wake();
 
-  /* ---------------------------------------------------------------- «живой» экран: подсветка сама бежит по веткам и по ленте экранов */
-  var bi = -1, si = -1, hoverUntil = 0;
-  var shots = Array.prototype.slice.call(document.querySelectorAll('.sp-shot'));
-  $('mapStage').addEventListener('mousemove', function () { hoverUntil = Date.now() + 6000; });
+  /* ---------------------------------------------------------------- «живой» экран: подсветка сама обходит карточки */
+  var ci = -1;
   setTimeout(function () {
     setInterval(function () {
-      if (Date.now() < hoverUntil) return;
-      bi = (bi + 1) % SP.BR.length;
-      SP.hot(SP.BR[bi].id);
-    }, 3500);
-    setInterval(function () {
-      si = (si + 1) % shots.length;
-      shots.forEach(function (x, i) { x.classList.toggle('on', i === si); });
-    }, 2800);
-  }, 2600);
+      ci = (ci + 1) % SP.cards.length;
+      SP.hot(ci);
+    }, 3200);
+  }, 1800);
 })();
