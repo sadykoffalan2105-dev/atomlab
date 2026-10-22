@@ -72,10 +72,10 @@ const sw = `/* ATOMLAB · InnoWeek — офлайн-режим. Файл соб�
 const VERSION = ${JSON.stringify(version)};
 const ASSETS = ${JSON.stringify(['./', 'spider/', ...files], null, 0)};
 
-// Ядро (страницы, стили, скрипты, картинки) — при установке; тяжёлое видео — потом, в фоне:
-// иначе на медленном интернете новая версия ждала бы скачивания видео, а Edge показывал старую.
-const LATER = ASSETS.filter((u) => u.startsWith('img/clips/'));
-const CORE = ASSETS.filter((u) => !LATER.includes(u));
+// при установке — только лёгкое ядро (страницы, стили, скрипты, иконки ≈ 150 КБ): новая версия встаёт за секунды
+// даже на медленном интернете; картинки и видео докачиваются в фоне после переключения
+const CORE = ASSETS.filter((u) => u === './' || u === 'spider/' || /[.](?:html|css|js|json|webmanifest|svg)$/.test(u));
+const LATER = ASSETS.filter((u) => !CORE.includes(u));
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
