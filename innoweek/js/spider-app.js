@@ -93,7 +93,16 @@
   /* ---------------------------------------------------------------- офлайн: service worker работает молча (без надписей) */
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(function (e) { console.warn('sw', e); });
+      var hadController = !!navigator.serviceWorker.controller;
+      // вышла новая версия визитки — экран сам перезагружается на неё (на стенде никто не жмёт Ctrl+F5)
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (hadController && !window.__vcReloaded) { window.__vcReloaded = true; location.reload(); }
+        hadController = true;
+      });
+      navigator.serviceWorker.register('../sw.js', { scope: '../' }).then(function (reg) {
+        // экран может стоять весь день — раз в 15 минут проверяем, нет ли новой версии
+        setInterval(function () { reg.update().catch(function () {}); }, 15 * 60 * 1000);
+      }).catch(function (e) { console.warn('sw', e); });
     });
   }
 
