@@ -1,11 +1,14 @@
-/* ATOMLAB · InnoWeek — визитка на один экран (spider/). Сцена 1920×1080 масштабируется под экран (--scale). */
+/* ATOMLAB · InnoWeek — визитка на один экран (spider/). Сцена 1920×1080 масштабируется под экран (--scale).
+ * Бенто: слева большая карточка ИИ-учителя с живым диалогом, справа 6 карточек с фото, внизу 4 панели. */
 
 #map { position: fixed; inset: 0; z-index: 1; }
 #mapStage {
   position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px;
   transform: translate(-50%, -50%) scale(var(--scale));
   transform-origin: 50% 50%;
+  transition: opacity 0.5s ease;
 }
+#map.swapping #mapStage { opacity: 0.12; transition: opacity 0.35s ease; }
 
 /* ---------------------------------------------------------------- шапка */
 .vc-head {
@@ -19,60 +22,100 @@
 .vc-what .kicker { font-size: 19px; letter-spacing: 0.2em; }
 .vc-what h1 { margin: 6px 0 0; font-size: 26px; line-height: 1.2; font-weight: 650; color: var(--text-2); white-space: nowrap; }
 
-/* ---------------------------------------------------------------- 8 карточек с фото */
+/* ---------------------------------------------------------------- строка «для кого / где» + языки */
+.vc-info { position: absolute; left: 40px; right: 40px; top: 114px; display: flex; justify-content: center; align-items: center; gap: 14px; white-space: nowrap; }
+.vc-chip { display: inline-flex; align-items: center; gap: 10px; padding: 7px 18px; border-radius: 999px; font-size: 19px; font-weight: 600; color: var(--text); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line-2); }
+.vc-chip .ic { font-size: 22px; color: var(--teal); }
+.vc-langs { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 5px 8px 5px 14px; border-radius: 999px; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(167, 139, 250, 0.45); overflow: hidden; }
+.vc-langs > .ic { font-size: 22px; color: var(--violet); margin-right: 6px; }
+.vc-langs b { padding: 4px 12px; border-radius: 999px; font-size: 17px; font-weight: 700; color: var(--mute); transition: background 0.4s, color 0.4s; }
+.vc-langs b.on { background: var(--grad); color: #fff; }
+.vc-lbar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.06); }
+.vc-lbar i { display: block; height: 100%; width: 0; background: var(--grad); }
+.vc-lbar.run i { animation: vcbar var(--cycle, 30s) linear forwards; }
+@keyframes vcbar { from { width: 0; } to { width: 100%; } }
+
+/* ---------------------------------------------------------------- бенто-сетка */
 .vc-grid {
-  position: absolute; left: 40px; right: 40px; top: 166px; height: 662px;
-  display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 22px;
+  position: absolute; left: 40px; right: 40px; top: 168px; height: 674px;
+  display: grid; grid-template-columns: 610px 1fr 1fr; grid-template-rows: repeat(3, 1fr); gap: 18px;
 }
+
+/* большая карточка ИИ-учителя */
+.vc-hero {
+  grid-row: 1 / 4; grid-column: 1; position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 0;
+  padding: 20px 22px 18px; border-radius: 28px; overflow: hidden;
+  background: radial-gradient(120% 70% at 0% 0%, rgba(236, 72, 153, 0.22), transparent 60%),
+              radial-gradient(90% 60% at 100% 100%, rgba(139, 92, 246, 0.22), transparent 60%), rgba(12, 18, 44, 0.92);
+  border: 1px solid rgba(236, 72, 153, 0.5);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 30px 80px -30px rgba(236, 72, 153, 0.45);
+}
+.vc-htop { display: flex; align-items: center; gap: 16px; }
+.vc-htop .ico-wrap { width: 64px; height: 64px; font-size: 34px; border-radius: 18px; }
+.vc-htop b { display: block; font-size: 38px; line-height: 1.05; font-weight: 800; letter-spacing: -0.015em; }
+.vc-htop p { margin: 5px 0 0; font-size: 19px; line-height: 1.3; color: var(--text-2); }
+.vc-chatbox { position: relative; flex: 1; min-height: 0; border-radius: 20px; background: rgba(4, 7, 20, 0.55); border: 1px solid var(--line); overflow: hidden; }
+.vc-live { align-self: flex-start; margin: -4px 0 -6px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #fecdd3; background: rgba(236, 72, 153, 0.18); border: 1px solid rgba(236, 72, 153, 0.4); }
+.vc-live i { width: 8px; height: 8px; border-radius: 50%; background: #f43f5e; box-shadow: 0 0 10px #f43f5e; animation: vcpulse 1.4s ease-in-out infinite; }
+@keyframes vcpulse { 50% { opacity: 0.3; } }
+.vc-chatbox .chat-body { position: absolute; inset: 0; padding: 14px 16px 16px; gap: 10px; }
+.vc-chatbox .msg { font-size: 18px; line-height: 1.38; padding: 10px 15px; border-radius: 18px; max-width: 88%; }
+.vc-chatbox .msg .cite, .vc-chatbox .msg .badge { font-size: 14px; padding: 4px 10px; margin-top: 6px; }
+.vc-chatbox .msg .voice { font-size: 14px; margin-bottom: 4px; }
+.vc-chatbox .typing { padding: 12px 16px; }
+.vc-chatbox .typing i { width: 8px; height: 8px; }
+.msg .photo { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.msg .photo .ic { font-size: 20px; }
+.msg .photo .sheet { position: relative; width: 74px; height: 52px; border-radius: 8px; background: #f8fafc; padding: 8px; display: flex; flex-direction: column; gap: 6px; transform: rotate(-4deg); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.msg .photo .sheet i { display: block; height: 3px; border-radius: 2px; background: #94a3b8; }
+.msg .photo .sheet i:nth-child(2) { width: 70%; }
+.msg .photo .sheet i:nth-child(4) { width: 50%; background: #6366f1; }
+.vc-feats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vc-feats > span { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 14px; font-size: 16.5px; font-weight: 600; color: var(--text); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); white-space: nowrap; overflow: hidden; }
+.vc-feats .ic { font-size: 20px; color: #f9a8d4; flex: none; }
+
+/* горизонтальные карточки с фото */
 .vc-card {
-  position: relative; display: flex; flex-direction: column; min-height: 0; overflow: hidden;
-  border-radius: 26px; background: rgba(12, 18, 44, 0.9);
+  position: relative; display: flex; min-height: 0; overflow: hidden; border-radius: 24px;
+  background: rgba(12, 18, 44, 0.9);
   border: 1px solid color-mix(in srgb, var(--c) 38%, transparent);
-  box-shadow: 0 26px 60px -30px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 22px 50px -28px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: box-shadow 0.6s, border-color 0.6s;
 }
-.vc-card.hot {
-  border-color: var(--c);
-  box-shadow: 0 0 0 2px var(--c), 0 0 60px -10px var(--c), 0 26px 60px -30px rgba(0, 0, 0, 0.95);
-}
-.vc-img { position: relative; flex: none; height: 142px; overflow: hidden; background: #0b1020; }
-.vc-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; animation: vckb 16s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -2s); }
-.vc-img::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 50px; background: linear-gradient(transparent, rgba(12, 18, 44, 0.9)); }
-@keyframes vckb { from { transform: scale(1); } to { transform: scale(1.12) translateY(-2%); } }
-.vc-body { flex: 1; display: flex; flex-direction: column; gap: 5px; padding: 8px 20px 12px; min-height: 0; }
-.vc-title { display: flex; align-items: center; gap: 12px; margin-top: -30px; position: relative; z-index: 1; }
-.vc-title .ico-wrap { width: 54px; height: 54px; font-size: 28px; border-radius: 16px; background: color-mix(in srgb, var(--c) 22%, #0c122c); }
-.vc-title b { font-size: 29px; line-height: 1.1; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-top: 22px; }
-.vc-metric { font-size: 21px; font-weight: 750; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vc-card ul, .vc-panel ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.vc-card li, .vc-panel li { position: relative; padding-left: 22px; font-size: 20px; line-height: 1.3; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vc-card li::before, .vc-panel li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.vc-card.hot { border-color: var(--c); box-shadow: 0 0 0 2px var(--c), 0 0 50px -10px var(--c), 0 22px 50px -28px rgba(0, 0, 0, 0.95); }
+.vc-img { position: relative; flex: none; width: 236px; overflow: hidden; background: #0b1020; }
+.vc-img img { width: 100%; height: 100%; object-fit: cover; object-position: center top; animation: vckb 16s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -2.5s); }
+.vc-img::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 40px; background: linear-gradient(90deg, transparent, rgba(12, 18, 44, 0.9)); }
+@keyframes vckb { from { transform: scale(1.02); } to { transform: scale(1.16) translate(-3%, -2%); } }
+.vc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 12px 18px 12px 16px; }
+.vc-title { display: flex; align-items: center; gap: 12px; }
+.vc-title .ico-wrap { width: 42px; height: 42px; font-size: 22px; border-radius: 13px; }
+.vc-title b { font-size: 25px; line-height: 1.1; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; }
+.vc-metric { font-size: 18px; font-weight: 750; color: var(--c); white-space: nowrap; }
+.vc-card ul, .vc-panel ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.vc-card li, .vc-panel li { position: relative; padding-left: 20px; font-size: 18px; line-height: 1.32; color: var(--text); white-space: nowrap; }
+.vc-card li::before, .vc-panel li::before { content: ""; position: absolute; left: 2px; top: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
 
-/* ---------------------------------------------------------------- 3 панели внизу */
-.vc-band { position: absolute; left: 40px; right: 40px; top: 846px; height: 196px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+/* ---------------------------------------------------------------- 4 панели внизу */
+.vc-band { position: absolute; left: 40px; right: 40px; top: 860px; height: 176px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
 .vc-panel {
-  display: flex; flex-direction: column; gap: 8px; padding: 14px 24px; border-radius: 24px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 16%, rgba(12, 18, 44, 0.92)), rgba(12, 18, 44, 0.92) 70%);
+  display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 14px 22px; border-radius: 22px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 18%, rgba(12, 18, 44, 0.92)), rgba(12, 18, 44, 0.92) 70%);
   border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
 }
 .vc-ptitle { display: flex; align-items: center; gap: 12px; }
-.vc-ptitle .ico-wrap { width: 44px; height: 44px; font-size: 24px; border-radius: 14px; }
-.vc-ptitle b { font-size: 27px; font-weight: 800; color: #fff; }
-.vc-panel li { font-size: 20px; }
+.vc-ptitle .ico-wrap { width: 42px; height: 42px; font-size: 22px; border-radius: 13px; }
+.vc-ptitle b { font-size: 25px; font-weight: 800; color: #fff; white-space: nowrap; }
+.vc-panel li { font-size: 18.5px; }
 .vc-foot { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 14px; color: var(--mute); }
 
 /* ---------------------------------------------------------------- появление */
-.vc-head, .vc-info, .vc-card, .vc-panel, .vc-foot { opacity: 0; }
+.vc-head, .vc-info, .vc-hero, .vc-card, .vc-panel, .vc-foot { opacity: 0; }
 #map.shown .vc-head, #map.shown .vc-info, #map.shown .vc-foot { animation: vcin 0.8s var(--ease) both; }
-#map.shown .vc-card, #map.shown .vc-panel { animation: vcin 0.8s var(--ease) both; animation-delay: calc(var(--i) * 70ms + 150ms); }
+#map.shown .vc-hero, #map.shown .vc-card, #map.shown .vc-panel { animation: vcin 0.8s var(--ease) both; animation-delay: calc(var(--i) * 70ms + 150ms); }
 @keyframes vcin { from { opacity: 0; translate: 0 24px; } to { opacity: 1; translate: 0 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .vc-img img { animation: none; }
-  #map.shown .vc-head, #map.shown .vc-info, #map.shown .vc-card, #map.shown .vc-panel, #map.shown .vc-foot { animation: none; opacity: 1; }
+  #map.shown .vc-head, #map.shown .vc-info, #map.shown .vc-hero, #map.shown .vc-card, #map.shown .vc-panel, #map.shown .vc-foot { animation: none; opacity: 1; }
 }
-
-/* ---------------------------------------------------------------- строка «для кого / где / языки» */
-.vc-info { position: absolute; left: 40px; right: 40px; top: 114px; display: flex; justify-content: center; gap: 14px; white-space: nowrap; }
-.vc-chip { display: inline-flex; align-items: center; gap: 10px; padding: 7px 18px; border-radius: 999px; font-size: 19px; font-weight: 600; color: var(--text); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line-2); }
-.vc-chip .ic { font-size: 22px; color: var(--teal); }
