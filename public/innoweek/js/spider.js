@@ -1,22 +1,23 @@
-/* ATOMLAB · InnoWeek — «паук»: вся ценность ATOMLAB на одном экране, ничего не нужно нажимать.
- * Ядро-атом в центре, 10 лап-веток (слева — людям, справа — государству и почему мы лучше), по 3 пункта на ветке.
+/* ATOMLAB · InnoWeek — «паук»: весь ATOMLAB на одном экране, ничего не нужно нажимать (экран просто стоит).
+ * Ядро-атом в центре, 10 лап-веток (слева — технологии будущего, справа — обучение и польза), по 3 пункта;
+ * внизу — лента настоящих экранов ATOMLAB.
  * Наведение мышью только подсвечивает ветку; клик по ядру — заново «прорастить» схему. */
 (function () {
   'use strict';
 
   var NS = 'http://www.w3.org/2000/svg';
-  // слева — что получают люди, справа — государству и почему мы лучше
+  // слева — технологии будущего, справа — обучение и польза
   var BR = [
-    { id: 'why', side: -1, row: 0, c: '#fbbf24', icon: 'i-spark' },
-    { id: 'student', side: -1, row: 1, c: '#2dd4bf', icon: 'i-users' },
-    { id: 'teacher', side: -1, row: 2, c: '#60a5fa', icon: 'i-plan' },
-    { id: 'school', side: -1, row: 3, c: '#a78bfa', icon: 'i-flask' },
-    { id: 'quality', side: -1, row: 4, c: '#34d399', icon: 'i-book' },
-    { id: 'save', side: 1, row: 0, c: '#4ade80', icon: 'i-calc' },
-    { id: 'state', side: 1, row: 1, c: '#38bdf8', icon: 'i-globe' },
-    { id: 'better', side: 1, row: 2, c: '#ec4899', icon: 'i-check' },
-    { id: 'tech', side: 1, row: 3, c: '#c084fc', icon: 'i-cpu' },
-    { id: 'safety', side: 1, row: 4, c: '#fb7185', icon: 'i-shield' },
+    { id: 'ai', side: -1, row: 0, c: '#ec4899', icon: 'i-spark' },
+    { id: 'lab', side: -1, row: 1, c: '#fbbf24', icon: 'i-flask' },
+    { id: 'vr', side: -1, row: 2, c: '#a78bfa', icon: 'i-vr' },
+    { id: 'org', side: -1, row: 3, c: '#c084fc', icon: 'i-cube' },
+    { id: 'form', side: -1, row: 4, c: '#2dd4bf', icon: 'i-atom' },
+    { id: 'book', side: 1, row: 0, c: '#34d399', icon: 'i-book' },
+    { id: 'method', side: 1, row: 1, c: '#38bdf8', icon: 'i-test' },
+    { id: 'teacher', side: 1, row: 2, c: '#60a5fa', icon: 'i-plan' },
+    { id: 'state', side: 1, row: 3, c: '#4ade80', icon: 'i-globe' },
+    { id: 'better', side: 1, row: 4, c: '#fb7185', icon: 'i-check' },
   ];
   var HUB = { x: 960, y: 529, r: 160 };
   var ROWS = [205, 367, 529, 691, 853];
@@ -153,12 +154,13 @@
   }).join('');
   stage.appendChild(prob);
 
-  var road = el('div', 'sp-road');
-  road.innerHTML = '<span class="sp-lab" data-t="sp.road"></span>' + [0, 1, 2, 3].map(function (k) {
-    return (k ? '<svg class="ic sp-arrow"><use href="#i-chev-r"/></svg>' : '') +
-      '<span class="sp-rchip' + (k === 0 ? ' done' : '') + '">' + (k === 0 ? '<svg class="ic"><use href="#i-check"/></svg>' : '') + '<span data-t="sp.r' + k + '"></span></span>';
+  // лента настоящих экранов ATOMLAB (снимки приложения)
+  var SHOTS = [['lab3d', 'lab'], ['reactor', 'reactor'], ['organic', 'org'], ['periodic', 'pt'], ['book', 'book'], ['teacher', 'ai']];
+  var strip = el('div', 'sp-strip');
+  strip.innerHTML = '<span class="sp-lab" data-t="sp.shots"></span>' + SHOTS.map(function (x) {
+    return '<figure class="sp-shot"><img src="../img/shots/' + x[0] + '.webp" alt=""><figcaption data-t="sp.s.' + x[1] + '"></figcaption></figure>';
   }).join('');
-  stage.appendChild(road);
+  stage.appendChild(strip);
 
   var foot = el('div', 'sp-hint');
   foot.innerHTML = '<span data-t="sp.foot"></span>';
