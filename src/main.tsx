@@ -23,5 +23,11 @@ createRoot(document.getElementById('root')!).render(
 if (import.meta.env.PROD && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch(() => {})
+    navigator.serviceWorker.ready
+      .then((reg) => {
+        const urls = performance.getEntriesByType('resource').map((e) => e.name).filter((u) => u.includes('/assets/'))
+        reg.active?.postMessage({ type: 'cache-assets', urls })
+      })
+      .catch(() => {})
   })
 }
