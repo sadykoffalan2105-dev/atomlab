@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import {
   CLASS_ROSTER_CHANGED,
@@ -14,8 +14,6 @@ import {
 } from '../../learn/learnClassRosterStorage'
 import { computeStudentMastery, computeStudentRating } from '../../learn/learnStudentStats'
 import { useT, type MessageKey } from '../../i18n/useT'
-import { LearnStudentTestHub } from './LearnStudentTestHub'
-import { LearnStudentStatsModal } from './LearnStudentStatsModal'
 import { ClassStudentConspectBtn } from './ClassStudentConspectBtn'
 import { LearnSectionToolsCompact } from './LearnSectionToolsCompact'
 import { LearnRosterAvatar, type RosterMasteryLevel } from './LearnRosterAvatar'
@@ -23,6 +21,12 @@ import { LearnSidebarIcon, type LearnSidebarIconName } from './LearnSidebarIcon'
 import { StudioEmptyState } from './studio/StudioKit'
 import kit from './studio/StudioKit.module.css'
 import styles from './LearnLessonSidebar.module.css'
+
+// тесты (банки экзаменационных вопросов) — отдельный кусок, грузится при открытии вкладки «Тест»
+const LearnStudentStatsModal = lazy(() =>
+  import('./LearnStudentStatsModal').then((m) => ({ default: m.LearnStudentStatsModal })),
+)
+const LearnStudentTestHub = lazy(() => import('./LearnStudentTestHub').then((m) => ({ default: m.LearnStudentTestHub })))
 
 type SidebarTab = 'test' | 'class' | 'tools'
 
@@ -178,15 +182,17 @@ export function LearnLessonSidebar({
             aria-labelledby={`${uid}-tab-test`}
             className={styles.pane}
           >
-            <LearnStudentTestHub
-              grade={grade}
-              chapter={chapter}
-              section={section}
-              rosterSectionId={rosterSectionId}
-              compact
-              showMoleculeHint={false}
-              onPickStudent={() => setTab('class')}
-            />
+            <Suspense fallback={null}>
+              <LearnStudentTestHub
+                grade={grade}
+                chapter={chapter}
+                section={section}
+                rosterSectionId={rosterSectionId}
+                compact
+                showMoleculeHint={false}
+                onPickStudent={() => setTab('class')}
+              />
+            </Suspense>
           </div>
         ) : null}
 
@@ -361,20 +367,22 @@ export function LearnLessonSidebar({
       </div>
 
       {statsStudent ? (
-        <LearnStudentStatsModal
-          student={statsStudent}
-          sectionTitle={t(section.titleKey)}
-          rosterSectionId={rosterSectionId}
-          gradeId={grade.id}
-          chapterId={chapter.id}
-          sectionId={section.id}
-          className={roster.className}
-          onClose={() => setStatsStudentId(null)}
-          onSelect={() => {
-            setActiveStudent(rosterSectionId, statsStudent.id)
-            setStatsStudentId(null)
-          }}
-        />
+        <Suspense fallback={null}>
+          <LearnStudentStatsModal
+            student={statsStudent}
+            sectionTitle={t(section.titleKey)}
+            rosterSectionId={rosterSectionId}
+            gradeId={grade.id}
+            chapterId={chapter.id}
+            sectionId={section.id}
+            className={roster.className}
+            onClose={() => setStatsStudentId(null)}
+            onSelect={() => {
+              setActiveStudent(rosterSectionId, statsStudent.id)
+              setStatsStudentId(null)
+            }}
+          />
+        </Suspense>
       ) : null}
     </aside>
   )

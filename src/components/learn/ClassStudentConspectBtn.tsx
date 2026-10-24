@@ -1,7 +1,6 @@
 import type { MouseEvent } from 'react'
 import { useT } from '../../i18n/useT'
 import type { ClassStudent } from '../../learn/learnClassRosterStorage'
-import { issueStudentGapConspect } from '../../learn/learnStudentGapConspect'
 import rosterStyles from './LearnClassRosterPanel.module.css'
 import sidebarStyles from './LearnLessonSidebar.module.css'
 
@@ -33,7 +32,9 @@ export function ClassStudentConspectBtn({
 
   const onClick = (e: MouseEvent) => {
     e.stopPropagation()
-    issueStudentGapConspect({
+    // модуль конспекта тянет банки вопросов — грузим только по нажатию, а не вместе с уроком
+    void import('../../learn/learnStudentGapConspect').then(({ issueStudentGapConspect }) => {
+      issueStudentGapConspect({
       student,
       sectionTitle,
       locale,
@@ -41,9 +42,10 @@ export function ClassStudentConspectBtn({
       chapterId,
       sectionId,
       className,
-      rosterSectionId,
+        rosterSectionId,
+      })
+      onIssued?.()
     })
-    onIssued?.()
   }
 
   return (

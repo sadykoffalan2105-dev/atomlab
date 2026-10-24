@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react'
-import { LabTaskButton, labTasksForCategory } from './LabTasksSection'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useT, type MessageKey } from '../../i18n/useT'
 import { generateTaskProblem, answersClose, type LearnTaskGenerated } from '../../learn/learnTaskProblems'
 import { readWorkspaceDraft, writeWorkspaceDraft } from '../../learn/learnProgressStorage'
@@ -7,6 +6,11 @@ import { LearnBoardPad, type BoardSaveState } from './LearnBoardPad'
 import { LearnShellIcon } from './LearnShellIcon'
 import kit from './studio/StudioKit.module.css'
 import styles from '../../pages/LearnPage.module.css'
+
+// задачи-опыты (≈400 КБ данных) — отдельным куском, урок открывается без них
+const LabTaskCategoryButton = lazy(() =>
+  import('./LabTasksSection').then((m) => ({ default: m.LabTaskCategoryButton })),
+)
 
 function parseLocaleNumber(raw: string): number | null {
   const t = raw.trim().replace(',', '.')
@@ -27,10 +31,7 @@ export function LearnWorkspace({
   presentationMode?: boolean
 }) {
   const { t } = useT()
-  const labTaskIds = useMemo(() => {
-    const g = Number(/(?:^|[^0-9])(7|8|9)(?:[^0-9]|$)/.exec(sectionPathId)?.[1] ?? 0)
-    return taskCategoryId ? labTasksForCategory(taskCategoryId, g || undefined).map((x) => x.id) : []
-  }, [sectionPathId, taskCategoryId])
+  const labTaskGrade = Number(/(?:^|[^0-9])(7|8|9)(?:[^0-9]|$)/.exec(sectionPathId)?.[1] ?? 0) || undefined
   const [scratch, setScratch] = useState(() => readWorkspaceDraft(sectionPathId))
   const [problem, setProblem] = useState<LearnTaskGenerated | null>(null)
   const [userText, setUserText] = useState('')
@@ -162,7 +163,11 @@ export function LearnWorkspace({
                   <span>{t('learn.task.newTask')}</span>
                 </button>
                 {/* похожая задача учебника — как настоящий опыт в 3D-лаборатории (сначала своего класса) */}
-                <LabTaskButton taskIds={labTaskIds} />
+                {taskCategoryId ? (
+                  <Suspense fallback={null}>
+                    <LabTaskCategoryButton categoryId={taskCategoryId} grade={labTaskGrade} />
+                  </Suspense>
+                ) : null}
               </div>
             </>
           ) : problem.kind === 'mcq' ? (

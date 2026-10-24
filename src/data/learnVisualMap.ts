@@ -1,5 +1,12 @@
 import { compoundById } from './compounds'
-import { isCatalogRenderable } from '../lab/synthesisGuarantee'
+import type { CompoundDef } from '../types/chemistry'
+// напрямую, а не из lab/synthesisGuarantee: тот тянет three.js и реактор, а это карта нужна уроку при открытии
+import { getMolecularGeometryOrNull } from '../chemistry/catalogGeometryOverrides'
+
+function isCatalogRenderable(compound: CompoundDef): boolean {
+  if (getMolecularGeometryOrNull(compound.id)) return true
+  return Array.isArray(compound.atoms) && compound.atoms.length > 0
+}
 
 /** Маппинг § → visualId (каталожные модели и ключевые темы). */
 export const LEARN_SECTION_VISUAL_MAP: Readonly<Record<string, string>> = {

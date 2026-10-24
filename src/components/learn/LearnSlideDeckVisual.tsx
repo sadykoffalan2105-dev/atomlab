@@ -1,8 +1,13 @@
+import { lazy, Suspense } from 'react'
 import type { LearnSlide } from '../../types/learn'
 import { hasCyberDashboard } from '../../learn/learnCyberDashboard'
-import { LearnCyberDashboard } from './topicScenes/LearnCyberDashboard'
 import { useT } from '../../i18n/useT'
 import styles from '../../pages/LearnPage.module.css'
+
+// 3D-сцена урока грузится отдельно — сам урок (текст) открывается сразу, не дожидаясь движка three.js
+const LearnCyberDashboard = lazy(() =>
+  import('./topicScenes/LearnCyberDashboard').then((m) => ({ default: m.LearnCyberDashboard })),
+)
 
 function resolveCyberSceneId(
   visualId: string | undefined,
@@ -48,7 +53,9 @@ export function LearnSlideDeckVisual({
     >
       {/* Шапку рисует сам хаб (заголовок + подсказка) — второй HUD убран, чтобы не дублировать. */}
       <div className={styles.learnVisualStage}>
-        <LearnCyberDashboard sceneId={cyberSceneId} presentationMode={presentationMode} />
+        <Suspense fallback={null}>
+          <LearnCyberDashboard sceneId={cyberSceneId} presentationMode={presentationMode} />
+        </Suspense>
       </div>
       <div className={styles.learnVisualGlow} aria-hidden />
       <div className={styles.learnVisualScanline} aria-hidden />

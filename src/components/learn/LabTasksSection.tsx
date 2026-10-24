@@ -154,3 +154,9 @@ export function LabTaskButton({ taskIds, className }: { taskIds: readonly LabTas
     </span>
   )
 }
+
+/** Кнопка по категории задач урока — грузится отдельно (данные всех задач-опытов большие). */
+export function LabTaskCategoryButton({ categoryId, grade }: { categoryId: string; grade?: number }) {
+  const ids = useMemo(() => labTasksForCategory(categoryId, grade).map((x) => x.id), [categoryId, grade])
+  return <LabTaskButton taskIds={ids} />
+}

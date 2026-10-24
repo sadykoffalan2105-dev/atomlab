@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import type { LearnChapter, LearnGrade, LearnSection } from '../../types/learn'
 import {
@@ -5,10 +6,12 @@ import {
   getSectionEquations,
 } from '../../data/learnSectionEquations'
 import { useT } from '../../i18n/useT'
-import { LearnTopicQuizCard } from './LearnTopicQuizCard'
 import { LearnSidebarIcon } from './LearnSidebarIcon'
 import kit from './studio/StudioKit.module.css'
 import styles from './LearnSectionToolsCompact.module.css'
+
+// викторина тянет банк вопросов всех тем (~0,3 МБ) — подгружается после текста урока
+const LearnTopicQuizCard = lazy(() => import('./LearnTopicQuizCard').then((m) => ({ default: m.LearnTopicQuizCard })))
 
 type Props = {
   grade: LearnGrade
@@ -60,7 +63,9 @@ export function LearnSectionToolsCompact({ grade, chapter, section, fromBook }: 
           </span>
         </header>
         <div className={styles.quizWrap}>
-          <LearnTopicQuizCard grade={grade} chapter={chapter} section={section} autoReveal={fromBook} />
+          <Suspense fallback={null}>
+            <LearnTopicQuizCard grade={grade} chapter={chapter} section={section} autoReveal={fromBook} />
+          </Suspense>
         </div>
       </section>
 
