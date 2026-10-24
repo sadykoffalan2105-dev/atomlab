@@ -1,1 +1,0 @@
-import{m as e}from"./react-vendor-a4q8X3V1.js";var t=null,n=null;function r(){return t?Promise.resolve(t):(n??=e(()=>import(`./molecules-nEwyz0QG.js`).then(e=>(t=e.default,t)),[]),n)}function i(e){return t?.[e]}export{i as n,r as t};

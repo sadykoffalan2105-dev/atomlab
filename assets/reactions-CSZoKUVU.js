@@ -1,0 +1,1 @@
+import{m as e}from"./react-vendor-a4q8X3V1.js";var t=null;function n(){return t??=e(()=>import(`./reactions-DjKNEE8U.js`).then(e=>e.default),[]).catch(e=>{throw t=null,e}),t}export{n as loadOrganicV2Reactions};

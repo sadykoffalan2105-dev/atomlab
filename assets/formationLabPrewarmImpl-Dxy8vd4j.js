@@ -1,0 +1,1 @@
+import{t as e}from"./compounds-data-LQucJwjh.js";import{L as t,a as n,z as r}from"./formationStory-Dq2DGCx-.js";import{a as i}from"./FormationPhaseScene-CtewNS8g.js";import{n as a,r as o}from"./FormationHud-Cd7EzU6L.js";function s(s,c){let l=e[s];if(!l)return;let u=n(s),d=t(s),f=r(l);!u||!d||!f||(i(u,f,c),a(u,d,o()))}export{s as prewarmFormationCpu};

@@ -1,0 +1,1 @@
+function e(e){return e===`en`?`en`:e===`uz`?`uz`:`ru`}export{e as t};

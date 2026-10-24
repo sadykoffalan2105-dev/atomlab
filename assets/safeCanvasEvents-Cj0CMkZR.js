@@ -1,1 +1,0 @@
-import{X as e}from"./three-vendor-D06DcYSn.js";var t=t=>{let n=e(t),r=n.connect;return{...n,connect:e=>{e&&r?.(e)}}};export{t};

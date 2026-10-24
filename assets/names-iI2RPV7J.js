@@ -1,0 +1,1 @@
+import{n as e}from"./organicMoleculeRegistry-D3KmJB4r.js";import{b as t}from"./registry-Cy1wsL6R.js";function n(n,r){let i=e[n.id];return i?r===`en`?i.nameEn:r===`uz`?i.nameUz:i.nameRu:t(n.formula)}export{n as t};
