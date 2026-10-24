@@ -50,6 +50,23 @@ async function pageNetworkFirst(req) {
   return Promise.race([net, new Promise((r) => setTimeout(() => r(hit), 3500))]).catch(() => hit)
 }
 
+// первый заход прошёл до запуска кэша — страница присылает список уже скачанных файлов,
+// они берутся из памяти браузера (без повторной загрузки) и сохраняются: быстрым будет уже второй заход
+self.addEventListener('message', (e) => {
+  const d = e.data
+  if (!d || d.type !== 'cache-assets' || !Array.isArray(d.urls)) return
+  const urls = d.urls.filter((u) => typeof u === 'string' && new URL(u, location.href).pathname.startsWith(scopePath + 'assets/'))
+  e.waitUntil(
+    caches.open(ASSETS).then((c) =>
+      Promise.all(
+        urls.map((u) =>
+          c.match(u).then((hit) => hit || fetch(u).then((res) => (res.ok && res.status === 200 ? c.put(u, res) : null))).catch(() => null),
+        ),
+      ),
+    ),
+  )
+})
+
 self.addEventListener('fetch', (e) => {
   const req = e.request
   if (req.method !== 'GET' || req.headers.has('range')) return
