@@ -1,1 +1,0 @@
-import"./rolldown-runtime-BM3Ffeng.js";import{t as e,v as t}from"./react-vendor-a4q8X3V1.js";import"./index-RHgzo-fc.js";import{t as n}from"./publicAssetUrl-D24rczXS.js";t(),e();function r(e){let t=new Image;t.decoding=`async`,t.src=e.startsWith(`http`)?e:n(e)}export{r as t};
