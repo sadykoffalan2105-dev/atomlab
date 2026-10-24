@@ -17,3 +17,11 @@ createRoot(document.getElementById('root')!).render(
     </LocaleProvider>
   </StrictMode>,
 )
+
+/* Свой кэш сайта (public/sw.js): GitHub Pages даёт хранить файлы лишь 10 минут — на медленном интернете
+ * каждый заход ждал мегабайты заново. Только в собранном сайте по http(s); в разработке и в приложении — нет. */
+if (import.meta.env.PROD && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch(() => {})
+  })
+}
